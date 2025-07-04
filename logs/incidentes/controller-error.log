@@ -1,0 +1,208 @@
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vsbsjizbdnndndnndndnndjxjbdbnkdjdnndndkkdndndnndnejd',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:27:39'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vsbsjizbdnndndnndndnndjxjbdbnkdjdnndndkkdndndnndnejd',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:29:05'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vsbsjizbdnndndnndndnndjxjbdbnkdjdnndndkkdndndnndnejdbbg',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:29:24'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Zhrvecevdrrjryryehdheyrhrhrhrhrhrvrbfbdvdbfbrbfbfbt',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:30:17'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:31:30'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:33:07'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:34:33'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:35:13'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:36:05'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: '28',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:529:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:36:27'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vsbsjjzjd bd sjjsjsjjdjdjd djisjsjdjkdkd jdjdjejjd jdjdjejjdjdjkd idijendb',
+    movimientoId: '49',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:700:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 19:33:39'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vsbsjjzjd bd sjjsjsjjdjdjd djisjsjdjkdkd jdjdjejjd jdjdjejjdjdjkd idijendb',
+    movimientoId: '49',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:700:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 19:43:14'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  body: [Object: null prototype] {
+    descripcion: 'Vsbsjjzjd bd sjjsjsjjdjdjd djisjsjdjkdkd jdjdjejjd jdjdjejjdjdjkd idijendb',
+    movimientoId: '49',
+    usuarioId: '5'
+  },
+  error: Error: Error al crear incidente
+      at IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:700:19)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 19:47:57'
+}

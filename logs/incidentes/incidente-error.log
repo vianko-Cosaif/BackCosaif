@@ -1,0 +1,671 @@
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:27:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vsbsjizbdnndndnndndnndjxjbdbnkdjdnndndkkdndndnndnejd',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1766211 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:27:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:29:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vsbsjizbdnndndnndndnndjxjbdbnkdjdnndndkkdndndnndnejd',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1766211 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:29:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:29:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vsbsjizbdnndndnndndnndjxjbdbnkdjdnndndkkdndndnndnejdbbg',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1766211 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:29:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:30:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Zhrvecevdrrjryryehdheyrhrhrhrhrhrvrbfbdvdbfbrbfbfbt',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 326824 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:30:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:31:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1277599 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:31:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:33:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1277599 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:33:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:34:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1277599 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:34:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:35:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1277599 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:35:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:36:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1277599 more bytes>,
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 2885033 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:36:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 2,
+  localidadId: 1,
+  movimientoId: 28,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:36
+  
+    282     });
+    283 }
+    284 // Crear el nuevo registro de ronda para el movimiento
+  → 285 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:285:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:251:13)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 17:36:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vzjzjjz xbxbhjjsjsjsjjdjebjdjidjejejdujbejsjhebejbsb',
+    movimientoId: 28,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 1277599 more bytes>,
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 2885033 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:315:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:514:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 17:36:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 3,
+  localidadId: 1,
+  movimientoId: 49,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:313:32
+  
+    310     });
+    311 }
+    312 // Crear el nuevo registro de ronda para el movimiento
+  → 313 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:313:17
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasAltaOriginal (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:279:9)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:256:17)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:685:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 19:33:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vsbsjjzjd bd sjjsjsjjdjdjd djisjsjdjkdkd jdjdjejjd jdjdjejjdjdjkd idijendb',
+    movimientoId: 49,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 2679215 more bytes>,
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 5668232 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:267:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:685:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 19:33:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 3,
+  localidadId: 1,
+  movimientoId: 49,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:313:32
+  
+    310     });
+    311 }
+    312 // Crear el nuevo registro de ronda para el movimiento
+  → 313 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:313:17
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasAltaOriginal (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:279:9)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:256:17)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:685:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 19:42:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vsbsjjzjd bd sjjsjsjjdjdjd djisjsjdjkdkd jdjdjejjd jdjdjejjdjdjkd idijendb',
+    movimientoId: 49,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 2679215 more bytes>,
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 5668232 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:267:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:685:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 19:42:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 3,
+  localidadId: 1,
+  movimientoId: 49,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.create()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:313:32
+  
+    310     });
+    311 }
+    312 // Crear el nuevo registro de ronda para el movimiento
+  → 313 await tx.ronda.create(
+  Unique constraint failed on the fields: (`movimientoId`)
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:313:17
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasAltaOriginal (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:279:9)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:256:17)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:685:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32) {
+    code: 'P2002',
+    meta: { modelName: 'Ronda', target: [ 'movimientoId' ] },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-06-09 19:47:41'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  data: {
+    descripcion: 'Vsbsjjzjd bd sjjsjsjjdjdjd djisjsjdjkdkd jdjdjejjd jdjdjejjdjdjkd idijendb',
+    movimientoId: 49,
+    usuarioId: 5,
+    imagenes: [
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 2679215 more bytes>,
+      <Buffer ff d8 ff e1 03 ee 45 78 69 66 00 00 4d 4d 00 2a 00 00 00 08 00 10 01 03 00 03 00 00 00 01 00 06 00 00 02 01 00 04 00 00 00 01 00 00 05 74 02 02 00 04 ... 5668232 more bytes>
+    ]
+  },
+  error: Error: Error al reorganizar rondas por incidente
+      at IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:267:19)
+      at async IncidenteModel.crearIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:685:17)
+      at async IncidenteController.crearIncidente (/var/www/Cosaif/dist/Rutas/Incidente/IncidenteController.js:190:32),
+  level: 'error',
+  message: 'Error al crear incidente',
+  timestamp: '2025-06-09 19:47:41'
+}
