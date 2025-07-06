@@ -49,4 +49,8 @@ router.put('/:id', IncidenteController_1.uploadImagenes, IncidenteController_1.I
 // Ruta para eliminar un incidente
 router.delete('/:id', IncidenteController_1.IncidenteController.eliminarIncidente);
 router.post('/:id/continuar', IncidenteController_1.IncidenteController.continuarMovimiento);
+// Cierre por CLIENTE
+router.post('/:id/cerrar-cliente', IncidenteController_1.IncidenteController.cerrarIncidenteCliente);
+// Cierre por MAQUINISTA
+router.post('/:id/cerrar-maquinista', IncidenteController_1.IncidenteController.cerrarIncidenteMaquinista);
 exports.default = router;

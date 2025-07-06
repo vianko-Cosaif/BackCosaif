@@ -140,14 +140,14 @@ export class IncidenteController {
   /**
    * POST /incidentes
    *
-   * Crea un nuevo incidente (con imágenes opcionales), reorganiza rondas
-   * y envía la notificación FCM.
+   * Crea un nuevo incidente (con imï¿½genes opcionales), reorganiza rondas
+   * y envï¿½a la notificaciï¿½n FCM.
    */
   static crearIncidente: RequestHandler = async (req, res) => {
     try {
       const { descripcion, movimientoId, usuarioId } = req.body;
 
-      // --------- Validaciones básicas ---------
+      // --------- Validaciones bï¿½sicas ---------
       if (!descripcion || !movimientoId || !usuarioId) {
         res.status(400).json({
           success: false,
@@ -158,7 +158,7 @@ export class IncidenteController {
       if (typeof descripcion !== 'string' || !descripcion.trim()) {
         res.status(400).json({
           success: false,
-          error: 'La descripcion debe ser un texto válido'
+          error: 'La descripcion debe ser un texto vï¿½lido'
         });
         return;
       }
@@ -168,12 +168,12 @@ export class IncidenteController {
       if (Number.isNaN(movimientoIdNum) || Number.isNaN(usuarioIdNum)) {
         res.status(400).json({
           success: false,
-          error: 'Los IDs deben ser números válidos'
+          error: 'Los IDs deben ser nï¿½meros vï¿½lidos'
         });
         return;
       }
 
-      // --------- Procesar imágenes (máx. 4) ---------
+      // --------- Procesar imï¿½genes (mï¿½x. 4) ---------
       const imagenes: Buffer[] = [];
       if (req.files) {
         if (Array.isArray(req.files)) {
@@ -205,7 +205,7 @@ export class IncidenteController {
         imagenesSubidas: imagenes.length
       });
 
-      // --------- Notificar vía FCM ---------
+      // --------- Notificar vï¿½a FCM ---------
       await NotificadorFCM.notificarNuevoIncidente(nuevoIncidente);
 
       // --------- Respuesta ---------
@@ -313,13 +313,13 @@ export class IncidenteController {
 /**
  * DELETE /incidentes/:id
  *
- * Elimina un incidente y sus imágenes.
+ * Elimina un incidente y sus imï¿½genes.
  */
 static eliminarIncidente: RequestHandler = async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
-      res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+      res.status(400).json({ success: false, error: 'ID de incidente invï¿½lido' });
       return;
     }
 
@@ -353,13 +353,13 @@ incidenteControllerLogger.info('Incidente eliminado exitosamente', {
  /**
  * GET /incidentes/:id/verificacion
  *
- * Verifica el estado del periodo de verificación de un incidente.
+ * Verifica el estado del periodo de verificaciï¿½n de un incidente.
  */
 static verificarPeriodoVerificacion: RequestHandler = async (req, res) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
-      res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+      res.status(400).json({ success: false, error: 'ID de incidente invï¿½lido' });
       return;
     }
 
@@ -370,13 +370,13 @@ static verificarPeriodoVerificacion: RequestHandler = async (req, res) => {
       data   : verificacion
     });                               // ? cierre correcto
   } catch (error) {
-    incidenteControllerLogger.error('Error al verificar periodo de verificación', {
+    incidenteControllerLogger.error('Error al verificar periodo de verificaciï¿½n', {
       id: req.params.id,
       error
     });
     res.status(500).json({
       success: false,
-      error  : 'Error al verificar periodo de verificación',
+      error  : 'Error al verificar periodo de verificaciï¿½n',
       details: error
     });
   }
@@ -388,13 +388,13 @@ static verificarPeriodoVerificacion: RequestHandler = async (req, res) => {
  * POST /incidentes/:id/cerrar
  *
  * Cierra un incidente manualmente.
- * Verifica el periodo de verificación y reorganiza la ronda si es necesario.
+ * Verifica el periodo de verificaciï¿½n y reorganiza la ronda si es necesario.
  */
 static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
-      res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+      res.status(400).json({ success: false, error: 'ID de incidente invï¿½lido' });
       return;
     }
 
@@ -428,7 +428,7 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
       );
     }
 
-    // 5. Notificación opcional con comentario del cliente
+    // 5. Notificaciï¿½n opcional con comentario del cliente
     const comentario = (req.body.comentario ?? '').trim();
     if (comentario && movimiento) {
       const ids = [
@@ -525,17 +525,17 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
     try {
       const id = Number(req.params.id);
       if (Number.isNaN(id)) {
-        res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+        res.status(400).json({ success: false, error: 'ID de incidente invï¿½lido' });
         return;
       }
 
       // Obtenemos solo rutas relativas del modelo
       const incidenteRaw = await IncidenteModel.obtenerIncidentePorId(id);
 
-      // Construimos el host dinámicamente
+      // Construimos el host dinï¿½micamente
       const host = `${req.protocol}://${req.get('host')}`;
 
-      // Mapeamos cada ruta relativa a su URL pública
+      // Mapeamos cada ruta relativa a su URL pï¿½blica
       const imagenesConUrl = incidenteRaw.imagenes.map((rutaRel: string) =>
         `${host}/incidentes/imagen/${encodeURIComponent(rutaRel)}`
       );
@@ -562,7 +562,7 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
   /**
    * GET /incidentes/paginado?page=1&pageSize=20
    *
-   * Devuelve todos los incidentes paginados (más nuevos primero).
+   * Devuelve todos los incidentes paginados (mï¿½s nuevos primero).
    */
   static obtenerIncidentesPaginados: RequestHandler = async (req, res) => {
     try {
@@ -597,7 +597,7 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
     try {
       const localidadId = Number(req.params.localidadId);
       if (Number.isNaN(localidadId)) {
-        res.status(400).json({ success: false, error: 'localidadId inválido' });
+        res.status(400).json({ success: false, error: 'localidadId invï¿½lido' });
         return;
       }
       const page     = Math.max(1, Number(req.query.page) || 1);
@@ -632,7 +632,7 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
       const empresaId   = Number(req.params.empresaId);
       const localidadId = Number(req.params.localidadId);
       if (Number.isNaN(empresaId) || Number.isNaN(localidadId)) {
-        res.status(400).json({ success: false, error: 'IDs inválidos' });
+        res.status(400).json({ success: false, error: 'IDs invï¿½lidos' });
         return;
       }
       const page     = Math.max(1, Number(req.query.page) || 1);
@@ -672,7 +672,7 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
     try {
       const empresaId = Number(req.params.empresaId);
       if (Number.isNaN(empresaId)) {
-        res.status(400).json({ success: false, error: 'empresaId inválido' });
+        res.status(400).json({ success: false, error: 'empresaId invï¿½lido' });
         return;
       }
       const page     = Math.max(1, Number(req.query.page) || 1);
@@ -704,7 +704,7 @@ static async continuarMovimiento(req: Request, res: Response) {
   const comentario  = (req.body.comentario ?? '').trim();
 
   if (Number.isNaN(incidenteId)) {
-    res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+    res.status(400).json({ success: false, error: 'ID de incidente invï¿½lido' });
     return;
   }
 
@@ -724,7 +724,7 @@ static async continuarMovimiento(req: Request, res: Response) {
 
     res.json({
       success: true,
-      message: 'Incidente cerrado y el movimiento continúa',
+      message: 'Incidente cerrado y el movimiento continï¿½a',
       data   : incidente
     });
   } catch (error) {
@@ -733,7 +733,7 @@ static async continuarMovimiento(req: Request, res: Response) {
   }
 }
 
-/** Sirve imágenes almacenadas localmente */
+/** Sirve imï¿½genes almacenadas localmente */
 static servirImagen: RequestHandler = async (req, res) => {
   try {
     const file = IncidenteModel.obtenerRutaCompletaImagen(req.params.rutaImagen);
@@ -744,10 +744,77 @@ static servirImagen: RequestHandler = async (req, res) => {
   }
 };
 
-/** Cierra en lote incidentes vencidos –­ usado por el cron y las rutas */
+/** Cierra en lote incidentes vencidos ï¿½ï¿½ usado por el cron y las rutas */
 static cerrarIncidentesVencidos: RequestHandler = async (_req, res) => {
   const cerrados = await IncidenteModel.cerrarIncidentesVencidos();  res.json({ success: true, message: `Se cerraron ${cerrados} incidentes vencidos` });
 };
+
+
+static cerrarIncidenteCliente: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const comentario = (req.body.comentario ?? '').trim();
+
+  if (Number.isNaN(id)) {
+    res.status(400).json({ success: false, error: 'ID de incidente invÃ¡lido' });
+    return;
+  }
+
+  try {
+    const incidente = await IncidenteModel.cerrarPorCliente(id, comentario);
+
+    incidenteControllerLogger.info('Incidente cerrado por cliente', {
+      incidenteId: id,
+      movimientoId: incidente.movimientoId,
+      comentario
+    });
+
+    res.json({
+      success: true,
+      message: 'Incidente cerrado por el cliente',
+      data: incidente
+    });
+  } catch (err) {
+    incidenteControllerLogger.error('cerrarIncidenteCliente', { id, err });
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+};
+
+/**
+ * POST /incidentes/:id/cerrar-maquinista
+ *
+ * El maquinista indica que puede continuar:
+ *  â€“ Cierra el incidente y ajusta rondas.  
+ *  â€“ Si es el 3.Âº incidente del mismo movimiento, cancela el movimiento
+ *    y notifica al cliente.
+ */
+static cerrarIncidenteMaquinista: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const comentario = (req.body.comentario ?? '').trim();
+
+  if (Number.isNaN(id)) {
+    res.status(400).json({ success: false, error: 'ID de incidente invÃ¡lido' });
+    return;
+  }
+
+  try {
+    const resultado = await IncidenteModel.cerrarPorMaquinista(id, comentario);
+
+    incidenteControllerLogger.info('Incidente cerrado por maquinista', {
+      incidenteId: id,
+      resultado
+    });
+
+    res.json(resultado);
+  } catch (err) {
+    incidenteControllerLogger.error('cerrarIncidenteMaquinista', { id, err });
+    res.status(500).json({ success: false, error: (err as Error).message });
+  }
+};
+
+
+
+
+
 
 
 }

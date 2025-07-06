@@ -1,8 +1,8 @@
 /**
- * IncidenteRoutes.ts - VERSIÓN CORREGIDA
+ * IncidenteRoutes.ts - VERSIï¿½N CORREGIDA
  *
- * Archivo de definición de rutas HTTP para la entidad Incidente.
- * CORRECCIÓN: Las rutas no deben incluir '/incidentes' ya que se montan con ese prefijo
+ * Archivo de definiciï¿½n de rutas HTTP para la entidad Incidente.
+ * CORRECCIï¿½N: Las rutas no deben incluir '/incidentes' ya que se montan con ese prefijo
  */
 
 import { Router } from 'express';
@@ -11,7 +11,7 @@ import passport from '../../middlewares/passport';
 
 const router = Router();
 
-// Middleware de autenticación aplicado a todas las rutas
+// Middleware de autenticaciï¿½n aplicado a todas las rutas
 router.use(passport.authenticate('jwt', { session: false }));
 
 // === RUTAS DE CONSULTA PAGINADAS (NUEVAS - DEBEN IR ANTES) ===
@@ -31,16 +31,16 @@ router.get('/empresa/:empresaId', IncidenteController.obtenerIncidentesPorEmpres
 
 // === RUTAS DE CONSULTA EXISTENTES ===
 
-// Ruta para obtener estadísticas (DEBE IR ANTES que /:id)
+// Ruta para obtener estadï¿½sticas (DEBE IR ANTES que /:id)
 router.get('/estadisticas', IncidenteController.obtenerEstadisticas);
 
-// Ruta para obtener incidentes de un movimiento específico
+// Ruta para obtener incidentes de un movimiento especï¿½fico
 router.get('/movimiento/:movimientoId', IncidenteController.obtenerIncidentesPorMovimiento);
 
-// Ruta para verificar período de verificación (DEBE IR ANTES que /:id)
+// Ruta para verificar perï¿½odo de verificaciï¿½n (DEBE IR ANTES que /:id)
 router.get('/:id/verificacion', IncidenteController.verificarPeriodoVerificacion);
 
-// Ruta para servir imágenes
+// Ruta para servir imï¿½genes
 router.get('/imagen/:rutaImagen(*)', IncidenteController.servirImagen);
 
 // Ruta para obtener incidente por ID (DEBE IR AL FINAL de los GETs)
@@ -49,7 +49,7 @@ router.get('/:id', IncidenteController.obtenerIncidentePorId);
 // Ruta para obtener todos los incidentes (con filtros opcionales)
 router.get('/', IncidenteController.obtenerIncidentes);
 
-// === RUTAS DE MODIFICACIÓN ===
+// === RUTAS DE MODIFICACIï¿½N ===
 
 // Ruta para crear un nuevo incidente
 router.post('/', uploadImagenes, IncidenteController.crearIncidente);
@@ -57,7 +57,7 @@ router.post('/', uploadImagenes, IncidenteController.crearIncidente);
 // Ruta para cerrar un incidente manualmente
 router.post('/:id/cerrar', IncidenteController.cerrarIncidente);
 
-// Ruta para cerrar automáticamente incidentes vencidos
+// Ruta para cerrar automï¿½ticamente incidentes vencidos
 router.post('/cerrar-vencidos', IncidenteController.cerrarIncidentesVencidos);
 
 // Ruta para editar un incidente
@@ -68,5 +68,12 @@ router.delete('/:id', IncidenteController.eliminarIncidente);
 
 router.post('/:id/continuar', IncidenteController.continuarMovimiento);
 
+
+
+ // Cierre por CLIENTE
+router.post('/:id/cerrar-cliente', IncidenteController.cerrarIncidenteCliente);
+
+// Cierre por MAQUINISTA
+router.post('/:id/cerrar-maquinista', IncidenteController.cerrarIncidenteMaquinista);
 
 export default router;

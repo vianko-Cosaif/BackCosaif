@@ -91,13 +91,13 @@ export class IncidenteModel {
 
   /**
    * Editar un incidente existente.
-   * Permite actualizar descripciÛn, estado e im·genes.
+   * Permite actualizar descripciÔøΩn, estado e imÔøΩgenes.
    * Si se cierra el incidente, reactiva el movimiento asociado.
    *
    * @param id - ID del incidente a editar
    * @param data - Datos a actualizar
    * @returns Incidente actualizado con sus relaciones
-   * @throws Error si el incidente no existe o hay error en la actualizaciÛn
+   * @throws Error si el incidente no existe o hay error en la actualizaciÔøΩn
    */
   static async editarIncidente(id: number, data: {
     descripcion?: string;
@@ -114,12 +114,12 @@ export class IncidenteModel {
       });
 
       if (!incidenteActual) {
-        throw new Error(`No se encontrÛ incidente con id ${id}`);
+        throw new Error(`No se encontrÔøΩ incidente con id ${id}`);
       }
 
       const estadoAnterior = incidenteActual.estado;
 
-      // Preparar datos de actualizaciÛn
+      // Preparar datos de actualizaciÔøΩn
       const updateData: any = {};
       
       if (data.descripcion !== undefined) {
@@ -129,15 +129,15 @@ export class IncidenteModel {
       if (data.estado !== undefined) {
         updateData.estado = data.estado;
         
-        // Si se est· cerrando el incidente, registrar fecha
+        // Si se estÔøΩ cerrando el incidente, registrar fecha
         if (data.estado === 'CERRADO' && incidenteActual.estado === 'ABIERTO') {
           updateData.fechaFin = new Date();
         }
       }
 
-      // Procesar nuevas im·genes si se proporcionan
+      // Procesar nuevas imÔøΩgenes si se proporcionan
       if (data.imagenes?.length) {
-        // Eliminar im·genes anteriores del servidor
+        // Eliminar imÔøΩgenes anteriores del servidor
         const imagenesAnteriores = [
           incidenteActual.imagen1,
           incidenteActual.imagen2,
@@ -156,7 +156,7 @@ export class IncidenteModel {
           }
         }
 
-        // Procesar y guardar nuevas im·genes
+        // Procesar y guardar nuevas imÔøΩgenes
         const rutasImagenes = await this.procesarImagenes(data.imagenes, id);
         
         updateData.imagen1 = rutasImagenes[0] ?? null;
@@ -190,7 +190,7 @@ export class IncidenteModel {
         }
       });
 
-      // Si se cerrÛ el incidente, reactivar el movimiento
+      // Si se cerrÔøΩ el incidente, reactivar el movimiento
       if (data.estado === 'CERRADO' && incidenteActual.estado === 'ABIERTO') {
         await prisma.movimiento.update({
           where: { id: incidenteActual.movimientoId },
@@ -358,16 +358,16 @@ export class IncidenteModel {
   }
 
   /**
-   * Reorganiza las rondas cuando se reporta un incidente en un movimiento especÌfico.
+   * Reorganiza las rondas cuando se reporta un incidente en un movimiento especÔøΩfico.
    * REGLA ALTA o RONDA 1: El movimiento se mueve al final de la misma ronda.
-   * REGLA BAJA (RONDA 2+): El movimiento se mueve a la siguiente ronda con efecto dominÛ.
-   * DespuÈs, renumera todas las rondas de la localidad, reubicando solo los movimientos
-   * de la empresa que generÛ el incidente seg˙n su nueva secuencia.
+   * REGLA BAJA (RONDA 2+): El movimiento se mueve a la siguiente ronda con efecto dominÔøΩ.
+   * DespuÔøΩs, renumera todas las rondas de la localidad, reubicando solo los movimientos
+   * de la empresa que generÔøΩ el incidente segÔøΩn su nueva secuencia.
    *
    * @private
    * @param empresaId - ID de la empresa afectada
    * @param localidadId - ID de la localidad donde ocurre el incidente
-   * @param movimientoId - ID del movimiento especÌfico con incidente
+   * @param movimientoId - ID del movimiento especÔøΩfico con incidente
    */
   public static async reorganizarRondasPorIncidente(
     empresaId: number,
@@ -381,7 +381,7 @@ export class IncidenteModel {
       });
 
       if (!rondaMovimiento) {
-        incidenteError.info('No se encontrÛ ronda para el movimiento', {
+        incidenteError.info('No se encontrÔøΩ ronda para el movimiento', {
           movimientoId,
           empresaId,
           localidadId
@@ -394,7 +394,7 @@ export class IncidenteModel {
 
       const unicaEmpresa = await this.esUnicaEmpresaEnRondas(empresaId, localidadId);
 
-      incidenteError.info('Iniciando reorganizaciÛn por incidente', {
+      incidenteError.info('Iniciando reorganizaciÔøΩn por incidente', {
         movimientoId,
         empresaId,
         rondaOriginal,
@@ -403,7 +403,7 @@ export class IncidenteModel {
         unicaEmpresa
       });
 
-      // === L”GICA ACTUALIZADA ===
+      // === LÔøΩGICA ACTUALIZADA ===
       if (prioridad === 'ALTA') {
         // Siempre mover a ronda 1 al final
         await this.moverMovimientoARonda1AlFinal(
@@ -413,7 +413,7 @@ export class IncidenteModel {
         );
       } else if (prioridad === 'BAJA') {
         if (unicaEmpresa) {
-          // Si es la ˙nica empresa, solo se reordena internamente
+          // Si es la ÔøΩnica empresa, solo se reordena internamente
           await this.moverAlFinalDeLaRonda(
             empresaId,
             localidadId,
@@ -421,7 +421,7 @@ export class IncidenteModel {
             rondaMovimiento
           );
         } else {
-          // Aplica efecto dominÛ normal
+          // Aplica efecto dominÔøΩ normal
           await this.aplicarEfectoDomino(
             empresaId,
             localidadId,
@@ -488,9 +488,9 @@ export class IncidenteModel {
   }
 
   /**
-   * Aplica efecto dominÛ para prioridad BAJA:
+   * Aplica efecto dominÔøΩ para prioridad BAJA:
    * - Incrementa +1 rondaNumero para todos los movimientos afectados
-   * - Luego renumera Ûrdenes en cada ronda 1ÖN
+   * - Luego renumera ÔøΩrdenes en cada ronda 1ÔøΩN
    */
   private static async aplicarEfectoDomino(
     empresaId: number,
@@ -501,7 +501,7 @@ export class IncidenteModel {
     const desde = rondaMovimiento.rondaNumero;
 
     await prisma.$transaction(async (tx) => {
-      incidenteError.info('Iniciando efecto dominÛ', {
+      incidenteError.info('Iniciando efecto dominÔøΩ', {
         movimientoId,
         empresaId,
         desdeRonda: desde
@@ -526,7 +526,7 @@ export class IncidenteModel {
         await this.reorganizarOrdenEnRonda(tx, localidadId, r);
       }
 
-      incidenteError.info('Efecto dominÛ completado', {
+      incidenteError.info('Efecto dominÔøΩ completado', {
         movimientoId,
         empresaId,
         rondasAjustadas: hasta - desde + 1
@@ -535,7 +535,7 @@ export class IncidenteModel {
   }
 
   /**
-   * Renumera los Ûrdenes en una ronda para que queden 1,2,3Ö
+   * Renumera los ÔøΩrdenes en una ronda para que queden 1,2,3ÔøΩ
    */
   private static async reorganizarOrdenEnRonda(
     tx: any,
@@ -768,7 +768,7 @@ export class IncidenteModel {
         });
       }
 
-      /* 2) calcular el ˙ltimo orden de la ronda 1 en esa localidad */
+      /* 2) calcular el ÔøΩltimo orden de la ronda 1 en esa localidad */
       const ultimoOrden = await tx.ronda.count({
         where: { localidadId, rondaNumero: 1 }
       });
@@ -820,7 +820,7 @@ export class IncidenteModel {
         }
       });
 
-      /* - 3. procesar im·genes, si existen ----------------------- */
+      /* - 3. procesar imÔøΩgenes, si existen ----------------------- */
       let rutasImagenes: string[] = [];
       if (data.imagenes?.length) {
         rutasImagenes = await this.procesarImagenes(
@@ -861,7 +861,7 @@ export class IncidenteModel {
         }
       });
 
-      /* - 5. mover o reorganizar la ronda seg˙n prioridad -------- */
+      /* - 5. mover o reorganizar la ronda segÔøΩn prioridad -------- */
       if (movimiento.prioridad === 'ALTA') {
         await this.moverMovimientoARonda1AlFinal(
           movimiento.localidadId,
@@ -895,7 +895,7 @@ export class IncidenteModel {
   }
 
   /**
-   * Notificar cambio de estado de un incidente (ABIERTO ? CERRADO o actualizaciÛn)
+   * Notificar cambio de estado de un incidente (ABIERTO ? CERRADO o actualizaciÔøΩn)
    */
   static async notificarCambioEstado(
     incidente: Incidente,
@@ -925,7 +925,7 @@ export class IncidenteModel {
 
       const empresaNombre   = movimiento.empresa?.nombre   ?? 'Sin Empresa';
       const descripcion     = incidente.descripcion.length > 50
-        ? incidente.descripcion.slice(0, 50) + 'Ö'
+        ? incidente.descripcion.slice(0, 50) + 'ÔøΩ'
         : incidente.descripcion;
 
       const titulo =
@@ -936,7 +936,7 @@ export class IncidenteModel {
       const mensaje = {
         notification: {
           title: titulo,
-          body:  `ID #${incidente.id} ï ${empresaNombre} ï Loco ${movimiento.locomotiveNumber}`
+          body:  `ID #${incidente.id} ÔøΩ ${empresaNombre} ÔøΩ Loco ${movimiento.locomotiveNumber}`
         },
         data: {
           pantalla:      'Incidente',
@@ -955,7 +955,7 @@ export class IncidenteModel {
 
       await admin.messaging().sendEachForMulticast(mensaje);
     } catch (error) {
-      console.error('? Error enviando notificaciÛn de cambio de estado:', error);
+      console.error('? Error enviando notificaciÔøΩn de cambio de estado:', error);
       throw error;
     }
   }
@@ -1340,6 +1340,96 @@ export class IncidenteModel {
     }
   }
 
+
+
+
+/* -----------------------------------------------------------
+   1) Cerrar por CLIENTE
+----------------------------------------------------------- */
+static async cerrarPorCliente(id: number, comentario = '') {
+  const incidente = await this.editarIncidente(id, { estado: 'CERRADO' });
+
+  // Reactivar movimiento
+  await prisma.movimiento.update({
+    where: { id: incidente.movimientoId },
+    data : { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false }
+  });
+
+  /* ‚úÖ Notificar solo a SUPERVISOR, MAQUINISTA, OPERADOR, COORDINADOR */
+  await NotificadorFCM.notificarContinuarMovimiento(incidente, comentario);
+
+  return incidente;            // ‚Üê devuelve el incidente ya cerrado
+}
+
+/* -----------------------------------------------------------
+   2) Cerrar por MAQUINISTA
+----------------------------------------------------------- */
+static async cerrarPorMaquinista(id: number, comentario = '') {
+  return prisma.$transaction(async (tx) => {
+    const inc = await tx.incidente.findUnique({
+      where  : { id },
+      include: { movimiento: true }
+    });
+    if (!inc)               throw new Error('Incidente no encontrado');
+    if (inc.estado === 'CERRADO') throw new Error('Incidente ya cerrado');
+
+    const movId = inc.movimientoId;
+    const mov   = inc.movimiento;
+
+    /* ¬øCu√°ntos incidentes (abiertos + cerrados) tiene este movimiento? */
+    const total = await tx.incidente.count({ where: { movimientoId: movId } });
+
+    /* ---------- CASO 3er INCIDENTE ‚Üí cancelar movimiento ---------- */
+    if (total >= 3) {
+      const cancelado = await tx.movimiento.update({
+        where : { id: movId },
+        data  : { estado: 'CANCELADO', finalizado: true, fechaFin: new Date() },
+        include: { localidad: true, empresa: true, ronda: true }
+      });
+
+      // Eliminar ronda y renumerar
+      if (cancelado.ronda) {
+        await tx.ronda.delete({ where: { id: cancelado.ronda.id } });
+        await RondaModel.recomponerRondasLocalidad(cancelado.localidadId, tx);
+      }
+
+      // Cerrar el incidente que origin√≥ la acci√≥n
+      await tx.incidente.update({
+        where: { id },
+        data : { estado: 'CERRADO', fechaFin: new Date() }
+      });
+
+      /* ‚ùå Notificar CLIENTE de la cancelaci√≥n */
+      await NotificadorFCM.enviarNotificacionPersonalizada({
+        usuarioId: cancelado.clienteId!,
+        titulo   : 'üö´ Movimiento cancelado',
+        mensaje  : `El movimiento #${movId} fue cancelado por reincidencia de incidentes.`,
+        data     : {
+          pantalla    : 'Movimiento',
+          movimientoId: String(movId),
+          tipo        : 'movimiento_cancelado'
+        },
+        prioridad: 'alta'
+      });
+
+      return { success: true, message: 'Movimiento cancelado', data: cancelado };
+    }
+
+    /* ---------- CASO NORMAL (‚â§ 2 incidentes) ---------------------- */
+    const cerrado = await this.editarIncidente(id, { estado: 'CERRADO' });
+
+    await this.reorganizarRondasPorIncidente(
+      mov.empresaId, mov.localidadId, movId
+    );
+
+    await NotificadorFCM.notificarContinuarMovimiento(cerrado, comentario);
+
+    return { success: true, message: 'Incidente cerrado y rondas ajustadas', data: cerrado };
+  });
+}
+
+
+  
   static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
     const incidente = await prisma.incidente.findUnique({
       where: { id },
@@ -1417,7 +1507,7 @@ export class IncidenteModel {
     );
 
     if (esUnica && movimiento.id) {
-      // Si es la ˙nica empresa, reorganizar sus rondas internamente
+      // Si es la ÔøΩnica empresa, reorganizar sus rondas internamente
       await this.reorganizarRondasPorIncidente(
         movimiento.empresaId,
         movimiento.localidadId,
@@ -1425,4 +1515,6 @@ export class IncidenteModel {
       );
     }
   }
+
+  
 }

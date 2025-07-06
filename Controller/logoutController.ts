@@ -19,6 +19,15 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 
+// Extiende la interfaz Request para incluir 'user'
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: number; jti?: string };
+    }
+  }
+}
+
 const prisma = new PrismaClient();
 
 /**

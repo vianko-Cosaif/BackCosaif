@@ -684,3 +684,56 @@ IncidenteController.cerrarIncidentesVencidos = async (_req, res) => {
     const cerrados = await IncidenteModel_1.IncidenteModel.cerrarIncidentesVencidos();
     res.json({ success: true, message: `Se cerraron ${cerrados} incidentes vencidos` });
 };
+IncidenteController.cerrarIncidenteCliente = async (req, res) => {
+    const id = Number(req.params.id);
+    const comentario = (req.body.comentario ?? '').trim();
+    if (Number.isNaN(id)) {
+        res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+        return;
+    }
+    try {
+        const incidente = await IncidenteModel_1.IncidenteModel.cerrarPorCliente(id, comentario);
+        incidente_controller_logger_1.incidenteControllerLogger.info('Incidente cerrado por cliente', {
+            incidenteId: id,
+            movimientoId: incidente.movimientoId,
+            comentario
+        });
+        res.json({
+            success: true,
+            message: 'Incidente cerrado por el cliente',
+            data: incidente
+        });
+    }
+    catch (err) {
+        incidente_controller_logger_1.incidenteControllerLogger.error('cerrarIncidenteCliente', { id, err });
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+/**
+ * POST /incidentes/:id/cerrar-maquinista
+ *
+ * El maquinista indica que puede continuar:
+ *  – Cierra el incidente y ajusta rondas.
+ *  – Si es el 3.º incidente del mismo movimiento, cancela el movimiento
+ *    y notifica al cliente.
+ */
+IncidenteController.cerrarIncidenteMaquinista = async (req, res) => {
+    const id = Number(req.params.id);
+    const comentario = (req.body.comentario ?? '').trim();
+    if (Number.isNaN(id)) {
+        res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+        return;
+    }
+    try {
+        const resultado = await IncidenteModel_1.IncidenteModel.cerrarPorMaquinista(id, comentario);
+        incidente_controller_logger_1.incidenteControllerLogger.info('Incidente cerrado por maquinista', {
+            incidenteId: id,
+            resultado
+        });
+        res.json(resultado);
+    }
+    catch (err) {
+        incidente_controller_logger_1.incidenteControllerLogger.error('cerrarIncidenteMaquinista', { id, err });
+        res.status(500).json({ success: false, error: err.message });
+    }
+};

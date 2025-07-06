@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.IncidenteModel = void 0;
 const client_1 = require("@prisma/client");
 const incidente_logger_1 = require("./incidente.logger");
+const RondaModel_1 = require("../Movimientos/Ronda/RondaModel");
 const NotificadorFCM_1 = require("../../services/NotificadorFCM");
 const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
@@ -1153,6 +1154,75 @@ class IncidenteModel {
             incidente_logger_1.incidenteError.error('Error al obtener incidentes por empresa', { empresaId, error });
             throw new Error('Error al obtener incidentes por empresa');
         }
+    }
+    /* -----------------------------------------------------------
+       1) Cerrar por CLIENTE
+    ----------------------------------------------------------- */
+    static async cerrarPorCliente(id, comentario = '') {
+        const incidente = await this.editarIncidente(id, { estado: 'CERRADO' });
+        // Reactivar movimiento
+        await prisma.movimiento.update({
+            where: { id: incidente.movimientoId },
+            data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false }
+        });
+        /* ✅ Notificar solo a SUPERVISOR, MAQUINISTA, OPERADOR, COORDINADOR */
+        await NotificadorFCM_1.NotificadorFCM.notificarContinuarMovimiento(incidente, comentario);
+        return incidente; // ← devuelve el incidente ya cerrado
+    }
+    /* -----------------------------------------------------------
+       2) Cerrar por MAQUINISTA
+    ----------------------------------------------------------- */
+    static async cerrarPorMaquinista(id, comentario = '') {
+        return prisma.$transaction(async (tx) => {
+            const inc = await tx.incidente.findUnique({
+                where: { id },
+                include: { movimiento: true }
+            });
+            if (!inc)
+                throw new Error('Incidente no encontrado');
+            if (inc.estado === 'CERRADO')
+                throw new Error('Incidente ya cerrado');
+            const movId = inc.movimientoId;
+            const mov = inc.movimiento;
+            /* ¿Cuántos incidentes (abiertos + cerrados) tiene este movimiento? */
+            const total = await tx.incidente.count({ where: { movimientoId: movId } });
+            /* ---------- CASO 3er INCIDENTE → cancelar movimiento ---------- */
+            if (total >= 3) {
+                const cancelado = await tx.movimiento.update({
+                    where: { id: movId },
+                    data: { estado: 'CANCELADO', finalizado: true, fechaFin: new Date() },
+                    include: { localidad: true, empresa: true, ronda: true }
+                });
+                // Eliminar ronda y renumerar
+                if (cancelado.ronda) {
+                    await tx.ronda.delete({ where: { id: cancelado.ronda.id } });
+                    await RondaModel_1.RondaModel.recomponerRondasLocalidad(cancelado.localidadId, tx);
+                }
+                // Cerrar el incidente que originó la acción
+                await tx.incidente.update({
+                    where: { id },
+                    data: { estado: 'CERRADO', fechaFin: new Date() }
+                });
+                /* ❌ Notificar CLIENTE de la cancelación */
+                await NotificadorFCM_1.NotificadorFCM.enviarNotificacionPersonalizada({
+                    usuarioId: cancelado.clienteId,
+                    titulo: '🚫 Movimiento cancelado',
+                    mensaje: `El movimiento #${movId} fue cancelado por reincidencia de incidentes.`,
+                    data: {
+                        pantalla: 'Movimiento',
+                        movimientoId: String(movId),
+                        tipo: 'movimiento_cancelado'
+                    },
+                    prioridad: 'alta'
+                });
+                return { success: true, message: 'Movimiento cancelado', data: cancelado };
+            }
+            /* ---------- CASO NORMAL (≤ 2 incidentes) ---------------------- */
+            const cerrado = await this.editarIncidente(id, { estado: 'CERRADO' });
+            await this.reorganizarRondasPorIncidente(mov.empresaId, mov.localidadId, movId);
+            await NotificadorFCM_1.NotificadorFCM.notificarContinuarMovimiento(cerrado, comentario);
+            return { success: true, message: 'Incidente cerrado y rondas ajustadas', data: cerrado };
+        });
     }
     static async continuarMovimiento(id, comentario) {
         const incidente = await prisma.incidente.findUnique({
