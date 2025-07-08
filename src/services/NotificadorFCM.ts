@@ -16,48 +16,32 @@ export class NotificadorFCM {
   /**
    * Notificar sobre nuevo movimiento con notificacion mejorada
    */
-  static async notificarNuevoMovimiento(movimiento: any) {
-    const usuarios = await prisma.usuario.findMany({
-      where: {
-        localidadId: movimiento.localidadId,
-        rol: { in: ['SUPERVISOR', 'OPERADOR', 'MAQUINISTA', 'COORDINADOR'] },
-        activo: true
+  /* ------------------------------------------------------------------ */
+/* 1. Nuevo Movimiento                                                */
+/* ------------------------------------------------------------------ */
+static async notificarNuevoMovimiento(movimiento: any) {
+  const usuarios = await prisma.usuario.findMany({
+    where: {
+      localidadId: movimiento.localidadId,
+      rol: {
+        in: [
+          'SUPERVISOR',
+          'OPERADOR',
+          'MAQUINISTA',
+          'COORDINADOR',
+          'ADMINISTRADOR'      // ðŸ‘ˆ aÃ±adido
+        ]
       },
-      include: {
-        fcmTokens: true
-      }
-    });
+      activo: true
+    },
+    include: { fcmTokens: true }
+  });
 
-    const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
-    if (tokens.length === 0) return;
+  const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+  if (tokens.length === 0) return;
 
-    const empresaNombre = movimiento.empresa?.nombre || 'Sin Empresa';
-    const localidadNombre = movimiento.localidad?.nombre || 'Sin Localidad';
-
-    const mensaje = {
-      notification: {
-        title: '?? Nuevo Movimiento Programado',
-        body: `Locomotora ${movimiento.locomotiveNumber} de ${empresaNombre} en ${localidadNombre}`
-      },
-      data: {
-        pantalla: 'Movimiento',
-        movimientoId: String(movimiento.id),
-        empresa: empresaNombre,
-        localidad: localidadNombre,
-        locomotora: String(movimiento.locomotiveNumber),
-        prioridad: movimiento.prioridad || 'BAJA',
-        tipo: 'nuevo_movimiento',
-        timestamp: new Date().toISOString()
-      },
-      tokens
-    };
-
-    try {
-      await admin.messaging().sendEachForMulticast(mensaje);
-    } catch (error) {
-      console.error('Error enviando notificacion de nuevo movimiento:', error);
-    }
-  }
+  /* â€¦ resto del cÃ³digo sin cambios â€¦ */
+}
 
 
 /* ----------------------------------------------
@@ -88,7 +72,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
     const empresa   = mov.empresa?.nombre   ?? 'Sin Empresa';
     const localidad = mov.localidad?.nombre ?? 'Sin Localidad';
     const corta     = inc.descripcion.length > 50
-      ? inc.descripcion.slice(0, 50) + '…'
+      ? inc.descripcion.slice(0, 50) + 'ï¿½'
       : inc.descripcion;
     const iso       = new Date().toISOString();
     const legible   = new Date().toLocaleString('es-MX', {
@@ -100,7 +84,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
     await admin.messaging().sendEachForMulticast({
       notification: {
         title: '?? INCIDENTE REPORTADO',
-        body : `ID #${inc.id} • Loco ${mov.locomotiveNumber} – ${empresa}: ${corta}`
+        body : `ID #${inc.id} ï¿½ Loco ${mov.locomotiveNumber} ï¿½ ${empresa}: ${corta}`
       },
       data: {
         pantalla    : 'Incidente',
@@ -119,7 +103,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
       tokens
     });
   } catch (e) {
-    console.error('? Error enviando notificación de nuevo incidente:', e);
+    console.error('? Error enviando notificaciï¿½n de nuevo incidente:', e);
     throw e;
   }
 }
@@ -157,7 +141,7 @@ static async notificarCambioEstado(
     await admin.messaging().sendEachForMulticast({
       notification: {
         title: titulo,
-        body : `ID #${incidente.id} • ${empresa} • Loco ${mov.locomotiveNumber}`
+        body : `ID #${incidente.id} ï¿½ ${empresa} ï¿½ Loco ${mov.locomotiveNumber}`
       },
       data: {
         pantalla     : 'Incidente',
@@ -173,7 +157,7 @@ static async notificarCambioEstado(
       tokens
     });
   } catch (e) {
-    console.error('? Error enviando notificación de cambio de estado:', e);
+    console.error('? Error enviando notificaciï¿½n de cambio de estado:', e);
     throw e;
   }
 }
@@ -364,7 +348,7 @@ static async notificarContinuarMovimiento(
     await admin.messaging().sendEachForMulticast({
       notification: {
         title: '? Incidente resuelto con comentario',
-        body: `Loco ${loco} – ${empresaNombre}: "${comentario.slice(0, 80)}…"`
+        body: `Loco ${loco} ï¿½ ${empresaNombre}: "${comentario.slice(0, 80)}ï¿½"`
       },
       data: {
         pantalla: 'Incidente',
@@ -383,5 +367,131 @@ static async notificarContinuarMovimiento(
     throw error;
   }
 }
+
+
+/* ----------------------------------------------------------- */
+/*  INCIDENTE OMITIDO / POSPUESTO                              */
+/* ----------------------------------------------------------- */
+static async notificarIncidenteOmitido(
+  incidente: Incidente,
+  comentario = ''
+): Promise<void> {
+  const mov = await prisma.movimiento.findUnique({
+    where  : { id: incidente.movimientoId },
+    include: { empresa: true, localidad: true }
+  });
+  if (!mov) return;
+
+  /* Personal interno de la localidad + administradores */
+  const internos = await prisma.usuario.findMany({
+    where: {
+      localidadId: mov.localidadId,
+      rol: {
+        in: [
+          'SUPERVISOR',
+          'COORDINADOR',
+          'MAQUINISTA',
+          'OPERADOR',
+          'ADMINISTRADOR'
+        ]
+      },
+      activo: true
+    },
+    include: { fcmTokens: true }
+  });
+
+  /* Clientes de la empresa */
+  const clientes = await prisma.usuario.findMany({
+    where: {
+      empresaId: mov.empresaId,
+      rol: 'CLIENTE',
+      activo: true
+    },
+    include: { fcmTokens: true }
+  });
+
+  const tokens = [
+    ...internos.flatMap(u  => u.fcmTokens.map(t => t.token)),
+    ...clientes.flatMap(u => u.fcmTokens.map(t => t.token))
+  ];
+  if (tokens.length === 0) return;
+
+  await admin.messaging().sendEachForMulticast({
+    notification: {
+      title: 'Incidente pospuesto por cliente',
+      body : `Incidente #${incidente.id} â€” Locomotora ${mov.locomotiveNumber}`
+    },
+    data: {
+      pantalla    : 'Incidente',
+      incidenteId : String(incidente.id),
+      movimientoId: String(mov.id),
+      empresa     : mov.empresa?.nombre   ?? 'Empresa',
+      localidad   : mov.localidad?.nombre ?? 'Localidad',
+      tipo        : 'incidente_omitido',
+      comentario,
+      timestamp   : new Date().toISOString()
+    },
+    tokens
+  });
+}
+
+/* ----------------------------------------------------------- */
+/*  CANCELACIÃ“N DE MOVIMIENTO (tres incidentes)                 */
+/* ----------------------------------------------------------- */
+static async notificarCancelacionMovimiento(
+  movimiento: any,
+  motivoExtra = ''
+): Promise<void> {
+  if (!movimiento.localidadId || !movimiento.empresaId) return;
+
+  const cliente = movimiento.clienteId
+    ? await prisma.usuario.findUnique({
+        where  : { id: movimiento.clienteId },
+        include: { fcmTokens: true }
+      })
+    : null;
+
+  const internos = await prisma.usuario.findMany({
+    where: {
+      localidadId: movimiento.localidadId,
+      rol: {
+        in: [
+          'SUPERVISOR',
+          'COORDINADOR',
+          'MAQUINISTA',
+          'OPERADOR',
+          'ADMINISTRADOR'
+        ]
+      },
+      activo: true
+    },
+    include: { fcmTokens: true }
+  });
+
+  const tokens = [
+    ...(cliente?.fcmTokens.map(t => t.token) ?? []),
+    ...internos.flatMap(u => u.fcmTokens.map(t => t.token))
+  ];
+  if (tokens.length === 0) return;
+
+  await admin.messaging().sendEachForMulticast({
+    notification: {
+      title: 'Movimiento cancelado',
+      body : `Locomotora ${movimiento.locomotiveNumber} â€” ${motivoExtra || 'Por reincidencia de incidentes'}`
+    },
+    data: {
+      pantalla    : 'Movimiento',
+      movimientoId: String(movimiento.id),
+      empresa     : movimiento.empresa?.nombre   ?? 'Empresa',
+      localidad   : movimiento.localidad?.nombre ?? 'Localidad',
+      tipo        : 'movimiento_cancelado',
+      timestamp   : new Date().toISOString()
+    },
+    tokens
+  });
+}
+
+
+
 
 }

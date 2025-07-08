@@ -42,15 +42,8 @@ router.get('/', IncidenteController_1.IncidenteController.obtenerIncidentes);
 router.post('/', IncidenteController_1.uploadImagenes, IncidenteController_1.IncidenteController.crearIncidente);
 // Ruta para cerrar un incidente manualmente
 router.post('/:id/cerrar', IncidenteController_1.IncidenteController.cerrarIncidente);
-// Ruta para cerrar autom�ticamente incidentes vencidos
-router.post('/cerrar-vencidos', IncidenteController_1.IncidenteController.cerrarIncidentesVencidos);
 // Ruta para editar un incidente
 router.put('/:id', IncidenteController_1.uploadImagenes, IncidenteController_1.IncidenteController.editarIncidente);
 // Ruta para eliminar un incidente
 router.delete('/:id', IncidenteController_1.IncidenteController.eliminarIncidente);
-router.post('/:id/continuar', IncidenteController_1.IncidenteController.continuarMovimiento);
-// Cierre por CLIENTE
-router.post('/:id/cerrar-cliente', IncidenteController_1.IncidenteController.cerrarIncidenteCliente);
-// Cierre por MAQUINISTA
-router.post('/:id/cerrar-maquinista', IncidenteController_1.IncidenteController.cerrarIncidenteMaquinista);
 exports.default = router;

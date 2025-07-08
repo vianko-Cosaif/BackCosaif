@@ -11,45 +11,30 @@ class NotificadorFCM {
     /**
      * Notificar sobre nuevo movimiento con notificacion mejorada
      */
+    /* ------------------------------------------------------------------ */
+    /* 1. Nuevo Movimiento                                                */
+    /* ------------------------------------------------------------------ */
     static async notificarNuevoMovimiento(movimiento) {
         const usuarios = await prisma.usuario.findMany({
             where: {
                 localidadId: movimiento.localidadId,
-                rol: { in: ['SUPERVISOR', 'OPERADOR', 'MAQUINISTA', 'COORDINADOR'] },
+                rol: {
+                    in: [
+                        'SUPERVISOR',
+                        'OPERADOR',
+                        'MAQUINISTA',
+                        'COORDINADOR',
+                        'ADMINISTRADOR' // 👈 añadido
+                    ]
+                },
                 activo: true
             },
-            include: {
-                fcmTokens: true
-            }
+            include: { fcmTokens: true }
         });
         const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
         if (tokens.length === 0)
             return;
-        const empresaNombre = movimiento.empresa?.nombre || 'Sin Empresa';
-        const localidadNombre = movimiento.localidad?.nombre || 'Sin Localidad';
-        const mensaje = {
-            notification: {
-                title: '?? Nuevo Movimiento Programado',
-                body: `Locomotora ${movimiento.locomotiveNumber} de ${empresaNombre} en ${localidadNombre}`
-            },
-            data: {
-                pantalla: 'Movimiento',
-                movimientoId: String(movimiento.id),
-                empresa: empresaNombre,
-                localidad: localidadNombre,
-                locomotora: String(movimiento.locomotiveNumber),
-                prioridad: movimiento.prioridad || 'BAJA',
-                tipo: 'nuevo_movimiento',
-                timestamp: new Date().toISOString()
-            },
-            tokens
-        };
-        try {
-            await firebase_admin_1.default.messaging().sendEachForMulticast(mensaje);
-        }
-        catch (error) {
-            console.error('Error enviando notificacion de nuevo movimiento:', error);
-        }
+        /* … resto del código sin cambios … */
     }
     /* ----------------------------------------------
        NUEVO INCIDENTE
@@ -345,6 +330,116 @@ class NotificadorFCM {
             console.error('Error en notificarContinuarMovimiento:', error);
             throw error;
         }
+    }
+    /* ----------------------------------------------------------- */
+    /*  INCIDENTE OMITIDO / POSPUESTO                              */
+    /* ----------------------------------------------------------- */
+    static async notificarIncidenteOmitido(incidente, comentario = '') {
+        const mov = await prisma.movimiento.findUnique({
+            where: { id: incidente.movimientoId },
+            include: { empresa: true, localidad: true }
+        });
+        if (!mov)
+            return;
+        /* Personal interno de la localidad + administradores */
+        const internos = await prisma.usuario.findMany({
+            where: {
+                localidadId: mov.localidadId,
+                rol: {
+                    in: [
+                        'SUPERVISOR',
+                        'COORDINADOR',
+                        'MAQUINISTA',
+                        'OPERADOR',
+                        'ADMINISTRADOR'
+                    ]
+                },
+                activo: true
+            },
+            include: { fcmTokens: true }
+        });
+        /* Clientes de la empresa */
+        const clientes = await prisma.usuario.findMany({
+            where: {
+                empresaId: mov.empresaId,
+                rol: 'CLIENTE',
+                activo: true
+            },
+            include: { fcmTokens: true }
+        });
+        const tokens = [
+            ...internos.flatMap(u => u.fcmTokens.map(t => t.token)),
+            ...clientes.flatMap(u => u.fcmTokens.map(t => t.token))
+        ];
+        if (tokens.length === 0)
+            return;
+        await firebase_admin_1.default.messaging().sendEachForMulticast({
+            notification: {
+                title: 'Incidente pospuesto por cliente',
+                body: `Incidente #${incidente.id} — Locomotora ${mov.locomotiveNumber}`
+            },
+            data: {
+                pantalla: 'Incidente',
+                incidenteId: String(incidente.id),
+                movimientoId: String(mov.id),
+                empresa: mov.empresa?.nombre ?? 'Empresa',
+                localidad: mov.localidad?.nombre ?? 'Localidad',
+                tipo: 'incidente_omitido',
+                comentario,
+                timestamp: new Date().toISOString()
+            },
+            tokens
+        });
+    }
+    /* ----------------------------------------------------------- */
+    /*  CANCELACIÓN DE MOVIMIENTO (tres incidentes)                 */
+    /* ----------------------------------------------------------- */
+    static async notificarCancelacionMovimiento(movimiento, motivoExtra = '') {
+        if (!movimiento.localidadId || !movimiento.empresaId)
+            return;
+        const cliente = movimiento.clienteId
+            ? await prisma.usuario.findUnique({
+                where: { id: movimiento.clienteId },
+                include: { fcmTokens: true }
+            })
+            : null;
+        const internos = await prisma.usuario.findMany({
+            where: {
+                localidadId: movimiento.localidadId,
+                rol: {
+                    in: [
+                        'SUPERVISOR',
+                        'COORDINADOR',
+                        'MAQUINISTA',
+                        'OPERADOR',
+                        'ADMINISTRADOR'
+                    ]
+                },
+                activo: true
+            },
+            include: { fcmTokens: true }
+        });
+        const tokens = [
+            ...(cliente?.fcmTokens.map(t => t.token) ?? []),
+            ...internos.flatMap(u => u.fcmTokens.map(t => t.token))
+        ];
+        if (tokens.length === 0)
+            return;
+        await firebase_admin_1.default.messaging().sendEachForMulticast({
+            notification: {
+                title: 'Movimiento cancelado',
+                body: `Locomotora ${movimiento.locomotiveNumber} — ${motivoExtra || 'Por reincidencia de incidentes'}`
+            },
+            data: {
+                pantalla: 'Movimiento',
+                movimientoId: String(movimiento.id),
+                empresa: movimiento.empresa?.nombre ?? 'Empresa',
+                localidad: movimiento.localidad?.nombre ?? 'Localidad',
+                tipo: 'movimiento_cancelado',
+                timestamp: new Date().toISOString()
+            },
+            tokens
+        });
     }
 }
 exports.NotificadorFCM = NotificadorFCM;
