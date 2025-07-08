@@ -744,10 +744,6 @@ static servirImagen: RequestHandler = async (req, res) => {
   }
 };
 
-/** Cierra en lote incidentes vencidos �� usado por el cron y las rutas */
-static cerrarIncidentesVencidos: RequestHandler = async (_req, res) => {
-  const cerrados = await IncidenteModel.cerrarIncidentesVencidos();  res.json({ success: true, message: `Se cerraron ${cerrados} incidentes vencidos` });
-};
 
 
 }

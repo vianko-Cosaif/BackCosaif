@@ -679,8 +679,3 @@ IncidenteController.servirImagen = async (req, res) => {
         res.status(404).json({ success: false, error: 'Imagen no encontrada' });
     }
 };
-/** Cierra en lote incidentes vencidos �� usado por el cron y las rutas */
-IncidenteController.cerrarIncidentesVencidos = async (_req, res) => {
-    const cerrados = await IncidenteModel_1.IncidenteModel.cerrarIncidentesVencidos();
-    res.json({ success: true, message: `Se cerraron ${cerrados} incidentes vencidos` });
-};

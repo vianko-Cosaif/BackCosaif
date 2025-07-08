@@ -115,6 +115,8 @@ export class IncidenteModel {
     }
   }
 
+
+
   /**
    * Editar un incidente existente.
    * Permite actualizar descripción, estado e imágenes.
@@ -125,137 +127,130 @@ export class IncidenteModel {
    * @returns Incidente actualizado con sus relaciones
    * @throws Error si el incidente no existe o hay error en la actualización
    */
-  static async editarIncidente(id: number, data: DatosIncidente) {
-    try {
-      return await prisma.$transaction(async (tx) => {
-        // Obtener el incidente actual con bloqueo para evitar condiciones de carrera
-        const incidenteActual = await tx.incidente.findUnique({
-          where: { id },
-          include: {
-            movimiento: true
-          }
-        });
-
-        if (!incidenteActual) {
-          throw new Error(`No se encontró incidente con id ${id}`);
-        }
-
-        const estadoAnterior = incidenteActual.estado;
-
-        // Validar cambio de estado
-        if (data.estado === 'ABIERTO' && estadoAnterior === 'CERRADO') {
-          throw new Error('No se puede reabrir un incidente cerrado');
-        }
-
-        // Preparar datos de actualización
-        const updateData: any = {};
-        
-        if (data.descripcion !== undefined) {
-          updateData.descripcion = data.descripcion;
-        }
-        
-        if (data.estado !== undefined && data.estado !== estadoAnterior) {
-          updateData.estado = data.estado;
-          
-          // Si se está cerrando el incidente, registrar fecha
-          if (data.estado === 'CERRADO') {
-            updateData.fechaFin = new Date();
-          }
-        }
-
-        // Procesar nuevas imágenes si se proporcionan
-        if (data.imagenes?.length) {
-          // Eliminar imágenes anteriores del servidor
-          const imagenesAnteriores = [
-            incidenteActual.imagen1,
-            incidenteActual.imagen2,
-            incidenteActual.imagen3,
-            incidenteActual.imagen4
-          ].filter(Boolean);
-
-          for (const rutaImagen of imagenesAnteriores) {
-            if (rutaImagen) {
-              try {
-                const rutaCompleta = path.join(IMAGEN_CONFIG.carpetaBase, rutaImagen);
-                await fs.unlink(rutaCompleta);
-              } catch (error) {
-                incidenteError.warn('No se pudo eliminar imagen anterior', { rutaImagen, error });
-              }
-            }
-          }
-
-          // Procesar y guardar nuevas imágenes
-          const rutasImagenes = await this.procesarImagenes(data.imagenes, id);
-          
-          updateData.imagen1 = rutasImagenes[0] ?? null;
-          updateData.imagen2 = rutasImagenes[1] ?? null;
-          updateData.imagen3 = rutasImagenes[2] ?? null;
-          updateData.imagen4 = rutasImagenes[3] ?? null;
-        }
-
-        // Actualizar el incidente
-        const incidenteActualizado = await tx.incidente.update({
-          where: { id },
-          data: updateData,
-          include: {
-            movimiento: {
-              include: {
-                empresa: true,
-                localidad: true,
-                viaOrigen: true,
-                viaDestino: true,
-                ronda: true
-              }
-            },
-            usuario: {
-              select: {
-                id: true,
-                nombre: true,
-                email: true,
-                empresa: true
-              }
-            }
-          }
-        });
-
-        // Si se cerró el incidente, reactivar el movimiento
-        if (data.estado === 'CERRADO' && estadoAnterior === 'ABIERTO') {
-          await tx.movimiento.update({
-            where: { id: incidenteActual.movimientoId },
-            data: {
-              estado: 'EN_PROCESO',
-              fechaPausa: null,
-              incidenteGlobal: false
-            }
-          });
-
-          incidenteError.info('Movimiento reactivado tras cierre de incidente', {
-            incidenteId: id,
-            movimientoId: incidenteActual.movimientoId
-          });
-        }
-
-        // Notificar cambio de estado si aplica (fuera de la transacción)
-        if (data.estado && data.estado !== estadoAnterior) {
-          setImmediate(async () => {
-            try {
-              await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
-            } catch (error) {
-              incidenteError.error('Error al notificar cambio de estado', {
-                incidenteId: id,
-                error
-              });
-            }
-          });
-        }
-
-        return incidenteActualizado;
+static async editarIncidente(id: number, data: DatosIncidente) {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 1. Obtener el incidente actual (con bloqueo)
+      const incidenteActual = await tx.incidente.findUnique({
+        where: { id },
+        include: { movimiento: { select: { id: true, empresaId: true, localidadId: true } } }
       });
-    } catch (error) {
-      incidenteError.error('Error al editar incidente', { id, data, error });
-      throw error instanceof Error ? error : new Error('Error al editar incidente');
-    }
+      if (!incidenteActual) {
+        throw new Error(`No se encontró incidente con id ${id}`);
+      }
+
+      const estadoAnterior = incidenteActual.estado;
+
+      // 2. Validaciones básicas
+      if (data.estado === 'ABIERTO' && estadoAnterior === 'CERRADO') {
+        throw new Error('No se puede reabrir un incidente cerrado');
+      }
+
+      // 3. Preparar datos de actualización
+      const updateData: any = {};
+      if (data.descripcion !== undefined) {
+        updateData.descripcion = data.descripcion;
+      }
+      if (data.estado !== undefined && data.estado !== estadoAnterior) {
+        updateData.estado = data.estado;
+        if (data.estado === 'CERRADO') {
+          updateData.fechaFin = new Date();
+        }
+      }
+
+      // 4. Reemplazo de imágenes (si aplica)
+      if (data.imagenes?.length) {
+    const imagenesAnteriores = [
+  incidenteActual.imagen1,
+  incidenteActual.imagen2,
+  incidenteActual.imagen3,
+  incidenteActual.imagen4
+].filter(Boolean);
+
+for (const rutaImagen of imagenesAnteriores) {
+  // rutaImagen tiene tipo string|null, así que afirmamos:
+  const ruta = rutaImagen!; // → string
+  const rutaCompleta = path.join(IMAGEN_CONFIG.carpetaBase, ruta);
+  await fs.unlink(rutaCompleta);
+}
+
+        const rutas = await this.procesarImagenes(data.imagenes, id);
+        updateData.imagen1 = rutas[0] ?? null;
+        updateData.imagen2 = rutas[1] ?? null;
+        updateData.imagen3 = rutas[2] ?? null;
+        updateData.imagen4 = rutas[3] ?? null;
+      }
+
+      // 5. Aplicar actualización
+      const incidenteActualizado = await tx.incidente.update({
+        where: { id },
+        data: updateData,
+        include: {
+          movimiento: {
+            include: {
+              empresa: true,
+              localidad: true,
+              viaOrigen: true,
+              viaDestino: true,
+              ronda: true
+            }
+          },
+          usuario: {
+            select: { id: true, nombre: true, email: true, empresa: true }
+          }
+        }
+      });
+
+      // 6. Si se cierra por primera vez, reactivar movimiento y reorganizar rondas
+      if (data.estado === 'CERRADO' && estadoAnterior === 'ABIERTO') {
+        // Reactivar movimiento
+        await tx.movimiento.update({
+          where: { id: incidenteActual.movimientoId },
+          data: {
+            estado: 'EN_PROCESO',
+            fechaPausa: null,
+            incidenteGlobal: false
+          }
+        });
+        incidenteError.info('Movimiento reactivado tras cierre', {
+          incidenteId: id,
+          movimientoId: incidenteActual.movimientoId
+        });
+
+        // Reorganizar rondas fuera de la transacción
+        setImmediate(async () => {
+          try {
+            await this.reorganizarRondasPorIncidente(
+              incidenteActual.movimiento.empresaId!,
+              incidenteActual.movimiento.localidadId!,
+              incidenteActual.movimientoId
+            );
+          } catch (err) {
+            incidenteError.error('Error al reorganizar rondas tras cierre', { id, err });
+          }
+        });
+      }
+
+      // 7. Notificar cambio de estado (si cambió)
+      if (data.estado && data.estado !== estadoAnterior) {
+        setImmediate(async () => {
+          try {
+            await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+          } catch (err) {
+            incidenteError.error('Error notificando cambio de estado', { id, err });
+          }
+        });
+      }
+
+      return incidenteActualizado;
+    });
+  } catch (error) {
+    incidenteError.error('Error al editar incidente', { id, data, error });
+    throw error instanceof Error ? error : new Error('Error al editar incidente');
   }
+}
+
+  
 
   /**
    * Crear un nuevo incidente y reorganizar rondas automáticamente.
@@ -265,164 +260,195 @@ export class IncidenteModel {
    * @returns Objeto del incidente creado
    * @throws Error si ocurre un fallo durante la creación
    */
-  static async crearIncidente(data: {
-    descripcion: string;
-    movimientoId: number;
-    usuarioId: number;
-    imagenes?: Buffer[];
-  }) {
-    let incidenteId: number | null = null;
-    let empresaId: number | null = null;
-    let localidadId: number | null = null;
-    let tieneRondasActivas = false;
 
-    try {
-      const incidenteCreado = await prisma.$transaction(async (tx) => {
-        // 1. Verificar movimiento con bloqueo
-        const movimiento = await tx.movimiento.findUnique({
-          where: { id: data.movimientoId },
-          include: { 
-            empresa: true, 
-            localidad: true, 
-            ronda: {
-              where: { concluido: false }
-            }
-          }
-        });
-
-        if (!movimiento) {
-          throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
-        }
-
-        // Guardar datos para reorganización posterior
-        empresaId = movimiento.empresaId;
-        localidadId = movimiento.localidadId;
-        tieneRondasActivas = Array.isArray(movimiento.ronda) 
-          ? movimiento.ronda.length > 0 
-          : movimiento.ronda !== null;
-
-        // Verificar que no exista ya un incidente abierto
-        const incidenteExistente = await tx.incidente.findFirst({
-          where: {
-            movimientoId: data.movimientoId,
-            estado: 'ABIERTO'
-          }
-        });
-
-        if (incidenteExistente) {
-          throw new Error('Ya existe un incidente abierto para este movimiento');
-        }
-
-        // 2. Crear el incidente
-        const nuevoIncidente = await tx.incidente.create({
-          data: {
-            descripcion: data.descripcion,
-            movimientoId: data.movimientoId,
-            usuarioId: data.usuarioId,
-            estado: 'ABIERTO'
-          }
-        });
-
-        incidenteId = nuevoIncidente.id;
-
-        // 3. Procesar imágenes si existen
-        let updateImagenes = {};
-        if (data.imagenes?.length) {
-          const rutasImagenes = await this.procesarImagenes(
-            data.imagenes,
-            nuevoIncidente.id
-          );
-          
-          updateImagenes = {
-            imagen1: rutasImagenes[0] ?? null,
-            imagen2: rutasImagenes[1] ?? null,
-            imagen3: rutasImagenes[2] ?? null,
-            imagen4: rutasImagenes[3] ?? null
-          };
-        }
-
-        // 4. Actualizar incidente con imágenes
-        const incidenteConImagenes = await tx.incidente.update({
-          where: { id: nuevoIncidente.id },
-          data: updateImagenes,
-          include: {
-            movimiento: {
-              include: {
-                empresa: true,
-                localidad: true,
-                ronda: true
-              }
-            },
-            usuario: {
-              select: { 
-                id: true, 
-                nombre: true, 
-                email: true, 
-                empresa: true 
-              }
-            }
-          }
-        });
-
-        // 5. Detener el movimiento
-        await tx.movimiento.update({
-          where: { id: data.movimientoId },
-          data: {
-            estado: 'DETENIDO',
-            fechaPausa: new Date(),
-            incidenteGlobal: true
-          }
-        });
-
-        return incidenteConImagenes;
-      }, {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        timeout: 30000 // 30 segundos timeout
+static async crearIncidente(data: {
+  descripcion: string;
+  movimientoId: number;
+  usuarioId: number;
+  imagenes?: Buffer[];
+}): Promise<Incidente> {
+  try {
+    // 1. Crear el incidente dentro de una transacción
+    const nuevoIncidente = await prisma.$transaction(async tx => {
+      const movimiento = await tx.movimiento.findUnique({
+        where: { id: data.movimientoId },
+        include: { ronda: { where: { concluido: false } } }
       });
-
-      // 6. Reorganizar rondas fuera de la transacción principal
-      if (tieneRondasActivas && empresaId && localidadId) {
-        try {
-          await this.reorganizarRondasPorIncidente(
-            empresaId,
-            localidadId,
-            data.movimientoId
-          );
-        } catch (error) {
-          incidenteError.error('Error al reorganizar rondas después de crear incidente', {
-            incidenteId,
-            movimientoId: data.movimientoId,
-            error
-          });
-          // No lanzar error para no fallar la creación del incidente
-        }
+      if (!movimiento) {
+        throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
       }
 
-      // 7. Notificar creación de incidente
-      try {
-        await NotificadorFCM.notificarNuevoIncidente(incidenteCreado);
-      } catch (error) {
-        incidenteError.error('Error al enviar notificación de nuevo incidente', {
-          incidenteId,
-          error
-        });
-        // No lanzar error para no fallar la creación
-      }
-
-      incidenteError.info('Incidente creado exitosamente', {
-        incidenteId,
-        movimientoId: data.movimientoId,
-        empresaId,
-        localidadId,
-        tieneRondas: tieneRondasActivas
+      // Crear el registro de incidente
+      const inc = await tx.incidente.create({
+        data: {
+          descripcion: data.descripcion,
+          movimientoId: data.movimientoId,
+          usuarioId: data.usuarioId,
+          estado: 'ABIERTO'
+        }
       });
 
-      return incidenteCreado;
-    } catch (error) {
-      incidenteError.error('Error al crear incidente', { data, error });
-      throw error instanceof Error ? error : new Error('Error al crear incidente');
-    }
+      // Procesar imágenes si vienen
+      if (data.imagenes?.length) {
+        const rutas = await this.procesarImagenes(data.imagenes, inc.id);
+        await tx.incidente.update({
+          where: { id: inc.id },
+          data: {
+            imagen1: rutas[0] ?? null,
+            imagen2: rutas[1] ?? null,
+            imagen3: rutas[2] ?? null,
+            imagen4: rutas[3] ?? null
+          }
+        });
+      }
+
+      // Detener el movimiento mientras dure el incidente
+      await tx.movimiento.update({
+        where: { id: data.movimientoId },
+        data: {
+          estado: 'DETENIDO',
+          fechaPausa: new Date(),
+          incidenteGlobal: true
+        }
+      });
+
+      return inc;
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      timeout: 30_000
+    });
+
+    // 2. Aplicar reorganización de rondas tras crear incidente
+    //    Aquí usamos el helper de cierre con motivo NO_RESUELTO
+    await this.aplicarReorganizacionTrasCierre(nuevoIncidente, 'NO_RESUELTO');
+
+    // 3. Notificar a través de FCM que hay un nuevo incidente
+    await NotificadorFCM.notificarNuevoIncidente(nuevoIncidente);
+
+    incidenteError.info('Incidente creado exitosamente', {
+      incidenteId: nuevoIncidente.id,
+      movimientoId: data.movimientoId
+    });
+    return nuevoIncidente;
+
+  } catch (error) {
+    incidenteError.error('Error al crear incidente', { data, error });
+    throw error instanceof Error
+      ? error
+      : new Error('Error al crear incidente');
   }
+}
+
+
+/**
+ * Cierra un incidente de manera genérica y aplica el flujo correspondiente:
+ * - Actualiza estado y fecha de cierre
+ * - Si motivo === 'RESUELTO', reactiva el movimiento asociado
+ * - Siempre aplica reorganización de rondas tras el cierre
+ * - Envía notificación del cambio de estado
+ *
+ * @param id - ID del incidente a cerrar
+ * @param motivo - 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'
+ * @returns Incidente cerrado con sus relaciones
+ */
+
+static async cerrarIncidenteGenerico(
+  id: number,
+  motivo: 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'
+): Promise<Incidente> {
+  // 1) Recuperar el estado previo para la notificación
+  const incidentePrevio = await prisma.incidente.findUnique({ where: { id } });
+  if (!incidentePrevio) {
+    throw new Error(`No existe incidente con id ${id}`);
+  }
+  if (incidentePrevio.estado === 'CERRADO') {
+    throw new Error(`El incidente ${id} ya está cerrado`);
+  }
+  const estadoAnterior = incidentePrevio.estado;
+
+  // 2) Ejecutar cierre y lógica asociada en transacción
+  const incidenteActualizado = await prisma.$transaction(async (tx) => {
+    // a) Cerrar el incidente
+    const actualizado = await tx.incidente.update({
+      where: { id },
+      data: {
+        estado: 'CERRADO',
+        fechaFin: new Date()
+      },
+      include: {
+        movimiento: true,
+        usuario: true
+      }
+    });
+
+    // b) Reabrir movimiento si el incidente se resolvió
+    if (motivo === 'RESUELTO') {
+      await tx.movimiento.update({
+        where: { id: actualizado.movimientoId },
+        data: {
+          estado: 'EN_PROCESO',
+          fechaPausa: null,
+          incidenteGlobal: false
+        }
+      });
+    }
+
+    // c) Aplica reorganización de rondas según motivo
+    await this.aplicarReorganizacionTrasCierre(actualizado, motivo);
+
+    return actualizado;
+  });
+
+  // 3) Notificar cambio de estado (fuera de la transacción)
+  setImmediate(() => {
+    this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+  });
+
+  return incidenteActualizado;
+}
+
+
+
+/**
+ * Reactiva un movimiento tras el cierre de su incidente.
+ * Pone el movimiento en EN_PROCESO, limpia fechaPausa e incidenteGlobal.
+ *
+ * @private
+ * @param incidenteId - ID del incidente cerrado
+ */
+private static async reabrirMovimientoTrasCierre(
+  incidenteId: number
+): Promise<void> {
+  // 1) Recuperar el incidente para obtener el movimientoId
+  const incidente = await prisma.incidente.findUnique({
+    where: { id: incidenteId },
+    select: { movimientoId: true }
+  });
+
+  if (!incidente) {
+    throw new Error(`No existe incidente con id ${incidenteId}`);
+  }
+
+  // 2) Reactivar el movimiento asociado
+  await prisma.movimiento.update({
+    where: { id: incidente.movimientoId },
+    data: {
+      estado: 'EN_PROCESO',
+      fechaPausa: null,
+      incidenteGlobal: false
+    }
+  });
+
+  incidenteError.info('Movimiento reactivado tras cierre genérico', {
+    incidenteId,
+    movimientoId: incidente.movimientoId
+  });
+}
+
+
+
+
+
 
   /**
    * Set para controlar reorganizaciones en proceso y evitar loops
@@ -552,6 +578,56 @@ export class IncidenteModel {
       this.reorganizacionesEnProceso.delete(claveReorganizacion);
     }
   }
+
+
+  /**
+ * Después de cerrar un incidente, aplica la reorganización de rondas
+ * según el motivo de cierre:
+ * - RESUELTO: deja el movimiento en su lugar (no reordena)
+ * - NO_RESUELTO o TIMEOUT: aplica la lógica de reorganización de rondas
+ *
+ * @private
+ * @param incidente - El incidente recién cerrado
+ * @param motivo - Razón del cierre ('RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT')
+ */
+private static async aplicarReorganizacionTrasCierre(
+  incidente: Incidente,
+  motivo: 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'
+): Promise<void> {
+  // Si el incidente se resolvió satisfactoriamente, no se reordena
+  if (motivo === 'RESUELTO') {
+    incidenteError.info('No se aplica reorganización tras cierre RESUELTO', {
+      incidenteId: incidente.id
+    });
+    return;
+  }
+
+  // Para NO_RESUELTO o TIMEOUT, reordenamos las rondas del movimiento
+  const movimiento = await prisma.movimiento.findUnique({
+    where: { id: incidente.movimientoId },
+    select: { empresaId: true, localidadId: true }
+  });
+
+  if (!movimiento) {
+    incidenteError.warn('No se encontró movimiento para reorganizar', {
+      incidenteId: incidente.id,
+      movimientoId: incidente.movimientoId
+    });
+    return;
+  }
+
+  await this.reorganizarRondasPorIncidente(
+    movimiento.empresaId!,
+    movimiento.localidadId!,
+    incidente.movimientoId
+  );
+
+  incidenteError.info('Reorganización aplicada tras cierre', {
+    incidenteId: incidente.id,
+    motivo
+  });
+}
+
 
   /**
    * Maneja incidentes de prioridad ALTA con validación mejorada
@@ -1374,74 +1450,7 @@ export class IncidenteModel {
     }
   }
 
-  /**
-   * Cerrar automáticamente incidentes que han superado el tiempo de verificación.
-   * Se ejecuta periódicamente para mantener el flujo de trabajo.
-   *
-   * @returns Número de incidentes cerrados automáticamente
-   */
-  static async cerrarIncidentesVencidos() {
-    try {
-      const tiempoLimite = new Date(
-        Date.now() - (TIMEOUT_CONFIG.verificacion + TIMEOUT_CONFIG.bloqueo)
-      );
-      
-      const incidentesVencidos = await prisma.incidente.findMany({
-        where: {
-          estado: 'ABIERTO',
-          fechaInicio: {
-            lte: tiempoLimite
-          }
-        },
-        select: {
-          id: true,
-          movimientoId: true
-        }
-      });
-
-      if (incidentesVencidos.length === 0) {
-        return 0;
-      }
-
-      let incidentesCerrados = 0;
-      const errores: Array<{ incidenteId: number; error: any }> = [];
-
-      // Procesar en lotes para evitar sobrecarga
-      const BATCH_SIZE = 10;
-      for (let i = 0; i < incidentesVencidos.length; i += BATCH_SIZE) {
-        const batch = incidentesVencidos.slice(i, i + BATCH_SIZE);
-        
-        await Promise.all(
-          batch.map(async (incidente) => {
-            try {
-              await this.editarIncidente(incidente.id, { estado: 'CERRADO' });
-              incidentesCerrados++;
-            } catch (error) {
-              errores.push({ incidenteId: incidente.id, error });
-            }
-          })
-        );
-      }
-
-      if (errores.length > 0) {
-        incidenteError.warn('Algunos incidentes no pudieron ser cerrados', { errores });
-      }
-
-      if (incidentesCerrados > 0) {
-        incidenteError.info('Incidentes cerrados automáticamente por timeout', {
-          cantidad: incidentesCerrados,
-          errores: errores.length,
-          tiempoLimite: tiempoLimite.toISOString()
-        });
-      }
-
-      return incidentesCerrados;
-    } catch (error) {
-      incidenteError.error('Error al cerrar incidentes vencidos', { error });
-      throw new Error('Error al cerrar incidentes vencidos');
-    }
-  }
-
+  
   /**
    * Obtener la ruta completa de una imagen de incidente.
    *
@@ -1688,80 +1697,6 @@ export class IncidenteModel {
     return this.obtenerIncidentesPaginados(page, pageSize, { empresaId });
   }
 
-  /**
-   * Continuar movimiento después de resolver incidente
-   */
-  static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
-    try {
-      return await prisma.$transaction(async (tx) => {
-        const incidente = await tx.incidente.findUnique({
-          where: { id },
-          include: {
-            movimiento: {
-              include: {
-                empresa: true,
-                localidad: true,
-              }
-            }
-          }
-        });
-
-        if (!incidente) {
-          throw new Error('Incidente no encontrado');
-        }
-        
-        if (incidente.estado === 'CERRADO') {
-          throw new Error('Incidente ya está cerrado');
-        }
-
-        // Verificar período de verificación
-        const { enPeriodoVerificacion, enPeriodoBloqueo } = 
-          await this.verificarPeriodoVerificacion(id);
-        
-        if (enPeriodoVerificacion || enPeriodoBloqueo) {
-          throw new Error('No se puede continuar el movimiento durante el período de verificación o bloqueo');
-        }
-
-        // Cerrar incidente
-        const actualizado = await tx.incidente.update({
-          where: { id },
-          data: {
-            estado: 'CERRADO',
-            fechaFin: new Date(),
-            descripcion: `${incidente.descripcion}\n\n[Resuelto] ${comentario}`
-          },
-          include: { 
-            movimiento: {
-              include: {
-                empresa: true,
-                localidad: true
-              }
-            }
-          }
-        });
-
-        // Reactivar movimiento
-        await tx.movimiento.update({
-          where: { id: incidente.movimientoId },
-          data: {
-            estado: 'EN_PROCESO',
-            fechaPausa: null,
-            incidenteGlobal: false
-          }
-        });
-
-        // Reorganizar rondas si es necesario
-        if (incidente.movimiento) {
-          await this.reorganizarSiEsEmpresaUnica(incidente.movimiento);
-        }
-
-        return actualizado;
-      });
-    } catch (error) {
-      incidenteError.error('Error al continuar movimiento', { id, comentario, error });
-      throw error instanceof Error ? error : new Error('Error al continuar movimiento');
-    }
-  }
 
   /**
    * Reorganizar si es empresa única con timeout y manejo de errores
