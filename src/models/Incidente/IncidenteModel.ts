@@ -460,65 +460,267 @@ private static async hayOtrasAltasEnRonda1(
   /**
    * Intercambio ALTA ↔ BAJA
    */
-  private static async intercambiarConPrimerBajaDeRonda2 (
-    localidadId: number,
-    empresaId: number,
-    movimientoId: number,
-    rondaA: any
-  ) {
-    await prisma.$transaction(async tx => {
-      // … lógica existente …
-    })
-    // Compactar numeración tras el swap
-    await this.normalizarNumeracionRondas(localidadId)
-  }
+/**
+ * Intercambia un movimiento **ALTA** que estaba en R1 (`rondaA`) por el
+ * primer movimiento **BAJA** encontrado en R2 de la misma localidad.
+ *
+ *  A  = movimientoId (ALTA)            ──>   pasará a (R2, orden 1)
+ *  B  = primer BAJA de R2 (si existe)  ──>   subirá a (R1, orden original de A)
+ *
+ * Si todavía no existe ninguna BAJA en R2 se crea solamente el
+ * registro de A en (R2, 1) y se compacta la R1; es decir, no lanza error.
+ */
+private static async intercambiarConPrimerBajaDeRonda2(
+  localidadId : number,
+  empresaId   : number,
+  movimientoId: number,          // A
+  rondaA      : { id:number; rondaNumero:number; orden:number }
+): Promise<void> {
 
-  /**
-   * Mover BAJA al final de su ronda
-   */
-  private static async moverAlFinalDeLaRonda (
-    empresaId: number,
-    localidadId: number,
-    movimientoId: number,
-    rondaMovimiento: any
-  ) {
-    await prisma.$transaction(async tx => {
-      // … lógica existente …
-    })
-    // Compactar numeración después del movimiento
-    await this.normalizarNumeracionRondas(localidadId)
-  }
+  await prisma.$transaction(async (tx) => {
+
+    /* ───────────────────────────────────────────────────────────
+     * 1.  Eliminar A de la ronda-1 y compactar huecos
+     * ─────────────────────────────────────────────────────────── */
+    await tx.ronda.delete({ where: { id: rondaA.id } });
+
+    await tx.ronda.updateMany({
+      where: {
+        localidadId,
+        rondaNumero: 1,
+        orden: { gt: rondaA.orden },
+        concluido:false
+      },
+      data : { orden: { decrement: 1 } }
+    });
+
+    /* ───────────────────────────────────────────────────────────
+     * 2.  Tomar primer BAJA de R2 (si existe)
+     * ─────────────────────────────────────────────────────────── */
+    const rondaB = await tx.ronda.findFirst({
+      where: {
+        localidadId,
+        rondaNumero : 2,
+        concluido   : false,
+        movimiento  : { prioridad:'BAJA' }
+      },
+      orderBy: { orden:'asc' }
+    });
+
+    /* ───────────────────────────────────────────────────────────
+     * 3.  Quitar B de R2 (si lo hubo) y compactar esa ronda
+     * ─────────────────────────────────────────────────────────── */
+    if (rondaB) {
+      await tx.ronda.delete({ where: { id: rondaB.id } });
+
+      await tx.ronda.updateMany({
+        where: {
+          localidadId,
+          rondaNumero: 2,
+          orden: { gt: rondaB.orden },
+          concluido:false
+        },
+        data : { orden: { decrement: 1 } }
+      });
+
+      /* insertar B en el hueco de A (R1, orden original de A) */
+      await tx.ronda.create({
+        data: {
+          movimientoId: rondaB.movimientoId,
+          empresaId   : rondaB.empresaId,
+          localidadId ,
+          rondaNumero : 1,
+          orden       : rondaA.orden
+        }
+      });
+    }
+
+    /* ───────────────────────────────────────────────────────────
+     * 4.  Desplazar +1 todos los órdenes de R2  (hueco en 1)
+     *     e insertar A como (R2, 1)
+     * ─────────────────────────────────────────────────────────── */
+    await tx.ronda.updateMany({
+      where: { localidadId, rondaNumero: 2, concluido:false },
+      data : { orden: { increment: 1 } }
+    });
+
+    await tx.ronda.create({
+      data: {
+        movimientoId,
+        empresaId,
+        localidadId,
+        rondaNumero: 2,
+        orden      : 1
+      }
+    });
+
+    incidenteError.info('Swap ALTA↔BAJA ejecutado', {
+      movimientoAlta : movimientoId,
+      movimientoBaja : rondaB?.movimientoId ?? 'sin BAJA',
+      localidadId,
+      ronda1OrdenAltaOriginal: rondaA.orden
+    });
+  },
+  { isolationLevel:'Serializable' }   // protege de concurrencia
+  );
+
+  /* 5.  Compactar numeración global de rondas en la localidad */
+  await this.normalizarNumeracionRondas(localidadId);
+}
+
+/**
+ * Mueve un BAJA al final de SU ronda, compactando num. interna.
+ * Seguro ante: huecos, duplicados, concurrencia, ya-estar-al-final.
+ */
+private static async moverAlFinalDeLaRonda(
+  empresaId:   number,
+  localidadId: number,
+  movimientoId:number,
+  rondaMovimiento:{ id:number; rondaNumero:number; orden:number }
+){
+  const { rondaNumero, id:rondaId, orden:ordenOriginal } = rondaMovimiento;
+
+  await prisma.$transaction(async tx=>{
+    const movs = await tx.ronda.findMany({
+      where: { localidadId, rondaNumero, concluido:false },
+      orderBy:{ orden:'asc' },
+      select: { id:true, orden:true }
+    });
+
+    if (movs.length<=1 || ordenOriginal===movs.length) return; // no hay nada que hacer
+
+    const nuevos: {id:number; orden:number}[] = [];
+    let cursor = 1;
+    for (const m of movs){
+      if (m.id===rondaId) continue;  // movemos al final
+      nuevos.push({ id:m.id, orden:cursor++ });
+    }
+    nuevos.push({ id:rondaId, orden:cursor });
+
+    await Promise.all(
+      nuevos.map(({id,orden})=>tx.ronda.update({ where:{id}, data:{orden} }))
+    );
+
+    incidenteError.info('BAJA reubicado al final', {
+      movimientoId, localidadId, rondaNumero,
+      from:ordenOriginal, to:cursor
+    });
+  },{ isolationLevel:'Serializable' });
+
+  await this.normalizarNumeracionRondas(localidadId);
+}
 
   /**
    * Efecto dominó para BAJAS
    */
-  private static async aplicarEfectoDomino (
-    empresaId: number,
-    localidadId: number,
-    movimientoId: number,
-    rondaMovimiento: any
-  ) {
-    await prisma.$transaction(async tx => {
-      // … lógica existente …
-    })
-    // Compactar numeración tras efecto dominó
-    await this.normalizarNumeracionRondas(localidadId)
-  }
+/**
+ * Desplaza TODAS las rondas ≥ rondaActual (+1) y, con ello,
+ * “empuja” el movimiento BAJA a la siguiente ronda.
+ *
+ * Ejemplo (antes)       Ejemplo (después)
+ *   R2:  A,B,C          R2:  (vacía)
+ *   R3:  D,E            R3:  A,B,C
+ *   R4:  F              R4:  D,E
+ *                       R5:  F          
+ */
+private static async aplicarEfectoDomino(
+  empresaId   : number,
+  localidadId : number,
+  movimientoId: number,
+  rondaMovimiento: { id:number; rondaNumero:number }
+): Promise<void> {
 
-  /**
-   * ALTA al final de R1
-   */
-  private static async moverMovimientoARonda1AlFinal (
-    localidadId: number,
-    empresaId: number,
-    movimientoId: number
-  ): Promise<void> {
-    await prisma.$transaction(async tx => {
-      // … lógica existente …
-    })
-    // Compactar numeración de rondas
-    await this.normalizarNumeracionRondas(localidadId)
-  }
+  const desde = rondaMovimiento.rondaNumero;   // Ronda donde ocurrió el incidente
+
+  await prisma.$transaction(
+    async (tx) => {
+      /* 1️⃣  Obtener la ronda máxima actual */
+      const { _max } = await tx.ronda.aggregate({
+        where : { localidadId, concluido:false },
+        _max  : { rondaNumero:true }
+      });
+      const maxRonda = _max.rondaNumero ?? desde;
+
+      /* 2️⃣  Desplazar de arriba-abajo para evitar colisiones
+             (Rmax → Rmax+1, …, Rdesde → Rdesde+1)              */
+      for (let r = maxRonda; r >= desde; r--) {
+        await tx.ronda.updateMany({
+          where: { localidadId, rondaNumero:r, concluido:false },
+          data : { rondaNumero: r + 1 }
+        });
+      }
+
+      /* 3️⃣  Compactar órdenes dentro de las rondas afectadas */
+      for (let r = desde + 1; r <= maxRonda + 1; r++) {
+        await this.reorganizarOrdenEnRonda(tx, localidadId, r);
+      }
+
+      incidenteError.info('Efecto dominó aplicado', {
+        movimientoId,
+        empresaId,
+        localidadId,
+        desdeRonda : desde,
+        hastaRonda : maxRonda + 1
+      });
+    },
+    { isolationLevel: 'Serializable' }
+  );
+
+  await this.normalizarNumeracionRondas(localidadId);
+}
+
+
+/**
+ * Empuja un movimiento ALTA al final de la ronda 1.
+ * No toca otras rondas. Compacta la numeración de la ronda afectada.
+ */
+private static async moverMovimientoARonda1AlFinal(
+  localidadId: number,
+  empresaId:   number,
+  movimientoId:number
+): Promise<void> {
+
+  await prisma.$transaction(async (tx) => {
+    // ronda actual del movimiento (puede venir de R1 o de otra ronda)
+    const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
+    if (!rondaActual) return;
+
+    /* 1) Eliminarlo de su ronda original y compactar esa ronda           */
+    await tx.ronda.delete({ where: { id: rondaActual.id } });
+    await tx.ronda.updateMany({
+      where: {
+        localidadId,
+        rondaNumero: rondaActual.rondaNumero,
+        orden: { gt: rondaActual.orden },
+        concluido:false
+      },
+      data: { orden: { decrement: 1 } }
+    });
+
+    /* 2) Insertarlo al final de la ronda 1                               */
+    const ultimo = await tx.ronda.count({
+      where: { localidadId, rondaNumero: 1, concluido:false }
+    });
+
+    await tx.ronda.create({
+      data: {
+        movimientoId,
+        empresaId,
+        localidadId,
+        rondaNumero: 1,
+        orden: ultimo + 1
+      }
+    });
+
+    incidenteError.info('ALTA enviado al final de R1', {
+      movimientoId, localidadId, ordenFinal: ultimo + 1
+    });
+  },
+  { isolationLevel:'Serializable' });
+
+  await this.normalizarNumeracionRondas(localidadId);
+}
+
 
   /**
    * ──────────────────────────────────────────────────────────
