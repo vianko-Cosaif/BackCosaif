@@ -19,7 +19,7 @@
  * - incidenteError: logger dedicado a errores del modelo Incidente
  */
 
-import { PrismaClient, Incidente, Prisma } from '@prisma/client';
+import { PrismaClient, Incidente, Prisma  } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
@@ -68,6 +68,14 @@ interface RondaInsercion {
 }
 
 export class IncidenteModel {
+
+    static cleanup() {
+    if (this.limpiezaInterval) {
+      clearInterval(this.limpiezaInterval);
+      this.limpiezaInterval = null;
+    }
+    this.reorganizacionesEnProceso.clear();
+  }
   /**
    * Obtener todos los incidentes con sus relaciones.
    * Incluye informacion del movimiento y usuario asociado.
@@ -227,6 +235,20 @@ export class IncidenteModel {
           });
         }
 
+        // Notificar cambio de estado si aplica (fuera de la transacción)
+        if (data.estado && data.estado !== estadoAnterior) {
+          setImmediate(async () => {
+            try {
+              await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+            } catch (error) {
+              incidenteError.error('Error al notificar cambio de estado', {
+                incidenteId: id,
+                error
+              });
+            }
+          });
+        }
+
         return incidenteActualizado;
       });
     } catch (error) {
@@ -249,8 +271,13 @@ export class IncidenteModel {
     usuarioId: number;
     imagenes?: Buffer[];
   }) {
+    let incidenteId: number | null = null;
+    let empresaId: number | null = null;
+    let localidadId: number | null = null;
+    let tieneRondasActivas = false;
+
     try {
-      return await prisma.$transaction(async (tx) => {
+      const incidenteCreado = await prisma.$transaction(async (tx) => {
         // 1. Verificar movimiento con bloqueo
         const movimiento = await tx.movimiento.findUnique({
           where: { id: data.movimientoId },
@@ -266,6 +293,13 @@ export class IncidenteModel {
         if (!movimiento) {
           throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
         }
+
+        // Guardar datos para reorganización posterior
+        empresaId = movimiento.empresaId;
+        localidadId = movimiento.localidadId;
+        tieneRondasActivas = Array.isArray(movimiento.ronda) 
+          ? movimiento.ronda.length > 0 
+          : movimiento.ronda !== null;
 
         // Verificar que no exista ya un incidente abierto
         const incidenteExistente = await tx.incidente.findFirst({
@@ -288,6 +322,8 @@ export class IncidenteModel {
             estado: 'ABIERTO'
           }
         });
+
+        incidenteId = nuevoIncidente.id;
 
         // 3. Procesar imágenes si existen
         let updateImagenes = {};
@@ -338,28 +374,79 @@ export class IncidenteModel {
           }
         });
 
-        // 6. Reorganizar rondas según prioridad
-        // Verificar si el movimiento tiene rondas activas
-        const tieneRondasActivas = Array.isArray(movimiento.ronda) 
-          ? movimiento.ronda.length > 0 
-          : movimiento.ronda !== null;
-          
-        if (tieneRondasActivas) {
-          await this.reorganizarRondasPorIncidente(
-            movimiento.empresaId,
-            movimiento.localidadId,
-            data.movimientoId
-          );
-        }
-
         return incidenteConImagenes;
       }, {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         timeout: 30000 // 30 segundos timeout
       });
+
+      // 6. Reorganizar rondas fuera de la transacción principal
+      if (tieneRondasActivas && empresaId && localidadId) {
+        try {
+          await this.reorganizarRondasPorIncidente(
+            empresaId,
+            localidadId,
+            data.movimientoId
+          );
+        } catch (error) {
+          incidenteError.error('Error al reorganizar rondas después de crear incidente', {
+            incidenteId,
+            movimientoId: data.movimientoId,
+            error
+          });
+          // No lanzar error para no fallar la creación del incidente
+        }
+      }
+
+      // 7. Notificar creación de incidente
+      try {
+        await NotificadorFCM.notificarNuevoIncidente(incidenteCreado);
+      } catch (error) {
+        incidenteError.error('Error al enviar notificación de nuevo incidente', {
+          incidenteId,
+          error
+        });
+        // No lanzar error para no fallar la creación
+      }
+
+      incidenteError.info('Incidente creado exitosamente', {
+        incidenteId,
+        movimientoId: data.movimientoId,
+        empresaId,
+        localidadId,
+        tieneRondas: tieneRondasActivas
+      });
+
+      return incidenteCreado;
     } catch (error) {
       incidenteError.error('Error al crear incidente', { data, error });
       throw error instanceof Error ? error : new Error('Error al crear incidente');
+    }
+  }
+
+  /**
+   * Set para controlar reorganizaciones en proceso y evitar loops
+   */
+  private static reorganizacionesEnProceso = new Set<string>();
+  
+  /**
+   * Timer para limpieza periódica
+   */
+  private static limpiezaInterval: NodeJS.Timeout | null = null;
+  
+  /**
+   * Inicializar limpieza periódica
+   */
+  private static initLimpieza() {
+    if (!this.limpiezaInterval) {
+      this.limpiezaInterval = setInterval(() => {
+        if (this.reorganizacionesEnProceso.size > 0) {
+          incidenteError.warn('Limpiando reorganizaciones huérfanas', {
+            cantidad: this.reorganizacionesEnProceso.size
+          });
+          this.reorganizacionesEnProceso.clear();
+        }
+      }, 5 * 60 * 1000);
     }
   }
 
@@ -371,7 +458,26 @@ export class IncidenteModel {
     localidadId: number,
     movimientoId: number
   ) {
+    // Inicializar limpieza si no está activa
+    this.initLimpieza();
+    
+    // Crear clave única para este proceso
+    const claveReorganizacion = `${empresaId}-${localidadId}-${movimientoId}`;
+    
+    // Verificar si ya está en proceso
+    if (this.reorganizacionesEnProceso.has(claveReorganizacion)) {
+      incidenteError.warn('Reorganización ya en proceso, evitando duplicación', {
+        empresaId,
+        localidadId,
+        movimientoId
+      });
+      return;
+    }
+
     try {
+      // Marcar como en proceso
+      this.reorganizacionesEnProceso.add(claveReorganizacion);
+
       await prisma.$transaction(async (tx) => {
         const rondaMovimiento = await tx.ronda.findFirst({
           where: { 
@@ -441,11 +547,14 @@ export class IncidenteModel {
         error
       });
       throw new Error('Error al reorganizar rondas por incidente');
+    } finally {
+      // Siempre liberar el lock
+      this.reorganizacionesEnProceso.delete(claveReorganizacion);
     }
   }
 
   /**
-   * Maneja incidentes de prioridad ALTA
+   * Maneja incidentes de prioridad ALTA con validación mejorada
    */
   private static async manejarIncidentePrioridadAlta(
     tx: Prisma.TransactionClient,
@@ -454,23 +563,46 @@ export class IncidenteModel {
     movimientoId: number,
     rondaMovimiento: any
   ) {
-    const otrasAltas = await this.hayOtrasAltasEnRonda1Tx(tx, localidadId, movimientoId);
-    
-    if (otrasAltas) {
-      await this.moverMovimientoARonda1AlFinalTx(
-        tx,
-        localidadId,
-        empresaId,
-        movimientoId
-      );
-    } else {
-      await this.intercambiarConPrimerBajaDeRonda2Tx(
-        tx,
-        localidadId,
-        empresaId,
+    try {
+      // Validar que el movimiento aún existe y tiene prioridad ALTA
+      const movimientoActual = await tx.movimiento.findUnique({
+        where: { id: movimientoId },
+        select: { prioridad: true }
+      });
+
+      if (!movimientoActual || movimientoActual.prioridad !== 'ALTA') {
+        incidenteError.warn('Movimiento no encontrado o cambió de prioridad', {
+          movimientoId,
+          prioridad: movimientoActual?.prioridad
+        });
+        return;
+      }
+
+      const otrasAltas = await this.hayOtrasAltasEnRonda1Tx(tx, localidadId, movimientoId);
+      
+      if (otrasAltas) {
+        await this.moverMovimientoARonda1AlFinalTx(
+          tx,
+          localidadId,
+          empresaId,
+          movimientoId
+        );
+      } else {
+        await this.intercambiarConPrimerBajaDeRonda2Tx(
+          tx,
+          localidadId,
+          empresaId,
+          movimientoId,
+          rondaMovimiento
+        );
+      }
+    } catch (error) {
+      incidenteError.error('Error al manejar incidente de prioridad ALTA', {
         movimientoId,
-        rondaMovimiento
-      );
+        localidadId,
+        error
+      });
+      throw error;
     }
   }
 
@@ -695,8 +827,61 @@ export class IncidenteModel {
       where: { movimientoId, concluido: false } 
     });
     
-    if (!rondaActual) return;
+    if (!rondaActual) {
+      incidenteError.warn('No se encontró ronda activa para el movimiento', {
+        movimientoId
+      });
+      return;
+    }
 
+    // Si ya está en ronda 1, solo moverlo al final
+    if (rondaActual.rondaNumero === 1) {
+      // Contar elementos en ronda 1
+      const totalEnRonda1 = await tx.ronda.count({
+        where: { 
+          localidadId, 
+          rondaNumero: 1, 
+          concluido: false 
+        }
+      });
+
+      // Si ya está al final, no hacer nada
+      if (rondaActual.orden === totalEnRonda1) {
+        incidenteError.info('Movimiento ya está al final de R1', {
+          movimientoId,
+          localidadId,
+          orden: rondaActual.orden
+        });
+        return;
+      }
+
+      // Reorganizar órdenes para moverlo al final
+      await tx.ronda.updateMany({
+        where: {
+          localidadId,
+          rondaNumero: 1,
+          orden: { gt: rondaActual.orden },
+          concluido: false
+        },
+        data: { orden: { decrement: 1 } }
+      });
+
+      // Actualizar posición del movimiento
+      await tx.ronda.update({
+        where: { id: rondaActual.id },
+        data: { orden: totalEnRonda1 }
+      });
+
+      incidenteError.info('ALTA movida al final dentro de R1', {
+        movimientoId,
+        localidadId,
+        ordenAnterior: rondaActual.orden,
+        ordenNuevo: totalEnRonda1
+      });
+      return;
+    }
+
+    // Si está en otra ronda, moverlo a ronda 1
     // Eliminar de ronda actual
     await tx.ronda.delete({ where: { id: rondaActual.id } });
     
@@ -732,6 +917,7 @@ export class IncidenteModel {
     });
 
     incidenteError.info('ALTA movida al final de R1', {
+      rondaAnterior: rondaActual.rondaNumero,
       movimientoId,
       localidadId,
       ordenFinal: ultimo + 1
@@ -1578,7 +1764,7 @@ export class IncidenteModel {
   }
 
   /**
-   * Reorganizar si es empresa única
+   * Reorganizar si es empresa única con timeout y manejo de errores
    */
   static async reorganizarSiEsEmpresaUnica(movimiento: any) {
     if (!movimiento?.empresaId || !movimiento?.localidadId) {
@@ -1586,22 +1772,33 @@ export class IncidenteModel {
     }
 
     try {
-      const esUnica = await this.esUnicaEmpresaEnRondas(
-        movimiento.empresaId,
-        movimiento.localidadId
-      );
+      // Aplicar timeout de 10 segundos
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout en reorganización')), 10000);
+      });
 
-      if (esUnica && movimiento.id) {
-        await this.reorganizarRondasPorIncidente(
+      const reorganizacionPromise = (async () => {
+        const esUnica = await this.esUnicaEmpresaEnRondas(
           movimiento.empresaId,
-          movimiento.localidadId,
-          movimiento.id
+          movimiento.localidadId
         );
-      }
+
+        if (esUnica && movimiento.id) {
+          await this.reorganizarRondasPorIncidente(
+            movimiento.empresaId,
+            movimiento.localidadId,
+            movimiento.id
+          );
+        }
+      })();
+
+      await Promise.race([reorganizacionPromise, timeoutPromise]);
     } catch (error) {
       incidenteError.error('Error al reorganizar para empresa única', {
         movimientoId: movimiento.id,
-        error
+        empresaId: movimiento.empresaId,
+        localidadId: movimiento.localidadId,
+        error: error instanceof Error ? error.message : 'Error desconocido'
       });
       // No lanzar error para no interrumpir el flujo principal
     }
