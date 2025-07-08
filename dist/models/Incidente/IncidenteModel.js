@@ -26,7 +26,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.IncidenteModel = void 0;
 const client_1 = require("@prisma/client");
 const incidente_logger_1 = require("./incidente.logger");
-const NotificadorFCM_1 = require("../../services/NotificadorFCM");
 const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
 const sharp_1 = __importDefault(require("sharp"));
@@ -91,120 +90,687 @@ class IncidenteModel {
     }
     /**
      * Editar un incidente existente.
-     * Permite actualizar descripci�n, estado e im�genes.
+     * Permite actualizar descripción, estado e imágenes.
      * Si se cierra el incidente, reactiva el movimiento asociado.
      *
      * @param id - ID del incidente a editar
      * @param data - Datos a actualizar
      * @returns Incidente actualizado con sus relaciones
-     * @throws Error si el incidente no existe o hay error en la actualizaci�n
+     * @throws Error si el incidente no existe o hay error en la actualización
      */
     static async editarIncidente(id, data) {
         try {
-            // Obtener el incidente actual
-            const incidenteActual = await prisma.incidente.findUnique({
-                where: { id },
-                include: {
-                    movimiento: true
-                }
-            });
-            if (!incidenteActual) {
-                throw new Error(`No se encontr� incidente con id ${id}`);
-            }
-            const estadoAnterior = incidenteActual.estado;
-            // Preparar datos de actualizaci�n
-            const updateData = {};
-            if (data.descripcion !== undefined) {
-                updateData.descripcion = data.descripcion;
-            }
-            if (data.estado !== undefined) {
-                updateData.estado = data.estado;
-                // Si se est� cerrando el incidente, registrar fecha
-                if (data.estado === 'CERRADO' && incidenteActual.estado === 'ABIERTO') {
-                    updateData.fechaFin = new Date();
-                }
-            }
-            // Procesar nuevas im�genes si se proporcionan
-            if (data.imagenes?.length) {
-                // Eliminar im�genes anteriores del servidor
-                const imagenesAnteriores = [
-                    incidenteActual.imagen1,
-                    incidenteActual.imagen2,
-                    incidenteActual.imagen3,
-                    incidenteActual.imagen4
-                ];
-                for (const rutaImagen of imagenesAnteriores) {
-                    if (rutaImagen) {
-                        try {
-                            const rutaCompleta = path_1.default.join(IMAGEN_CONFIG.carpetaBase, rutaImagen);
-                            await promises_1.default.unlink(rutaCompleta);
-                        }
-                        catch (error) {
-                            incidente_logger_1.incidenteError.warn('No se pudo eliminar imagen anterior', { rutaImagen, error });
-                        }
-                    }
-                }
-                // Procesar y guardar nuevas im�genes
-                const rutasImagenes = await this.procesarImagenes(data.imagenes, id);
-                updateData.imagen1 = rutasImagenes[0] ?? null;
-                updateData.imagen2 = rutasImagenes[1] ?? null;
-                updateData.imagen3 = rutasImagenes[2] ?? null;
-                updateData.imagen4 = rutasImagenes[3] ?? null;
-            }
-            // Actualizar el incidente
-            const incidenteActualizado = await prisma.incidente.update({
-                where: { id },
-                data: updateData,
-                include: {
-                    movimiento: {
-                        include: {
-                            empresa: true,
-                            localidad: true,
-                            viaOrigen: true,
-                            viaDestino: true,
-                            ronda: true
-                        }
-                    },
-                    usuario: {
-                        select: {
-                            id: true,
-                            nombre: true,
-                            email: true,
-                            empresa: true
-                        }
-                    }
-                }
-            });
-            // Si se cerr� el incidente, reactivar el movimiento
-            if (data.estado === 'CERRADO' && incidenteActual.estado === 'ABIERTO') {
-                await prisma.movimiento.update({
-                    where: { id: incidenteActual.movimientoId },
-                    data: {
-                        estado: 'EN_PROCESO',
-                        fechaPausa: null,
-                        incidenteGlobal: false
+            return await prisma.$transaction(async (tx) => {
+                // Obtener el incidente actual con bloqueo para evitar condiciones de carrera
+                const incidenteActual = await tx.incidente.findUnique({
+                    where: { id },
+                    include: {
+                        movimiento: true
                     }
                 });
-                incidente_logger_1.incidenteError.info('Movimiento reactivado tras cierre de incidente', {
-                    incidenteId: id,
-                    movimientoId: incidenteActual.movimientoId
+                if (!incidenteActual) {
+                    throw new Error(`No se encontró incidente con id ${id}`);
+                }
+                const estadoAnterior = incidenteActual.estado;
+                // Validar cambio de estado
+                if (data.estado === 'ABIERTO' && estadoAnterior === 'CERRADO') {
+                    throw new Error('No se puede reabrir un incidente cerrado');
+                }
+                // Preparar datos de actualización
+                const updateData = {};
+                if (data.descripcion !== undefined) {
+                    updateData.descripcion = data.descripcion;
+                }
+                if (data.estado !== undefined && data.estado !== estadoAnterior) {
+                    updateData.estado = data.estado;
+                    // Si se está cerrando el incidente, registrar fecha
+                    if (data.estado === 'CERRADO') {
+                        updateData.fechaFin = new Date();
+                    }
+                }
+                // Procesar nuevas imágenes si se proporcionan
+                if (data.imagenes?.length) {
+                    // Eliminar imágenes anteriores del servidor
+                    const imagenesAnteriores = [
+                        incidenteActual.imagen1,
+                        incidenteActual.imagen2,
+                        incidenteActual.imagen3,
+                        incidenteActual.imagen4
+                    ].filter(Boolean);
+                    for (const rutaImagen of imagenesAnteriores) {
+                        if (rutaImagen) {
+                            try {
+                                const rutaCompleta = path_1.default.join(IMAGEN_CONFIG.carpetaBase, rutaImagen);
+                                await promises_1.default.unlink(rutaCompleta);
+                            }
+                            catch (error) {
+                                incidente_logger_1.incidenteError.warn('No se pudo eliminar imagen anterior', { rutaImagen, error });
+                            }
+                        }
+                    }
+                    // Procesar y guardar nuevas imágenes
+                    const rutasImagenes = await this.procesarImagenes(data.imagenes, id);
+                    updateData.imagen1 = rutasImagenes[0] ?? null;
+                    updateData.imagen2 = rutasImagenes[1] ?? null;
+                    updateData.imagen3 = rutasImagenes[2] ?? null;
+                    updateData.imagen4 = rutasImagenes[3] ?? null;
+                }
+                // Actualizar el incidente
+                const incidenteActualizado = await tx.incidente.update({
+                    where: { id },
+                    data: updateData,
+                    include: {
+                        movimiento: {
+                            include: {
+                                empresa: true,
+                                localidad: true,
+                                viaOrigen: true,
+                                viaDestino: true,
+                                ronda: true
+                            }
+                        },
+                        usuario: {
+                            select: {
+                                id: true,
+                                nombre: true,
+                                email: true,
+                                empresa: true
+                            }
+                        }
+                    }
                 });
-            }
-            // Notificar cambio de estado si aplica
-            if (data.estado && data.estado !== estadoAnterior) {
-                await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
-            }
-            incidente_logger_1.incidenteError.info('Incidente actualizado correctamente', {
-                incidenteId: id,
-                cambios: Object.keys(updateData),
-                estadoAnterior,
-                estadoNuevo: incidenteActualizado.estado
+                // Si se cerró el incidente, reactivar el movimiento
+                if (data.estado === 'CERRADO' && estadoAnterior === 'ABIERTO') {
+                    await tx.movimiento.update({
+                        where: { id: incidenteActual.movimientoId },
+                        data: {
+                            estado: 'EN_PROCESO',
+                            fechaPausa: null,
+                            incidenteGlobal: false
+                        }
+                    });
+                    incidente_logger_1.incidenteError.info('Movimiento reactivado tras cierre de incidente', {
+                        incidenteId: id,
+                        movimientoId: incidenteActual.movimientoId
+                    });
+                }
+                return incidenteActualizado;
             });
-            return incidenteActualizado;
         }
         catch (error) {
             incidente_logger_1.incidenteError.error('Error al editar incidente', { id, data, error });
-            throw new Error('Error al editar incidente');
+            throw error instanceof Error ? error : new Error('Error al editar incidente');
+        }
+    }
+    /**
+     * Crear un nuevo incidente y reorganizar rondas automáticamente.
+     * También cambia el estado del movimiento a DETENIDO.
+     *
+     * @param data - Datos del incidente a crear
+     * @returns Objeto del incidente creado
+     * @throws Error si ocurre un fallo durante la creación
+     */
+    static async crearIncidente(data) {
+        try {
+            return await prisma.$transaction(async (tx) => {
+                // 1. Verificar movimiento con bloqueo
+                const movimiento = await tx.movimiento.findUnique({
+                    where: { id: data.movimientoId },
+                    include: {
+                        empresa: true,
+                        localidad: true,
+                        ronda: {
+                            where: { concluido: false }
+                        }
+                    }
+                });
+                if (!movimiento) {
+                    throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
+                }
+                // Verificar que no exista ya un incidente abierto
+                const incidenteExistente = await tx.incidente.findFirst({
+                    where: {
+                        movimientoId: data.movimientoId,
+                        estado: 'ABIERTO'
+                    }
+                });
+                if (incidenteExistente) {
+                    throw new Error('Ya existe un incidente abierto para este movimiento');
+                }
+                // 2. Crear el incidente
+                const nuevoIncidente = await tx.incidente.create({
+                    data: {
+                        descripcion: data.descripcion,
+                        movimientoId: data.movimientoId,
+                        usuarioId: data.usuarioId,
+                        estado: 'ABIERTO'
+                    }
+                });
+                // 3. Procesar imágenes si existen
+                let updateImagenes = {};
+                if (data.imagenes?.length) {
+                    const rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
+                    updateImagenes = {
+                        imagen1: rutasImagenes[0] ?? null,
+                        imagen2: rutasImagenes[1] ?? null,
+                        imagen3: rutasImagenes[2] ?? null,
+                        imagen4: rutasImagenes[3] ?? null
+                    };
+                }
+                // 4. Actualizar incidente con imágenes
+                const incidenteConImagenes = await tx.incidente.update({
+                    where: { id: nuevoIncidente.id },
+                    data: updateImagenes,
+                    include: {
+                        movimiento: {
+                            include: {
+                                empresa: true,
+                                localidad: true,
+                                ronda: true
+                            }
+                        },
+                        usuario: {
+                            select: {
+                                id: true,
+                                nombre: true,
+                                email: true,
+                                empresa: true
+                            }
+                        }
+                    }
+                });
+                // 5. Detener el movimiento
+                await tx.movimiento.update({
+                    where: { id: data.movimientoId },
+                    data: {
+                        estado: 'DETENIDO',
+                        fechaPausa: new Date(),
+                        incidenteGlobal: true
+                    }
+                });
+                // 6. Reorganizar rondas según prioridad
+                // Verificar si el movimiento tiene rondas activas
+                const tieneRondasActivas = Array.isArray(movimiento.ronda)
+                    ? movimiento.ronda.length > 0
+                    : movimiento.ronda !== null;
+                if (tieneRondasActivas) {
+                    await this.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, data.movimientoId);
+                }
+                return incidenteConImagenes;
+            }, {
+                isolationLevel: client_1.Prisma.TransactionIsolationLevel.Serializable,
+                timeout: 30000 // 30 segundos timeout
+            });
+        }
+        catch (error) {
+            incidente_logger_1.incidenteError.error('Error al crear incidente', { data, error });
+            throw error instanceof Error ? error : new Error('Error al crear incidente');
+        }
+    }
+    /**
+     * Reorganiza las rondas cuando se reporta un incidente
+     */
+    static async reorganizarRondasPorIncidente(empresaId, localidadId, movimientoId) {
+        try {
+            await prisma.$transaction(async (tx) => {
+                const rondaMovimiento = await tx.ronda.findFirst({
+                    where: {
+                        movimientoId,
+                        localidadId,
+                        concluido: false
+                    },
+                    include: { movimiento: true }
+                });
+                if (!rondaMovimiento || !rondaMovimiento.movimiento) {
+                    incidente_logger_1.incidenteError.info('No se encontró ronda activa para el movimiento', {
+                        movimientoId,
+                        empresaId,
+                        localidadId
+                    });
+                    return;
+                }
+                const { rondaNumero } = rondaMovimiento;
+                const { prioridad } = rondaMovimiento.movimiento;
+                // Verificar si es única empresa
+                const unicaEmpresa = await this.esUnicaEmpresaEnRondasTx(tx, empresaId, localidadId);
+                // Ejecutar lógica según prioridad
+                if (prioridad === 'ALTA') {
+                    await this.manejarIncidentePrioridadAlta(tx, localidadId, empresaId, movimientoId, rondaMovimiento);
+                }
+                else if (prioridad === 'BAJA') {
+                    if (unicaEmpresa) {
+                        await this.moverAlFinalDeLaRondaTx(tx, empresaId, localidadId, movimientoId, rondaMovimiento);
+                    }
+                    else {
+                        await this.aplicarEfectoDominoTx(tx, empresaId, localidadId, movimientoId, rondaMovimiento);
+                    }
+                }
+                // Reorganizar por empresa y normalizar
+                await this.reorganizarRondasPorEmpresaTx(tx, empresaId, localidadId);
+                await this.normalizarNumeracionRondasTx(tx, localidadId);
+            }, {
+                isolationLevel: client_1.Prisma.TransactionIsolationLevel.Serializable,
+                timeout: 30000
+            });
+        }
+        catch (error) {
+            incidente_logger_1.incidenteError.error('Error al reorganizar rondas por incidente', {
+                empresaId,
+                localidadId,
+                movimientoId,
+                error
+            });
+            throw new Error('Error al reorganizar rondas por incidente');
+        }
+    }
+    /**
+     * Maneja incidentes de prioridad ALTA
+     */
+    static async manejarIncidentePrioridadAlta(tx, localidadId, empresaId, movimientoId, rondaMovimiento) {
+        const otrasAltas = await this.hayOtrasAltasEnRonda1Tx(tx, localidadId, movimientoId);
+        if (otrasAltas) {
+            await this.moverMovimientoARonda1AlFinalTx(tx, localidadId, empresaId, movimientoId);
+        }
+        else {
+            await this.intercambiarConPrimerBajaDeRonda2Tx(tx, localidadId, empresaId, movimientoId, rondaMovimiento);
+        }
+    }
+    /**
+     * Verifica si hay otras ALTAS en ronda 1 (versión transaccional)
+     */
+    static async hayOtrasAltasEnRonda1Tx(tx, localidadId, movimientoIdExcluido) {
+        const count = await tx.ronda.count({
+            where: {
+                localidadId,
+                rondaNumero: 1,
+                concluido: false,
+                movimiento: {
+                    prioridad: 'ALTA',
+                    id: { not: movimientoIdExcluido }
+                }
+            }
+        });
+        return count > 0;
+    }
+    /**
+     * Intercambia ALTA con BAJA (versión transaccional)
+     */
+    static async intercambiarConPrimerBajaDeRonda2Tx(tx, localidadId, empresaId, movimientoId, rondaA) {
+        // 1. Eliminar A de ronda 1
+        await tx.ronda.delete({ where: { id: rondaA.id } });
+        // Compactar ronda 1
+        await tx.ronda.updateMany({
+            where: {
+                localidadId,
+                rondaNumero: 1,
+                orden: { gt: rondaA.orden },
+                concluido: false
+            },
+            data: { orden: { decrement: 1 } }
+        });
+        // 2. Buscar primer BAJA de ronda 2
+        const rondaB = await tx.ronda.findFirst({
+            where: {
+                localidadId,
+                rondaNumero: 2,
+                concluido: false,
+                movimiento: { prioridad: 'BAJA' }
+            },
+            orderBy: { orden: 'asc' }
+        });
+        // 3. Si existe B, intercambiar
+        if (rondaB) {
+            await tx.ronda.delete({ where: { id: rondaB.id } });
+            // Compactar ronda 2
+            await tx.ronda.updateMany({
+                where: {
+                    localidadId,
+                    rondaNumero: 2,
+                    orden: { gt: rondaB.orden },
+                    concluido: false
+                },
+                data: { orden: { decrement: 1 } }
+            });
+            // Insertar B en ronda 1
+            await tx.ronda.create({
+                data: {
+                    movimientoId: rondaB.movimientoId,
+                    empresaId: rondaB.empresaId,
+                    localidadId,
+                    rondaNumero: 1,
+                    orden: rondaA.orden
+                }
+            });
+        }
+        // 4. Insertar A al inicio de ronda 2
+        await tx.ronda.updateMany({
+            where: {
+                localidadId,
+                rondaNumero: 2,
+                concluido: false
+            },
+            data: { orden: { increment: 1 } }
+        });
+        await tx.ronda.create({
+            data: {
+                movimientoId,
+                empresaId,
+                localidadId,
+                rondaNumero: 2,
+                orden: 1
+            }
+        });
+        incidente_logger_1.incidenteError.info('Intercambio ALTA↔BAJA ejecutado', {
+            movimientoAlta: movimientoId,
+            movimientoBaja: rondaB?.movimientoId ?? 'sin BAJA',
+            localidadId
+        });
+    }
+    /**
+     * Mueve movimiento al final de su ronda (versión transaccional)
+     */
+    static async moverAlFinalDeLaRondaTx(tx, empresaId, localidadId, movimientoId, rondaMovimiento) {
+        const { rondaNumero, id: rondaId, orden: ordenOriginal } = rondaMovimiento;
+        const movs = await tx.ronda.findMany({
+            where: {
+                localidadId,
+                rondaNumero,
+                concluido: false
+            },
+            orderBy: { orden: 'asc' }
+        });
+        if (movs.length <= 1)
+            return;
+        // Reorganizar órdenes
+        const updates = [];
+        let cursor = 1;
+        for (const m of movs) {
+            if (m.id === rondaId)
+                continue;
+            updates.push(tx.ronda.update({
+                where: { id: m.id },
+                data: { orden: cursor++ }
+            }));
+        }
+        // Mover al final
+        updates.push(tx.ronda.update({
+            where: { id: rondaId },
+            data: { orden: cursor }
+        }));
+        await Promise.all(updates);
+        incidente_logger_1.incidenteError.info('Movimiento BAJA reubicado al final', {
+            movimientoId,
+            localidadId,
+            rondaNumero,
+            from: ordenOriginal,
+            to: cursor
+        });
+    }
+    /**
+     * Aplica efecto dominó (versión transaccional)
+     */
+    static async aplicarEfectoDominoTx(tx, empresaId, localidadId, movimientoId, rondaMovimiento) {
+        const desde = rondaMovimiento.rondaNumero;
+        // Obtener ronda máxima
+        const { _max } = await tx.ronda.aggregate({
+            where: { localidadId, concluido: false },
+            _max: { rondaNumero: true }
+        });
+        const maxRonda = _max.rondaNumero ?? desde;
+        // Desplazar de arriba hacia abajo para evitar colisiones
+        for (let r = maxRonda; r >= desde; r--) {
+            await tx.ronda.updateMany({
+                where: {
+                    localidadId,
+                    rondaNumero: r,
+                    concluido: false
+                },
+                data: { rondaNumero: r + 1 }
+            });
+        }
+        // Compactar órdenes en rondas afectadas
+        for (let r = desde + 1; r <= maxRonda + 1; r++) {
+            await this.reorganizarOrdenEnRondaTx(tx, localidadId, r);
+        }
+        incidente_logger_1.incidenteError.info('Efecto dominó aplicado', {
+            movimientoId,
+            empresaId,
+            localidadId,
+            desdeRonda: desde,
+            hastaRonda: maxRonda + 1
+        });
+    }
+    /**
+     * Mueve ALTA al final de ronda 1 (versión transaccional)
+     */
+    static async moverMovimientoARonda1AlFinalTx(tx, localidadId, empresaId, movimientoId) {
+        const rondaActual = await tx.ronda.findFirst({
+            where: { movimientoId, concluido: false }
+        });
+        if (!rondaActual)
+            return;
+        // Eliminar de ronda actual
+        await tx.ronda.delete({ where: { id: rondaActual.id } });
+        // Compactar ronda original
+        await tx.ronda.updateMany({
+            where: {
+                localidadId,
+                rondaNumero: rondaActual.rondaNumero,
+                orden: { gt: rondaActual.orden },
+                concluido: false
+            },
+            data: { orden: { decrement: 1 } }
+        });
+        // Contar elementos en ronda 1
+        const ultimo = await tx.ronda.count({
+            where: {
+                localidadId,
+                rondaNumero: 1,
+                concluido: false
+            }
+        });
+        // Insertar al final de ronda 1
+        await tx.ronda.create({
+            data: {
+                movimientoId,
+                empresaId,
+                localidadId,
+                rondaNumero: 1,
+                orden: ultimo + 1
+            }
+        });
+        incidente_logger_1.incidenteError.info('ALTA movida al final de R1', {
+            movimientoId,
+            localidadId,
+            ordenFinal: ultimo + 1
+        });
+    }
+    /**
+     * Normaliza numeración de rondas (versión transaccional)
+     */
+    static async normalizarNumeracionRondasTx(tx, localidadId) {
+        const grupos = await tx.ronda.findMany({
+            where: { localidadId, concluido: false },
+            distinct: ['rondaNumero'],
+            orderBy: { rondaNumero: 'asc' }
+        });
+        let expected = 1;
+        for (const { rondaNumero } of grupos) {
+            if (rondaNumero !== expected) {
+                await tx.ronda.updateMany({
+                    where: { localidadId, rondaNumero },
+                    data: { rondaNumero: expected }
+                });
+            }
+            expected++;
+        }
+    }
+    /**
+     * Reorganiza orden en ronda (versión transaccional)
+     */
+    static async reorganizarOrdenEnRondaTx(tx, localidadId, rondaNumero) {
+        const movs = await tx.ronda.findMany({
+            where: {
+                localidadId,
+                rondaNumero,
+                concluido: false
+            },
+            orderBy: { orden: 'asc' }
+        });
+        const updates = [];
+        for (let i = 0; i < movs.length; i++) {
+            const correcto = i + 1;
+            if (movs[i].orden !== correcto) {
+                updates.push(tx.ronda.update({
+                    where: { id: movs[i].id },
+                    data: { orden: correcto }
+                }));
+            }
+        }
+        if (updates.length > 0) {
+            await Promise.all(updates);
+        }
+    }
+    /**
+     * Reorganiza rondas por empresa (versión transaccional)
+     */
+    static async reorganizarRondasPorEmpresaTx(tx, empresaId, localidadId) {
+        // Obtener todas las rondas activas
+        const rondas = await tx.ronda.findMany({
+            where: { localidadId, concluido: false },
+            distinct: ['rondaNumero'],
+            orderBy: { rondaNumero: 'asc' }
+        });
+        // Obtener secuencia de movimientos de la empresa
+        const empMovs = await tx.ronda.findMany({
+            where: {
+                localidadId,
+                empresaId,
+                concluido: false
+            },
+            select: {
+                id: true,
+                rondaNumero: true
+            },
+            orderBy: { rondaNumero: 'asc' }
+        });
+        const seqMap = new Map();
+        empMovs.forEach((m, idx) => seqMap.set(m.rondaNumero, { id: m.id, seq: idx + 1 }));
+        // Reorganizar cada ronda
+        for (const { rondaNumero } of rondas) {
+            const all = await tx.ronda.findMany({
+                where: {
+                    localidadId,
+                    rondaNumero,
+                    concluido: false
+                },
+                orderBy: { orden: 'asc' }
+            });
+            const entry = seqMap.get(rondaNumero);
+            if (!entry) {
+                // Solo renumerar consecutivo
+                await this.reorganizarOrdenEnRondaTx(tx, localidadId, rondaNumero);
+                continue;
+            }
+            // Reorganizar con la posición de la empresa
+            const others = all.filter(m => m.id !== entry.id);
+            const target = Math.min(entry.seq, others.length + 1);
+            const newOrder = [
+                ...others.slice(0, target - 1).map(m => m.id),
+                entry.id,
+                ...others.slice(target - 1).map(m => m.id)
+            ];
+            const updates = [];
+            for (let i = 0; i < newOrder.length; i++) {
+                updates.push(tx.ronda.update({
+                    where: { id: newOrder[i] },
+                    data: { orden: i + 1 }
+                }));
+            }
+            await Promise.all(updates);
+        }
+    }
+    /**
+     * Verifica si es única empresa (versión transaccional)
+     */
+    static async esUnicaEmpresaEnRondasTx(tx, empresaId, localidadId) {
+        const empresas = await tx.ronda.findMany({
+            where: {
+                localidadId,
+                concluido: false
+            },
+            select: {
+                empresaId: true
+            },
+            distinct: ['empresaId']
+        });
+        return empresas.length === 1 && empresas[0].empresaId === empresaId;
+    }
+    /**
+     * Versión no transaccional para compatibilidad
+     */
+    static async esUnicaEmpresaEnRondas(empresaId, localidadId) {
+        const empresas = await prisma.ronda.findMany({
+            where: {
+                localidadId,
+                concluido: false
+            },
+            select: {
+                empresaId: true
+            },
+            distinct: ['empresaId']
+        });
+        return empresas.length === 1 && empresas[0].empresaId === empresaId;
+    }
+    /**
+     * Procesa y optimiza las imagenes del incidente.
+     * Crea carpetas organizadas por fecha para optimizar busquedas.
+     *
+     * @private
+     * @param imagenes - Array de buffers de imagenes
+     * @param incidenteId - ID del incidente para nombrar archivos
+     * @returns Array de rutas donde se guardaron las imagenes
+     */
+    static async procesarImagenes(imagenes, incidenteId) {
+        try {
+            const fecha = new Date();
+            const ano = fecha.getFullYear();
+            const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+            const dia = String(fecha.getDate()).padStart(2, '0');
+            // Crear estructura de carpetas: uploads/incidentes/2025/01/15/
+            const carpetaDestino = path_1.default.join(IMAGEN_CONFIG.carpetaBase, String(ano), mes, dia);
+            // Asegurar que existe la carpeta
+            await promises_1.default.mkdir(carpetaDestino, { recursive: true });
+            const rutasGuardadas = [];
+            for (let i = 0; i < imagenes.length && i < 4; i++) {
+                const nombreArchivo = `incidente_${incidenteId}_imagen_${i + 1}_${Date.now()}.${IMAGEN_CONFIG.format}`;
+                const rutaCompleta = path_1.default.join(carpetaDestino, nombreArchivo);
+                // Optimizar imagen con Sharp
+                await (0, sharp_1.default)(imagenes[i])
+                    .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, {
+                    fit: 'inside',
+                    withoutEnlargement: true
+                })
+                    .jpeg({
+                    quality: IMAGEN_CONFIG.quality,
+                    progressive: true,
+                    mozjpeg: true
+                })
+                    .toFile(rutaCompleta);
+                // Guardar ruta relativa desde la carpeta base
+                const rutaRelativa = path_1.default.relative(IMAGEN_CONFIG.carpetaBase, rutaCompleta);
+                rutasGuardadas.push(rutaRelativa);
+            }
+            incidente_logger_1.incidenteError.info('Imagenes procesadas y guardadas', {
+                incidenteId,
+                cantidad: rutasGuardadas.length,
+                carpeta: carpetaDestino
+            });
+            return rutasGuardadas;
+        }
+        catch (error) {
+            incidente_logger_1.incidenteError.error('Error al procesar imagenes', { incidenteId, error });
+            throw new Error('Error al procesar imagenes del incidente');
         }
     }
     /**
@@ -279,620 +845,7 @@ class IncidenteModel {
         }
     }
     /**
-     * Procesa y optimiza las imagenes del incidente.
-     * Crea carpetas organizadas por fecha para optimizar busquedas.
-     *
-     * @private
-     * @param imagenes - Array de buffers de imagenes
-     * @param incidenteId - ID del incidente para nombrar archivos
-     * @returns Array de rutas donde se guardaron las imagenes
-     */
-    static async procesarImagenes(imagenes, incidenteId) {
-        try {
-            const fecha = new Date();
-            const ano = fecha.getFullYear();
-            const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-            const dia = String(fecha.getDate()).padStart(2, '0');
-            // Crear estructura de carpetas: uploads/incidentes/2025/01/15/
-            const carpetaDestino = path_1.default.join(IMAGEN_CONFIG.carpetaBase, String(ano), mes, dia);
-            // Asegurar que existe la carpeta
-            await promises_1.default.mkdir(carpetaDestino, { recursive: true });
-            const rutasGuardadas = [];
-            for (let i = 0; i < imagenes.length && i < 4; i++) {
-                const nombreArchivo = `incidente_${incidenteId}_imagen_${i + 1}_${Date.now()}.${IMAGEN_CONFIG.format}`;
-                const rutaCompleta = path_1.default.join(carpetaDestino, nombreArchivo);
-                // Optimizar imagen con Sharp
-                await (0, sharp_1.default)(imagenes[i])
-                    .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, {
-                    fit: 'inside',
-                    withoutEnlargement: true
-                })
-                    .jpeg({
-                    quality: IMAGEN_CONFIG.quality,
-                    progressive: true,
-                    mozjpeg: true
-                })
-                    .toFile(rutaCompleta);
-                // Guardar ruta relativa desde la carpeta base
-                const rutaRelativa = path_1.default.relative(IMAGEN_CONFIG.carpetaBase, rutaCompleta);
-                rutasGuardadas.push(rutaRelativa);
-            }
-            incidente_logger_1.incidenteError.info('Imagenes procesadas y guardadas', {
-                incidenteId,
-                cantidad: rutasGuardadas.length,
-                carpeta: carpetaDestino
-            });
-            return rutasGuardadas;
-        }
-        catch (error) {
-            incidente_logger_1.incidenteError.error('Error al procesar imagenes', { incidenteId, error });
-            throw new Error('Error al procesar imagenes del incidente');
-        }
-    }
-    /** Comprueba si, excluyendo `movimientoIdExcluido`, queda al menos otro movimiento ALTA en la ronda 1 */
-    static async hayOtrasAltasEnRonda1(localidadId, movimientoIdExcluido) {
-        const count = await prisma.ronda.count({
-            where: {
-                localidadId,
-                rondaNumero: 1,
-                concluido: false,
-                movimiento: {
-                    prioridad: 'ALTA',
-                    id: { not: movimientoIdExcluido }
-                }
-            }
-        });
-        return count > 0;
-    }
-    /**
-     * Reorganiza las rondas cuando se reporta un incidente en un movimiento espec�fico.
-     * REGLA ALTA o RONDA 1: El movimiento se mueve al final de la misma ronda.
-     * REGLA BAJA (RONDA 2+): El movimiento se mueve a la siguiente ronda con efecto domin�.
-     * Despu�s, renumera todas las rondas de la localidad, reubicando solo los movimientos
-     * de la empresa que gener� el incidente seg�n su nueva secuencia.
-     *
-     * @private
-     * @param empresaId - ID de la empresa afectada
-     * @param localidadId - ID de la localidad donde ocurre el incidente
-     * @param movimientoId - ID del movimiento espec�fico con incidente
-     */
-    static async reorganizarRondasPorIncidente(empresaId, localidadId, movimientoId) {
-        try {
-            const rondaMovimiento = await prisma.ronda.findFirst({
-                where: { movimientoId, localidadId, concluido: false },
-                include: { movimiento: true }
-            });
-            if (!rondaMovimiento) {
-                incidente_logger_1.incidenteError.info('No se encontró ronda para el movimiento', {
-                    movimientoId,
-                    empresaId,
-                    localidadId
-                });
-                return;
-            }
-            const { rondaNumero } = rondaMovimiento;
-            const { prioridad } = rondaMovimiento.movimiento || {};
-            const unicaEmpresa = await this.esUnicaEmpresaEnRondas(empresaId, localidadId);
-            // LÓGICA DE AJUSTE ─────────────────────────────────────
-            if (prioridad === 'ALTA') {
-                const otrasAltas = await this.hayOtrasAltasEnRonda1(localidadId, movimientoId);
-                if (otrasAltas) {
-                    await this.moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId);
-                }
-                else {
-                    await this.intercambiarConPrimerBajaDeRonda2(localidadId, empresaId, movimientoId, rondaMovimiento);
-                }
-            }
-            else if (prioridad === 'BAJA') {
-                if (unicaEmpresa) {
-                    await this.moverAlFinalDeLaRonda(empresaId, localidadId, movimientoId, rondaMovimiento);
-                }
-                else {
-                    await this.aplicarEfectoDomino(empresaId, localidadId, movimientoId, rondaMovimiento);
-                }
-            }
-            // Re‑indexar por empresa
-            await this.reorganizarRondasPorEmpresa(empresaId, localidadId);
-            // <─── NUEVO: compactar numeración global
-            await this.normalizarNumeracionRondas(localidadId);
-        }
-        catch (error) {
-            incidente_logger_1.incidenteError.error('Error al reorganizar rondas por incidente', {
-                empresaId,
-                localidadId,
-                movimientoId,
-                error
-            });
-            throw new Error('Error al reorganizar rondas por incidente');
-        }
-    }
-    /**
-     * Intercambio ALTA ↔ BAJA
-     */
-    /**
-     * Intercambia un movimiento **ALTA** que estaba en R1 (`rondaA`) por el
-     * primer movimiento **BAJA** encontrado en R2 de la misma localidad.
-     *
-     *  A  = movimientoId (ALTA)            ──>   pasará a (R2, orden 1)
-     *  B  = primer BAJA de R2 (si existe)  ──>   subirá a (R1, orden original de A)
-     *
-     * Si todavía no existe ninguna BAJA en R2 se crea solamente el
-     * registro de A en (R2, 1) y se compacta la R1; es decir, no lanza error.
-     */
-    static async intercambiarConPrimerBajaDeRonda2(localidadId, empresaId, movimientoId, // A
-    rondaA) {
-        await prisma.$transaction(async (tx) => {
-            /* ───────────────────────────────────────────────────────────
-             * 1.  Eliminar A de la ronda-1 y compactar huecos
-             * ─────────────────────────────────────────────────────────── */
-            await tx.ronda.delete({ where: { id: rondaA.id } });
-            await tx.ronda.updateMany({
-                where: {
-                    localidadId,
-                    rondaNumero: 1,
-                    orden: { gt: rondaA.orden },
-                    concluido: false
-                },
-                data: { orden: { decrement: 1 } }
-            });
-            /* ───────────────────────────────────────────────────────────
-             * 2.  Tomar primer BAJA de R2 (si existe)
-             * ─────────────────────────────────────────────────────────── */
-            const rondaB = await tx.ronda.findFirst({
-                where: {
-                    localidadId,
-                    rondaNumero: 2,
-                    concluido: false,
-                    movimiento: { prioridad: 'BAJA' }
-                },
-                orderBy: { orden: 'asc' }
-            });
-            /* ───────────────────────────────────────────────────────────
-             * 3.  Quitar B de R2 (si lo hubo) y compactar esa ronda
-             * ─────────────────────────────────────────────────────────── */
-            if (rondaB) {
-                await tx.ronda.delete({ where: { id: rondaB.id } });
-                await tx.ronda.updateMany({
-                    where: {
-                        localidadId,
-                        rondaNumero: 2,
-                        orden: { gt: rondaB.orden },
-                        concluido: false
-                    },
-                    data: { orden: { decrement: 1 } }
-                });
-                /* insertar B en el hueco de A (R1, orden original de A) */
-                await tx.ronda.create({
-                    data: {
-                        movimientoId: rondaB.movimientoId,
-                        empresaId: rondaB.empresaId,
-                        localidadId,
-                        rondaNumero: 1,
-                        orden: rondaA.orden
-                    }
-                });
-            }
-            /* ───────────────────────────────────────────────────────────
-             * 4.  Desplazar +1 todos los órdenes de R2  (hueco en 1)
-             *     e insertar A como (R2, 1)
-             * ─────────────────────────────────────────────────────────── */
-            await tx.ronda.updateMany({
-                where: { localidadId, rondaNumero: 2, concluido: false },
-                data: { orden: { increment: 1 } }
-            });
-            await tx.ronda.create({
-                data: {
-                    movimientoId,
-                    empresaId,
-                    localidadId,
-                    rondaNumero: 2,
-                    orden: 1
-                }
-            });
-            incidente_logger_1.incidenteError.info('Swap ALTA↔BAJA ejecutado', {
-                movimientoAlta: movimientoId,
-                movimientoBaja: rondaB?.movimientoId ?? 'sin BAJA',
-                localidadId,
-                ronda1OrdenAltaOriginal: rondaA.orden
-            });
-        }, { isolationLevel: 'Serializable' } // protege de concurrencia
-        );
-        /* 5.  Compactar numeración global de rondas en la localidad */
-        await this.normalizarNumeracionRondas(localidadId);
-    }
-    /**
-     * Mueve un BAJA al final de SU ronda, compactando num. interna.
-     * Seguro ante: huecos, duplicados, concurrencia, ya-estar-al-final.
-     */
-    static async moverAlFinalDeLaRonda(empresaId, localidadId, movimientoId, rondaMovimiento) {
-        const { rondaNumero, id: rondaId, orden: ordenOriginal } = rondaMovimiento;
-        await prisma.$transaction(async (tx) => {
-            const movs = await tx.ronda.findMany({
-                where: { localidadId, rondaNumero, concluido: false },
-                orderBy: { orden: 'asc' },
-                select: { id: true, orden: true }
-            });
-            if (movs.length <= 1 || ordenOriginal === movs.length)
-                return; // no hay nada que hacer
-            const nuevos = [];
-            let cursor = 1;
-            for (const m of movs) {
-                if (m.id === rondaId)
-                    continue; // movemos al final
-                nuevos.push({ id: m.id, orden: cursor++ });
-            }
-            nuevos.push({ id: rondaId, orden: cursor });
-            await Promise.all(nuevos.map(({ id, orden }) => tx.ronda.update({ where: { id }, data: { orden } })));
-            incidente_logger_1.incidenteError.info('BAJA reubicado al final', {
-                movimientoId, localidadId, rondaNumero,
-                from: ordenOriginal, to: cursor
-            });
-        }, { isolationLevel: 'Serializable' });
-        await this.normalizarNumeracionRondas(localidadId);
-    }
-    /**
-     * Efecto dominó para BAJAS
-     */
-    /**
-     * Desplaza TODAS las rondas ≥ rondaActual (+1) y, con ello,
-     * “empuja” el movimiento BAJA a la siguiente ronda.
-     *
-     * Ejemplo (antes)       Ejemplo (después)
-     *   R2:  A,B,C          R2:  (vacía)
-     *   R3:  D,E     ──►    R3:  A,B,C
-     *   R4:  F              R4:  D,E
-     *                       R5:  F           ← se creó nueva ronda
-     */
-    static async aplicarEfectoDomino(empresaId, localidadId, movimientoId, rondaMovimiento) {
-        const desde = rondaMovimiento.rondaNumero; // Ronda donde ocurrió el incidente
-        await prisma.$transaction(async (tx) => {
-            /* 1️⃣  Obtener la ronda máxima actual */
-            const { _max } = await tx.ronda.aggregate({
-                where: { localidadId, concluido: false },
-                _max: { rondaNumero: true }
-            });
-            const maxRonda = _max.rondaNumero ?? desde;
-            /* 2️⃣  Desplazar de arriba-abajo para evitar colisiones
-                   (Rmax → Rmax+1, …, Rdesde → Rdesde+1)              */
-            for (let r = maxRonda; r >= desde; r--) {
-                await tx.ronda.updateMany({
-                    where: { localidadId, rondaNumero: r, concluido: false },
-                    data: { rondaNumero: r + 1 }
-                });
-            }
-            /* 3️⃣  Compactar órdenes dentro de las rondas afectadas */
-            for (let r = desde + 1; r <= maxRonda + 1; r++) {
-                await this.reorganizarOrdenEnRonda(tx, localidadId, r);
-            }
-            incidente_logger_1.incidenteError.info('Efecto dominó aplicado', {
-                movimientoId,
-                empresaId,
-                localidadId,
-                desdeRonda: desde,
-                hastaRonda: maxRonda + 1
-            });
-        }, { isolationLevel: 'Serializable' });
-        await this.normalizarNumeracionRondas(localidadId);
-    }
-    /**
-     * Empuja un movimiento ALTA al final de la ronda 1.
-     * No toca otras rondas. Compacta la numeración de la ronda afectada.
-     */
-    static async moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId) {
-        await prisma.$transaction(async (tx) => {
-            // ronda actual del movimiento (puede venir de R1 o de otra ronda)
-            const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
-            if (!rondaActual)
-                return;
-            /* 1) Eliminarlo de su ronda original y compactar esa ronda           */
-            await tx.ronda.delete({ where: { id: rondaActual.id } });
-            await tx.ronda.updateMany({
-                where: {
-                    localidadId,
-                    rondaNumero: rondaActual.rondaNumero,
-                    orden: { gt: rondaActual.orden },
-                    concluido: false
-                },
-                data: { orden: { decrement: 1 } }
-            });
-            /* 2) Insertarlo al final de la ronda 1                               */
-            const ultimo = await tx.ronda.count({
-                where: { localidadId, rondaNumero: 1, concluido: false }
-            });
-            await tx.ronda.create({
-                data: {
-                    movimientoId,
-                    empresaId,
-                    localidadId,
-                    rondaNumero: 1,
-                    orden: ultimo + 1
-                }
-            });
-            incidente_logger_1.incidenteError.info('ALTA enviado al final de R1', {
-                movimientoId, localidadId, ordenFinal: ultimo + 1
-            });
-        }, { isolationLevel: 'Serializable' });
-        await this.normalizarNumeracionRondas(localidadId);
-    }
-    /**
-     * ──────────────────────────────────────────────────────────
-     * UTILIDAD: Normalizar numeración de rondas
-     * ──────────────────────────────────────────────────────────
-     */
-    static async normalizarNumeracionRondas(localidadId) {
-        await prisma.$transaction(async (tx) => {
-            const grupos = await tx.ronda.findMany({
-                where: { localidadId, concluido: false },
-                distinct: ['rondaNumero'],
-                orderBy: { rondaNumero: 'asc' }
-            });
-            let expected = 1;
-            for (const { rondaNumero } of grupos) {
-                if (rondaNumero !== expected) {
-                    await tx.ronda.updateMany({
-                        where: { localidadId, rondaNumero },
-                        data: { rondaNumero: expected }
-                    });
-                }
-                expected++;
-            }
-        });
-    } /**
-     * Renumera los �rdenes en una ronda para que queden 1,2,3�
-     */
-    static async reorganizarOrdenEnRonda(tx, localidadId, rondaNumero) {
-        const movs = await tx.ronda.findMany({
-            where: { localidadId, rondaNumero, concluido: false },
-            orderBy: { orden: 'asc' }
-        });
-        for (let i = 0; i < movs.length; i++) {
-            const correcto = i + 1;
-            if (movs[i].orden !== correcto) {
-                await tx.ronda.update({
-                    where: { id: movs[i].id },
-                    data: { orden: correcto }
-                });
-            }
-        }
-    }
-    /**
-     * Reorganiza todas las rondas de una localidad, pero solo reubica
-     * los movimientos de la empresa indicada en la "secuencia" que les
-     * corresponde, y renumera el resto para que queden consecutivos.
-     */
-    static async reorganizarRondasPorEmpresa(empresaId, localidadId) {
-        await prisma.$transaction(async (tx) => {
-            // 1) Traer todas las rondas activas
-            const rondas = await tx.ronda.findMany({
-                where: { localidadId, concluido: false },
-                distinct: ['rondaNumero'],
-                orderBy: { rondaNumero: 'asc' }
-            });
-            // 2) Secuencia de movimientos de la empresa
-            const empMovs = await tx.ronda.findMany({
-                where: { localidadId, empresaId, concluido: false },
-                select: { id: true, rondaNumero: true },
-                orderBy: { rondaNumero: 'asc' }
-            });
-            const seqMap = new Map();
-            empMovs.forEach((m, idx) => seqMap.set(m.rondaNumero, { id: m.id, seq: idx + 1 }));
-            // 3) Para cada ronda, reconstruir el orden
-            for (const { rondaNumero } of rondas) {
-                const all = await tx.ronda.findMany({
-                    where: { localidadId, rondaNumero, concluido: false },
-                    orderBy: { orden: 'asc' }
-                });
-                const entry = seqMap.get(rondaNumero);
-                if (!entry) {
-                    // Solo renumera consecutivo
-                    for (let i = 0; i < all.length; i++) {
-                        if (all[i].orden !== i + 1) {
-                            await tx.ronda.update({
-                                where: { id: all[i].id },
-                                data: { orden: i + 1 }
-                            });
-                        }
-                    }
-                    continue;
-                }
-                // Separar y reinsertar en su slot
-                const others = all.filter(m => m.id !== entry.id);
-                const target = Math.min(entry.seq, others.length + 1);
-                const newOrder = [
-                    ...others.slice(0, target - 1).map(m => m.id),
-                    entry.id,
-                    ...others.slice(target - 1).map(m => m.id)
-                ];
-                for (let i = 0; i < newOrder.length; i++) {
-                    await tx.ronda.update({
-                        where: { id: newOrder[i] },
-                        data: { orden: i + 1 }
-                    });
-                }
-            }
-        });
-    }
-    /**
-     * Busca todas las rondas posteriores donde el movimiento debe insertarse.
-     *
-     * @private
-     * @param localidadId - ID de la localidad
-     * @param empresaId - ID de la empresa
-     * @param rondaActual - Numero de ronda actual del movimiento
-     * @returns Array de inserciones a realizar
-     */
-    static async buscarRondasParaInsertar(localidadId, empresaId, rondaActual) {
-        try {
-            const inserciones = [];
-            // Empezar a buscar desde la ronda siguiente
-            let rondaBuscada = rondaActual + 1;
-            while (true) {
-                // Verificar si la empresa ya participa en esta ronda
-                const movimientosEmpresaEnRonda = await prisma.ronda.findMany({
-                    where: {
-                        localidadId,
-                        rondaNumero: rondaBuscada,
-                        empresaId,
-                        concluido: false
-                    },
-                    orderBy: { orden: 'asc' }
-                });
-                if (movimientosEmpresaEnRonda.length === 0) {
-                    // Empresa NO participa en esta ronda! Se agrega aqui y termina
-                    // Contar total de movimientos en esta ronda para agregar al final
-                    const totalMovimientosEnRonda = await prisma.ronda.count({
-                        where: {
-                            localidadId,
-                            rondaNumero: rondaBuscada,
-                            concluido: false
-                        }
-                    });
-                    inserciones.push({
-                        rondaNumero: rondaBuscada,
-                        posicionInsercion: totalMovimientosEnRonda + 1,
-                        hayMovimientosEmpresa: false
-                    });
-                    // Terminar busqueda
-                    break;
-                }
-                else {
-                    // Empresa SI participa, insertar al inicio y continuar
-                    inserciones.push({
-                        rondaNumero: rondaBuscada,
-                        posicionInsercion: 1, // Se inserta al inicio, recorriendo los demas
-                        hayMovimientosEmpresa: true
-                    });
-                    // Continuar buscando en la siguiente ronda
-                    rondaBuscada++;
-                    // Proteccion contra bucle infinito
-                    if (rondaBuscada > rondaActual + 100) {
-                        incidente_logger_1.incidenteError.warn('Busqueda de rondas alcanzo limite', {
-                            localidadId, empresaId, rondaActual, rondaBuscada
-                        });
-                        break;
-                    }
-                }
-            }
-            // Si no se encontro ninguna ronda libre, crear una nueva al final
-            if (inserciones.length === 0) {
-                const ultimaRonda = await prisma.ronda.findFirst({
-                    where: { localidadId },
-                    orderBy: { rondaNumero: 'desc' },
-                    select: { rondaNumero: true }
-                });
-                const nuevaRondaNumero = (ultimaRonda?.rondaNumero || 0) + 1;
-                inserciones.push({
-                    rondaNumero: nuevaRondaNumero,
-                    posicionInsercion: 1,
-                    hayMovimientosEmpresa: false
-                });
-            }
-            return inserciones;
-        }
-        catch (error) {
-            incidente_logger_1.incidenteError.error('Error al buscar rondas para insertar', {
-                localidadId, empresaId, rondaActual, error
-            });
-            // Fallback: crear nueva ronda al final
-            const ultimaRonda = await prisma.ronda.findFirst({
-                where: { localidadId },
-                orderBy: { rondaNumero: 'desc' },
-                select: { rondaNumero: true }
-            });
-            return [{
-                    rondaNumero: (ultimaRonda?.rondaNumero || 0) + 1,
-                    posicionInsercion: 1,
-                    hayMovimientosEmpresa: false
-                }];
-        }
-    }
-    /**
-     * Crear un nuevo incidente y reorganizar rondas automaticamente.
-     * Tambien cambia el estado del movimiento a DETENIDO.
-     *
-     * @param data - Datos del incidente a crear
-     * @returns Objeto del incidente creado
-     * @throws Error si ocurre un fallo durante la creacion
-     */
-    static async crearIncidente(data) {
-        try {
-            /* - 1. verificar movimiento ------------------------------- */
-            const movimiento = await prisma.movimiento.findUnique({
-                where: { id: data.movimientoId },
-                include: { empresa: true, localidad: true, ronda: true }
-            });
-            if (!movimiento) {
-                throw new Error(`No se encontro movimiento con id ${data.movimientoId}`);
-            }
-            /* - 2. crear el incidente (obtenemos id) ------------------- */
-            const nuevoIncidente = await prisma.incidente.create({
-                data: {
-                    descripcion: data.descripcion,
-                    movimientoId: data.movimientoId,
-                    usuarioId: data.usuarioId,
-                    estado: 'ABIERTO'
-                }
-            });
-            /* - 3. procesar im�genes, si existen ----------------------- */
-            let rutasImagenes = [];
-            if (data.imagenes?.length) {
-                rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
-            }
-            const incidenteConImagenes = await prisma.incidente.update({
-                where: { id: nuevoIncidente.id },
-                data: {
-                    imagen1: rutasImagenes[0] ?? null,
-                    imagen2: rutasImagenes[1] ?? null,
-                    imagen3: rutasImagenes[2] ?? null,
-                    imagen4: rutasImagenes[3] ?? null
-                },
-                include: {
-                    movimiento: {
-                        include: {
-                            empresa: true,
-                            localidad: true,
-                            ronda: true
-                        }
-                    },
-                    usuario: {
-                        select: { id: true, nombre: true, email: true, empresa: true }
-                    }
-                }
-            });
-            /* - 4. detener el movimiento ------------------------------- */
-            await prisma.movimiento.update({
-                where: { id: data.movimientoId },
-                data: {
-                    estado: 'DETENIDO',
-                    fechaPausa: new Date(),
-                    incidenteGlobal: true
-                }
-            });
-            /* - 5. mover o reorganizar la ronda seg�n prioridad -------- */
-            if (movimiento.prioridad === 'ALTA') {
-                await this.moverMovimientoARonda1AlFinal(movimiento.localidadId, movimiento.empresaId, data.movimientoId);
-            }
-            else if (movimiento.ronda) {
-                await this.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, data.movimientoId);
-            }
-            /* - 6. notificar (FCM) ------------------------------------- */
-            await NotificadorFCM_1.NotificadorFCM.notificarNuevoIncidente(incidenteConImagenes);
-            incidente_logger_1.incidenteError.info('Incidente creado y procesado', {
-                incidenteId: nuevoIncidente.id,
-                movimientoId: data.movimientoId,
-                empresaId: movimiento.empresaId,
-                localidadId: movimiento.localidadId,
-                imagenesGuardadas: rutasImagenes.length
-            });
-            return incidenteConImagenes;
-        }
-        catch (error) {
-            incidente_logger_1.incidenteError.error('Error al crear incidente', { data, error });
-            throw new Error('Error al crear incidente');
-        }
-    }
-    /**
-     * Notificar cambio de estado de un incidente (ABIERTO ? CERRADO o actualizaci�n)
+     * Notificar cambio de estado de un incidente
      */
     static async notificarCambioEstado(incidente, estadoAnterior) {
         try {
@@ -902,20 +855,23 @@ class IncidenteModel {
             });
             if (!movimiento)
                 return;
-            // usuarios relevantes
-            const ids = [];
+            // Obtener usuarios relevantes
+            const ids = new Set();
             if (movimiento.clienteId)
-                ids.push(movimiento.clienteId);
+                ids.add(movimiento.clienteId);
             if (movimiento.supervisorId)
-                ids.push(movimiento.supervisorId);
+                ids.add(movimiento.supervisorId);
             if (movimiento.coordinadorId)
-                ids.push(movimiento.coordinadorId);
+                ids.add(movimiento.coordinadorId);
             if (movimiento.operadorId)
-                ids.push(movimiento.operadorId);
+                ids.add(movimiento.operadorId);
             if (movimiento.creadoPorId)
-                ids.push(movimiento.creadoPorId);
+                ids.add(movimiento.creadoPorId);
             const usuariosConTokens = await prisma.usuario.findMany({
-                where: { id: { in: ids }, activo: true },
+                where: {
+                    id: { in: Array.from(ids) },
+                    activo: true
+                },
                 include: { fcmTokens: true }
             });
             const tokens = usuariosConTokens.flatMap(u => u.fcmTokens.map(t => t.token));
@@ -923,15 +879,15 @@ class IncidenteModel {
                 return;
             const empresaNombre = movimiento.empresa?.nombre ?? 'Sin Empresa';
             const descripcion = incidente.descripcion.length > 50
-                ? incidente.descripcion.slice(0, 50) + '�'
+                ? incidente.descripcion.slice(0, 50) + '…'
                 : incidente.descripcion;
             const titulo = incidente.estado === 'CERRADO'
-                ? '? INCIDENTE RESUELTO'
-                : '?? INCIDENTE ACTUALIZADO';
+                ? '✅ INCIDENTE RESUELTO'
+                : '🔄 INCIDENTE ACTUALIZADO';
             const mensaje = {
                 notification: {
                     title: titulo,
-                    body: `ID #${incidente.id} � ${empresaNombre} � Loco ${movimiento.locomotiveNumber}`
+                    body: `ID #${incidente.id} • ${empresaNombre} • Loco ${movimiento.locomotiveNumber}`
                 },
                 data: {
                     pantalla: 'Incidente',
@@ -948,62 +904,83 @@ class IncidenteModel {
                 tokens
             };
             await firebase_admin_1.default.messaging().sendEachForMulticast(mensaje);
+            incidente_logger_1.incidenteError.info('Notificación enviada', {
+                incidenteId: incidente.id,
+                tokensEnviados: tokens.length
+            });
         }
         catch (error) {
-            console.error('? Error enviando notificaci�n de cambio de estado:', error);
-            throw error;
+            incidente_logger_1.incidenteError.error('Error enviando notificación de cambio de estado', { error });
+            // No lanzar error para no interrumpir el flujo principal
         }
     }
     /**
      * Eliminar un incidente por su ID.
-     * Tambien elimina las imagenes asociadas del servidor.
+     * También elimina las imágenes asociadas del servidor.
      *
      * @param id - ID del incidente a eliminar
      * @returns Objeto del incidente eliminado
-     * @throws Error si ocurre un fallo durante la eliminacion
+     * @throws Error si ocurre un fallo durante la eliminación
      */
     static async eliminarIncidente(id) {
         try {
-            // Obtener el incidente con sus imagenes antes de eliminarlo
-            const incidente = await prisma.incidente.findUnique({
-                where: { id }
-            });
-            if (!incidente) {
-                throw new Error(`No se encontro incidente con id ${id}`);
-            }
-            // Eliminar imagenes del servidor
-            const imagenes = [incidente.imagen1, incidente.imagen2, incidente.imagen3, incidente.imagen4];
-            for (const rutaImagen of imagenes) {
-                if (rutaImagen) {
-                    try {
-                        const rutaCompleta = path_1.default.join(IMAGEN_CONFIG.carpetaBase, rutaImagen);
-                        await promises_1.default.unlink(rutaCompleta);
-                    }
-                    catch (error) {
-                        incidente_logger_1.incidenteError.warn('No se pudo eliminar imagen', { rutaImagen, error });
+            return await prisma.$transaction(async (tx) => {
+                // Obtener el incidente con sus imagenes
+                const incidente = await tx.incidente.findUnique({
+                    where: { id }
+                });
+                if (!incidente) {
+                    throw new Error(`No se encontró incidente con id ${id}`);
+                }
+                // Verificar si puede ser eliminado
+                if (incidente.estado === 'ABIERTO') {
+                    const { enPeriodoVerificacion, enPeriodoBloqueo } = await this.verificarPeriodoVerificacion(id);
+                    if (enPeriodoVerificacion || enPeriodoBloqueo) {
+                        throw new Error('No se puede eliminar un incidente en período de verificación o bloqueo');
                     }
                 }
-            }
-            // Eliminar el incidente de la base de datos
-            const incidenteEliminado = await prisma.incidente.delete({
-                where: { id }
+                // Eliminar el incidente de la base de datos
+                const incidenteEliminado = await tx.incidente.delete({
+                    where: { id }
+                });
+                // Eliminar imágenes del servidor (fuera de la transacción)
+                const imagenes = [
+                    incidente.imagen1,
+                    incidente.imagen2,
+                    incidente.imagen3,
+                    incidente.imagen4
+                ].filter(Boolean);
+                // Programar eliminación de imágenes de forma asíncrona
+                setImmediate(async () => {
+                    for (const rutaImagen of imagenes) {
+                        if (rutaImagen) {
+                            try {
+                                const rutaCompleta = path_1.default.join(IMAGEN_CONFIG.carpetaBase, rutaImagen);
+                                await promises_1.default.unlink(rutaCompleta);
+                            }
+                            catch (error) {
+                                incidente_logger_1.incidenteError.warn('No se pudo eliminar imagen', { rutaImagen, error });
+                            }
+                        }
+                    }
+                });
+                incidente_logger_1.incidenteError.info('Incidente eliminado correctamente', {
+                    incidenteId: id,
+                    imagenesParaEliminar: imagenes.length
+                });
+                return incidenteEliminado;
             });
-            incidente_logger_1.incidenteError.info('Incidente eliminado correctamente', {
-                incidenteId: id,
-                imagenesEliminadas: imagenes.filter(Boolean).length
-            });
-            return incidenteEliminado;
         }
         catch (error) {
             incidente_logger_1.incidenteError.error('Error al eliminar incidente', { id, error });
-            throw new Error('Error al eliminar incidente');
+            throw error instanceof Error ? error : new Error('Error al eliminar incidente');
         }
     }
     /**
-     * Cerrar automaticamente incidentes que han superado el tiempo de verificacion.
-     * Se ejecuta periodicamente para mantener el flujo de trabajo.
+     * Cerrar automáticamente incidentes que han superado el tiempo de verificación.
+     * Se ejecuta periódicamente para mantener el flujo de trabajo.
      *
-     * @returns Numero de incidentes cerrados automaticamente
+     * @returns Número de incidentes cerrados automáticamente
      */
     static async cerrarIncidentesVencidos() {
         try {
@@ -1014,16 +991,38 @@ class IncidenteModel {
                     fechaInicio: {
                         lte: tiempoLimite
                     }
+                },
+                select: {
+                    id: true,
+                    movimientoId: true
                 }
             });
+            if (incidentesVencidos.length === 0) {
+                return 0;
+            }
             let incidentesCerrados = 0;
-            for (const incidente of incidentesVencidos) {
-                await this.editarIncidente(incidente.id, { estado: 'CERRADO' });
-                incidentesCerrados++;
+            const errores = [];
+            // Procesar en lotes para evitar sobrecarga
+            const BATCH_SIZE = 10;
+            for (let i = 0; i < incidentesVencidos.length; i += BATCH_SIZE) {
+                const batch = incidentesVencidos.slice(i, i + BATCH_SIZE);
+                await Promise.all(batch.map(async (incidente) => {
+                    try {
+                        await this.editarIncidente(incidente.id, { estado: 'CERRADO' });
+                        incidentesCerrados++;
+                    }
+                    catch (error) {
+                        errores.push({ incidenteId: incidente.id, error });
+                    }
+                }));
+            }
+            if (errores.length > 0) {
+                incidente_logger_1.incidenteError.warn('Algunos incidentes no pudieron ser cerrados', { errores });
             }
             if (incidentesCerrados > 0) {
-                incidente_logger_1.incidenteError.info('Incidentes cerrados automaticamente por timeout', {
+                incidente_logger_1.incidenteError.info('Incidentes cerrados automáticamente por timeout', {
                     cantidad: incidentesCerrados,
+                    errores: errores.length,
                     tiempoLimite: tiempoLimite.toISOString()
                 });
             }
@@ -1041,13 +1040,16 @@ class IncidenteModel {
      * @returns Ruta completa del archivo
      */
     static obtenerRutaCompletaImagen(rutaRelativa) {
+        if (!rutaRelativa) {
+            throw new Error('Ruta relativa no puede estar vacía');
+        }
         return path_1.default.join(IMAGEN_CONFIG.carpetaBase, rutaRelativa);
     }
     /**
-     * Verificar si un incidente esta en periodo de verificacion.
+     * Verificar si un incidente está en período de verificación.
      *
      * @param incidenteId - ID del incidente
-     * @returns Informacion sobre el estado del periodo de verificacion
+     * @returns Información sobre el estado del período de verificación
      */
     static async verificarPeriodoVerificacion(incidenteId) {
         try {
@@ -1060,14 +1062,14 @@ class IncidenteModel {
                 }
             });
             if (!incidente) {
-                throw new Error(`No se encontro incidente con id ${incidenteId}`);
+                throw new Error(`No se encontró incidente con id ${incidenteId}`);
             }
             if (incidente.estado === 'CERRADO') {
                 return {
                     enPeriodoVerificacion: false,
                     enPeriodoBloqueo: false,
                     tiempoRestante: 0,
-                    mensaje: 'Incidente ya esta cerrado'
+                    mensaje: 'Incidente ya está cerrado'
                 };
             }
             const ahora = new Date();
@@ -1079,11 +1081,11 @@ class IncidenteModel {
             let mensaje = '';
             if (enPeriodoVerificacion) {
                 tiempoRestante = TIMEOUT_CONFIG.verificacion - tiempoTranscurrido;
-                mensaje = 'Periodo de verificacion activo';
+                mensaje = 'Período de verificación activo';
             }
             else if (enPeriodoBloqueo) {
                 tiempoRestante = (TIMEOUT_CONFIG.verificacion + TIMEOUT_CONFIG.bloqueo) - tiempoTranscurrido;
-                mensaje = 'Periodo de bloqueo activo';
+                mensaje = 'Período de bloqueo activo';
             }
             else {
                 mensaje = 'Incidente puede ser cerrado';
@@ -1092,72 +1094,113 @@ class IncidenteModel {
                 enPeriodoVerificacion,
                 enPeriodoBloqueo,
                 tiempoRestante: Math.max(0, tiempoRestante),
-                mensaje
+                mensaje,
+                tiempoTranscurridoMinutos: Math.floor(tiempoTranscurrido / 60000)
             };
         }
         catch (error) {
-            incidente_logger_1.incidenteError.error('Error al verificar periodo de verificacion', { incidenteId, error });
-            throw new Error('Error al verificar periodo de verificacion');
+            incidente_logger_1.incidenteError.error('Error al verificar período de verificación', { incidenteId, error });
+            throw error instanceof Error ? error : new Error('Error al verificar período de verificación');
         }
-    }
-    static async obtenerIncidentePorId(id) {
-        const incidente = await prisma.incidente.findUnique({
-            where: { id },
-            include: {
-                movimiento: {
-                    include: {
-                        empresa: true,
-                        localidad: true,
-                        viaOrigen: true,
-                        viaDestino: true,
-                        ronda: true
-                    }
-                },
-                usuario: {
-                    select: {
-                        id: true,
-                        nombre: true,
-                        email: true,
-                        empresa: true
-                    }
-                }
-            }
-        });
-        if (!incidente) {
-            throw new Error(`No existe incidente con id ${id}`);
-        }
-        // Solo las rutas relativas que vienen guardadas en BD
-        const rutasRelativas = [
-            incidente.imagen1,
-            incidente.imagen2,
-            incidente.imagen3,
-            incidente.imagen4
-        ].filter(Boolean);
-        return {
-            id: incidente.id,
-            descripcion: incidente.descripcion,
-            estado: incidente.estado,
-            fechaInicio: incidente.fechaInicio,
-            fechaFin: incidente.fechaFin,
-            usuario: incidente.usuario,
-            movimiento: incidente.movimiento,
-            imagenes: rutasRelativas
-        };
     }
     /**
-     * 1. Obtener todos los incidentes paginados
+     * Obtener un incidente por ID con todas sus relaciones
      */
-    static async obtenerIncidentesPaginados(page = 1, pageSize = 20) {
+    static async obtenerIncidentePorId(id) {
         try {
+            const incidente = await prisma.incidente.findUnique({
+                where: { id },
+                include: {
+                    movimiento: {
+                        include: {
+                            empresa: true,
+                            localidad: true,
+                            viaOrigen: true,
+                            viaDestino: true,
+                            ronda: {
+                                where: { concluido: false }
+                            }
+                        }
+                    },
+                    usuario: {
+                        select: {
+                            id: true,
+                            nombre: true,
+                            email: true,
+                            empresa: true
+                        }
+                    }
+                }
+            });
+            if (!incidente) {
+                throw new Error(`No existe incidente con id ${id}`);
+            }
+            // Filtrar solo las rutas válidas
+            const rutasRelativas = [
+                incidente.imagen1,
+                incidente.imagen2,
+                incidente.imagen3,
+                incidente.imagen4
+            ].filter(Boolean);
+            return {
+                ...incidente,
+                imagenes: rutasRelativas
+            };
+        }
+        catch (error) {
+            incidente_logger_1.incidenteError.error('Error al obtener incidente por ID', { id, error });
+            throw error instanceof Error ? error : new Error('Error al obtener incidente');
+        }
+    }
+    /**
+     * Obtener incidentes paginados con filtros opcionales
+     */
+    static async obtenerIncidentesPaginados(page = 1, pageSize = 20, filtros) {
+        try {
+            // Validar parámetros de paginación
+            page = Math.max(1, page);
+            pageSize = Math.min(100, Math.max(1, pageSize));
             const skip = (page - 1) * pageSize;
+            // Construir condiciones where
+            const where = {};
+            if (filtros?.estado) {
+                where.estado = filtros.estado;
+            }
+            if (filtros?.fechaInicio || filtros?.fechaFin) {
+                where.fechaInicio = {};
+                if (filtros.fechaInicio) {
+                    where.fechaInicio.gte = filtros.fechaInicio;
+                }
+                if (filtros.fechaFin) {
+                    where.fechaInicio.lte = filtros.fechaFin;
+                }
+            }
+            if (filtros?.empresaId || filtros?.localidadId) {
+                where.movimiento = {};
+                if (filtros.empresaId) {
+                    where.movimiento.empresaId = filtros.empresaId;
+                }
+                if (filtros.localidadId) {
+                    where.movimiento.localidadId = filtros.localidadId;
+                }
+            }
             const [incidentes, total] = await Promise.all([
                 prisma.incidente.findMany({
-                    include: { movimiento: true, usuario: true },
+                    where,
+                    include: {
+                        movimiento: {
+                            include: {
+                                empresa: true,
+                                localidad: true
+                            }
+                        },
+                        usuario: true
+                    },
                     orderBy: { fechaInicio: 'desc' },
                     skip,
                     take: pageSize,
                 }),
-                prisma.incidente.count()
+                prisma.incidente.count({ where })
             ]);
             return {
                 data: incidentes,
@@ -1165,7 +1208,9 @@ class IncidenteModel {
                     total,
                     page,
                     pageSize,
-                    totalPages: Math.ceil(total / pageSize)
+                    totalPages: Math.ceil(total / pageSize),
+                    hasNextPage: page * pageSize < total,
+                    hasPreviousPage: page > 1
                 }
             };
         }
@@ -1175,195 +1220,170 @@ class IncidenteModel {
         }
     }
     /**
-     * 2. Obtener incidentes a partir de una localidad (pag.)
+     * Obtener incidentes por localidad (paginado)
      */
     static async obtenerIncidentesPorLocalidad(localidadId, page = 1, pageSize = 20) {
-        try {
-            const skip = (page - 1) * pageSize;
-            const [incidentes, total] = await Promise.all([
-                prisma.incidente.findMany({
-                    where: { movimiento: { localidadId } },
-                    include: { movimiento: true, usuario: true },
-                    orderBy: { fechaInicio: 'desc' },
-                    skip,
-                    take: pageSize,
-                }),
-                prisma.incidente.count({
-                    where: { movimiento: { localidadId } }
-                })
-            ]);
-            return {
-                data: incidentes,
-                meta: {
-                    total,
-                    page,
-                    pageSize,
-                    totalPages: Math.ceil(total / pageSize)
-                }
-            };
-        }
-        catch (error) {
-            incidente_logger_1.incidenteError.error('Error al obtener incidentes por localidad', { localidadId, error });
-            throw new Error('Error al obtener incidentes por localidad');
-        }
+        return this.obtenerIncidentesPaginados(page, pageSize, { localidadId });
     }
     /**
-     * 3. Obtener incidentes de una empresa Y de una localidad (pag.)
+     * Obtener incidentes por empresa y localidad (paginado)
      */
     static async obtenerIncidentesPorEmpresaYLocalidad(empresaId, localidadId, page = 1, pageSize = 20) {
-        try {
-            const skip = (page - 1) * pageSize;
-            const [incidentes, total] = await Promise.all([
-                prisma.incidente.findMany({
-                    where: {
-                        movimiento: {
-                            empresaId,
-                            localidadId
-                        }
-                    },
-                    include: { movimiento: true, usuario: true },
-                    orderBy: { fechaInicio: 'desc' },
-                    skip,
-                    take: pageSize,
-                }),
-                prisma.incidente.count({
-                    where: {
-                        movimiento: {
-                            empresaId,
-                            localidadId
-                        }
-                    }
-                })
-            ]);
-            return {
-                data: incidentes,
-                meta: {
-                    total,
-                    page,
-                    pageSize,
-                    totalPages: Math.ceil(total / pageSize)
-                }
-            };
-        }
-        catch (error) {
-            incidente_logger_1.incidenteError.error('Error al obtener incidentes por empresa y localidad', { empresaId, localidadId, error });
-            throw new Error('Error al obtener incidentes por empresa y localidad');
-        }
-    }
-    static async esUnicaEmpresaEnRondas(empresaId, localidadId) {
-        const empresas = await prisma.ronda.findMany({
-            where: {
-                localidadId,
-                concluido: false
-            },
-            select: {
-                empresaId: true
-            },
-            distinct: ['empresaId']
-        });
-        return empresas.length === 1 && empresas[0].empresaId === empresaId;
+        return this.obtenerIncidentesPaginados(page, pageSize, { empresaId, localidadId });
     }
     /**
-     * 4. Obtener incidentes de una empresa (pag.)
+     * Obtener incidentes por empresa (paginado)
      */
     static async obtenerIncidentesPorEmpresa(empresaId, page = 1, pageSize = 20) {
+        return this.obtenerIncidentesPaginados(page, pageSize, { empresaId });
+    }
+    /**
+     * Continuar movimiento después de resolver incidente
+     */
+    static async continuarMovimiento(id, comentario) {
         try {
-            const skip = (page - 1) * pageSize;
-            const [incidentes, total] = await Promise.all([
+            return await prisma.$transaction(async (tx) => {
+                const incidente = await tx.incidente.findUnique({
+                    where: { id },
+                    include: {
+                        movimiento: {
+                            include: {
+                                empresa: true,
+                                localidad: true,
+                            }
+                        }
+                    }
+                });
+                if (!incidente) {
+                    throw new Error('Incidente no encontrado');
+                }
+                if (incidente.estado === 'CERRADO') {
+                    throw new Error('Incidente ya está cerrado');
+                }
+                // Verificar período de verificación
+                const { enPeriodoVerificacion, enPeriodoBloqueo } = await this.verificarPeriodoVerificacion(id);
+                if (enPeriodoVerificacion || enPeriodoBloqueo) {
+                    throw new Error('No se puede continuar el movimiento durante el período de verificación o bloqueo');
+                }
+                // Cerrar incidente
+                const actualizado = await tx.incidente.update({
+                    where: { id },
+                    data: {
+                        estado: 'CERRADO',
+                        fechaFin: new Date(),
+                        descripcion: `${incidente.descripcion}\n\n[Resuelto] ${comentario}`
+                    },
+                    include: {
+                        movimiento: {
+                            include: {
+                                empresa: true,
+                                localidad: true
+                            }
+                        }
+                    }
+                });
+                // Reactivar movimiento
+                await tx.movimiento.update({
+                    where: { id: incidente.movimientoId },
+                    data: {
+                        estado: 'EN_PROCESO',
+                        fechaPausa: null,
+                        incidenteGlobal: false
+                    }
+                });
+                // Reorganizar rondas si es necesario
+                if (incidente.movimiento) {
+                    await this.reorganizarSiEsEmpresaUnica(incidente.movimiento);
+                }
+                return actualizado;
+            });
+        }
+        catch (error) {
+            incidente_logger_1.incidenteError.error('Error al continuar movimiento', { id, comentario, error });
+            throw error instanceof Error ? error : new Error('Error al continuar movimiento');
+        }
+    }
+    /**
+     * Reorganizar si es empresa única
+     */
+    static async reorganizarSiEsEmpresaUnica(movimiento) {
+        if (!movimiento?.empresaId || !movimiento?.localidadId) {
+            return;
+        }
+        try {
+            const esUnica = await this.esUnicaEmpresaEnRondas(movimiento.empresaId, movimiento.localidadId);
+            if (esUnica && movimiento.id) {
+                await this.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, movimiento.id);
+            }
+        }
+        catch (error) {
+            incidente_logger_1.incidenteError.error('Error al reorganizar para empresa única', {
+                movimientoId: movimiento.id,
+                error
+            });
+            // No lanzar error para no interrumpir el flujo principal
+        }
+    }
+    /**
+     * Obtener estadísticas de incidentes
+     */
+    static async obtenerEstadisticas(filtros) {
+        try {
+            const where = {};
+            if (filtros?.fechaInicio || filtros?.fechaFin) {
+                where.fechaInicio = {};
+                if (filtros.fechaInicio) {
+                    where.fechaInicio.gte = filtros.fechaInicio;
+                }
+                if (filtros.fechaFin) {
+                    where.fechaInicio.lte = filtros.fechaFin;
+                }
+            }
+            if (filtros?.empresaId || filtros?.localidadId) {
+                where.movimiento = {};
+                if (filtros.empresaId) {
+                    where.movimiento.empresaId = filtros.empresaId;
+                }
+                if (filtros.localidadId) {
+                    where.movimiento.localidadId = filtros.localidadId;
+                }
+            }
+            const [total, abiertos, cerrados, tiempoPromedio] = await Promise.all([
+                prisma.incidente.count({ where }),
+                prisma.incidente.count({ where: { ...where, estado: 'ABIERTO' } }),
+                prisma.incidente.count({ where: { ...where, estado: 'CERRADO' } }),
                 prisma.incidente.findMany({
-                    where: { movimiento: { empresaId } },
-                    include: { movimiento: true, usuario: true },
-                    orderBy: { fechaInicio: 'desc' },
-                    skip,
-                    take: pageSize,
-                }),
-                prisma.incidente.count({
-                    where: { movimiento: { empresaId } }
+                    where: { ...where, estado: 'CERRADO', fechaFin: { not: null } },
+                    select: {
+                        fechaInicio: true,
+                        fechaFin: true
+                    }
                 })
             ]);
-            return {
-                data: incidentes,
-                meta: {
-                    total,
-                    page,
-                    pageSize,
-                    totalPages: Math.ceil(total / pageSize)
+            // Calcular tiempo promedio de resolución
+            let tiempoPromedioResolucion = 0;
+            if (tiempoPromedio.length > 0) {
+                const tiempos = tiempoPromedio.map(inc => {
+                    if (inc.fechaFin) {
+                        return inc.fechaFin.getTime() - inc.fechaInicio.getTime();
+                    }
+                    return 0;
+                }).filter(t => t > 0);
+                if (tiempos.length > 0) {
+                    tiempoPromedioResolucion = tiempos.reduce((a, b) => a + b, 0) / tiempos.length;
                 }
+            }
+            return {
+                total,
+                abiertos,
+                cerrados,
+                tasaResolucion: total > 0 ? (cerrados / total) * 100 : 0,
+                tiempoPromedioResolucionMinutos: Math.round(tiempoPromedioResolucion / 60000)
             };
         }
         catch (error) {
-            incidente_logger_1.incidenteError.error('Error al obtener incidentes por empresa', { empresaId, error });
-            throw new Error('Error al obtener incidentes por empresa');
-        }
-    }
-    static async continuarMovimiento(id, comentario) {
-        const incidente = await prisma.incidente.findUnique({
-            where: { id },
-            include: {
-                movimiento: {
-                    include: {
-                        empresa: true,
-                        localidad: true,
-                    }
-                }
-            }
-        });
-        if (!incidente)
-            throw new Error('Incidente no encontrado');
-        if (incidente.estado === 'CERRADO')
-            throw new Error('Incidente ya cerrado');
-        // Cerrar incidente
-        const actualizado = await prisma.incidente.update({
-            where: { id },
-            data: {
-                estado: 'CERRADO',
-                fechaFin: new Date()
-            },
-            include: { movimiento: true }
-        });
-        // ? Reorganiza rondas si aplica (una sola empresa en las rondas)
-        await this.reorganizarSiEsEmpresaUnica(incidente.movimiento);
-        // ? Buscar usuarios activos de la empresa en la localidad
-        const usuarios = await prisma.usuario.findMany({
-            where: {
-                localidadId: incidente.movimiento.localidadId,
-                empresaId: incidente.movimiento.empresaId,
-                activo: true,
-                rol: { in: ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'] }
-            },
-            include: { fcmTokens: true }
-        });
-        const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
-        if (tokens.length > 0) {
-            const empresa = incidente.movimiento.empresa?.nombre ?? 'Sin Empresa';
-            const loco = incidente.movimiento.locomotiveNumber;
-            await firebase_admin_1.default.messaging().sendEachForMulticast({
-                notification: {
-                    title: '? INCIDENTE RESUELTO',
-                    body: `Incidente resuelto con un comentario del cliente: "${comentario}"`
-                },
-                data: {
-                    pantalla: 'Incidente',
-                    incidenteId: String(actualizado.id),
-                    movimientoId: String(incidente.movimientoId),
-                    empresa,
-                    locomotora: String(loco),
-                    tipo: 'incidente_resuelto_cliente',
-                    timestamp: new Date().toISOString()
-                },
-                tokens
-            });
-        }
-        return actualizado;
-    }
-    static async reorganizarSiEsEmpresaUnica(movimiento) {
-        if (!movimiento || !movimiento.empresaId || !movimiento.localidadId) {
-            return;
-        }
-        const esUnica = await this.esUnicaEmpresaEnRondas(movimiento.empresaId, movimiento.localidadId);
-        if (esUnica && movimiento.id) {
-            // Si es la �nica empresa, reorganizar sus rondas internamente
-            await this.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, movimiento.id);
+            incidente_logger_1.incidenteError.error('Error al obtener estadísticas', { error });
+            throw new Error('Error al obtener estadísticas de incidentes');
         }
     }
 }
