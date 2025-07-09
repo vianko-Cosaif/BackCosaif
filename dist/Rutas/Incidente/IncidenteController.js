@@ -83,13 +83,13 @@ class IncidenteController {
                     incidenteGlobal: false
                 }
             });
-            console.log('Movimiento reabierto tras cierre RESUELTO', {
+            console.info('Movimiento reabierto tras cierre RESUELTO', {
                 incidenteId: incidente.id,
                 movimientoId: incidente.movimientoId
             });
         }
         catch (err) {
-            console.log('Error al reabrir movimiento tras cierre', {
+            console.error('Error al reabrir movimiento tras cierre', {
                 incidenteId: incidente.id,
                 movimientoId: incidente.movimientoId,
                 error: err
@@ -409,47 +409,34 @@ IncidenteController.verificarPeriodoVerificacion = async (req, res) => {
  */
 IncidenteController.cerrarIncidenteGenerico = async (req, res) => {
     const id = Number(req.params.id);
-    const { motivo } = req.body;
-    // Validar ID
     if (Number.isNaN(id)) {
         res.status(400).json({ success: false, error: 'ID de incidente inválido' });
         return;
     }
-    // Validar motivo
-    if (!['RESUELTO', 'NO_RESUELTO', 'TIMEOUT'].includes(motivo)) {
-        res.status(400).json({
-            success: false,
-            error: 'Motivo inválido. Debe ser RESUELTO, NO_RESUELTO o TIMEOUT'
-        });
+    // extraemos motivo o usamos TIMEOUT por defecto
+    const raw = req.body?.motivo;
+    const motivo = ['RESUELTO', 'NO_RESUELTO', 'TIMEOUT'].includes(raw)
+        ? raw
+        : 'TIMEOUT';
+    try {
+        const incidente = await IncidenteModel_1.IncidenteModel.cerrarIncidenteGenerico(id, motivo);
+        res.json({ success: true, data: incidente });
         return;
     }
-    try {
-        // Invoca al método genérico del modelo
-        const incidente = await IncidenteModel_1.IncidenteModel.cerrarIncidenteGenerico(id, motivo);
-        incidente_controller_logger_1.incidenteControllerLogger.info('Incidente cerrado (genérico)', {
-            incidenteId: id,
-            motivo
-        });
-        res.json({
-            success: true,
-            message: 'Incidente cerrado exitosamente',
-            data: incidente
-        });
-    }
-    catch (err) {
+    catch (error) {
         incidente_controller_logger_1.incidenteControllerLogger.error('Error al cerrar incidente genérico', {
-            incidenteId: id,
+            id,
             motivo,
-            error: err
+            error,
         });
-        const status = err.message.includes('No existe incidente') ? 404 : 500;
+        const status = error.message.includes('ya está cerrado') || error.message.includes('No existe')
+            ? 400
+            : 500;
         res.status(status).json({
             success: false,
-            error: err.message.startsWith('No existe incidente')
-                ? err.message
-                : 'Error al cerrar incidente',
-            details: err
+            error: error.message,
         });
+        return;
     }
 };
 /**

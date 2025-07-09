@@ -37,6 +37,7 @@ import { NotificadorFCM } from '../../services/NotificadorFCM';
 import type { Incidente } from '@prisma/client';
 
 const prisma = new PrismaClient();
+type CierreMotivo = 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT';
 
 // Configuracion de Multer para manejo de imagenes
 const storage = multer.memoryStorage();
@@ -390,12 +391,12 @@ private static async reabrirMovimientoTrasCierre(
         incidenteGlobal: false
       }
     });
-    console.log('Movimiento reabierto tras cierre RESUELTO', {
+    console.info('Movimiento reabierto tras cierre RESUELTO', {
       incidenteId: incidente.id,
       movimientoId: incidente.movimientoId
     });
   } catch (err) {
-    console.log('Error al reabrir movimiento tras cierre', {
+    console.error('Error al reabrir movimiento tras cierre', {
       incidenteId: incidente.id,
       movimientoId: incidente.movimientoId,
       error: err
@@ -416,55 +417,39 @@ private static async reabrirMovimientoTrasCierre(
  * reabre el movimiento si fue resuelto y/o reorganiza rondas.
  */
 static cerrarIncidenteGenerico: RequestHandler = async (req, res) => {
-  const id = Number(req.params.id);
-  const { motivo } = req.body as { motivo?: 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT' };
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+      return;
+    }
 
-  // Validar ID
-  if (Number.isNaN(id)) {
-    res.status(400).json({ success: false, error: 'ID de incidente inválido' });
-    return;
-  }
+    // extraemos motivo o usamos TIMEOUT por defecto
+    const raw = (req.body as any)?.motivo;
+    const motivo: CierreMotivo = ['RESUELTO', 'NO_RESUELTO', 'TIMEOUT'].includes(raw)
+      ? raw
+      : 'TIMEOUT';
 
-  // Validar motivo
-  if (!['RESUELTO', 'NO_RESUELTO', 'TIMEOUT'].includes(motivo!)) {
-    res.status(400).json({
-      success: false,
-      error: 'Motivo inválido. Debe ser RESUELTO, NO_RESUELTO o TIMEOUT'
-    });
-    return;
-  }
-
-  try {
-    // Invoca al método genérico del modelo
-    const incidente = await IncidenteModel.cerrarIncidenteGenerico(id, motivo!);
-
-    incidenteControllerLogger.info('Incidente cerrado (genérico)', {
-      incidenteId: id,
-      motivo
-    });
-
-    res.json({
-      success: true,
-      message: 'Incidente cerrado exitosamente',
-      data: incidente
-    });
-  } catch (err: any) {
-    incidenteControllerLogger.error('Error al cerrar incidente genérico', {
-      incidenteId: id,
-      motivo,
-      error: err
-    });
-
-    const status = err.message.includes('No existe incidente') ? 404 : 500;
-    res.status(status).json({
-      success: false,
-      error: err.message.startsWith('No existe incidente')
-        ? err.message
-        : 'Error al cerrar incidente',
-      details: err
-    });
-  }
-};
+    try {
+      const incidente = await IncidenteModel.cerrarIncidenteGenerico(id, motivo);
+      res.json({ success: true, data: incidente });
+      return;
+    } catch (error: any) {
+      incidenteControllerLogger.error('Error al cerrar incidente genérico', {
+        id,
+        motivo,
+        error,
+      });
+      const status =
+        error.message.includes('ya está cerrado') || error.message.includes('No existe')
+          ? 400
+          : 500;
+      res.status(status).json({
+        success: false,
+        error: error.message,
+      });
+      return;
+    }
+  };
 
 
 

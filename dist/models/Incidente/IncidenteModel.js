@@ -290,60 +290,96 @@ class IncidenteModel {
         }
     }
     /**
-     * Cierra un incidente de manera genérica y aplica el flujo correspondiente:
-     * - Actualiza estado y fecha de cierre
-     * - Si motivo === 'RESUELTO', reactiva el movimiento asociado
-     * - Siempre aplica reorganización de rondas tras el cierre
-     * - Envía notificación del cambio de estado
+     * Cierra un incidente de forma genérica según el motivo de cierre,
+     * reabre el movimiento si se resolvió o aplica reorganización de rondas
+     * si no se resolvió o por timeout.
      *
      * @param id - ID del incidente a cerrar
-     * @param motivo - 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'
-     * @returns Incidente cerrado con sus relaciones
+     * @param motivo - Razón del cierre ('RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT')
+     * @returns El incidente ya cerrado
+     * @throws Error si no existe o ya está cerrado
      */
     static async cerrarIncidenteGenerico(id, motivo) {
-        // 1) Recuperar el estado previo para la notificación
-        const incidentePrevio = await prisma.incidente.findUnique({ where: { id } });
-        if (!incidentePrevio) {
+        // 1) Recuperar el incidente para notificar después
+        const previo = await prisma.incidente.findUnique({ where: { id } });
+        if (!previo) {
             throw new Error(`No existe incidente con id ${id}`);
         }
-        if (incidentePrevio.estado === 'CERRADO') {
+        if (previo.estado === 'CERRADO') {
             throw new Error(`El incidente ${id} ya está cerrado`);
         }
-        const estadoAnterior = incidentePrevio.estado;
-        // 2) Ejecutar cierre y lógica asociada en transacción
-        const incidenteActualizado = await prisma.$transaction(async (tx) => {
+        const estadoAnterior = previo.estado;
+        // 2) Ejecutar cierre y lógica asociada en una transacción
+        const actualizado = await prisma.$transaction(async (tx) => {
             // a) Cerrar el incidente
-            const actualizado = await tx.incidente.update({
+            const inc = await tx.incidente.update({
                 where: { id },
-                data: {
-                    estado: 'CERRADO',
-                    fechaFin: new Date()
-                },
-                include: {
-                    movimiento: true,
-                    usuario: true
-                }
+                data: { estado: 'CERRADO', fechaFin: new Date() },
+                include: { movimiento: true, usuario: true }
             });
-            // b) Reabrir movimiento si el incidente se resolvió
+            // b) Si se resolvió, reabrir el movimiento
             if (motivo === 'RESUELTO') {
-                await tx.movimiento.update({
-                    where: { id: actualizado.movimientoId },
-                    data: {
-                        estado: 'EN_PROCESO',
-                        fechaPausa: null,
-                        incidenteGlobal: false
-                    }
-                });
+                await this.reabrirMovimientoTrasCierreTx(tx, inc.movimientoId);
             }
-            // c) Aplica reorganización de rondas según motivo
-            await this.aplicarReorganizacionTrasCierre(actualizado, motivo);
-            return actualizado;
+            // c) Para NO_RESUELTO o TIMEOUT, reacomodar rondas
+            await this.aplicarReorganizacionTrasCierreTx(tx, inc, motivo);
+            return inc;
         });
-        // 3) Notificar cambio de estado (fuera de la transacción)
+        // 3) Disparar notificación fuera de la transacción
         setImmediate(() => {
-            this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+            this.notificarCambioEstado(actualizado, estadoAnterior);
         });
-        return incidenteActualizado;
+        return actualizado;
+    }
+    /**
+     * Reabre el movimiento asociado tras un cierre RESUELTO.
+     *
+     * @private
+     * @param tx - Transaction client
+     * @param movimientoId - ID del movimiento a reabrir
+     */
+    static async reabrirMovimientoTrasCierreTx(tx, movimientoId) {
+        await tx.movimiento.update({
+            where: { id: movimientoId },
+            data: {
+                estado: 'EN_PROCESO',
+                fechaPausa: null,
+                incidenteGlobal: false
+            }
+        });
+    }
+    /**
+     * Aplica reorganización de rondas tras el cierre de un incidente,
+     * sólo si el motivo no fue 'RESUELTO'.
+     *
+     * @private
+     * @param tx - Transaction client
+     * @param incidente - Incidente recién cerrado
+     * @param motivo - 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'
+     */
+    static async aplicarReorganizacionTrasCierreTx(tx, incidente, motivo) {
+        if (motivo === 'RESUELTO') {
+            incidente_logger_1.incidenteError.info('Cierre RESUELTO: no se reacomodan rondas', { incidenteId: incidente.id });
+            return;
+        }
+        // Obtener datos del movimiento
+        const mov = await tx.movimiento.findUnique({
+            where: { id: incidente.movimientoId },
+            select: { empresaId: true, localidadId: true }
+        });
+        if (!mov) {
+            incidente_logger_1.incidenteError.warn('Movimiento no encontrado para reorganización', {
+                incidenteId: incidente.id,
+                movimientoId: incidente.movimientoId
+            });
+            return;
+        }
+        // Reorganizar rondas con la lógica genérica
+        await this.reorganizarRondasPorIncidente(mov.empresaId, mov.localidadId, incidente.movimientoId);
+        incidente_logger_1.incidenteError.info('Rondas reorganizadas tras cierre', {
+            incidenteId: incidente.id,
+            motivo
+        });
     }
     /**
      * Reactiva un movimiento tras el cierre de su incidente.
