@@ -6,7 +6,7 @@ import sharp from 'sharp';
 const prisma = new PrismaClient();
 
 // Configuración para manejo de imágenes de incidentes
-const IMAGEN_CONFIG = {
+export const IMAGEN_CONFIG = {
   basePath: path.join(process.cwd(), 'uploads', 'incidentes'),
   maxWidth: 1920,
   maxHeight: 1080,

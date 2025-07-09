@@ -1,182 +1,131 @@
-import { PrismaClient, Incidente } from '@prisma/client';
+import { Request, Response, RequestHandler } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
-import sharp from 'sharp';
+import { IncidenteModel } from '../../models/Incidente/IncidenteModel';
+import { IMAGEN_CONFIG } from '../../models/Incidente/IncidenteModel';
 
-const prisma = new PrismaClient();
-
-// Configuración para manejo de imágenes de incidentes
-export const IMAGEN_CONFIG = {
-  basePath: path.join(process.cwd(), 'uploads', 'incidentes'),
-  maxWidth: 1920,
-  maxHeight: 1080,
-  quality: 85,
-  format: 'jpeg' as const,
-};
-
-export class IncidenteModel {
+/**
+ * Controlador HTTP para la gestión de incidentes.
+ * Utiliza únicamente los métodos expuestos por IncidenteModel.
+ */
+export class IncidenteController {
   /**
-   * Procesa y guarda hasta 4 imágenes en carpetas organizadas por fecha: uploads/incidentes/YYYY/MM/DD
-   * @param imagenes - Buffers de las imágenes
-   * @param incidenteId - ID del incidente
+   * GET /incidentes
+   * Lista todos los incidentes sin paginar.
    */
-  private static async procesarImagenes(
-    imagenes: Buffer[],
-    incidenteId: number
-  ): Promise<void> {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const dirDestino = path.join(
-      IMAGEN_CONFIG.basePath,
-      String(year),
-      month,
-      day
-    );
-
-    await fs.mkdir(dirDestino, { recursive: true });
-
-    for (let i = 0; i < Math.min(imagenes.length, 4); i++) {
-      const timestamp = Date.now();
-      const nombreArchivo = `incidente_${incidenteId}_${i + 1}_${timestamp}.${IMAGEN_CONFIG.format}`;
-      const rutaArchivo = path.join(dirDestino, nombreArchivo);
-
-      await sharp(imagenes[i])
-        .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, {
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .toFormat(IMAGEN_CONFIG.format, { quality: IMAGEN_CONFIG.quality })
-        .toFile(rutaArchivo);
+  static obtenerIncidentes: RequestHandler = async (_req, res) => {
+    try {
+      const incidentes = await IncidenteModel.obtenerIncidentes();
+      res.json({ success: true, data: incidentes });
+    } catch (error) {
+      console.error('Error al listar incidentes', error);
+      res.status(500).json({ success: false, error: 'Error al obtener incidentes' });
     }
-  }
+  };
 
   /**
-   * Recupera rutas relativas de imágenes guardadas para un incidente
-   * @param incidenteId - ID del incidente
-   * @returns Array de rutas relativas (desde uploads/incidentes)
+   * GET /incidentes/paginado?page=&pageSize=&estado=
+   * Lista incidentes paginados con filtro opcional por estado.
    */
-  public static async obtenerImagenesIncidente(
-    incidenteId: number
-  ): Promise<string[]> {
-    const resultados: string[] = [];
+  static obtenerIncidentesPaginados: RequestHandler = async (req, res) => {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 20));
+    const estado = ['ABIERTO', 'CERRADO'].includes(String(req.query.estado))
+      ? (req.query.estado as 'ABIERTO' | 'CERRADO')
+      : undefined;
 
-    async function recorrer(dir: string): Promise<void> {
-      const entradas = await fs.readdir(dir, { withFileTypes: true });
-      for (const ent of entradas) {
-        const ruta = path.join(dir, ent.name);
-        if (ent.isDirectory()) {
-          await recorrer(ruta);
-        } else if (
-          ent.isFile() &&
-          ent.name.startsWith(`incidente_${incidenteId}_`)
-        ) {
-          resultados.push(
-            path.relative(IMAGEN_CONFIG.basePath, ruta).replace(/\\/g, '/')
-          );
-        }
+    try {
+      let result;
+      if (estado) {
+        result = await IncidenteModel.obtenerIncidentesPorEstado(estado, page, pageSize);
+      } else {
+        result = await IncidenteModel.obtenerIncidentesPaginados(page, pageSize);
       }
+      res.json({ success: true, data: result.data, meta: result.meta });
+    } catch (error) {
+      console.error('Error en paginar incidentes', error, req.query);
+      res.status(500).json({ success: false, error: 'Error al obtener incidentes paginados' });
+    }
+  };
+
+  /**
+   * GET /incidentes/localidad/:localidadId?page=&pageSize=
+   * Lista incidentes de una localidad dada.
+   */
+  static obtenerPorLocalidad: RequestHandler = async (req, res) => {
+    const localidadId = Number(req.params.localidadId);
+    if (isNaN(localidadId)) {
+      res.status(400).json({ success: false, error: 'localidadId inválido' });
+      return;
+    }
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 20));
+
+    try {
+      const result = await IncidenteModel.obtenerIncidentesPorLocalidad(localidadId, page, pageSize);
+      res.json({ success: true, data: result.data, meta: result.meta });
+    } catch (error) {
+      console.error('Error al obtener incidentes por localidad', { localidadId, error });
+      res.status(500).json({ success: false, error: 'Error al obtener incidentes por localidad' });
+    }
+  };
+
+  /**
+   * GET /incidentes/empresa/:empresaId?page=&pageSize=
+   * Lista incidentes de una empresa dada.
+   */
+  static obtenerPorEmpresa: RequestHandler = async (req, res) => {
+    const empresaId = Number(req.params.empresaId);
+    if (isNaN(empresaId)) {
+      res.status(400).json({ success: false, error: 'empresaId inválido' });
+      return;
+    }
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 20));
+
+    try {
+      const result = await IncidenteModel.obtenerIncidentesPorEmpresa(empresaId, page, pageSize);
+      res.json({ success: true, data: result.data, meta: result.meta });
+    } catch (error) {
+      console.error('Error al obtener incidentes por empresa', { empresaId, error });
+      res.status(500).json({ success: false, error: 'Error al obtener incidentes por empresa' });
+    }
+  };
+
+  /**
+   * GET /incidentes/:id/imagenes
+   * Devuelve URLs de las imágenes de un incidente.
+   */
+  static obtenerImagenes: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+      return;
     }
 
-    await recorrer(IMAGEN_CONFIG.basePath);
-    return resultados;
-  }
-
-  /**
-   * Obtiene todos los incidentes ordenados por fecha de inicio descendente
-   */
-  public static async obtenerIncidentes(): Promise<Incidente[]> {
-    return prisma.incidente.findMany({ orderBy: { fechaInicio: 'desc' } });
-  }
-
-  /**
-   * Paginación de incidentes con filtros opcionales
-   * @param page - Número de página
-   * @param pageSize - Tamaño de página
-   * @param filtros - Opciones de filtrado (estado, empresaId, localidadId, fechas)
-   */
-  public static async obtenerIncidentesPaginados(
-    page = 1,
-    pageSize = 20,
-    filtros?: {
-      estado?: string;
-      empresaId?: number;
-      localidadId?: number;
-      fechaInicio?: Date;
-      fechaFin?: Date;
+    try {
+      const rutas = await IncidenteModel.obtenerImagenesIncidente(id);
+      const host = `${req.protocol}://${req.get('host')}`;
+      const urls = rutas.map(r => `${host}/incidentes/imagen/${encodeURIComponent(r)}`);
+      res.json({ success: true, data: urls });
+    } catch (error) {
+      console.error('Error al obtener imágenes', { id, error });
+      res.status(500).json({ success: false, error: 'Error al obtener imágenes de incidente' });
     }
-  ) {
-    page = Math.max(1, page);
-    pageSize = Math.min(100, Math.max(1, pageSize));
-    const skip = (page - 1) * pageSize;
-    const where: any = {};
+  };
 
-    if (filtros?.estado) where.estado = filtros.estado;
-    if (filtros?.fechaInicio || filtros?.fechaFin) {
-      where.fechaInicio = {};
-      if (filtros.fechaInicio) where.fechaInicio.gte = filtros.fechaInicio;
-      if (filtros.fechaFin) where.fechaInicio.lte = filtros.fechaFin;
+  /**
+   * GET /incidentes/imagen/:rutaImagen
+   * Sirve un archivo de imagen almacenado.
+   */
+  static servirImagen: RequestHandler = async (req, res) => {
+    try {
+      const rutaRel = req.params.rutaImagen;
+      const fullPath = path.join(IMAGEN_CONFIG.basePath, rutaRel);
+      await fs.access(fullPath);
+      res.sendFile(fullPath);
+    } catch {
+      res.status(404).json({ success: false, error: 'Imagen no encontrada' });
     }
-    if (filtros?.empresaId || filtros?.localidadId) {
-      where.movimiento = {};
-      if (filtros.empresaId) where.movimiento.empresaId = filtros.empresaId;
-      if (filtros.localidadId) where.movimiento.localidadId = filtros.localidadId;
-    }
-
-    const [data, total] = await Promise.all([
-      prisma.incidente.findMany({
-        where,
-        orderBy: { fechaInicio: 'desc' },
-        skip,
-        take: pageSize,
-      }),
-      prisma.incidente.count({ where }),
-    ]);
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-        hasNextPage: page * pageSize < total,
-        hasPreviousPage: page > 1,
-      },
-    };
-  }
-
-  /**
-   * Obtiene incidentes por estado (ABIERTO o CERRADO)
-   */
-  public static async obtenerIncidentesPorEstado(
-    estado: 'ABIERTO' | 'CERRADO',
-    page = 1,
-    pageSize = 20
-  ) {
-    return this.obtenerIncidentesPaginados(page, pageSize, { estado });
-  }
-
-  /**
-   * Obtiene incidentes por localidad con paginación
-   */
-  public static async obtenerIncidentesPorLocalidad(
-    localidadId: number,
-    page = 1,
-    pageSize = 20
-  ) {
-    return this.obtenerIncidentesPaginados(page, pageSize, { localidadId });
-  }
-
-  /**
-   * Obtiene incidentes por empresa con paginación
-   */
-  public static async obtenerIncidentesPorEmpresa(
-    empresaId: number,
-    page = 1,
-    pageSize = 20
-  ) {
-    return this.obtenerIncidentesPaginados(page, pageSize, { empresaId });
-  }
+  };
 }
