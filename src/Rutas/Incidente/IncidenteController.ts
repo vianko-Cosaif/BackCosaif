@@ -1,701 +1,182 @@
-/**
- * IncidenteController.ts
- * 
- * Controlador HTTP para la gestion de entidades Incidente.
- * 
- * Este modulo define los endpoints REST disponibles para interactuar con los recursos Incidente.
- * Utiliza IncidenteModel como capa de acceso a datos y maneja la logica de negocio especifica
- * para incidentes, incluyendo la gestion de imagenes y reorganizacion de rondas.
- * 
- * Funciones implementadas:
- * - Listar incidentes con filtros
- * - Crear un nuevo incidente con imagenes
- * - Editar un incidente existente
- * - Eliminar un incidente
- * - Cerrar incidente (manual y automatico)
- * - Verificar periodo de verificacion
- * - Servir imagenes de incidentes
- * 
- * Cada operacion realiza validaciones de entrada, manejo de archivos multimedia
- * y los errores se registran mediante un logger dedicado.
- * 
- * Dependencias:
- * - express: manejo de solicitudes/respuestas HTTP
- * - multer: manejo de uploads de archivos
- * - IncidenteModel: capa de datos para operaciones CRUD
- * - incidenteControllerLogger: logger especializado en errores del controlador
- */
-
-import { Request, Response, RequestHandler } from 'express';
-import multer from 'multer';
+import { PrismaClient, Incidente } from '@prisma/client';
 import path from 'path';
 import fs from 'fs/promises';
-import { PrismaClient } from '@prisma/client';
-import { IncidenteModel } from '../../models/Incidente/IncidenteModel';
-import { incidenteControllerLogger } from './incidente.controller.logger';
-import { NotificadorFCM } from '../../services/NotificadorFCM';
-import type { Incidente } from '@prisma/client';
+import sharp from 'sharp';
 
 const prisma = new PrismaClient();
-type CierreMotivo = 'RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT';
 
-// Configuracion de Multer para manejo de imagenes
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB por archivo
-    files: 4 // Maximo 4 archivos
-  },
-  fileFilter: (req: any, file: any, cb: any) => {
-    // Validar tipos de archivo permitidos
-    const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (allowedMimes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Tipo de archivo no permitido. Solo se permiten: JPEG, JPG, PNG, WEBP'));
-    }
-  }
-});
-
-/**
- * Middleware para manejo de uploads de imagenes
- */
-export const uploadImagenes = upload.array('imagenes', 4);
-
-/**
- * Controlador REST para entidades Incidente.
- * Define los endpoints relacionados con el recurso.
- */
-export class IncidenteController {
-  /**
-   * GET /incidentes
-   * 
-   * Devuelve todos los incidentes con sus relaciones.
-   * Permite filtrado por estado mediante query parameter.
-   */
-  static obtenerIncidentes: RequestHandler = async (req: Request, res: Response) => {
-    try {
-      const { estado } = req.query;
-      
-      let incidentes: any;
-      
-      if (estado && (estado === 'ABIERTO' || estado === 'CERRADO')) {
-        incidentes = await IncidenteModel.obtenerIncidentesPorEstado(estado as 'ABIERTO' | 'CERRADO');
-      } else {
-        incidentes = await IncidenteModel.obtenerIncidentes();
-      }
-      
-      res.json({
-        success: true,
-        data: incidentes,
-        total: incidentes.length
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes', { error, query: req.query });
-      res.status(500).json({ 
-        success: false,
-        error: 'Error al obtener incidentes', 
-        details: error 
-      });
-    }
-  };
-
-  /**
-   * GET /incidentes/movimiento/:movimientoId
-   * 
-   * Devuelve todos los incidentes de un movimiento especifico.
-   */
-  static obtenerIncidentesPorMovimiento: RequestHandler = async (req: Request, res: Response) => {
-    try {
-      const movimientoId = parseInt(req.params.movimientoId);
-      
-      if (isNaN(movimientoId)) {
-        res.status(400).json({ 
-          success: false,
-          error: 'ID de movimiento invalido' 
-        });
-        return;
-      }
-      
-      const incidentes = await IncidenteModel.obtenerIncidentesPorMovimiento(movimientoId);
-      
-      res.json({
-        success: true,
-        data: incidentes,
-        movimientoId,
-        total: incidentes.length
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes por movimiento', { 
-        movimientoId: req.params.movimientoId, 
-        error 
-      });
-      res.status(500).json({ 
-        success: false,
-        error: 'Error al obtener incidentes por movimiento', 
-        details: error 
-      });
-    }
-  };
-
-
-
-/**
- * POST /incidentes
- *
- * Crea un nuevo incidente (con imágenes opcionales), reorganiza rondas
- * y envía la notificación FCM.
- */
-static crearIncidente: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { descripcion, movimientoId, usuarioId } = req.body as {
-      descripcion?: string;
-      movimientoId?: any;
-      usuarioId?: any;
-    };
-
-    // Validaciones básicas
-    if (!descripcion || !movimientoId || !usuarioId) {
-      res.status(400).json({
-        success: false,
-        error: 'descripcion, movimientoId y usuarioId son obligatorios'
-      });
-      return;
-    }
-    if (typeof descripcion !== 'string' || !descripcion.trim()) {
-      res.status(400).json({
-        success: false,
-        error: 'La descripcion debe ser un texto válido'
-      });
-      return;
-    }
-
-    const movimientoIdNum = Number(movimientoId);
-    const usuarioIdNum = Number(usuarioId);
-    if (Number.isNaN(movimientoIdNum) || Number.isNaN(usuarioIdNum)) {
-      res.status(400).json({
-        success: false,
-        error: 'Los IDs deben ser números válidos'
-      });
-      return;
-    }
-
-    // Procesar imágenes (máx. 4)
-    const archivos = Array.isArray(req.files)
-      ? req.files
-      : Object.values(req.files as Record<string, Express.Multer.File[]>).flat();
-    const imagenes: Buffer[] = archivos.map(f => (f as Express.Multer.File).buffer);
-
-    // Crear incidente en BD
-    const nuevoIncidente = await IncidenteModel.crearIncidente({
-      descripcion: descripcion.trim(),
-      movimientoId: movimientoIdNum,
-      usuarioId: usuarioIdNum,
-      imagenes: imagenes.length ? imagenes : undefined
-    });
-
-    incidenteControllerLogger.info('Incidente creado', {
-      incidenteId: nuevoIncidente.id,
-      movimientoId: movimientoIdNum,
-      usuarioId: usuarioIdNum,
-      imagenesSubidas: imagenes.length
-    });
-
-    // Notificar vía FCM
-    await NotificadorFCM.notificarNuevoIncidente(nuevoIncidente);
-
-    // Respuesta
-    res.status(201).json({
-      success: true,
-      message: 'Incidente creado exitosamente',
-      data: nuevoIncidente
-    });
-  } catch (error) {
-    incidenteControllerLogger.error('Error al crear incidente', {
-      body: req.body,
-      error
-    });
-    res.status(500).json({
-      success: false,
-      error: 'Error al crear incidente',
-      details: error
-    });
-  }
+// Configuración para manejo de imágenes de incidentes
+export const IMAGEN_CONFIG = {
+  basePath: path.join(process.cwd(), 'uploads', 'incidentes'),
+  maxWidth: 1920,
+  maxHeight: 1080,
+  quality: 85,
+  format: 'jpeg' as const,
 };
 
-
-
-
+export class IncidenteModel {
   /**
- * PUT /incidentes/:id
- * 
- * Actualiza un incidente existente.
- * Permite cambiar estado, descripcion y agregar nuevas imagenes.
- */
-static editarIncidente: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-  // 1) Validar ID
-  const id = Number(req.params.id);
-  if (Number.isNaN(id)) {
-    res.status(400).json({ success: false, error: 'ID de incidente inválido' });
-    return;
-  }
-
-  // 2) Validar inputs
-  const { descripcion, estado } = req.body as { descripcion?: string; estado?: string };
-  if (estado && !['ABIERTO', 'CERRADO'].includes(estado)) {
-    res.status(400).json({ success: false, error: 'Estado inválido. Debe ser ABIERTO o CERRADO' });
-    return;
-  }
-
-  // 3) Procesar nuevas imágenes
-  const nuevasImagenes: Buffer[] = [];
-  if (req.files) {
-    const archivos = Array.isArray(req.files)
-      ? req.files
-      : Object.values(req.files as Record<string, Express.Multer.File[]>).flat();
-    for (const file of archivos) {
-      nuevasImagenes.push((file as Express.Multer.File).buffer);
-    }
-  }
-
-  try {
-    // 4) Construir payload para el modelo
-    const payload: any = {};
-    if (descripcion !== undefined) {
-      payload.descripcion = String(descripcion).trim();
-    }
-    if (estado !== undefined) {
-      payload.estado = estado as 'ABIERTO' | 'CERRADO';
-    }
-    if (nuevasImagenes.length > 0) {
-      payload.imagenes = nuevasImagenes;
-    }
-
-    // 5) Llamar al modelo
-    const incidenteActualizado = await IncidenteModel.editarIncidente(id, payload);
-
-    incidenteControllerLogger.info('Incidente actualizado exitosamente', {
-      incidenteId: id,
-      cambios: Object.keys(payload),
-      nuevasImagenes: nuevasImagenes.length
-    });
-
-    // 6) Responder
-    res.json({
-      success: true,
-      message: 'Incidente actualizado exitosamente',
-      data: incidenteActualizado
-    });
-  } catch (error) {
-    incidenteControllerLogger.error('Error al editar incidente', { id, error });
-    res.status(500).json({
-      success: false,
-      error: 'Error al editar incidente',
-      details: error
-    });
-  }
-};
-
-
-
-
-/**
- * DELETE /incidentes/:id
- *
- * Elimina un incidente y sus im�genes.
- */
-static eliminarIncidente: RequestHandler = async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
-      res.status(400).json({ success: false, error: 'ID de incidente inv�lido' });
-      return;
-    }
-
-    // 1. Borrar de BD
-    const incidenteEliminado = await IncidenteModel.eliminarIncidente(id);
-
-
-incidenteControllerLogger.info('Incidente eliminado exitosamente', {
-  incidenteId : id,
-  movimientoId: incidenteEliminado.movimientoId ?? 'N/A'   // ? usa la FK simple
-});
-    // 3. Respuesta
-    res.json({
-      success : true,
-      message : 'Incidente eliminado exitosamente',
-      data    : incidenteEliminado
-    });
-  } catch (error) {
-    incidenteControllerLogger.error('Error al eliminar incidente', {
-      id: req.params.id,
-      error
-    });
-    res.status(500).json({
-      success: false,
-      error  : 'Error al eliminar incidente',
-      details: error
-    });
-  }
-};
-
- /**
- * GET /incidentes/:id/verificacion
- *
- * Verifica el estado del periodo de verificaci�n de un incidente.
- */
-static verificarPeriodoVerificacion: RequestHandler = async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
-      res.status(400).json({ success: false, error: 'ID de incidente inv�lido' });
-      return;
-    }
-
-    const verificacion = await IncidenteModel.verificarPeriodoVerificacion(id);
-
-    res.json({
-      success: true,
-      data   : verificacion
-    });                               // ? cierre correcto
-  } catch (error) {
-    incidenteControllerLogger.error('Error al verificar periodo de verificaci�n', {
-      id: req.params.id,
-      error
-    });
-    res.status(500).json({
-      success: false,
-      error  : 'Error al verificar periodo de verificaci�n',
-      details: error
-    });
-  }
-};                                    
-
-
-/**
- * Reabre el movimiento asociado a un incidente cerrado con motivo RESUELTO.
- *
- * @private
- * @param incidente - Incidente recién cerrado
- */
-private static async reabrirMovimientoTrasCierre(
-  incidente: Incidente
-): Promise<void> {
-  try {
-    await prisma.movimiento.update({
-      where: { id: incidente.movimientoId },
-      data: {
-        estado: 'EN_PROCESO',
-        fechaPausa: null,
-        incidenteGlobal: false
-      }
-    });
-    console.info('Movimiento reabierto tras cierre RESUELTO', {
-      incidenteId: incidente.id,
-      movimientoId: incidente.movimientoId
-    });
-  } catch (err) {
-    console.error('Error al reabrir movimiento tras cierre', {
-      incidenteId: incidente.id,
-      movimientoId: incidente.movimientoId,
-      error: err
-    });
-    // No interrumpimos el flujo principal
-  }
-}
-
-
-
-
-
-
-/**
- * POST /incidentes/:id/cerrar
- *
- * Cierra un incidente según el motivo ('RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'),
- * reabre el movimiento si fue resuelto y/o reorganiza rondas.
- */
-static cerrarIncidenteGenerico: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) {
-      res.status(400).json({ success: false, error: 'ID de incidente inválido' });
-      return;
-    }
-
-    // extraemos motivo o usamos TIMEOUT por defecto
-    const raw = (req.body as any)?.motivo;
-    const motivo: CierreMotivo = ['RESUELTO', 'NO_RESUELTO', 'TIMEOUT'].includes(raw)
-      ? raw
-      : 'TIMEOUT';
-
-    try {
-      const incidente = await IncidenteModel.cerrarIncidenteGenerico(id, motivo);
-      res.json({ success: true, data: incidente });
-      return;
-    } catch (error: any) {
-      incidenteControllerLogger.error('Error al cerrar incidente genérico', {
-        id,
-        motivo,
-        error,
-      });
-      const status =
-        error.message.includes('ya está cerrado') || error.message.includes('No existe')
-          ? 400
-          : 500;
-      res.status(status).json({
-        success: false,
-        error: error.message,
-      });
-      return;
-    }
-  };
-
-
-
-
-  /**
-   * GET /incidentes/estadisticas
-   * 
-   * Devuelve estadisticas generales de incidentes.
+   * Procesa y guarda hasta 4 imágenes en carpetas organizadas por fecha: uploads/incidentes/YYYY/MM/DD
+   * @param imagenes - Buffers de las imágenes
+   * @param incidenteId - ID del incidente
    */
-  static obtenerEstadisticas: RequestHandler = async (req: Request, res: Response) => {
-    try {
-      const [incidentesAbiertos, incidentesCerrados, todosList] = await Promise.all([
-        IncidenteModel.obtenerIncidentesPorEstado('ABIERTO'),
-        IncidenteModel.obtenerIncidentesPorEstado('CERRADO'),
-        IncidenteModel.obtenerIncidentes()
-      ]);
+  private static async procesarImagenes(
+    imagenes: Buffer[],
+    incidenteId: number
+  ): Promise<void> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dirDestino = path.join(
+      IMAGEN_CONFIG.basePath,
+      String(year),
+      month,
+      day
+    );
 
-      // Calcular estadisticas adicionales
-      const ahora = new Date();
-      const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
-      const hace7d = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
+    await fs.mkdir(dirDestino, { recursive: true });
 
-      const incidentesRecientes = todosList.filter((i: any) => i.fechaInicio >= hace24h);
-      const incidentesSemana = todosList.filter((i: any) => i.fechaInicio >= hace7d);
+    for (let i = 0; i < Math.min(imagenes.length, 4); i++) {
+      const timestamp = Date.now();
+      const nombreArchivo = `incidente_${incidenteId}_${i + 1}_${timestamp}.${IMAGEN_CONFIG.format}`;
+      const rutaArchivo = path.join(dirDestino, nombreArchivo);
 
-      const estadisticas = {
-        totales: {
-          total: todosList.length,
-          abiertos: incidentesAbiertos.length,
-          cerrados: incidentesCerrados.length
-        },
-        recientes: {
-          ultimas24h: incidentesRecientes.length,
-          ultimaSemana: incidentesSemana.length
-        },
-        porcentajes: {
-          abiertos: todosList.length > 0 ? ((incidentesAbiertos.length / todosList.length) * 100).toFixed(2) : 0,
-          cerrados: todosList.length > 0 ? ((incidentesCerrados.length / todosList.length) * 100).toFixed(2) : 0
+      await sharp(imagenes[i])
+        .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .toFormat(IMAGEN_CONFIG.format, { quality: IMAGEN_CONFIG.quality })
+        .toFile(rutaArchivo);
+    }
+  }
+
+  /**
+   * Recupera rutas relativas de imágenes guardadas para un incidente
+   * @param incidenteId - ID del incidente
+   * @returns Array de rutas relativas (desde uploads/incidentes)
+   */
+  public static async obtenerImagenesIncidente(
+    incidenteId: number
+  ): Promise<string[]> {
+    const resultados: string[] = [];
+
+    async function recorrer(dir: string): Promise<void> {
+      const entradas = await fs.readdir(dir, { withFileTypes: true });
+      for (const ent of entradas) {
+        const ruta = path.join(dir, ent.name);
+        if (ent.isDirectory()) {
+          await recorrer(ruta);
+        } else if (
+          ent.isFile() &&
+          ent.name.startsWith(`incidente_${incidenteId}_`)
+        ) {
+          resultados.push(
+            path.relative(IMAGEN_CONFIG.basePath, ruta).replace(/\\/g, '/')
+          );
         }
-      };
-
-      res.json({
-        success: true,
-        data: estadisticas
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener estadisticas', { error });
-      res.status(500).json({ 
-        success: false,
-        error: 'Error al obtener estadisticas', 
-        details: error 
-      });
-    }
-  };
-
-  static async obtenerIncidentePorId(req: Request, res: Response): Promise<void> {
-    try {
-      const id = Number(req.params.id);
-      if (Number.isNaN(id)) {
-        res.status(400).json({ success: false, error: 'ID de incidente inv�lido' });
-        return;
       }
-
-      // Obtenemos solo rutas relativas del modelo
-      const incidenteRaw = await IncidenteModel.obtenerIncidentePorId(id);
-
-      // Construimos el host din�micamente
-      const host = `${req.protocol}://${req.get('host')}`;
-
-      // Mapeamos cada ruta relativa a su URL p�blica
-      const imagenesConUrl = incidenteRaw.imagenes.map((rutaRel: string) =>
-        `${host}/incidentes/imagen/${encodeURIComponent(rutaRel)}`
-      );
-
-      res.json({
-        success: true,
-        data: {
-          ...incidenteRaw,
-          imagenes: imagenesConUrl
-        }
-      });
-    } catch (error: any) {
-      const status = error.message.includes('No existe incidente') ? 404 : 500;
-      res.status(status).json({
-        success: false,
-        error: error.message.startsWith('No existe incidente')
-          ? error.message
-          : 'Error al obtener incidente',
-        details: error.message
-      });
     }
+
+    await recorrer(IMAGEN_CONFIG.basePath);
+    return resultados;
   }
 
   /**
-   * GET /incidentes/paginado?page=1&pageSize=20
-   *
-   * Devuelve todos los incidentes paginados (m�s nuevos primero).
+   * Obtiene todos los incidentes ordenados por fecha de inicio descendente
    */
-  static obtenerIncidentesPaginados: RequestHandler = async (req, res) => {
-    try {
-      const page     = Math.max(1, Number(req.query.page) || 1);
-      const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
-
-      const result = await IncidenteModel.obtenerIncidentesPaginados(page, pageSize);
-
-      res.json({
-        success: true,
-        data:    result.data,
-        meta:    result.meta
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes paginados', {
-        error,
-        query: req.query
-      });
-      res.status(500).json({
-        success: false,
-        error:   'Error al obtener incidentes paginados'
-      });
-    }
-  };
+  public static async obtenerIncidentes(): Promise<Incidente[]> {
+    return prisma.incidente.findMany({ orderBy: { fechaInicio: 'desc' } });
+  }
 
   /**
-   * GET /incidentes/localidad/:localidadId?page=1&pageSize=20
-   *
-   * Devuelve incidentes de una localidad dada, paginados.
+   * Paginación de incidentes con filtros opcionales
+   * @param page - Número de página
+   * @param pageSize - Tamaño de página
+   * @param filtros - Opciones de filtrado (estado, empresaId, localidadId, fechas)
    */
-  static obtenerIncidentesPorLocalidad: RequestHandler = async (req, res) => {
-    try {
-      const localidadId = Number(req.params.localidadId);
-      if (Number.isNaN(localidadId)) {
-        res.status(400).json({ success: false, error: 'localidadId inv�lido' });
-        return;
-      }
-      const page     = Math.max(1, Number(req.query.page) || 1);
-      const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
-
-      const result = await IncidenteModel.obtenerIncidentesPorLocalidad(localidadId, page, pageSize);
-
-      res.json({
-        success: true,
-        data:    result.data,
-        meta:    result.meta
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes por localidad', {
-        localidadId: req.params.localidadId,
-        error
-      });
-      res.status(500).json({
-        success: false,
-        error:   'Error al obtener incidentes por localidad'
-      });
+  public static async obtenerIncidentesPaginados(
+    page = 1,
+    pageSize = 20,
+    filtros?: {
+      estado?: string;
+      empresaId?: number;
+      localidadId?: number;
+      fechaInicio?: Date;
+      fechaFin?: Date;
     }
-  };
+  ) {
+    page = Math.max(1, page);
+    pageSize = Math.min(100, Math.max(1, pageSize));
+    const skip = (page - 1) * pageSize;
+    const where: any = {};
 
-  /**
-   * GET /incidentes/empresa/:empresaId/localidad/:localidadId?page=1&pageSize=20
-   *
-   * Devuelve incidentes de una empresa y localidad dada, paginados.
-   */
-  static obtenerIncidentesPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
-    try {
-      const empresaId   = Number(req.params.empresaId);
-      const localidadId = Number(req.params.localidadId);
-      if (Number.isNaN(empresaId) || Number.isNaN(localidadId)) {
-        res.status(400).json({ success: false, error: 'IDs inv�lidos' });
-        return;
-      }
-      const page     = Math.max(1, Number(req.query.page) || 1);
-      const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
+    if (filtros?.estado) where.estado = filtros.estado;
+    if (filtros?.fechaInicio || filtros?.fechaFin) {
+      where.fechaInicio = {};
+      if (filtros.fechaInicio) where.fechaInicio.gte = filtros.fechaInicio;
+      if (filtros.fechaFin) where.fechaInicio.lte = filtros.fechaFin;
+    }
+    if (filtros?.empresaId || filtros?.localidadId) {
+      where.movimiento = {};
+      if (filtros.empresaId) where.movimiento.empresaId = filtros.empresaId;
+      if (filtros.localidadId) where.movimiento.localidadId = filtros.localidadId;
+    }
 
-      const result = await IncidenteModel.obtenerIncidentesPorEmpresaYLocalidad(
-        empresaId,
-        localidadId,
+    const [data, total] = await Promise.all([
+      prisma.incidente.findMany({
+        where,
+        orderBy: { fechaInicio: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.incidente.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
         page,
-        pageSize
-      );
-
-      res.json({
-        success: true,
-        data:    result.data,
-        meta:    result.meta
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes por empresa y localidad', {
-        empresaId:   req.params.empresaId,
-        localidadId: req.params.localidadId,
-        error
-      });
-      res.status(500).json({
-        success: false,
-        error:   'Error al obtener incidentes por empresa y localidad'
-      });
-    }
-  };
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        hasNextPage: page * pageSize < total,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
 
   /**
-   * GET /incidentes/empresa/:empresaId?page=1&pageSize=20
-   *
-   * Devuelve incidentes de una empresa dada, paginados.
+   * Obtiene incidentes por estado (ABIERTO o CERRADO)
    */
-  static obtenerIncidentesPorEmpresa: RequestHandler = async (req, res) => {
-    try {
-      const empresaId = Number(req.params.empresaId);
-      if (Number.isNaN(empresaId)) {
-        res.status(400).json({ success: false, error: 'empresaId inv�lido' });
-        return;
-      }
-      const page     = Math.max(1, Number(req.query.page) || 1);
-      const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
-
-      const result = await IncidenteModel.obtenerIncidentesPorEmpresa(empresaId, page, pageSize);
-
-      res.json({
-        success: true,
-        data:    result.data,
-        meta:    result.meta
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes por empresa', {
-        empresaId: req.params.empresaId,
-        error
-      });
-      res.status(500).json({
-        success: false,
-        error:   'Error al obtener incidentes por empresa'
-      });
-    }
-  };
-
-
-
-
-
-/** Sirve im�genes almacenadas localmente */
-static servirImagen: RequestHandler = async (req, res) => {
-  try {
-    const file = IncidenteModel.obtenerRutaCompletaImagen(req.params.rutaImagen);
-    await fs.access(file);
-    res.sendFile(file);
-  } catch {
-    res.status(404).json({ success: false, error: 'Imagen no encontrada' });
+  public static async obtenerIncidentesPorEstado(
+    estado: 'ABIERTO' | 'CERRADO',
+    page = 1,
+    pageSize = 20
+  ) {
+    return this.obtenerIncidentesPaginados(page, pageSize, { estado });
   }
-};
 
+  /**
+   * Obtiene incidentes por localidad con paginación
+   */
+  public static async obtenerIncidentesPorLocalidad(
+    localidadId: number,
+    page = 1,
+    pageSize = 20
+  ) {
+    return this.obtenerIncidentesPaginados(page, pageSize, { localidadId });
+  }
 
-
+  /**
+   * Obtiene incidentes por empresa con paginación
+   */
+  public static async obtenerIncidentesPorEmpresa(
+    empresaId: number,
+    page = 1,
+    pageSize = 20
+  ) {
+    return this.obtenerIncidentesPaginados(page, pageSize, { empresaId });
+  }
 }
