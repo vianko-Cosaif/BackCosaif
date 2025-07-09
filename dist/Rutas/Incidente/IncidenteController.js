@@ -67,6 +67,36 @@ exports.uploadImagenes = upload.array('imagenes', 4);
  * Define los endpoints relacionados con el recurso.
  */
 class IncidenteController {
+    /**
+     * Reabre el movimiento asociado a un incidente cerrado con motivo RESUELTO.
+     *
+     * @private
+     * @param incidente - Incidente recién cerrado
+     */
+    static async reabrirMovimientoTrasCierre(incidente) {
+        try {
+            await prisma.movimiento.update({
+                where: { id: incidente.movimientoId },
+                data: {
+                    estado: 'EN_PROCESO',
+                    fechaPausa: null,
+                    incidenteGlobal: false
+                }
+            });
+            console.log('Movimiento reabierto tras cierre RESUELTO', {
+                incidenteId: incidente.id,
+                movimientoId: incidente.movimientoId
+            });
+        }
+        catch (err) {
+            console.log('Error al reabrir movimiento tras cierre', {
+                incidenteId: incidente.id,
+                movimientoId: incidente.movimientoId,
+                error: err
+            });
+            // No interrumpimos el flujo principal
+        }
+    }
     static async obtenerIncidentePorId(req, res) {
         try {
             const id = Number(req.params.id);
@@ -97,36 +127,6 @@ class IncidenteController {
                     : 'Error al obtener incidente',
                 details: error.message
             });
-        }
-    }
-    static async continuarMovimiento(req, res) {
-        const incidenteId = Number(req.params.id);
-        const comentario = (req.body.comentario ?? '').trim();
-        if (Number.isNaN(incidenteId)) {
-            res.status(400).json({ success: false, error: 'ID de incidente inv�lido' });
-            return;
-        }
-        try {
-            // 1. Cerrar incidente y opcionalmente guardar comentario
-            const incidente = await prisma.incidente.update({
-                where: { id: incidenteId },
-                data: {
-                    estado: 'CERRADO',
-                    fechaFin: new Date(),
-                },
-                include: { movimiento: true }
-            });
-            // 2. Notificar a los implicados
-            await NotificadorFCM_1.NotificadorFCM.notificarContinuarMovimiento(incidente, comentario);
-            res.json({
-                success: true,
-                message: 'Incidente cerrado y el movimiento contin�a',
-                data: incidente
-            });
-        }
-        catch (error) {
-            incidente_controller_logger_1.incidenteControllerLogger.error('continuarMovimiento', { error });
-            res.status(500).json({ success: false, error: 'Error al continuar movimiento' });
         }
     }
 }
@@ -201,13 +201,13 @@ IncidenteController.obtenerIncidentesPorMovimiento = async (req, res) => {
 /**
  * POST /incidentes
  *
- * Crea un nuevo incidente (con im�genes opcionales), reorganiza rondas
- * y env�a la notificaci�n FCM.
+ * Crea un nuevo incidente (con imágenes opcionales), reorganiza rondas
+ * y envía la notificación FCM.
  */
 IncidenteController.crearIncidente = async (req, res) => {
     try {
         const { descripcion, movimientoId, usuarioId } = req.body;
-        // --------- Validaciones b�sicas ---------
+        // Validaciones básicas
         if (!descripcion || !movimientoId || !usuarioId) {
             res.status(400).json({
                 success: false,
@@ -218,7 +218,7 @@ IncidenteController.crearIncidente = async (req, res) => {
         if (typeof descripcion !== 'string' || !descripcion.trim()) {
             res.status(400).json({
                 success: false,
-                error: 'La descripcion debe ser un texto v�lido'
+                error: 'La descripcion debe ser un texto válido'
             });
             return;
         }
@@ -227,26 +227,16 @@ IncidenteController.crearIncidente = async (req, res) => {
         if (Number.isNaN(movimientoIdNum) || Number.isNaN(usuarioIdNum)) {
             res.status(400).json({
                 success: false,
-                error: 'Los IDs deben ser n�meros v�lidos'
+                error: 'Los IDs deben ser números válidos'
             });
             return;
         }
-        // --------- Procesar im�genes (m�x. 4) ---------
-        const imagenes = [];
-        if (req.files) {
-            if (Array.isArray(req.files)) {
-                for (const f of req.files)
-                    imagenes.push(f.buffer);
-            }
-            else {
-                const filesObj = req.files;
-                for (const arr of Object.values(filesObj)) {
-                    for (const f of arr)
-                        imagenes.push(f.buffer);
-                }
-            }
-        }
-        // --------- Crear incidente en BD ---------
+        // Procesar imágenes (máx. 4)
+        const archivos = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+        const imagenes = archivos.map(f => f.buffer);
+        // Crear incidente en BD
         const nuevoIncidente = await IncidenteModel_1.IncidenteModel.crearIncidente({
             descripcion: descripcion.trim(),
             movimientoId: movimientoIdNum,
@@ -259,9 +249,9 @@ IncidenteController.crearIncidente = async (req, res) => {
             usuarioId: usuarioIdNum,
             imagenesSubidas: imagenes.length
         });
-        // --------- Notificar v�a FCM ---------
+        // Notificar vía FCM
         await NotificadorFCM_1.NotificadorFCM.notificarNuevoIncidente(nuevoIncidente);
-        // --------- Respuesta ---------
+        // Respuesta
         res.status(201).json({
             success: true,
             message: 'Incidente creado exitosamente',
@@ -281,63 +271,54 @@ IncidenteController.crearIncidente = async (req, res) => {
     }
 };
 /**
- * PUT /incidentes/:id
- *
- * Actualiza un incidente existente.
- * Permite cambiar estado, descripcion y agregar nuevas imagenes.
- */
+* PUT /incidentes/:id
+*
+* Actualiza un incidente existente.
+* Permite cambiar estado, descripcion y agregar nuevas imagenes.
+*/
 IncidenteController.editarIncidente = async (req, res) => {
+    // 1) Validar ID
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+        res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+        return;
+    }
+    // 2) Validar inputs
+    const { descripcion, estado } = req.body;
+    if (estado && !['ABIERTO', 'CERRADO'].includes(estado)) {
+        res.status(400).json({ success: false, error: 'Estado inválido. Debe ser ABIERTO o CERRADO' });
+        return;
+    }
+    // 3) Procesar nuevas imágenes
+    const nuevasImagenes = [];
+    if (req.files) {
+        const archivos = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+        for (const file of archivos) {
+            nuevasImagenes.push(file.buffer);
+        }
+    }
     try {
-        const id = parseInt(req.params.id);
-        const { descripcion, estado } = req.body;
-        if (isNaN(id)) {
-            res.status(400).json({
-                success: false,
-                error: 'ID de incidente invalido'
-            });
-            return;
+        // 4) Construir payload para el modelo
+        const payload = {};
+        if (descripcion !== undefined) {
+            payload.descripcion = String(descripcion).trim();
         }
-        // Validar estado si se proporciona
-        if (estado && !['ABIERTO', 'CERRADO'].includes(estado)) {
-            res.status(400).json({
-                success: false,
-                error: 'Estado invalido. Debe ser ABIERTO o CERRADO'
-            });
-            return;
+        if (estado !== undefined) {
+            payload.estado = estado;
         }
-        // Procesar nuevas imagenes si se subieron
-        const nuevasImagenes = [];
-        if (req.files) {
-            // Si es un array (upload.array)
-            if (Array.isArray(req.files)) {
-                for (const file of req.files) {
-                    nuevasImagenes.push(file.buffer);
-                }
-            }
-            else {
-                // Si es un objeto (upload.fields)
-                const filesObj = req.files;
-                for (const fieldname in filesObj) {
-                    for (const file of filesObj[fieldname]) {
-                        nuevasImagenes.push(file.buffer);
-                    }
-                }
-            }
+        if (nuevasImagenes.length > 0) {
+            payload.imagenes = nuevasImagenes;
         }
-        // Preparar datos de actualizacion
-        const updateData = {};
-        if (descripcion !== undefined)
-            updateData.descripcion = descripcion;
-        if (estado !== undefined)
-            updateData.estado = estado;
-        if (nuevasImagenes.length > 0)
-            updateData.nuevasImagenes = nuevasImagenes;
-        const incidenteActualizado = await IncidenteModel_1.IncidenteModel.editarIncidente(id, updateData);
+        // 5) Llamar al modelo
+        const incidenteActualizado = await IncidenteModel_1.IncidenteModel.editarIncidente(id, payload);
         incidente_controller_logger_1.incidenteControllerLogger.info('Incidente actualizado exitosamente', {
             incidenteId: id,
-            cambios: Object.keys(updateData),
+            cambios: Object.keys(payload),
             nuevasImagenes: nuevasImagenes.length
         });
+        // 6) Responder
         res.json({
             success: true,
             message: 'Incidente actualizado exitosamente',
@@ -345,11 +326,7 @@ IncidenteController.editarIncidente = async (req, res) => {
         });
     }
     catch (error) {
-        incidente_controller_logger_1.incidenteControllerLogger.error('Error al editar incidente', {
-            id: req.params.id,
-            body: req.body,
-            error
-        });
+        incidente_controller_logger_1.incidenteControllerLogger.error('Error al editar incidente', { id, error });
         res.status(500).json({
             success: false,
             error: 'Error al editar incidente',
@@ -425,75 +402,54 @@ IncidenteController.verificarPeriodoVerificacion = async (req, res) => {
     }
 };
 /**
-* POST /incidentes/:id/cerrar
-*
-* Cierra un incidente manualmente.
-* Verifica el periodo de verificaci�n y reorganiza la ronda si es necesario.
-*/
-IncidenteController.cerrarIncidente = async (req, res) => {
-    try {
-        const id = Number(req.params.id);
-        if (Number.isNaN(id)) {
-            res.status(400).json({ success: false, error: 'ID de incidente inv�lido' });
-            return;
-        }
-        // 1. Verificar periodo de bloqueo
-        const verificacion = await IncidenteModel_1.IncidenteModel.verificarPeriodoVerificacion(id);
-        if (verificacion.enPeriodoBloqueo) {
-            res.status(423).json({
-                success: false,
-                error: 'Incidente en periodo de bloqueo',
-                message: verificacion.mensaje,
-                tiempoRestante: verificacion.tiempoRestante,
-                locked: true
-            });
-            return;
-        }
-        // 2. Cerrar incidente
-        const incidenteCerrado = await IncidenteModel_1.IncidenteModel.editarIncidente(id, { estado: 'CERRADO' });
-        // 3. Obtener movimiento relacionado
-        const incidenteConMovimiento = await IncidenteModel_1.IncidenteModel.obtenerIncidentePorId(id);
-        const { movimiento } = incidenteConMovimiento; // movimiento completo
-        const movimientoId = movimiento?.id; // id real (puede ser undefined)
-        // 4. Reorganizar ronda
-        if (movimiento?.empresaId && movimiento.localidadId && movimientoId) {
-            await IncidenteModel_1.IncidenteModel.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, movimientoId);
-        }
-        // 5. Notificaci�n opcional con comentario del cliente
-        const comentario = (req.body.comentario ?? '').trim();
-        if (comentario && movimiento) {
-            const ids = [
-                movimiento.clienteId,
-                movimiento.supervisorId,
-                movimiento.coordinadorId,
-                movimiento.operadorId,
-                movimiento.creadoPorId
-            ].filter(Boolean);
-            if (ids.length) {
-                await NotificadorFCM_1.NotificadorFCM.enviarNotificacionPersonalizada({
-                    usuarioIds: ids,
-                    titulo: '? Incidente cerrado por el cliente',
-                    mensaje: comentario,
-                    data: {
-                        pantalla: 'Incidente',
-                        incidenteId: String(id),
-                        movimientoId: String(movimientoId),
-                        tipo: 'incidente_cerrado_manual'
-                    },
-                    prioridad: 'normal'
-                });
-            }
-        }
-        incidente_controller_logger_1.incidenteControllerLogger.info('Incidente cerrado manualmente', {
-            incidenteId: id,
-            movimientoId: movimientoId ?? 'N/A',
-            usuarioAccion: req.body.usuarioId ?? 'N/A'
-        });
-        res.json({ success: true, message: 'Incidente cerrado exitosamente', data: incidenteCerrado });
+ * POST /incidentes/:id/cerrar
+ *
+ * Cierra un incidente según el motivo ('RESUELTO' | 'NO_RESUELTO' | 'TIMEOUT'),
+ * reabre el movimiento si fue resuelto y/o reorganiza rondas.
+ */
+IncidenteController.cerrarIncidenteGenerico = async (req, res) => {
+    const id = Number(req.params.id);
+    const { motivo } = req.body;
+    // Validar ID
+    if (Number.isNaN(id)) {
+        res.status(400).json({ success: false, error: 'ID de incidente inválido' });
+        return;
     }
-    catch (error) {
-        incidente_controller_logger_1.incidenteControllerLogger.error('Error al cerrar incidente', { id: req.params.id, error });
-        res.status(500).json({ success: false, error: 'Error al cerrar incidente', details: error });
+    // Validar motivo
+    if (!['RESUELTO', 'NO_RESUELTO', 'TIMEOUT'].includes(motivo)) {
+        res.status(400).json({
+            success: false,
+            error: 'Motivo inválido. Debe ser RESUELTO, NO_RESUELTO o TIMEOUT'
+        });
+        return;
+    }
+    try {
+        // Invoca al método genérico del modelo
+        const incidente = await IncidenteModel_1.IncidenteModel.cerrarIncidenteGenerico(id, motivo);
+        incidente_controller_logger_1.incidenteControllerLogger.info('Incidente cerrado (genérico)', {
+            incidenteId: id,
+            motivo
+        });
+        res.json({
+            success: true,
+            message: 'Incidente cerrado exitosamente',
+            data: incidente
+        });
+    }
+    catch (err) {
+        incidente_controller_logger_1.incidenteControllerLogger.error('Error al cerrar incidente genérico', {
+            incidenteId: id,
+            motivo,
+            error: err
+        });
+        const status = err.message.includes('No existe incidente') ? 404 : 500;
+        res.status(status).json({
+            success: false,
+            error: err.message.startsWith('No existe incidente')
+                ? err.message
+                : 'Error al cerrar incidente',
+            details: err
+        });
     }
 };
 /**
