@@ -1003,19 +1003,30 @@ class IncidenteModel {
         };
     }
     /**
-     * 1. Obtener todos los incidentes paginados
+     * Obtener incidentes paginados, opcionalmente filtrados por estado.
+     *
+     * @param page      Número de página (1-based).
+     * @param pageSize  Tamaño de página (por defecto 30).
+     * @param estado    Opcional: 'ABIERTO' o 'CERRADO' para filtrar.
      */
-    static async obtenerIncidentesPaginados(page = 1, pageSize = 20) {
+    static async obtenerIncidentesPaginados(page = 1, pageSize = 30, estado) {
         try {
             const skip = (page - 1) * pageSize;
+            // Construir filtro dinámico
+            const whereClause = {};
+            if (estado) {
+                whereClause.estado = estado;
+            }
+            // Ejecutar consulta y conteo en paralelo
             const [incidentes, total] = await Promise.all([
                 prisma.incidente.findMany({
+                    where: whereClause,
                     include: { movimiento: true, usuario: true },
                     orderBy: { fechaInicio: 'desc' },
                     skip,
                     take: pageSize,
                 }),
-                prisma.incidente.count()
+                prisma.incidente.count({ where: whereClause })
             ]);
             return {
                 data: incidentes,
@@ -1023,7 +1034,9 @@ class IncidenteModel {
                     total,
                     page,
                     pageSize,
-                    totalPages: Math.ceil(total / pageSize)
+                    totalPages: Math.ceil(total / pageSize),
+                    hasNextPage: page * pageSize < total,
+                    hasPreviousPage: page > 1
                 }
             };
         }

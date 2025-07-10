@@ -1169,36 +1169,55 @@ export class IncidenteModel {
       imagenes:     rutasRelativas
     };
   }
+/**
+ * Obtener incidentes paginados, opcionalmente filtrados por estado.
+ *
+ * @param page      Número de página (1-based).
+ * @param pageSize  Tamaño de página (por defecto 30).
+ * @param estado    Opcional: 'ABIERTO' o 'CERRADO' para filtrar.
+ */
+static async obtenerIncidentesPaginados(
+  page = 1,
+  pageSize = 30,
+  estado?: 'ABIERTO' | 'CERRADO'
+) {
+  try {
+    const skip = (page - 1) * pageSize;
 
-  /**
-   * 1. Obtener todos los incidentes paginados
-   */
-  static async obtenerIncidentesPaginados(page = 1, pageSize = 20) {
-    try {
-      const skip = (page - 1) * pageSize;
-      const [incidentes, total] = await Promise.all([
-        prisma.incidente.findMany({
-          include: { movimiento: true, usuario: true },
-          orderBy: { fechaInicio: 'desc' },
-          skip,
-          take: pageSize,
-        }),
-        prisma.incidente.count()
-      ]);
-      return {
-        data: incidentes,
-        meta: {
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        }
-      };
-    } catch (error) {
-      incidenteError.error('Error al obtener incidentes paginados', { error });
-      throw new Error('Error al obtener incidentes');
+    // Construir filtro dinámico
+    const whereClause: any = {};
+    if (estado) {
+      whereClause.estado = estado;
     }
+
+    // Ejecutar consulta y conteo en paralelo
+    const [incidentes, total] = await Promise.all([
+      prisma.incidente.findMany({
+        where: whereClause,
+        include: { movimiento: true, usuario: true },
+        orderBy: { fechaInicio: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.incidente.count({ where: whereClause })
+    ]);
+
+    return {
+      data: incidentes,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        hasNextPage: page * pageSize < total,
+        hasPreviousPage: page > 1
+      }
+    };
+  } catch (error) {
+    incidenteError.error('Error al obtener incidentes paginados', { error });
+    throw new Error('Error al obtener incidentes');
   }
+}
 
   /**
    * 2. Obtener incidentes a partir de una localidad (pag.)
