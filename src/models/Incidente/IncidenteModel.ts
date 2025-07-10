@@ -1219,90 +1219,119 @@ static async obtenerIncidentesPaginados(
   }
 }
 
-  /**
-   * 2. Obtener incidentes a partir de una localidad (pag.)
-   */
-  static async obtenerIncidentesPorLocalidad(
-    localidadId: number,
-    page = 1,
-    pageSize = 20
-  ) {
-    try {
-      const skip = (page - 1) * pageSize;
-      const [incidentes, total] = await Promise.all([
-        prisma.incidente.findMany({
-          where: { movimiento: { localidadId } },
-          include: { movimiento: true, usuario: true },
-          orderBy: { fechaInicio: 'desc' },
-          skip,
-          take: pageSize,
-        }),
-        prisma.incidente.count({
-          where: { movimiento: { localidadId } }
-        })
-      ]);
-      return {
-        data: incidentes,
-        meta: {
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        }
-      };
-    } catch (error) {
-      incidenteError.error('Error al obtener incidentes por localidad', { localidadId, error });
-      throw new Error('Error al obtener incidentes por localidad');
-    }
+ /**
+ * 2. Obtener incidentes a partir de una localidad (pag.)
+ */
+static async obtenerIncidentesPorLocalidad(
+  localidadId: number,
+  page = 1,
+  pageSize = 20
+) {
+  try {
+    const skip = (page - 1) * pageSize;
+    const [incidentes, total] = await Promise.all([
+      prisma.incidente.findMany({
+        where: { movimiento: { localidadId } },
+        include: { movimiento: true, usuario: true },
+        orderBy: { fechaInicio: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.incidente.count({
+        where: { movimiento: { localidadId } }
+      })
+    ]);
+    return {
+      data: incidentes,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    };
+  } catch (error) {
+    incidenteError.error('Error al obtener incidentes por localidad', { localidadId, error });
+    throw new Error('Error al obtener incidentes por localidad');
   }
+}
 
-  /**
-   * 3. Obtener incidentes de una empresa Y de una localidad (pag.)
-   */
-  static async obtenerIncidentesPorEmpresaYLocalidad(
-    empresaId: number,
-    localidadId: number,
-    page = 1,
-    pageSize = 20
-  ) {
-    try {
-      const skip = (page - 1) * pageSize;
-      const [incidentes, total] = await Promise.all([
-        prisma.incidente.findMany({
-          where: {
-            movimiento: {
-              empresaId,
-              localidadId
-            }
-          },
-          include: { movimiento: true, usuario: true },
-          orderBy: { fechaInicio: 'desc' },
-          skip,
-          take: pageSize,
-        }),
-        prisma.incidente.count({
-          where: {
-            movimiento: {
-              empresaId,
-              localidadId
-            }
-          }
-        })
-      ]);
-      return {
-        data: incidentes,
-        meta: {
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        }
-      };
-    } catch (error) {
-      incidenteError.error('Error al obtener incidentes por empresa y localidad', { empresaId, localidadId, error });
-      throw new Error('Error al obtener incidentes por empresa y localidad');
-    }
+/**
+ * 3. Obtener incidentes de una empresa Y de una localidad (pag.)
+ */
+static async obtenerIncidentesPorEmpresaYLocalidad(
+  empresaId: number,
+  localidadId: number,
+  page = 1,
+  pageSize = 20
+) {
+  try {
+    const skip = (page - 1) * pageSize;
+    const [incidentes, total] = await Promise.all([
+      prisma.incidente.findMany({
+        where: {
+          movimiento: { empresaId, localidadId }
+        },
+        include: { movimiento: true, usuario: true },
+        orderBy: { fechaInicio: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.incidente.count({
+        where: { movimiento: { empresaId, localidadId } }
+      })
+    ]);
+    return {
+      data: incidentes,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    };
+  } catch (error) {
+    incidenteError.error('Error al obtener incidentes por empresa y localidad', { empresaId, localidadId, error });
+    throw new Error('Error al obtener incidentes por empresa y localidad');
   }
+}
+
+/**
+ * 4. Obtener incidentes de una empresa (pag.)
+ */
+static async obtenerIncidentesPorEmpresa(
+  empresaId: number,
+  page = 1,
+  pageSize = 20
+) {
+  try {
+    const skip = (page - 1) * pageSize;
+    const [incidentes, total] = await Promise.all([
+      prisma.incidente.findMany({
+        where: { movimiento: { empresaId } },
+        include: { movimiento: true, usuario: true },
+        orderBy: { fechaInicio: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.incidente.count({
+        where: { movimiento: { empresaId } }
+      })
+    ]);
+    return {
+      data: incidentes,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize)
+      }
+    };
+  } catch (error) {
+    incidenteError.error('Error al obtener incidentes por empresa', { empresaId, error });
+    throw new Error('Error al obtener incidentes por empresa');
+  }
+}
 
   private static async esUnicaEmpresaEnRondas(
     empresaId: number,
@@ -1322,42 +1351,6 @@ static async obtenerIncidentesPaginados(
     return empresas.length === 1 && empresas[0].empresaId === empresaId;
   }
 
-  /**
-   * 4. Obtener incidentes de una empresa (pag.)
-   */
-  static async obtenerIncidentesPorEmpresa(
-    empresaId: number,
-    page = 1,
-    pageSize = 20
-  ) {
-    try {
-      const skip = (page - 1) * pageSize;
-      const [incidentes, total] = await Promise.all([
-        prisma.incidente.findMany({
-          where: { movimiento: { empresaId } },
-          include: { movimiento: true, usuario: true },
-          orderBy: { fechaInicio: 'desc' },
-          skip,
-          take: pageSize,
-        }),
-        prisma.incidente.count({
-          where: { movimiento: { empresaId } }
-        })
-      ]);
-      return {
-        data: incidentes,
-        meta: {
-          total,
-          page,
-          pageSize,
-          totalPages: Math.ceil(total / pageSize)
-        }
-      };
-    } catch (error) {
-      incidenteError.error('Error al obtener incidentes por empresa', { empresaId, error });
-      throw new Error('Error al obtener incidentes por empresa');
-    }
-  }
 
   static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
     const incidente = await prisma.incidente.findUnique({

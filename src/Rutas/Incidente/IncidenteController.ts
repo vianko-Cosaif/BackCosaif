@@ -559,68 +559,70 @@ static cerrarIncidente: RequestHandler = async (req: Request, res: Response): Pr
     }
   }
 
-  /**
-   * GET /incidentes/paginado?page=1&pageSize=20
-   *
-   * Devuelve todos los incidentes paginados (m�s nuevos primero).
-   */
-  static obtenerIncidentesPaginados: RequestHandler = async (req, res) => {
-    try {
-      const page     = Math.max(1, Number(req.query.page) || 1);
-      const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
+ /**
+ * GET /incidentes/paginado?page=1&pageSize=20
+ *
+ * Devuelve todos los incidentes paginados (más nuevos primero).
+ */
+static obtenerIncidentesPaginados: RequestHandler = async (req, res) => {
+  try {
+    const page     = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
 
-      const result = await IncidenteModel.obtenerIncidentesPaginados(page, pageSize);
+    const result = await IncidenteModel.obtenerIncidentesPaginados(page, pageSize);
 
-      res.json({
-        success: true,
-        data:    result.data,
-        meta:    result.meta
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes paginados', {
-        error,
-        query: req.query
-      });
-      res.status(500).json({
-        success: false,
-        error:   'Error al obtener incidentes paginados'
-      });
-    }
-  };
+    res.json({
+      success: true,
+      data:    result.data,
+      meta:    result.meta
+    });
+  } catch (error) {
+    incidenteControllerLogger.error('Error al obtener incidentes paginados', {
+      error,
+      query: req.query
+    });
+    res.status(500).json({
+      success: false,
+      error:   'Error al obtener incidentes paginados'
+    });
+  }
+};
+
 
   /**
    * GET /incidentes/localidad/:localidadId?page=1&pageSize=20
    *
    * Devuelve incidentes de una localidad dada, paginados.
    */
-  static obtenerIncidentesPorLocalidad: RequestHandler = async (req, res) => {
-    try {
-      const localidadId = Number(req.params.localidadId);
-      if (Number.isNaN(localidadId)) {
-        res.status(400).json({ success: false, error: 'localidadId inv�lido' });
-        return;
-      }
-      const page     = Math.max(1, Number(req.query.page) || 1);
-      const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
-
-      const result = await IncidenteModel.obtenerIncidentesPorLocalidad(localidadId, page, pageSize);
-
-      res.json({
-        success: true,
-        data:    result.data,
-        meta:    result.meta
-      });
-    } catch (error) {
-      incidenteControllerLogger.error('Error al obtener incidentes por localidad', {
-        localidadId: req.params.localidadId,
-        error
-      });
-      res.status(500).json({
-        success: false,
-        error:   'Error al obtener incidentes por localidad'
-      });
+static obtenerIncidentesPorLocalidad: RequestHandler = async (req, res) => {
+  try {
+    const localidadId = Number(req.params.localidadId);
+    if (Number.isNaN(localidadId)) {
+      res.status(400).json({ success: false, error: 'localidadId inválido' });
+      return;
     }
-  };
+    const page     = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.max(1, Number(req.query.pageSize) || 20);
+
+    const result = await IncidenteModel.obtenerIncidentesPorLocalidad(localidadId, page, pageSize);
+
+    res.json({
+      success: true,
+      data:    result.data,
+      meta:    result.meta
+    });
+  } catch (error) {
+    incidenteControllerLogger.error('Error al obtener incidentes por localidad', {
+      localidadId: req.params.localidadId,
+      error
+    });
+    res.status(500).json({
+      success: false,
+      error:   'Error al obtener incidentes por localidad'
+    });
+  }
+};
+
 
   /**
    * GET /incidentes/empresa/:empresaId/localidad/:localidadId?page=1&pageSize=20
