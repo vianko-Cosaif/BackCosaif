@@ -7,7 +7,7 @@
 //  - obtenerUltimaActualizacion(): obtener la actualización más reciente.
 //  - actualizarActualizacion(): modificar una actualización existente (sin eliminar).
 
-import { PrismaClient, EstadoActualizacion } from '@prisma/client';
+import { PrismaClient, Actualizacion, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +17,7 @@ const prisma = new PrismaClient();
  * @returns Array de Actualizacion.
  * @throws Error si falla la consulta.
  */
-export const obtenerActualizaciones = async () => {
+export const obtenerActualizaciones = async (): Promise<Actualizacion[]> => {
   try {
     return await prisma.actualizacion.findMany({
       orderBy: { fechalanzamiento: 'desc' },
@@ -33,7 +33,7 @@ export const obtenerActualizaciones = async () => {
  * @returns La Actualizacion más reciente, o null si no hay ninguna.
  * @throws Error si falla la consulta.
  */
-export const obtenerUltimaActualizacion = async () => {
+export const obtenerUltimaActualizacion = async (): Promise<Actualizacion | null> => {
   try {
     return await prisma.actualizacion.findFirst({
       orderBy: { fechalanzamiento: 'desc' },
@@ -48,7 +48,7 @@ export const obtenerUltimaActualizacion = async () => {
  *
  * @param id      - ID de la actualización a modificar.
  * @param cambios - Objeto con los campos a actualizar:
- *                  nombre?, fechalanzamiento?, estado?
+ *                  nombre?, fechaLanzamiento?, estado?
  * @returns La Actualizacion actualizada.
  * @throws Error si falla la operación.
  */
@@ -56,10 +56,10 @@ export const actualizarActualizacion = async (
   id: number,
   cambios: {
     nombre?: string;
-    fechalanzamiento?: Date;
-    estado?: EstadoActualizacion;
+    fechaLanzamiento?: Date;
+    estado?: Prisma.EstadoActualizacion;
   }
-) => {
+): Promise<Actualizacion> => {
   try {
     return await prisma.actualizacion.update({
       where: { id },
