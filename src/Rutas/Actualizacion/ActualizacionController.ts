@@ -1,39 +1,19 @@
-// controllers/Actualizacion/actualizacion.controller.ts
-//
-// Endpoints:
-//   • GET  /actualizaciones           → lista todas
-//   • GET  /actualizaciones/ultima    → obtiene la más reciente
-//   • POST /actualizaciones           → crea una nueva
-//   • PUT  /actualizaciones/:id       → actualiza una existente
-//
-// NOTA: Protege las rutas con JWT en tu router principal.
-
-import { Request, Response, RequestHandler } from 'express';
-import { Prisma } from '@prisma/client';
+// src/Rutas/Actualizacion/ActualizacionController.ts
+import { Request, Response } from 'express';
+import { EstadoActualizacion } from '@prisma/client';
 import * as modelo from '../../models/Actualizacion/actualizacionModel';
-
-// Enum exacto generado por Prisma
-type EstadoActualizacion = Prisma.EstadoActualizacion;
-
-/* -------------------------------------------------------------------------- */
-/*                               Helper de fecha                              */
-/* -------------------------------------------------------------------------- */
 
 const parseFecha = (valor: unknown): Date | undefined => {
   if (typeof valor === 'string' || valor instanceof Date) {
-    const fecha = new Date(valor);
-    if (!isNaN(fecha.getTime())) return fecha;
+    const f = new Date(valor);
+    if (!isNaN(f.getTime())) return f;
   }
   return undefined;
 };
 
-/* -------------------------------------------------------------------------- */
-/*                                Controlador                                 */
-/* -------------------------------------------------------------------------- */
-
 export class ActualizacionController {
   /** GET /actualizaciones */
-  static obtenerActualizaciones: RequestHandler = async (_req, res) => {
+  static obtenerActualizaciones = async (_req: Request, res: Response): Promise<void> => {
     try {
       const lista = await modelo.obtenerActualizaciones();
       res.json(lista);
@@ -44,11 +24,12 @@ export class ActualizacionController {
   };
 
   /** GET /actualizaciones/ultima */
-  static obtenerUltimaActualizacion: RequestHandler = async (_req, res) => {
+  static obtenerUltimaActualizacion = async (_req: Request, res: Response): Promise<void> => {
     try {
       const ultima = await modelo.obtenerUltimaActualizacion();
       if (!ultima) {
-        return res.status(404).json({ error: 'No hay actualizaciones registradas' });
+        res.status(404).json({ error: 'No hay actualizaciones registradas' });
+        return;
       }
       res.json(ultima);
     } catch (err) {
@@ -58,20 +39,17 @@ export class ActualizacionController {
   };
 
   /** POST /actualizaciones */
-  static crearActualizacion: RequestHandler = async (req: Request, res: Response) => {
+  static crearActualizacion = async (req: Request, res: Response): Promise<void> => {
     const { nombre, fechalanzamiento, estado } = req.body;
 
-    // Validaciones mínimas
     if (!nombre || !fechalanzamiento) {
-      return res.status(400).json({
-        error: 'Se requieren los campos nombre y fechalanzamiento',
-      });
+      res.status(400).json({ error: 'Se requieren nombre y fechalanzamiento' });
+      return;
     }
     const fecha = parseFecha(fechalanzamiento);
     if (!fecha) {
-      return res.status(400).json({
-        error: 'fechalanzamiento debe ser una fecha válida (ISO 8601)',
-      });
+      res.status(400).json({ error: 'fechalanzamiento debe ser fecha ISO válida' });
+      return;
     }
 
     try {
@@ -88,10 +66,11 @@ export class ActualizacionController {
   };
 
   /** PUT /actualizaciones/:id */
-  static actualizarActualizacion: RequestHandler = async (req: Request, res: Response) => {
+  static actualizarActualizacion = async (req: Request, res: Response): Promise<void> => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      return res.status(400).json({ error: 'ID de actualización inválido' });
+      res.status(400).json({ error: 'ID de actualización inválido' });
+      return;
     }
 
     const { nombre, fechalanzamiento, estado } = req.body;
@@ -106,9 +85,8 @@ export class ActualizacionController {
     if (fechalanzamiento !== undefined) {
       const fecha = parseFecha(fechalanzamiento);
       if (!fecha) {
-        return res
-          .status(400)
-          .json({ error: 'fechalanzamiento debe ser una fecha válida (ISO 8601)' });
+        res.status(400).json({ error: 'fechalanzamiento debe ser fecha ISO válida' });
+        return;
       }
       cambios.fechalanzamiento = fecha;
     }
@@ -119,7 +97,7 @@ export class ActualizacionController {
       const actualizado = await modelo.actualizarActualizacion(id, cambios);
       res.json(actualizado);
     } catch (err) {
-      console.error(`Error al actualizar actualización con ID ${id}:`, err);
+      console.error(`Error al actualizar con ID ${id}:`, err);
       res.status(500).json({ error: 'Error al actualizar la actualización' });
     }
   };
