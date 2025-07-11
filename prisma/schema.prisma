@@ -183,20 +183,6 @@ model Token {
   @@index([usuarioId, tipo])
 }
 
-model Actualizacion {
-  id        Int      @id @default(autoincrement())
-  version   String
-  fecha     DateTime @default(now())
-  cambios   String
-  creadoPor String
-  estatus   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([version])
-}
-
-
 
 model Actualizacion {
   id                Int                  @id @default(autoincrement())
