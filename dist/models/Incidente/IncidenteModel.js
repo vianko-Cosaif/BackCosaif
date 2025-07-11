@@ -1046,8 +1046,8 @@ class IncidenteModel {
         }
     }
     /**
-     * 2. Obtener incidentes a partir de una localidad (pag.)
-     */
+    * 2. Obtener incidentes a partir de una localidad (pag.)
+    */
     static async obtenerIncidentesPorLocalidad(localidadId, page = 1, pageSize = 20) {
         try {
             const skip = (page - 1) * pageSize;
@@ -1087,10 +1087,7 @@ class IncidenteModel {
             const [incidentes, total] = await Promise.all([
                 prisma.incidente.findMany({
                     where: {
-                        movimiento: {
-                            empresaId,
-                            localidadId
-                        }
+                        movimiento: { empresaId, localidadId }
                     },
                     include: { movimiento: true, usuario: true },
                     orderBy: { fechaInicio: 'desc' },
@@ -1098,12 +1095,7 @@ class IncidenteModel {
                     take: pageSize,
                 }),
                 prisma.incidente.count({
-                    where: {
-                        movimiento: {
-                            empresaId,
-                            localidadId
-                        }
-                    }
+                    where: { movimiento: { empresaId, localidadId } }
                 })
             ]);
             return {
@@ -1120,19 +1112,6 @@ class IncidenteModel {
             incidente_logger_1.incidenteError.error('Error al obtener incidentes por empresa y localidad', { empresaId, localidadId, error });
             throw new Error('Error al obtener incidentes por empresa y localidad');
         }
-    }
-    static async esUnicaEmpresaEnRondas(empresaId, localidadId) {
-        const empresas = await prisma.ronda.findMany({
-            where: {
-                localidadId,
-                concluido: false
-            },
-            select: {
-                empresaId: true
-            },
-            distinct: ['empresaId']
-        });
-        return empresas.length === 1 && empresas[0].empresaId === empresaId;
     }
     /**
      * 4. Obtener incidentes de una empresa (pag.)
@@ -1166,6 +1145,19 @@ class IncidenteModel {
             incidente_logger_1.incidenteError.error('Error al obtener incidentes por empresa', { empresaId, error });
             throw new Error('Error al obtener incidentes por empresa');
         }
+    }
+    static async esUnicaEmpresaEnRondas(empresaId, localidadId) {
+        const empresas = await prisma.ronda.findMany({
+            where: {
+                localidadId,
+                concluido: false
+            },
+            select: {
+                empresaId: true
+            },
+            distinct: ['empresaId']
+        });
+        return empresas.length === 1 && empresas[0].empresaId === empresaId;
     }
     static async continuarMovimiento(id, comentario) {
         const incidente = await prisma.incidente.findUnique({

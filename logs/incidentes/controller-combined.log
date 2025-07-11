@@ -1936,3 +1936,188 @@
   message: 'Incidente creado',
   timestamp: '2025-07-04 17:21:10'
 }
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 200,
+  movimientoId: 252,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-09 23:37:27'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 201,
+  movimientoId: 253,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-09 23:37:49'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 201,
+  movimientoId: 253,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-09 23:38:49'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 200,
+  movimientoId: 252,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-09 23:39:10'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 202,
+  movimientoId: 253,
+  usuarioId: 5,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-09 23:52:22'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 202,
+  movimientoId: 253,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-09 23:54:33'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 203,
+  movimientoId: 253,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-09 23:55:17'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 203,
+  movimientoId: 253,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-09 23:55:20'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 204,
+  movimientoId: 224,
+  usuarioId: 5,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-09 23:56:31'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 205,
+  movimientoId: 254,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-10 18:08:12'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 205,
+  movimientoId: 254,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-10 18:08:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 206,
+  movimientoId: 255,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-10 18:08:55'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 207,
+  movimientoId: 254,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-10 18:12:29'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 207,
+  movimientoId: 254,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-10 18:13:27'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 206,
+  movimientoId: 255,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-10 18:13:35'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 208,
+  movimientoId: 256,
+  usuarioId: 5,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-10 18:14:07'
+}

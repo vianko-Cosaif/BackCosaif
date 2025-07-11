@@ -544,10 +544,10 @@ IncidenteController.obtenerEstadisticas = async (req, res) => {
     }
 };
 /**
- * GET /incidentes/paginado?page=1&pageSize=20
- *
- * Devuelve todos los incidentes paginados (m�s nuevos primero).
- */
+* GET /incidentes/paginado?page=1&pageSize=20
+*
+* Devuelve todos los incidentes paginados (más nuevos primero).
+*/
 IncidenteController.obtenerIncidentesPaginados = async (req, res) => {
     try {
         const page = Math.max(1, Number(req.query.page) || 1);
@@ -579,7 +579,7 @@ IncidenteController.obtenerIncidentesPorLocalidad = async (req, res) => {
     try {
         const localidadId = Number(req.params.localidadId);
         if (Number.isNaN(localidadId)) {
-            res.status(400).json({ success: false, error: 'localidadId inv�lido' });
+            res.status(400).json({ success: false, error: 'localidadId inválido' });
             return;
         }
         const page = Math.max(1, Number(req.query.page) || 1);

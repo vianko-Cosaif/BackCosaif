@@ -2799,3 +2799,347 @@
 2025-07-04 17:35:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
 2025-07-04 17:35:08 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
 2025-07-04 17:35:08 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+
+
+
+
+2025-07-09 23:38:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:06 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:06 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:11 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:11 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:11 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:11 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:11 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:11 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:11 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:11 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:11 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:11 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:11 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:11 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:13 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:13 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:13 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:14 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:14 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:14 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:14 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:14 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:20 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:20 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:27 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:38:27 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:38:27 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:38:27 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-09 23:38:49 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-09 23:39:09 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":252,"empresaId":3,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:39:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:39:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:39:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:39:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:39:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:39:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:39:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:39:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:39:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:39:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:39:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:39:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:40:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:40:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:40:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:40:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:40:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:40:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+
+2025-07-09 23:54:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:54:16 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:54:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:54:18 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:54:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:54:18 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:54:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:54:18 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:54:24 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:24 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:54:24 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-09 23:54:33 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:54:44 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:44 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:54:47 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:54:47 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+
+
+
+
+2025-07-09 23:55:20 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":253,"empresaId":5,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-09 23:55:51 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:55:51 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:55:53 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:55:53 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:55:53 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:55:53 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:55:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:55:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:56:31 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:56:31 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+
+2025-07-09 23:56:58 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:56:58 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:56:58 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:56:58 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:05 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:05 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:05 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:05 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:06 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:06 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:10 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:10 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:10 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:11 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:54 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:54 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:54 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:54 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:54 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:54 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:54 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:57:58 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:57:58 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:57:58 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:57:58 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:58:53 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:58:53 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:58:53 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:58:53 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:58:57 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:58:57 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:58:57 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:58:57 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-09 23:59:42 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-09 23:59:42 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-09 23:59:42 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-09 23:59:42 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-10 16:34:30 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:34:30 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:34:30 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-10 16:34:30 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-10 16:34:34 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:34:34 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:34:34 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"BAJA","unicaEmpresa":true}
+2025-07-10 16:34:34 [INFO]: Movimiento movido al final de la ronda {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"rondaNumero":1,"posicionOriginal":1,"posicionFinal":1}
+2025-07-10 16:35:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:16 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:44 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:44 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:44 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:35:50 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:36:00 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:36:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:36:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 16:37:36 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 17:27:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:08 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:08 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 17:27:08 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:39 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:39 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 17:27:39 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:47 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 17:27:47 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 17:27:47 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:02:29 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:02:29 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:02:29 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:02:29 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:02:29 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:02:29 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:02:30 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:02:30 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:02:30 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:05 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:07 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:07 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:07 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:13 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:03:13 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:03:13 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:04:14 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:07:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+
+
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:20 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-10 18:08:25 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 18:08:31 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:31 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:08:31 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:31 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:31 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:08:31 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:32 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:08:32 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:08:32 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+
+
+2025-07-10 18:10:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:10:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:10:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:10:45 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":255,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 18:10:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:10:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:10:45 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:10:45 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":255,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 18:10:45 [ERROR]: Error al reorganizar rondas por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","empresaId":1,"localidadId":1,"movimientoId":255,"error":{"code":"P2025","meta":{"modelName":"Ronda","cause":"No record was found for an update."},"clientVersion":"6.9.0","name":"PrismaClientKnownRequestError"}}
+2025-07-10 18:12:03 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:12:03 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:12:03 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:12:03 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":255,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-10 18:13:15 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:13:15 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:13:15 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:13:15 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 18:13:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 18:13:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 18:13:18 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 18:13:18 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-10 18:13:26 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":254,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-10 18:13:35 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":255,"empresaId":1,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+
+
+2025-07-10 19:37:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 19:37:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 19:37:01 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 19:37:01 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":256,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 19:37:03 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 19:37:03 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 19:37:03 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 19:37:03 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":256,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 19:37:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 19:37:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 19:37:06 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 19:37:06 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":256,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 19:56:32 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 19:56:32 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 19:56:32 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 19:56:32 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":256,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 20:00:21 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 20:00:21 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 20:00:21 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 20:00:21 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":256,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}
+2025-07-10 20:00:23 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":243,"empresaId":2,"localidadId":1}
+2025-07-10 20:00:23 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":217,"empresaId":5,"localidadId":1}
+2025-07-10 20:00:24 [INFO]: No se encontr� ronda para el movimiento {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":224,"empresaId":2,"localidadId":1}
+2025-07-10 20:00:24 [INFO]: Iniciando reorganizaci�n por incidente {"service":"IncidenteModel","module":"Movimientos/Incidente","movimientoId":256,"empresaId":2,"rondaOriginal":1,"localidadId":1,"prioridad":"ALTA","unicaEmpresa":false}

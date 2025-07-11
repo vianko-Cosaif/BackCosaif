@@ -29905,3 +29905,3676 @@
   message: 'No se encontr� ronda para el movimiento',
   timestamp: '2025-07-04 17:35:08'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 200,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/09',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-09 23:37:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 200,
+  movimientoId: 252,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-09 23:37:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 201,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/09',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-09 23:37:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 201,
+  movimientoId: 253,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-09 23:37:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:38:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 201,
+  movimientoId: 253,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-09 23:38:48'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 201,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-09 23:38:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:38:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 200,
+  movimientoId: 252,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-09 23:39:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 200,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-09 23:39:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 252,
+  empresaId: 3,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:39:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:39:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:40:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:40:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:40:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:40:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:40:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:40:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 202,
+  movimientoId: 253,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-09 23:52:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:54:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:54:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:54:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 202,
+  movimientoId: 253,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-09 23:54:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 202,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-09 23:54:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:54:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:54:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 203,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/09',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-09 23:55:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 203,
+  movimientoId: 253,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-09 23:55:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 203,
+  movimientoId: 253,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-09 23:55:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 203,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-09 23:55:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 253,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:55:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:51'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:51'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:55:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:56:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:56:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 204,
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-09 23:56:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:56:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:56:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:56:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:56:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:57:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:57:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:57:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:58:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:58:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:58:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:58:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:58:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:58:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:58:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:58:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:59:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-09 23:59:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-09 23:59:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-09 23:59:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:34:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:34:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 16:34:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-10 16:34:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:34:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:34:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: true,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 16:34:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  rondaNumero: 1,
+  posicionOriginal: 1,
+  posicionFinal: 1,
+  level: 'info',
+  message: 'Movimiento movido al final de la ronda',
+  timestamp: '2025-07-10 16:34:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:35:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:36:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 16:37:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 17:27:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:02:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:03:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:04:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:07:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 205,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/10',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-10 18:08:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 205,
+  movimientoId: 254,
+  empresaId: 1,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-10 18:08:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:08:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 205,
+  movimientoId: 254,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-10 18:08:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 205,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-10 18:08:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:08:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:08:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 206,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/10',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-10 18:08:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 206,
+  movimientoId: 255,
+  empresaId: 1,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-10 18:08:55'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 255,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 255,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  empresaId: 1,
+  localidadId: 1,
+  movimientoId: 255,
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.update()` invocation in
+  /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:531:36
+  
+    528     ...others.slice(target - 1).map(m => m.id)
+    529 ];
+    530 for (let i = 0; i < newOrder.length; i++) {
+  → 531     await tx.ronda.update(
+  An operation failed because it depends on one or more records that were required but not found. No record was found for an update.
+      at Zn.handleRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:7459)
+      at Zn.handleAndLogRequestError (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6784)
+      at Zn.request (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:121:6491)
+      at async l (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:9778)
+      at async /var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:531:21
+      at async Proxy._transactionWithCallback (/var/www/Cosaif/node_modules/@prisma/client/runtime/library.js:130:8139)
+      at async IncidenteModel.reorganizarRondasPorEmpresa (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:488:9)
+      at async IncidenteModel.reorganizarRondasPorIncidente (/var/www/Cosaif/dist/models/Incidente/IncidenteModel.js:386:13)
+      at async RondaModel.obtenerRondasPorLocalidadConEstado (/var/www/Cosaif/dist/models/Movimientos/Ronda/RondaModel.js:569:17)
+      at async RondaController.obtenerRondasPorLocalidadConEstado (/var/www/Cosaif/dist/Rutas/Movimientos/Ronda/RondaController.js:160:24) {
+    code: 'P2025',
+    meta: { modelName: 'Ronda', cause: 'No record was found for an update.' },
+    clientVersion: '6.9.0'
+  },
+  level: 'error',
+  message: 'Error al reorganizar rondas por incidente',
+  timestamp: '2025-07-10 18:10:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:12:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:12:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:12:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 255,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:12:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 207,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/10',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-10 18:12:28'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 207,
+  movimientoId: 254,
+  empresaId: 1,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-10 18:12:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:13:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:13:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:13:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:13:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:13:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:13:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 18:13:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:13:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 207,
+  movimientoId: 254,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-10 18:13:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 207,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-10 18:13:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 254,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:13:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 206,
+  movimientoId: 255,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-10 18:13:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 206,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-10 18:13:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 255,
+  empresaId: 1,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 18:13:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 208,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/10',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-10 18:14:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 208,
+  movimientoId: 256,
+  empresaId: 2,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-10 18:14:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 256,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 19:37:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 256,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 19:37:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:37:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 256,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 19:37:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:56:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:56:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 19:56:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 256,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 19:56:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 20:00:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 20:00:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 20:00:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 256,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 20:00:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 243,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 20:00:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 217,
+  empresaId: 5,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 20:00:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 224,
+  empresaId: 2,
+  localidadId: 1,
+  level: 'info',
+  message: 'No se encontr� ronda para el movimiento',
+  timestamp: '2025-07-10 20:00:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 256,
+  empresaId: 2,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-10 20:00:24'
+}
