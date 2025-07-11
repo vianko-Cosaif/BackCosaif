@@ -10,24 +10,23 @@ import MovimientoRoutes from "../Rutas/Movimientos/movimientosRoutes";
 import rondaRoutes from "../Rutas/Movimientos/Ronda/RondaRoutes";
 import IncidenteRoutes from "../Rutas/Incidente/IncidenteRutas";
 import FmcRutas from  "../FMC/fmcRoutes"
-// Carga variables del archivo .env
+import actualizacionRoutes  from "../Rutas/Actualizacion/ActualizacionRoutes";
 dotenv.config();
 
-// Puerto de escucha, con fallback a 4500
-const PORT = process.env.PORT || 4500;
+const PORT = process.env.PORT;
 
 /**
  * Inicializa y arranca el servidor Express.
  *
  * @function iniciarServidor
  * @remarks
- * Esta función:
+ * Esta funciï¿½n:
  *  - Configura middleware global de JSON y CORS
  *  - Registra rutas agrupadas por entidad
- *  - Aplica autenticación JWT con Passport
+ *  - Aplica autenticaciï¿½n JWT con Passport
  *  - Lanza el servidor en el puerto definido
  *
- * En caso de error crítico, finaliza el proceso con `process.exit(1)`.
+ * En caso de error crï¿½tico, finaliza el proceso con `process.exit(1)`.
  */
 export function iniciarServidor(): void {
   try {
@@ -39,10 +38,10 @@ export function iniciarServidor(): void {
     // Middleware para habilitar CORS
     app.use(cors());
 
-    // Autenticación JWT
+    // Autenticaciï¿½n JWT
     app.use(passport.initialize());
 
-    // Registro de rutas por módulo
+    // Registro de rutas por mï¿½dulo
     app.use("/usuarios", usuarioRoutes);
     app.use("/empresas", empresaRoutes);
     app.use("/localidades", localidadRoutes);
@@ -51,7 +50,7 @@ export function iniciarServidor(): void {
     app.use("/rondas", rondaRoutes);
     app.use("/fcm",FmcRutas);
     app.use("/incidentes", IncidenteRoutes);
-
+    app.use("/actualizaciones", actualizacionRoutes);
     // Inicia el servidor Express
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);

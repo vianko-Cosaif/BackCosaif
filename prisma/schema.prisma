@@ -196,6 +196,22 @@ model Actualizacion {
   @@index([version])
 }
 
+
+
+model Actualizacion {
+  id                Int                  @id @default(autoincrement())
+  nombre            String
+  fecha_lanzamiento DateTime
+  estado            EstadoActualizacion  @default(ACTIVA)
+
+  @@map("actualizacion")
+}
+
+enum EstadoActualizacion {
+  ACTIVA
+  DESACTUALIZADA
+}
+
 enum EstadoIncidente {
   ABIERTO
   CERRADO
