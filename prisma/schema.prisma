@@ -187,7 +187,7 @@ model Token {
 model Actualizacion {
   id                Int                  @id @default(autoincrement())
   nombre            String
-  fechalanzamiento  DateTime             @map("fechalanzamiento")
+  fechalanzamiento  DateTime             
   estado            EstadoActualizacion  @default(ACTIVA)
 
   @@map("actualizacion")
