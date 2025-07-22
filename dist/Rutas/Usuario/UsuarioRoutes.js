@@ -9,10 +9,10 @@ const UsuarioController_1 = require("./UsuarioController");
 const router = (0, express_1.Router)();
 // Ruta pública para inicio de sesión
 router.post('/login', UsuarioController_1.UsuarioController.login);
-// Middleware de autenticación JWT aplicado a todas las rutas siguientes
-router.use(passport_1.default.authenticate('jwt', { session: false }));
 // Crear nuevo usuario
 router.post('/', UsuarioController_1.UsuarioController.crearUsuario);
+// Middleware de autenticación JWT aplicado a todas las rutas siguientes
+router.use(passport_1.default.authenticate('jwt', { session: false }));
 // Obtener todos los usuarios
 router.get('/', UsuarioController_1.UsuarioController.obtenerUsuarios);
 // Editar usuario (ruta protegida, se espera el id en la URL)

@@ -31,13 +31,13 @@ const express_1 = require("express");
 const EmpresaController_1 = require("./EmpresaController");
 const passport_1 = __importDefault(require("../../middlewares/passport"));
 const router = (0, express_1.Router)();
+// Ruta para crear una nueva empresa
+router.post('/', EmpresaController_1.EmpresaController.crearEmpresa);
 // Middleware de autenticación aplicado a todas las rutas de este módulo.
 // Protege las rutas usando la estrategia JWT definida en Passport.
 router.use(passport_1.default.authenticate('jwt', { session: false }));
 // Ruta para obtener la lista de empresas
 router.get('/', EmpresaController_1.EmpresaController.obtenerEmpresas);
-// Ruta para crear una nueva empresa
-router.post('/', EmpresaController_1.EmpresaController.crearEmpresa);
 // Ruta para editar una empresa existente (por ID)
 router.put('/:id', EmpresaController_1.EmpresaController.editarEmpresa);
 // Ruta para eliminar una empresa (por ID)

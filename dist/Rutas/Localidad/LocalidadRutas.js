@@ -7,10 +7,10 @@ const express_1 = require("express");
 const passport_1 = __importDefault(require("../../middlewares/passport"));
 const LocalidadController_1 = require("./LocalidadController");
 const router = (0, express_1.Router)();
-// Middleware de autenticación JWT aplicado a todas las rutas siguientes
-router.use(passport_1.default.authenticate('jwt', { session: false }));
 // Ruta pública para crear una nueva localidad
 router.post('/', LocalidadController_1.LocalidadController.crearLocalidad);
+// Middleware de autenticación JWT aplicado a todas las rutas siguientes
+router.use(passport_1.default.authenticate('jwt', { session: false }));
 // Obtener todas las localidades (ruta protegida)
 router.get('/', LocalidadController_1.LocalidadController.obtenerLocalidades);
 // Buscar localidad por nombre (ruta protegida, se espera el parámetro de consulta "nombre")

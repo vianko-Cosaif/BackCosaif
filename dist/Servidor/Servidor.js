@@ -16,10 +16,9 @@ const movimientosRoutes_1 = __importDefault(require("../Rutas/Movimientos/movimi
 const RondaRoutes_1 = __importDefault(require("../Rutas/Movimientos/Ronda/RondaRoutes"));
 const IncidenteRutas_1 = __importDefault(require("../Rutas/Incidente/IncidenteRutas"));
 const fmcRoutes_1 = __importDefault(require("../FMC/fmcRoutes"));
-// Carga variables del archivo .env
+const ActualizacionRoutes_1 = __importDefault(require("../Rutas/Actualizacion/ActualizacionRoutes"));
 dotenv_1.default.config();
-// Puerto de escucha, con fallback a 4500
-const PORT = process.env.PORT || 4500;
+const PORT = process.env.PORT;
 /**
  * Inicializa y arranca el servidor Express.
  *
@@ -51,6 +50,7 @@ function iniciarServidor() {
         app.use("/rondas", RondaRoutes_1.default);
         app.use("/fcm", fmcRoutes_1.default);
         app.use("/incidentes", IncidenteRutas_1.default);
+        app.use("/actualizaciones", ActualizacionRoutes_1.default);
         // Inicia el servidor Express
         app.listen(PORT, () => {
             console.log(`Servidor corriendo en puerto ${PORT}`);
