@@ -2,19 +2,9 @@
 /**
  * logger.ts
  *
- * Configuración centralizada del sistema de logging utilizando Winston.
- *
- * Características:
- * - Múltiples niveles de log (debug, info, error, etc.).
- * - Manejo de errores y promesas no capturadas.
- * - Salida en consola y archivos persistentes en formato JSON.
- * - Mensajes enriquecidos con timestamp y stack trace en errores.
- * - Configuración adaptable según entorno (desarrollo/producción).
- *
- * Archivos de log generados:
- * - logs/auth-errors.log  → Registra errores de la aplicación.
- * - logs/exceptions.log   → Captura excepciones no controladas.
- * - logs/rejections.log   → Registra rechazos de promesas sin captura.
+ * Logger centralizado usando Winston.
+ * Soporta logs en consola y archivos, con formato JSON, timestamp y manejo de errores no capturados.
+ * Se adapta automáticamente al entorno (desarrollo o producción).
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -22,41 +12,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.logger = void 0;
 const winston_1 = __importDefault(require("winston"));
-const env_1 = require("../env");
-// Extraemos los formatos de Winston para mayor claridad en la configuración
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+// Cargar variables de entorno
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+// Asegúrate que la carpeta logs exista
+const logDir = path_1.default.join(process.cwd(), 'logs');
+if (!fs_1.default.existsSync(logDir)) {
+    fs_1.default.mkdirSync(logDir);
+}
+// Obtén el nivel y servicio desde env, con defaults
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const LOG_LEVEL = process.env.LOG_LEVEL || (NODE_ENV === 'production' ? 'info' : 'debug');
+const SERVICE_NAME = process.env.SERVICE_NAME || 'api-service';
 const { combine, timestamp, json, errors } = winston_1.default.format;
 const logger = winston_1.default.createLogger({
-    // Configuración del nivel de log en función del entorno
-    level: env_1.env.NODE_ENV === 'production' ? 'info' : 'debug',
-    // Metadatos por defecto para todos los logs
-    defaultMeta: { service: 'auth-service' },
-    // Configuración del formato de salida de los logs
-    format: combine(errors({ stack: true }), // Incluye el stack trace en los logs de error
-    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), // Timestamp legible
-    json() // Estructura los logs en formato JSON
-    ),
+    level: LOG_LEVEL,
+    defaultMeta: { service: SERVICE_NAME },
+    format: combine(errors({ stack: true }), timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), json()),
     transports: [
-        // Salida en consola (útil en desarrollo y entornos containerizados)
         new winston_1.default.transports.Console({
             handleExceptions: true,
             handleRejections: true,
         }),
-        // Archivo persistente para errores
         new winston_1.default.transports.File({
-            filename: 'logs/auth-errors.log',
+            filename: path_1.default.join(logDir, 'auth-errors.log'),
             level: 'error',
-            maxsize: 5 * 1024 * 1024, // Máximo 5 MB por archivo
+            maxsize: 5 * 1024 * 1024, // 5 MB
             handleExceptions: true,
             handleRejections: true,
         }),
     ],
-    // Manejo centralizado de excepciones no capturadas
     exceptionHandlers: [
-        new winston_1.default.transports.File({ filename: 'logs/exceptions.log' }),
+        new winston_1.default.transports.File({ filename: path_1.default.join(logDir, 'exceptions.log') }),
     ],
-    // Manejo centralizado de rechazos de promesas sin captura
     rejectionHandlers: [
-        new winston_1.default.transports.File({ filename: 'logs/rejections.log' }),
+        new winston_1.default.transports.File({ filename: path_1.default.join(logDir, 'rejections.log') }),
     ],
 });
 exports.logger = logger;
