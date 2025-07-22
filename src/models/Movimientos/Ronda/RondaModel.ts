@@ -215,6 +215,94 @@ export class RondaModel {
     }
   }
 
+  /**
+   * Crea una ronda para un movimiento BAJA específico.
+   * @private
+   */
+  private static async crearRondaParaMovimientoBaja(
+    movimientoId: number,
+    empresaId: number,
+    localidadId: number
+  ) {
+    try {
+      // Verificar si hay movimientos ALTA activos
+      const hayAltaActivos = await prisma.movimiento.count({
+        where: {
+          estado: "SOLICITADO",
+          prioridad: "ALTA",
+          localidadId: localidadId
+        }
+      }) > 0;
+      
+      // Ronda inicial (2 si hay ALTA, 1 si no hay)
+      const rondaInicial = hayAltaActivos ? 2 : 1;
+      
+      // Obtener todas las rondas de esta localidad
+      const rondasExistentes = await prisma.ronda.findMany({
+        where: { localidadId },
+        orderBy: { rondaNumero: "asc" }
+      });
+      
+      // Rastrear qué empresas están en cada ronda
+      const empresasEnRonda = new Map();
+      
+      // Llenar el mapa con las empresas que ya están en rondas
+      for (const ronda of rondasExistentes) {
+        if (!empresasEnRonda.has(ronda.rondaNumero)) {
+          empresasEnRonda.set(ronda.rondaNumero, new Set());
+        }
+        empresasEnRonda.get(ronda.rondaNumero).add(ronda.empresaId);
+      }
+      
+      // Buscar la primera ronda donde no esté esta empresa
+      let rondaAsignada = null;
+      let numRonda = rondaInicial;
+      
+      while (rondaAsignada === null) {
+        if (!empresasEnRonda.has(numRonda)) {
+          empresasEnRonda.set(numRonda, new Set());
+        }
+        
+        if (!empresasEnRonda.get(numRonda).has(empresaId)) {
+          rondaAsignada = numRonda;
+          empresasEnRonda.get(numRonda).add(empresaId);
+        } else {
+          numRonda++;
+          // Limitar la búsqueda para evitar bucles infinitos
+          if (numRonda > 100) {
+            rondaAsignada = numRonda;
+            movimientoError.warn("Búsqueda de ronda alcanzó 100 intentos", {
+              movimientoId, empresaId, localidadId
+            });
+          }
+        }
+      }
+      
+      // Contar movimientos en esta ronda para determinar orden
+      const ordenEnRonda = await prisma.ronda.count({
+        where: {
+          localidadId,
+          rondaNumero: rondaAsignada
+        }
+      }) + 1;
+      
+      // Crear la ronda
+      return await prisma.ronda.create({
+        data: {
+          movimientoId,
+          empresaId,
+          localidadId,
+          orden: ordenEnRonda,
+          rondaNumero: rondaAsignada
+        }
+      });
+    } catch (error) {
+      movimientoError.error("Error en crearRondaParaMovimientoBaja", {
+        movimientoId, empresaId, localidadId, error
+      });
+      return null;
+    }
+  }
 
   /**
    * Limpia rondas concluidas y reorganiza la numeración.
@@ -341,252 +429,36 @@ export class RondaModel {
     }
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * CORRECCIÓN: RondaModel con lógica de incidentes
- * ===============================================
- */
-
-/**
- * Verifica si una empresa ya tiene movimientos ACTIVOS en una ronda específica
- * (No cuenta movimientos DETENIDOS por incidentes)
- */
-private static async empresaTieneMovimientoActivoEnRonda(
-  empresaId: number,
-  localidadId: number,
-  rondaNumero: number
-): Promise<boolean> {
-  const movimientosActivos = await prisma.ronda.count({
-    where: {
-      localidadId,
-      rondaNumero,
-      empresaId,
-      concluido: false,
-      movimiento: {
-        estado: {
-          in: ['SOLICITADO', 'EN_PROCESO']  // ← Solo estados ACTIVOS
-          // NO incluye 'DETENIDO' (por incidentes)
-        }
+  /**
+   * Crea una ronda para un movimiento específico.
+   * Si es ALTA, reorganiza todo el sistema.
+   */
+  static async generarRondaParaMovimiento(data: { 
+    movimientoId: number; 
+    empresaId: number; 
+    localidadId: number;
+    prioridad: "ALTA" | "BAJA";
+  }) {
+    try {
+      if (data.prioridad === "ALTA") {
+        // Si es ALTA, reorganizar todo
+        await this.eliminarTodasLasRondas();
+        await this.crearTodasLasRondas();
+        return;
       }
-    }
-  });
-  
-  return movimientosActivos > 0;
-}
-
-/**
- * Crear ronda para movimiento BAJA (CORREGIDO con incidentes)
- */
-private static async crearRondaParaMovimientoBaja(
-  movimientoId: number,
-  empresaId: number,
-  localidadId: number
-) {
-  try {
-    // Verificar si hay movimientos ALTA activos
-    const hayAltaActivos = await prisma.movimiento.count({
-      where: {
-        estado: "SOLICITADO",
-        prioridad: "ALTA",
-        localidadId: localidadId
-      }
-    }) > 0;
-    
-    // Ronda inicial (2 si hay ALTA, 1 si no hay)
-    const rondaInicial = hayAltaActivos ? 2 : 1;
-    
-    // 🔄 NUEVA LÓGICA: Buscar ronda considerando incidentes
-    let rondaAsignada = null;
-    let numRonda = rondaInicial;
-    
-    while (rondaAsignada === null) {
-      // ✅ Verificar si empresa tiene movimientos ACTIVOS en esta ronda
-      const tieneMovimientoActivo = await this.empresaTieneMovimientoActivoEnRonda(
-        empresaId,
-        localidadId,
-        numRonda
-      );
       
-      if (!tieneMovimientoActivo) {
-        rondaAsignada = numRonda;
-      } else {
-        numRonda++;
-        // Limitar búsqueda para evitar bucles infinitos
-        if (numRonda > 100) {
-          rondaAsignada = numRonda;
-          movimientoError.warn("Búsqueda de ronda alcanzó 100 intentos", {
-            movimientoId, empresaId, localidadId
-          });
-        }
-      }
+      // Si es BAJA, limpiar concluidas y crear una ronda
+      await this.limpiarYReorganizarRondasConcluidas();
+      await this.crearRondaParaMovimientoBaja(
+        data.movimientoId,
+        data.empresaId,
+        data.localidadId
+      );
+    } catch (error) {
+      movimientoError.error("Error al generar ronda para movimiento", { data, error });
+      throw new Error("Error al generar ronda para movimiento");
     }
-    
-    // Contar movimientos en esta ronda para determinar orden
-    const ordenEnRonda = await prisma.ronda.count({
-      where: {
-        localidadId,
-        rondaNumero: rondaAsignada,
-        concluido: false
-      }
-    }) + 1;
-    
-    // Crear la ronda
-    return await prisma.ronda.create({
-      data: {
-        movimientoId,
-        empresaId,
-        localidadId,
-        orden: ordenEnRonda,
-        rondaNumero: rondaAsignada
-      }
-    });
-  } catch (error) {
-    movimientoError.error("Error en crearRondaParaMovimientoBaja", {
-      movimientoId, empresaId, localidadId, error
-    });
-    return null;
   }
-}
-
-/**
- * Crear ronda para movimiento ALTA (ya estaba bien, pero agregamos consistencia)
- */
-private static async crearRondaParaMovimientoAlta(
-  movimientoId: number,
-  empresaId: number,
-  localidadId: number
-) {
-  // Para ALTAs no hay restricción de empresa, pero mantengamos consistencia
-  const ordenEnRonda = await prisma.ronda.count({
-    where: {
-      localidadId,
-      rondaNumero: 1,
-      concluido: false
-    }
-  }) + 1;
-  
-  return await prisma.ronda.create({
-    data: {
-      movimientoId,
-      empresaId,
-      localidadId,
-      orden: ordenEnRonda,
-      rondaNumero: 1
-    }
-  });
-}
-
-/**
- * Método principal actualizado
- */
-static async generarRondaParaMovimiento(data: { 
-  movimientoId: number; 
-  empresaId: number; 
-  localidadId: number;
-  prioridad: "ALTA" | "BAJA";
-}) {
-  try {
-    if (data.prioridad === "ALTA") {
-      // ALTAs siguen reorganizando todo (lógica existente)
-      await this.eliminarTodasLasRondas();
-      await this.crearTodasLasRondas();
-      return;
-    }
-    
-    // Para BAJA, usar nueva lógica que considera incidentes
-    await this.limpiarYReorganizarRondasConcluidas();
-    await this.crearRondaParaMovimientoBaja(
-      data.movimientoId,
-      data.empresaId,
-      data.localidadId
-    );
-  } catch (error) {
-    movimientoError.error("Error al generar ronda para movimiento", { data, error });
-    throw new Error("Error al generar ronda para movimiento");
-  }
-}
-
-/**
- * Método helper adicional: obtener capacidad disponible de una ronda
- */
-static async obtenerCapacidadDisponibleRonda(
-  localidadId: number,
-  rondaNumero: number
-): Promise<{
-  total: number;
-  activos: number;
-  detenidos: number;
-  disponible: number;
-}> {
-  const [total, activos, detenidos] = await Promise.all([
-    // Total de movimientos en la ronda
-    prisma.ronda.count({
-      where: { localidadId, rondaNumero, concluido: false }
-    }),
-    
-    // Movimientos activos
-    prisma.ronda.count({
-      where: {
-        localidadId,
-        rondaNumero,
-        concluido: false,
-        movimiento: {
-          estado: { in: ['SOLICITADO', 'EN_PROCESO'] }
-        }
-      }
-    }),
-    
-    // Movimientos detenidos por incidentes
-    prisma.ronda.count({
-      where: {
-        localidadId,
-        rondaNumero,
-        concluido: false,
-        movimiento: {
-          estado: 'DETENIDO'
-        }
-      }
-    })
-  ]);
-  
-  const CAPACIDAD_MAXIMA = 10; // O el valor que definas
-  const disponible = CAPACIDAD_MAXIMA - activos; // Solo cuenta activos
-  
-  return {
-    total,
-    activos,
-    detenidos,
-    disponible: Math.max(0, disponible)
-  };
-}
-
-
-
-
-
-
-
-
-
-
-  
 
   // Resto de métodos siguen igual...
 
@@ -706,21 +578,28 @@ static async obtenerRondasPorLocalidadConEstado(
     }
 
     // 3) Devolver las rondas ya reordenadas seg�n el filtro de 'concluido'
-    return await prisma.ronda.findMany({
+  return await prisma.ronda.findMany({
       where: { localidadId, concluido },
       include: {
         empresa: true,
         movimiento: {
-          include: {
-            empresa: true,
+          select: {
+            id: true,
+            locomotiveNumber: true,    // número de la locomotora
+            createdAt: true,           // fecha de solicitud
+            estado: true,              // estado actual del movimiento
+            lavado: true,              // si va a lavado
+            torno: true,               // si va a torno
+            prioridad: true,           // opcional, si te interesa
+            // ----------------------------
             viaOrigen: { select: { nombre: true } },
-            viaDestino: { select: { nombre: true } }
+            viaDestino: { select: { nombre: true } },
           }
         }
       },
       orderBy: [
         { rondaNumero: 'asc' },
-        { orden: 'asc' }
+        { orden:       'asc' }
       ]
     });
   } catch (error) {
@@ -732,7 +611,6 @@ static async obtenerRondasPorLocalidadConEstado(
     throw new Error('Error al obtener rondas por localidad y estado');
   }
 }
-
 
 
   /**
