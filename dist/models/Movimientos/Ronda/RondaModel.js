@@ -561,6 +561,66 @@ class RondaModel {
         }
     }
     /**
+   * Intercambia el movimientoId entre dos rondas (swap de movimientos).
+   * @param rondaAId ID de la primera ronda
+   * @param rondaBId ID de la segunda ronda
+   * @returns Array con las dos rondas actualizadas
+   */
+    static async intercambiarMovimientosEntreRondas(rondaAId, rondaBId) {
+        try {
+            if (rondaAId === rondaBId)
+                throw new Error('No se puede intercambiar la misma ronda');
+            // 1. Busca ambas rondas
+            const rondaA = await prisma.ronda.findUnique({ where: { id: rondaAId } });
+            const rondaB = await prisma.ronda.findUnique({ where: { id: rondaBId } });
+            if (!rondaA || !rondaB)
+                throw new Error('Ronda(s) no encontrada(s)');
+            // 2. Intercambia los movimientos
+            const [updatedA, updatedB] = await prisma.$transaction([
+                prisma.ronda.update({
+                    where: { id: rondaAId },
+                    data: { movimientoId: rondaB.movimientoId }
+                }),
+                prisma.ronda.update({
+                    where: { id: rondaBId },
+                    data: { movimientoId: rondaA.movimientoId }
+                })
+            ]);
+            return [updatedA, updatedB];
+        }
+        catch (error) {
+            movimiento_logger_1.movimientoError.error('Error al intercambiar movimientos entre rondas', { rondaAId, rondaBId, error });
+            throw new Error('Error al intercambiar movimientos entre rondas');
+        }
+    }
+    /**
+   * Cambia el movimiento asociado a una ronda, dejando intacto el resto de los datos.
+   * @param rondaId ID de la ronda a editar
+   * @param nuevoMovimientoId ID del movimiento que quieres asociar a esta ronda
+   * @returns Ronda actualizada
+   */
+    static async intercambiarMovimientoEnRonda(rondaId, nuevoMovimientoId) {
+        try {
+            // Verifica que existan la ronda y el movimiento
+            const ronda = await prisma.ronda.findUnique({ where: { id: rondaId } });
+            if (!ronda)
+                throw new Error('Ronda no encontrada');
+            const movimiento = await prisma.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
+            if (!movimiento)
+                throw new Error('Movimiento no encontrado');
+            // Actualiza solo el movimientoId, deja intacto lo demás
+            const rondaActualizada = await prisma.ronda.update({
+                where: { id: rondaId },
+                data: { movimientoId: nuevoMovimientoId }
+            });
+            return rondaActualizada;
+        }
+        catch (error) {
+            movimiento_logger_1.movimientoError.error('Error al intercambiar movimiento en ronda', { rondaId, nuevoMovimientoId, error });
+            throw new Error('Error al intercambiar movimiento en ronda');
+        }
+    }
+    /**
      * Obtiene información detallada de una ronda.
      */
     static async obtenerInfoPorRonda(id) {

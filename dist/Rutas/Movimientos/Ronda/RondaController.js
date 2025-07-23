@@ -169,6 +169,45 @@ RondaController.obtenerRondasPorLocalidadConEstado = async (req, res) => {
         res.status(500).json({ message: "Error al obtener rondas por localidad y estado" });
     }
 };
+// PATCH /rondas/intercambiar-movimientos
+RondaController.intercambiarMovimientosEntreRondas = async (req, res) => {
+    const { rondaAId, rondaBId } = req.body;
+    if (isNaN(Number(rondaAId)) || isNaN(Number(rondaBId))) {
+        res.status(400).json({ message: "Parámetros inválidos" });
+        return;
+    }
+    try {
+        const rondasActualizadas = await RondaModel_1.RondaModel.intercambiarMovimientosEntreRondas(Number(rondaAId), Number(rondaBId));
+        res.status(200).json({
+            message: "Movimientos de rondas intercambiados exitosamente",
+            rondas: rondasActualizadas
+        });
+    }
+    catch (error) {
+        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al intercambiar movimientos entre rondas", { error, rondaAId, rondaBId });
+        res.status(500).json({ message: error.message || "Error al intercambiar movimientos entre rondas" });
+    }
+};
+// PATCH /rondas/:id/intercambiar-movimiento
+RondaController.intercambiarMovimientoEnRonda = async (req, res) => {
+    const rondaId = Number(req.params.id);
+    const { nuevoMovimientoId } = req.body;
+    if (isNaN(rondaId) || !nuevoMovimientoId || isNaN(Number(nuevoMovimientoId))) {
+        res.status(400).json({ message: "Parámetros inválidos" });
+        return;
+    }
+    try {
+        const rondaActualizada = await RondaModel_1.RondaModel.intercambiarMovimientoEnRonda(rondaId, Number(nuevoMovimientoId));
+        res.status(200).json({
+            message: "Movimiento de ronda intercambiado exitosamente",
+            ronda: rondaActualizada
+        });
+    }
+    catch (error) {
+        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al intercambiar movimiento en ronda", { error, rondaId, nuevoMovimientoId });
+        res.status(500).json({ message: error.message || "Error al intercambiar movimiento en ronda" });
+    }
+};
 // GET /rondas/localidad/:localidadId/siguiente
 RondaController.obtenerSiguienteEnRonda = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
