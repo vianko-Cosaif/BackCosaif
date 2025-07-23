@@ -58,4 +58,17 @@ router.get(
   RondaController.obtenerSiguienteEnRonda
 );
 
+
+// Intercambia los movimientos de dos rondas (swap entre dos rondas)
+router.patch(
+  "/intercambiar-movimientos",
+  RondaController.intercambiarMovimientosEntreRondas
+);
+
+// Reemplaza el movimiento de UNA ronda (cambiar el movimiento por otro)
+router.patch(
+  "/:id/intercambiar-movimiento",
+  RondaController.intercambiarMovimientoEnRonda
+);
+
 export default router;
