@@ -1,70 +1,56 @@
-import 'dotenv/config'; // carga .env antes de todo
+import dotenv from 'dotenv';
+dotenv.config();
 
 import passport from 'passport';
 import {
   Strategy as JwtStrategy,
   ExtractJwt,
-  type StrategyOptions,
-  type VerifiedCallback,
+  StrategyOptions,
+  VerifiedCallback,
 } from 'passport-jwt';
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
-import type { JwtPayload } from '../types/auth';
-import * as tokenService from './token.service'; // asume que exporta isTokenValid()
+import { JwtPayload } from '../types/auth';
+import * as tokenService from './token.service';
 
-// --- Variables de entorno ---
-const {
-  JWT_SECRET,
-  JWT_ISSUER,
-  JWT_AUDIENCE,
-  NODE_ENV,
-} = process.env;
-
-// --- Validación crítica de configuración ---
-if (!JWT_SECRET) {
-  logger.error('❌ JWT_SECRET no está definido en .env');
-  throw new Error('JWT_SECRET no está definido en .env');
-}
-if (!JWT_ISSUER) {
-  logger.warn('⚠️ JWT_ISSUER no está definido en .env');
-}
-if (!JWT_AUDIENCE) {
-  logger.warn('⚠️ JWT_AUDIENCE no está definido en .env');
+if (!process.env.JWT_SECRET) {
+  logger.error('JWT_SECRET no está definido en el archivo .env');
+  throw new Error('JWT_SECRET no está definido');
 }
 
-// --- Prisma client ---
 const prisma = new PrismaClient();
 
-// --- Opciones de estrategia JWT ---
 const opts: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: JWT_SECRET,
-  issuer: JWT_ISSUER,
-  audience: JWT_AUDIENCE,
+  secretOrKey: process.env.JWT_SECRET as string,
+  issuer: process.env.JWT_ISSUER,
+  audience: process.env.JWT_AUDIENCE,
   algorithms: ['HS256'],
-  ignoreExpiration: NODE_ENV === 'development',
+  ignoreExpiration: process.env.NODE_ENV === 'development',
 };
 
-// --- Passport JWT Strategy ---
 passport.use(
   new JwtStrategy(opts, async (jwtPayload: JwtPayload, done: VerifiedCallback) => {
     try {
-      // 1) ID presente y numérico
-      if (!jwtPayload?.id || typeof jwtPayload.id !== 'number') {
-        logger.warn('Token inválido: ID faltante o tipo incorrecto', { jwtPayload });
+      if (
+        !jwtPayload?.id ||
+        (typeof jwtPayload.id !== 'number' && typeof jwtPayload.id !== 'string')
+      ) {
+        logger.warn('Token inválido: ID faltante/tipo incorrecto', { jwtPayload });
         return done(null, false, { message: 'Token inválido: ID faltante' });
       }
 
-      // 2) Revocación: sólo válido si está en la DB y no revocado
+      // Verifica si el token JWT está registrado (no ha sido eliminado/revocado)
       if (jwtPayload.jti) {
-        const valido = await tokenService.isTokenValid(jwtPayload.jti);
-        if (!valido) {
-          logger.info('Token revocado o no registrado', { jti: jwtPayload.jti, userId: jwtPayload.id });
-          return done(null, false, { message: 'Token revocado' });
+        const isValid = await tokenService.isTokenValid(jwtPayload.jti);
+        if (!isValid) {
+          logger.info('Token eliminado/no válido', { jti: jwtPayload.jti, userId: jwtPayload.id });
+          // Aquí NO necesitas enviar la notificación, ya la manda removeToken cuando se revoca
+          return done(null, false, { message: 'Token eliminado/no válido' });
         }
       }
 
-      // 3) Busca usuario con empresa, localidad y estado
+      // Busca el usuario autenticado
       const user = await prisma.usuario.findUnique({
         where: { id: jwtPayload.id },
         select: {
@@ -81,7 +67,6 @@ passport.use(
         return done(null, false, { message: 'Usuario no encontrado' });
       }
 
-      // 4) Usuario safe
       const safeUser = {
         id: user.id,
         nombre: user.nombre,
@@ -93,7 +78,7 @@ passport.use(
       logger.info('JWT válido, usuario autenticado', { userId: user.id });
       return done(null, safeUser);
     } catch (error) {
-      logger.error('Error en validación de JWT con Passport', { error, jwtPayload });
+      logger.error('Error en validación JWT', { error, jwtPayload });
       return done(error as Error, false);
     }
   })
