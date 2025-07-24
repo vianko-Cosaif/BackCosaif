@@ -18,6 +18,7 @@ const IncidenteRutas_1 = __importDefault(require("../Rutas/Incidente/IncidenteRu
 const fmcRoutes_1 = __importDefault(require("../FMC/fmcRoutes"));
 const ActualizacionRoutes_1 = __importDefault(require("../Rutas/Actualizacion/ActualizacionRoutes"));
 dotenv_1.default.config();
+require("../Cron/Tokens");
 const PORT = process.env.PORT;
 /**
  * Inicializa y arranca el servidor Express.
