@@ -77,7 +77,7 @@ export async function removeToken(token: string): Promise<TokenModel | null> {
       await NotificadorFCM.enviarNotificacionPersonalizada({
         usuarioId: dbToken.usuarioId,
         titulo: 'Token expirado',
-        mensaje: 'Upss, tu token ya expiró. Por favor inicia sesión de nuevo.',
+        mensaje: 'Upss, Tu sesión ya expiró. Por favor inicia sesión de nuevo.',
         data: { tipo: 'token_expirado' },
         prioridad: 'alta',
       });
