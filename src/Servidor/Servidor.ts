@@ -12,7 +12,6 @@ import IncidenteRoutes from "../Rutas/Incidente/IncidenteRutas";
 import FmcRutas from  "../FMC/fmcRoutes"
 import actualizacionRoutes  from "../Rutas/Actualizacion/ActualizacionRoutes";
 dotenv.config();
-import '../Cron/Tokens'; 
 
 
 const PORT = process.env.PORT;
