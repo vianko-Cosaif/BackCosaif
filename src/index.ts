@@ -1,5 +1,5 @@
 // index.ts
-import './config/firebase';   // 1??  Primera línea: inicializa
+import './config/firebase';   // 1??  Primera lï¿½nea: inicializa
 import { iniciarServidor } from './Servidor/Servidor';
 
 iniciarServidor();
