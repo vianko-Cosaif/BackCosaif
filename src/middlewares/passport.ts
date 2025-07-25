@@ -1,4 +1,5 @@
-import 'dotenv/config'; // carga .env antes de todo
+// src/middlewares/passport.ts
+import 'dotenv/config'; // carga variables antes de todo
 
 import passport from 'passport';
 import {
@@ -10,9 +11,11 @@ import {
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 import type { JwtPayload } from '../types/auth';
-import * as tokenService from './token.service'; // asume que exporta isTokenValid()
+import * as tokenService from './token.service';
 
-// --- Variables de entorno ---
+// ────────────────────────────────
+// Variables de entorno
+// ────────────────────────────────
 const {
   JWT_SECRET,
   JWT_ISSUER,
@@ -20,7 +23,6 @@ const {
   NODE_ENV,
 } = process.env;
 
-// --- Validación crítica de configuración ---
 if (!JWT_SECRET) {
   logger.error('❌ JWT_SECRET no está definido en .env');
   throw new Error('JWT_SECRET no está definido en .env');
@@ -32,10 +34,14 @@ if (!JWT_AUDIENCE) {
   logger.warn('⚠️ JWT_AUDIENCE no está definido en .env');
 }
 
-// --- Prisma client ---
+// ────────────────────────────────
+// Prisma client
+// ────────────────────────────────
 const prisma = new PrismaClient();
 
-// --- Opciones de estrategia JWT ---
+// ────────────────────────────────
+// Configuración de la estrategia JWT
+// ────────────────────────────────
 const opts: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   secretOrKey: JWT_SECRET,
@@ -45,26 +51,34 @@ const opts: StrategyOptions = {
   ignoreExpiration: NODE_ENV === 'development',
 };
 
-// --- Passport JWT Strategy ---
+// ────────────────────────────────
+// Estrategia Passport‑JWT
+// ────────────────────────────────
 passport.use(
   new JwtStrategy(opts, async (jwtPayload: JwtPayload, done: VerifiedCallback) => {
     try {
-      // 1) ID presente y numérico
+      /* 1) Validación de claims básicos */
       if (!jwtPayload?.id || typeof jwtPayload.id !== 'number') {
         logger.warn('Token inválido: ID faltante o tipo incorrecto', { jwtPayload });
         return done(null, false, { message: 'Token inválido: ID faltante' });
       }
 
-      // 2) Revocación: sólo válido si está en la DB y no revocado
-      if (jwtPayload.jti) {
-        const valido = await tokenService.isTokenValid(jwtPayload.jti);
-        if (!valido) {
-          logger.info('Token revocado o no registrado', { jti: jwtPayload.jti, userId: jwtPayload.id });
-          return done(null, false, { message: 'Token revocado' });
-        }
+      if (!jwtPayload?.jti || typeof jwtPayload.jti !== 'string') {
+        logger.warn('Token inválido: jti faltante', { jwtPayload });
+        return done(null, false, { message: 'Token inválido: jti faltante' });
       }
 
-      // 3) Busca usuario con empresa, localidad y estado
+      /* 2) Revocación: comprobar jti contra la BD */
+      const esValido = await tokenService.isTokenValid(jwtPayload.jti);
+      if (!esValido) {
+        logger.info('Token revocado o no registrado', {
+          jti: jwtPayload.jti,
+          userId: jwtPayload.id,
+        });
+        return done(null, false, { message: 'Token revocado' });
+      }
+
+      /* 3) Recuperar datos de usuario */
       const user = await prisma.usuario.findUnique({
         where: { id: jwtPayload.id },
         select: {
@@ -81,7 +95,7 @@ passport.use(
         return done(null, false, { message: 'Usuario no encontrado' });
       }
 
-      // 4) Usuario safe
+      /* 4) Construir objeto “seguro” para req.user */
       const safeUser = {
         id: user.id,
         nombre: user.nombre,
@@ -96,7 +110,7 @@ passport.use(
       logger.error('Error en validación de JWT con Passport', { error, jwtPayload });
       return done(error as Error, false);
     }
-  })
+  }),
 );
 
 export default passport;
