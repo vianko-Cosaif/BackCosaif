@@ -71,12 +71,11 @@ UsuarioController.login = async (req, res) => {
         const resultado = await usuarioModel_1.UsuarioModel.obtenerUsuarioPorCredenciales(nombre, contrasena);
         if (!resultado.autenticado) {
             usuario_controller_logger_1.usuarioControllerLogger.warn(`Intento fallido de login para usuario: ${nombre}`);
-            res.status(401).json({ error: 'Credenciales inválidas' });
-            return;
+            return res.status(401).json({ error: 'Credenciales inválidas' });
         }
         const usuarioAutenticado = resultado;
-        const jti = (0, uuid_1.v4)();
-        // Construimos el payload del token
+        const jti = (0, uuid_1.v4)(); // ← nuevo identificador
+        // Payload + claim estándar jti
         const payload = {
             id: usuarioAutenticado.id,
             nombre: usuarioAutenticado.nombre,
@@ -84,34 +83,32 @@ UsuarioController.login = async (req, res) => {
             rol: usuarioAutenticado.rol,
             empresaId: usuarioAutenticado.empresaId,
             localidad: usuarioAutenticado.localidad,
-            jti,
         };
         const token = jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET || 'default_secret', {
             expiresIn: '1h',
             issuer: process.env.JWT_ISSUER,
             audience: process.env.JWT_AUDIENCE,
+            jwtid: jti,
         });
-        // Guardar el token JWT
+        // Guarda **token + jti** en la tabla Token
         await prisma.token.create({
             data: {
                 token,
+                jti, // ← nuevo campo
                 usuarioId: usuarioAutenticado.id,
                 tipo: 'auth',
             },
         });
-        // Guardar playerId si se envía
+        // Registrar playerId (sin cambios)
         if (playerId && typeof playerId === 'string') {
             try {
                 await usuarioModel_1.UsuarioModel.registrarPlayerId(usuarioAutenticado.id, playerId);
             }
             catch (err) {
-                usuario_controller_logger_1.usuarioControllerLogger.warn('No se pudo registrar el playerId', {
-                    playerId,
-                    error: err,
-                });
+                usuario_controller_logger_1.usuarioControllerLogger.warn('No se pudo registrar el playerId', { playerId, error: err });
             }
         }
-        // Se omite la contraseña en la respuesta
+        // Respuesta sin contraseña
         const { contrasena: omitida, ...usuarioData } = usuarioAutenticado;
         res.json({ token, user: usuarioData });
     }

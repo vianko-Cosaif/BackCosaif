@@ -43,30 +43,23 @@ const client_1 = require("@prisma/client");
 const tokenService = __importStar(require("../middlewares/token.service"));
 const prisma = new client_1.PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET;
-// Cada hora en el minuto 0, hora CDMX
-node_cron_1.default.schedule('0 * * * *', async () => {
+node_cron_1.default.schedule('0 * * * *', // cada hora en el minuto 0
+async () => {
     let revokedCount = 0;
     const nowMs = Date.now();
     try {
-        // Trae todos los tokens (JWT) almacenados
-        const stored = await prisma.token.findMany({
-            select: { token: true }
-        });
+        const stored = await prisma.token.findMany({ select: { token: true } });
         for (const { token } of stored) {
             let shouldRevoke = false;
             try {
-                // Decodifica sin considerar expiración para leer el claim exp
                 const payload = jsonwebtoken_1.default.verify(token, JWT_SECRET, { ignoreExpiration: true });
-                if (payload.exp && payload.exp * 1000 < nowMs) {
+                if (payload.exp && payload.exp * 1000 < nowMs)
                     shouldRevoke = true;
-                }
             }
             catch {
-                // Si no pasa la verificación (firma corrupta), también lo revoke
                 shouldRevoke = true;
             }
             if (shouldRevoke) {
-                // Usa tu servicio: borra + notifica
                 await tokenService.removeToken(token);
                 revokedCount++;
             }

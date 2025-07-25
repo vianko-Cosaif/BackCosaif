@@ -7,6 +7,7 @@ exports.UsuarioModel = void 0;
 const client_1 = require("@prisma/client");
 const argon2_1 = __importDefault(require("argon2"));
 const logger_1 = require("../../utils/logger");
+const uuid_1 = require("uuid");
 const prisma = new client_1.PrismaClient();
 class UsuarioModel {
     /**
@@ -181,9 +182,6 @@ class UsuarioModel {
             throw error instanceof Error ? error : new Error('Error inesperado');
         }
     }
-    /**
-     * Registra o actualiza el playerId firebase en la tabla Token.
-     */
     static async registrarPlayerId(usuarioId, playerId) {
         if (!usuarioId || !playerId) {
             throw new Error('Usuario o playerId inválido');
@@ -191,8 +189,13 @@ class UsuarioModel {
         try {
             await prisma.token.upsert({
                 where: { token: playerId },
-                update: { usuarioId, tipo: 'onesignal' },
-                create: { token: playerId, usuarioId, tipo: 'onesignal' },
+                update: { usuarioId, tipo: 'onesignal' }, // conserve registro existente
+                create: {
+                    token: playerId,
+                    jti: (0, uuid_1.v4)(), // ← nuevo campo requerido
+                    usuarioId,
+                    tipo: 'onesignal',
+                },
             });
             logger_1.logger.info(`Player ID registrado correctamente para usuario ${usuarioId}`);
             return true;
