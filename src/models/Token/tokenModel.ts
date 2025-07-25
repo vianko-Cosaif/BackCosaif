@@ -1,60 +1,53 @@
 /**
- * token.service.ts
+ * src/middlewares/token.service.ts
  *
  * Servicio de acceso a datos para la entidad Token.
- *
- * Este módulo proporciona operaciones básicas sobre tokens generados para los usuarios.
- * Utiliza Prisma ORM como capa de persistencia y emplea un logger especializado para errores.
- *
- * Funcionalidades:
- * - Obtener todos los tokens con su relación al usuario.
- * - Crear y almacenar un nuevo token para un usuario específico.
- *
- * Dependencias:
- * - PrismaClient: cliente de base de datos para Prisma.
- * - tokenLogger: logger exclusivo para errores en operaciones con tokens.
  */
-
 import { PrismaClient } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
 import { tokenLogger } from './token.logger';
 
 const prisma = new PrismaClient();
 
-/**
- * Obtiene todos los tokens almacenados en la base de datos.
- * Incluye también los datos del usuario relacionado a cada token.
- *
- * @returns Lista de objetos token con relación al usuario.
- * @throws Error si ocurre un fallo en la consulta.
- */
-export const obtenerTokens = async () => {
+/* ────────────────────────────── */
+/* 1. Obtener todos los tokens    */
+/* ────────────────────────────── */
+export async function obtenerTokens() {
   try {
-    return await prisma.token.findMany({
-      include: { usuario: true },
-    });
+    return await prisma.token.findMany({ include: { usuario: true } });
   } catch (error) {
     tokenLogger.error('Error al obtener tokens', { error });
     throw new Error('No se pudieron obtener los tokens');
   }
-};
+}
 
-/**
- * Crea un nuevo token en la base de datos.
- * 
- * Este token queda asociado a un usuario específico, que debe existir previamente.
- *
- * @param token - Token generado (usualmente JWT o UUID).
- * @param usuarioId - ID del usuario al que se asigna el token.
- * @returns El token recién creado.
- * @throws Error si ocurre un fallo durante la creación del token.
- */
-export const crearToken = async (token: string, usuarioId: number) => {
+/* ────────────────────────────── */
+/* 2. Crear token nuevo           */
+/* ────────────────────────────── */
+export async function crearToken(token: string, usuarioId: number, tipo = 'auth') {
   try {
     return await prisma.token.create({
-      data: { token, usuarioId },
+      data: {
+        token,
+        jti: uuidv4(),          // ¡campo obligatorio!
+        tipo,
+        usuarioId,
+      },
     });
   } catch (error) {
-    tokenLogger.error(`Error al crear token para usuario ID ${usuarioId}`, { error });
+    tokenLogger.error(`Error al crear token para usuario ${usuarioId}`, { error });
     throw new Error('Error inesperado al guardar el token');
   }
-};
+}
+
+/* ────────────────────────────── */
+/* 3. Eliminar (revocar) token    */
+/* ────────────────────────────── */
+export async function eliminarTokenPorJti(jti: string) {
+  try {
+    return await prisma.token.delete({ where: { jti } });
+  } catch (error) {
+    tokenLogger.error(`No se pudo eliminar token con jti ${jti}`, { error });
+    throw new Error('Error al revocar el token');
+  }
+}
