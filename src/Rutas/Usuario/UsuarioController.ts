@@ -89,6 +89,7 @@ export class UsuarioController {
    * Autenticación del usuario y emisión de token JWT.
    * También registra el playerId de OneSignal si se proporciona.
    */
+
   static login: RequestHandler = async (req: Request, res: Response) => {
     const { nombre, contrasena, playerId } = req.body;
 
@@ -97,14 +98,13 @@ export class UsuarioController {
 
       if (!resultado.autenticado) {
         usuarioControllerLogger.warn(`Intento fallido de login para usuario: ${nombre}`);
-        res.status(401).json({ error: 'Credenciales inválidas' });
-        return;
+        return res.status(401).json({ error: 'Credenciales inválidas' });
       }
 
       const usuarioAutenticado = resultado as unknown as AuthenticatedUser;
-      const jti = uuidv4();
+      const jti = uuidv4();                                  // ← nuevo identificador
 
-      // Construimos el payload del token
+      // Payload + claim estándar jti
       const payload = {
         id: usuarioAutenticado.id,
         nombre: usuarioAutenticado.nombre,
@@ -112,7 +112,6 @@ export class UsuarioController {
         rol: usuarioAutenticado.rol,
         empresaId: usuarioAutenticado.empresaId,
         localidad: usuarioAutenticado.localidad,
-        jti,
       };
 
       const token = jwt.sign(
@@ -122,31 +121,30 @@ export class UsuarioController {
           expiresIn: '1h',
           issuer: process.env.JWT_ISSUER,
           audience: process.env.JWT_AUDIENCE,
+          jwtid: jti,                                        
         }
       );
 
-      // Guardar el token JWT
+      // Guarda **token + jti** en la tabla Token
       await prisma.token.create({
         data: {
           token,
+          jti,                                               // ← nuevo campo
           usuarioId: usuarioAutenticado.id,
           tipo: 'auth',
         },
       });
 
-      // Guardar playerId si se envía
+      // Registrar playerId (sin cambios)
       if (playerId && typeof playerId === 'string') {
         try {
           await UsuarioModel.registrarPlayerId(usuarioAutenticado.id, playerId);
         } catch (err) {
-          usuarioControllerLogger.warn('No se pudo registrar el playerId', {
-            playerId,
-            error: err,
-          });
+          usuarioControllerLogger.warn('No se pudo registrar el playerId', { playerId, error: err });
         }
       }
 
-      // Se omite la contraseña en la respuesta
+      // Respuesta sin contraseña
       const { contrasena: omitida, ...usuarioData } = usuarioAutenticado;
       res.json({ token, user: usuarioData });
 
@@ -155,4 +153,5 @@ export class UsuarioController {
       res.status(500).json({ error: 'Error en el login', details: error });
     }
   };
+
 }
