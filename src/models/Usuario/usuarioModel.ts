@@ -1,6 +1,7 @@
 import { PrismaClient, Rol } from '@prisma/client';
 import argon2 from 'argon2';
 import { logger } from '../../utils/logger';
+import { v4 as uuidv4 } from 'uuid';                
 
 const prisma = new PrismaClient();
 
@@ -203,32 +204,36 @@ static async obtenerUsuarioPorCredenciales(nombre: string, contrasena: string) {
       throw error instanceof Error ? error : new Error('Error inesperado');
     }
   }
-/**
- * Registra o actualiza el playerId firebase en la tabla Token.
- */
+
+
 static async registrarPlayerId(usuarioId: number, playerId: string) {
-  if (!usuarioId || !playerId) {
-    throw new Error('Usuario o playerId inválido');
-  }
+    if (!usuarioId || !playerId) {
+      throw new Error('Usuario o playerId inválido');
+    }
 
-  try {
-    await prisma.token.upsert({
-      where: { token: playerId },
-      update: { usuarioId, tipo: 'onesignal' },
-      create: { token: playerId, usuarioId, tipo: 'onesignal' },
-    });
+    try {
+      await prisma.token.upsert({
+        where: { token: playerId },
+        update: { usuarioId, tipo: 'onesignal' },   // conserve registro existente
+        create: {
+          token: playerId,
+          jti: uuidv4(),                            // ← nuevo campo requerido
+          usuarioId,
+          tipo: 'onesignal',
+        },
+      });
 
-    logger.info(`Player ID registrado correctamente para usuario ${usuarioId}`);
-    return true;
-  } catch (error) {
-    logger.error('Error al registrar playerId', {
-      error: error instanceof Error ? error.message : 'Error desconocido',
-      usuarioId,
-      playerId,
-    });
-    throw new Error('No se pudo registrar el token de notificación');
+      logger.info(`Player ID registrado correctamente para usuario ${usuarioId}`);
+      return true;
+    } catch (error) {
+      logger.error('Error al registrar playerId', {
+        error: error instanceof Error ? error.message : 'Error desconocido',
+        usuarioId,
+        playerId,
+      });
+      throw new Error('No se pudo registrar el token de notificación');
+    }
   }
-}
 
 
 

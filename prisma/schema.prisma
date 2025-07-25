@@ -174,7 +174,7 @@ model Ronda {
 
 model Token {
   id        Int      @id @default(autoincrement())
-  token     String   @unique @db.VarChar(500)
+  token     String   @unique @db.VarChar(500)x
   jti       String   @unique                 
   tipo      String   @default("auth")
   usuarioId Int
