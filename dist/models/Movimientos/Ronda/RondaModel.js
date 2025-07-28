@@ -561,37 +561,60 @@ class RondaModel {
         }
     }
     /**
-   * Intercambia el movimientoId entre dos rondas (swap de movimientos).
-   * @param rondaAId ID de la primera ronda
-   * @param rondaBId ID de la segunda ronda
-   * @returns Array con las dos rondas actualizadas
-   */
+     * Intercambia el movimientoId entre dos rondas (swap de movimientos).
+     * @param rondaAId ID de la primera ronda
+     * @param rondaBId ID de la segunda ronda
+     * @returns Array con las dos rondas actualizadas
+     * @throws Error si los IDs son iguales, no existen, o no pertenecen a la misma localidad
+     */
     static async intercambiarMovimientosEntreRondas(rondaAId, rondaBId) {
-        try {
-            if (rondaAId === rondaBId)
-                throw new Error('No se puede intercambiar la misma ronda');
-            // 1. Busca ambas rondas
-            const rondaA = await prisma.ronda.findUnique({ where: { id: rondaAId } });
-            const rondaB = await prisma.ronda.findUnique({ where: { id: rondaBId } });
-            if (!rondaA || !rondaB)
-                throw new Error('Ronda(s) no encontrada(s)');
-            // 2. Intercambia los movimientos
-            const [updatedA, updatedB] = await prisma.$transaction([
-                prisma.ronda.update({
-                    where: { id: rondaAId },
-                    data: { movimientoId: rondaB.movimientoId }
+        if (rondaAId === rondaBId) {
+            throw new Error("Debe indicar dos rondas distintas para el intercambio");
+        }
+        return await prisma.$transaction(async (tx) => {
+            // 1) Leer las rondas completas
+            const [rondaA, rondaB] = await Promise.all([
+                tx.ronda.findUnique({ where: { id: rondaAId } }),
+                tx.ronda.findUnique({ where: { id: rondaBId } })
+            ]);
+            if (!rondaA || !rondaB) {
+                throw new Error("Rondas o movimientos inválidos");
+            }
+            // 2) Guardar los datos necesarios
+            const movimientoIdA = rondaA.movimientoId;
+            const movimientoIdB = rondaB.movimientoId;
+            // 3) Eliminar ambas rondas (esto libera la restricción única)
+            await Promise.all([
+                tx.ronda.delete({ where: { id: rondaAId } }),
+                tx.ronda.delete({ where: { id: rondaBId } })
+            ]);
+            // 4) Recrear las rondas con los movimientos intercambiados
+            const [nuevaRondaA, nuevaRondaB] = await Promise.all([
+                tx.ronda.create({
+                    data: {
+                        id: rondaAId, // Mantener el mismo ID
+                        movimientoId: movimientoIdB, // Movimiento de B
+                        empresaId: rondaA.empresaId,
+                        localidadId: rondaA.localidadId,
+                        orden: rondaA.orden,
+                        rondaNumero: rondaA.rondaNumero,
+                        concluido: rondaA.concluido
+                    }
                 }),
-                prisma.ronda.update({
-                    where: { id: rondaBId },
-                    data: { movimientoId: rondaA.movimientoId }
+                tx.ronda.create({
+                    data: {
+                        id: rondaBId, // Mantener el mismo ID
+                        movimientoId: movimientoIdA, // Movimiento de A
+                        empresaId: rondaB.empresaId,
+                        localidadId: rondaB.localidadId,
+                        orden: rondaB.orden,
+                        rondaNumero: rondaB.rondaNumero,
+                        concluido: rondaB.concluido
+                    }
                 })
             ]);
-            return [updatedA, updatedB];
-        }
-        catch (error) {
-            movimiento_logger_1.movimientoError.error('Error al intercambiar movimientos entre rondas', { rondaAId, rondaBId, error });
-            throw new Error('Error al intercambiar movimientos entre rondas');
-        }
+            return [nuevaRondaA, nuevaRondaB];
+        });
     }
     /**
    * Cambia el movimiento asociado a una ronda, dejando intacto el resto de los datos.
