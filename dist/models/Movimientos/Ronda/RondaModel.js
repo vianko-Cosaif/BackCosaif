@@ -572,6 +572,7 @@ class RondaModel {
             throw new Error("Debe indicar dos rondas distintas para el intercambio");
         }
         return await prisma.$transaction(async (tx) => {
+<<<<<<< HEAD
             // 1) Leer originales
             const [a, b] = await Promise.all([
                 tx.ronda.findUnique({ where: { id: rondaAId }, select: { movimientoId: true } }),
@@ -604,6 +605,50 @@ class RondaModel {
             if (!finalA || !finalB)
                 throw new Error("Error al terminar swap");
             return [finalA, finalB];
+=======
+            // 1) Leer las rondas completas
+            const [rondaA, rondaB] = await Promise.all([
+                tx.ronda.findUnique({ where: { id: rondaAId } }),
+                tx.ronda.findUnique({ where: { id: rondaBId } })
+            ]);
+            if (!rondaA || !rondaB) {
+                throw new Error("Rondas o movimientos inválidos");
+            }
+            // 2) Guardar los datos necesarios
+            const movimientoIdA = rondaA.movimientoId;
+            const movimientoIdB = rondaB.movimientoId;
+            // 3) Eliminar ambas rondas (esto libera la restricción única)
+            await Promise.all([
+                tx.ronda.delete({ where: { id: rondaAId } }),
+                tx.ronda.delete({ where: { id: rondaBId } })
+            ]);
+            // 4) Recrear las rondas con los movimientos intercambiados
+            const [nuevaRondaA, nuevaRondaB] = await Promise.all([
+                tx.ronda.create({
+                    data: {
+                        id: rondaAId, // Mantener el mismo ID
+                        movimientoId: movimientoIdB, // Movimiento de B
+                        empresaId: rondaA.empresaId,
+                        localidadId: rondaA.localidadId,
+                        orden: rondaA.orden,
+                        rondaNumero: rondaA.rondaNumero,
+                        concluido: rondaA.concluido
+                    }
+                }),
+                tx.ronda.create({
+                    data: {
+                        id: rondaBId, // Mantener el mismo ID
+                        movimientoId: movimientoIdA, // Movimiento de A
+                        empresaId: rondaB.empresaId,
+                        localidadId: rondaB.localidadId,
+                        orden: rondaB.orden,
+                        rondaNumero: rondaB.rondaNumero,
+                        concluido: rondaB.concluido
+                    }
+                })
+            ]);
+            return [nuevaRondaA, nuevaRondaB];
+>>>>>>> ff515a9d5e456967ca1ce4cf7cacd35e521b9d09
         });
     }
     /**
