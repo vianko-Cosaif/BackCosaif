@@ -157,7 +157,7 @@ model Incidente {
 
 model Ronda {
   id           Int        @id @default(autoincrement())
-  movimientoId Int        @unique
+  movimientoId Int
   empresaId    Int
   localidadId  Int
   concluido    Boolean?   @default(false)
@@ -168,9 +168,11 @@ model Ronda {
   empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   movimiento   Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
 
+  @@unique([movimientoId], map: "Ronda_movimientoId_key")
   @@index([rondaNumero, orden])
   @@index([localidadId])
 }
+
 
 model Token {
   id        Int      @id @default(autoincrement())
