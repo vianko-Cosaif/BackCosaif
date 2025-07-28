@@ -1,7 +1,7 @@
 
 import { movimientoError } from "../movimiento.logger";
 import { IncidenteModel } from '../../Incidente/IncidenteModel';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, Ronda } from '@prisma/client';
 import { PrismaClient } from '@prisma/client'
 /**
  * @file RondaModel.ts
@@ -641,39 +641,62 @@ static async obtenerRondasPorLocalidadConEstado(
     }
   }
 
-  /**
+/**
  * Intercambia el movimientoId entre dos rondas (swap de movimientos).
  * @param rondaAId ID de la primera ronda
  * @param rondaBId ID de la segunda ronda
  * @returns Array con las dos rondas actualizadas
+ * @throws Error si los IDs son iguales, no existen, o no pertenecen a la misma localidad
  */
-static async intercambiarMovimientosEntreRondas(rondaAId: number, rondaBId: number) {
-  try {
-    if (rondaAId === rondaBId) throw new Error('No se puede intercambiar la misma ronda');
-
-    // 1. Busca ambas rondas
-    const rondaA = await prisma.ronda.findUnique({ where: { id: rondaAId } });
-    const rondaB = await prisma.ronda.findUnique({ where: { id: rondaBId } });
-
-    if (!rondaA || !rondaB) throw new Error('Ronda(s) no encontrada(s)');
-
-    // 2. Intercambia los movimientos
-    const [updatedA, updatedB] = await prisma.$transaction([
-      prisma.ronda.update({
-        where: { id: rondaAId },
-        data: { movimientoId: rondaB.movimientoId }
-      }),
-      prisma.ronda.update({
-        where: { id: rondaBId },
-        data: { movimientoId: rondaA.movimientoId }
-      })
-    ]);
-
-    return [updatedA, updatedB];
-  } catch (error) {
-    movimientoError.error('Error al intercambiar movimientos entre rondas', { rondaAId, rondaBId, error });
-    throw new Error('Error al intercambiar movimientos entre rondas');
+static async intercambiarMovimientosEntreRondas(
+  rondaAId: number,
+  rondaBId: number
+): Promise<[Ronda, Ronda]> {
+  // 1) Validar que vengan sólo dos IDs distintos
+  if (rondaAId === rondaBId) {
+    throw new Error("Debe indicar dos rondas distintas para el intercambio");
   }
+
+  // 2) Validar existencia y misma localidad
+  const [rondaA, rondaB] = await prisma.$transaction([
+    prisma.ronda.findUnique({
+      where: { id: rondaAId },
+      select: { localidadId: true, movimientoId: true }
+    }),
+    prisma.ronda.findUnique({
+      where: { id: rondaBId },
+      select: { localidadId: true, movimientoId: true }
+    })
+  ]);
+
+  if (!rondaA || !rondaB) {
+    throw new Error("Alguna de las rondas no existe");
+  }
+  if (rondaA.localidadId !== rondaB.localidadId) {
+    throw new Error("Sólo se pueden intercambiar rondas de la misma localidad");
+  }
+
+  // 3) Swap en transacción con constraint diferible
+  const [updatedA, updatedB] = await prisma.$transaction(async tx => {
+    // Aplaza la validación del UNIQUE hasta el COMMIT
+    await tx.$executeRawUnsafe(
+      `SET CONSTRAINTS "Ronda_movimientoId_key" DEFERRED;`
+    );
+
+    // Intercambia los movimientoId
+    const p1 = tx.ronda.update({
+      where: { id: rondaAId },
+      data: { movimientoId: rondaB.movimientoId }
+    });
+    const p2 = tx.ronda.update({
+      where: { id: rondaBId },
+      data: { movimientoId: rondaA.movimientoId }
+    });
+
+    return Promise.all([p1, p2]);
+  });
+
+  return [updatedA, updatedB];
 }
 
 
