@@ -26,8 +26,8 @@ export class MovimientoModel {
 /**
  * Actualizaciones para MovimientoModel.ts
  * 
- * Nuevos métodos para manejo de estados DETENIDO y CANCELADO
- * Estos métodos deben agregarse a la clase MovimientoModel existente
+ * Nuevos mï¿½todos para manejo de estados DETENIDO y CANCELADO
+ * Estos mï¿½todos deben agregarse a la clase MovimientoModel existente
  */
 
 /**
@@ -35,7 +35,7 @@ export class MovimientoModel {
  * Generalmente usado cuando hay un incidente activo.
  * 
  * @param id ID del movimiento a detener
- * @param razon Razón opcional por la cual se detiene
+ * @param razon Razï¿½n opcional por la cual se detiene
  * @returns Movimiento actualizado
  */
 static async detenerMovimiento(id: number, razon?: string) {
@@ -48,7 +48,7 @@ static async detenerMovimiento(id: number, razon?: string) {
         estado: 'DETENIDO',
         fechaPausa: fechaActual,
         updatedAt: fechaActual,
-        // Si se proporciona una razón, se puede guardar en instrucciones
+        // Si se proporciona una razï¿½n, se puede guardar en instrucciones
         ...(razon && { instrucciones: razon })
       },
       include: {
@@ -77,7 +77,7 @@ static async detenerMovimiento(id: number, razon?: string) {
  * Un movimiento cancelado no puede ser reactivado.
  * 
  * @param id ID del movimiento a cancelar
- * @param razonCancelacion Razón de la cancelación
+ * @param razonCancelacion Razï¿½n de la cancelaciï¿½n
  * @param usuarioId ID del usuario que cancela (opcional)
  * @returns Movimiento cancelado
  */static async cancelarMovimiento(
@@ -99,7 +99,7 @@ static async detenerMovimiento(id: number, razon?: string) {
     });
 
     if (!movimiento) {
-      throw new Error(`No se encontró movimiento con id ${id}`);
+      throw new Error(`No se encontrï¿½ movimiento con id ${id}`);
     }
 
     // Actualizar el movimiento a CANCELADO
@@ -120,7 +120,7 @@ static async detenerMovimiento(id: number, razon?: string) {
       }
     });
 
-    // Si tenía una ronda asignada, eliminarla y renumerar
+    // Si tenï¿½a una ronda asignada, eliminarla y renumerar
     if (movimiento.ronda) {
       // Eliminar la ronda
       await prisma.ronda.delete({
@@ -130,7 +130,7 @@ static async detenerMovimiento(id: number, razon?: string) {
       // Renumera de 1..N en esa localidad
       await RondaModel.recomponerRondasLocalidad(movimiento.localidadId);
 
-      movimientoError.info('Ronda eliminada por cancelación de movimiento', {
+      movimientoError.info('Ronda eliminada por cancelaciï¿½n de movimiento', {
         movimientoId: id,
         rondaId: movimiento.ronda.id,
         rondaNumero: movimiento.ronda.rondaNumero
@@ -160,7 +160,7 @@ static async detenerMovimiento(id: number, razon?: string) {
 
 /**
  * Reactiva un movimiento desde estado DETENIDO a EN_PROCESO.
- * Solo funciona si el movimiento está en estado DETENIDO.
+ * Solo funciona si el movimiento estï¿½ en estado DETENIDO.
  * 
  * @param id ID del movimiento a reactivar
  * @param operadorId ID del operador que reactiva (opcional)
@@ -181,7 +181,7 @@ static async reactivarMovimiento(id: number, operadorId?: number) {
     });
 
     if (!movimientoActual) {
-      throw new Error(`No se encontró movimiento con id ${id}`);
+      throw new Error(`No se encontrï¿½ movimiento con id ${id}`);
     }
 
     if (movimientoActual.estado !== 'DETENIDO') {
@@ -221,7 +221,7 @@ static async reactivarMovimiento(id: number, operadorId?: number) {
 
 /**
  * Cambia el estado de un movimiento con validaciones.
- * Método unificado para cambios de estado con reglas de negocio.
+ * Mï¿½todo unificado para cambios de estado con reglas de negocio.
  * 
  * @param id ID del movimiento
  * @param nuevoEstado Nuevo estado del movimiento
@@ -245,9 +245,9 @@ static async cambiarEstadoMovimiento(
       where: { id },
       include: { empresa: true, localidad: true, ronda: true }
     });
-    if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
+    if (!movimientoActual) throw new Error(`No se encontrï¿½ movimiento con id ${id}`);
 
-    // -- 2. Validaciones de transición (si no se fuerza) ------------------------
+    // -- 2. Validaciones de transiciï¿½n (si no se fuerza) ------------------------
     if (!forzar) {
       const transiciones: Record<string, string[]> = {
         SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
@@ -259,13 +259,13 @@ static async cambiarEstadoMovimiento(
       const permitidos = transiciones[movimientoActual.estado] ?? [];
       if (!permitidos.includes(nuevoEstado)) {
         throw new Error(
-          `Transición inválida: ${movimientoActual.estado} ? ${nuevoEstado}. ` +
+          `Transiciï¿½n invï¿½lida: ${movimientoActual.estado} ? ${nuevoEstado}. ` +
           `Permitidas: ${permitidos.join(', ')}`
         );
       }
     }
 
-    // -- 3. Datos de actualización ----------------------------------------------
+    // -- 3. Datos de actualizaciï¿½n ----------------------------------------------
     const ahora = new Date();
     const updateData: any = { estado: nuevoEstado, updatedAt: ahora };
 
@@ -311,7 +311,7 @@ static async cambiarEstadoMovimiento(
       include: { empresa: true, localidad: true, ronda: true }
     });
 
-    // -- 5. Gestión de ronda ----------------------------------------------------
+    // -- 5. Gestiï¿½n de ronda ----------------------------------------------------
     if (movimientoActual.ronda) {
       if (nuevoEstado === 'CONCLUIDO') {
         await RondaModel.marcarRondaComoConcluida(movimientoActual.ronda.id);
@@ -343,8 +343,8 @@ static async cambiarEstadoMovimiento(
 }
 
 /**
- * Obtiene movimientos por estado específico.
- * Útil para filtrar por estados como DETENIDO, CANCELADO, etc.
+ * Obtiene movimientos por estado especï¿½fico.
+ * ï¿½til para filtrar por estados como DETENIDO, CANCELADO, etc.
  * 
  * @param estado Estado a filtrar
  * @param incluirRelaciones Si incluir las relaciones completas
@@ -363,7 +363,7 @@ static async obtenerMovimientosPorEstado(estado: string, incluirRelaciones: bool
     } : undefined;
 
     return await prisma.movimiento.findMany({
-      where: { estado: estado as any }, // Cast explícito
+      where: { estado: estado as any }, // Cast explï¿½cito
       include,
       orderBy: {
         createdAt: 'desc'
@@ -376,12 +376,12 @@ static async obtenerMovimientosPorEstado(estado: string, incluirRelaciones: bool
 }
 
 /**
- * Obtiene estadísticas de movimientos por estado.
- * Útil para dashboards y reportes.
+ * Obtiene estadï¿½sticas de movimientos por estado.
+ * ï¿½til para dashboards y reportes.
  * 
- * @param fechaInicio Fecha de inicio del período (opcional)
- * @param fechaFin Fecha de fin del período (opcional)
- * @returns Estadísticas agrupadas por estado
+ * @param fechaInicio Fecha de inicio del perï¿½odo (opcional)
+ * @param fechaFin Fecha de fin del perï¿½odo (opcional)
+ * @returns Estadï¿½sticas agrupadas por estado
  */
 static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
   try {
@@ -405,7 +405,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
       }
     });
 
-    // Convertir a formato más legible
+    // Convertir a formato mï¿½s legible
     const resultado = estadisticas.reduce((acc, stat) => {
       acc[stat.estado] = stat._count.id;
       return acc;
@@ -423,19 +423,20 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
       } : null
     };
   } catch (error) {
-    movimientoError.error('Error al obtener estadísticas por estado', { fechaInicio, fechaFin, error });
-    throw new Error('Error al obtener estadísticas por estado');
+    movimientoError.error('Error al obtener estadï¿½sticas por estado', { fechaInicio, fechaFin, error });
+    throw new Error('Error al obtener estadï¿½sticas por estado');
   }
 }
   /**
-   * Crea un nuevo movimiento ferroviario y asigna a una ronda segÃºn su prioridad.
-   * Si el movimiento tiene prioridad ALTA, reorganizarÃ¡ todas las rondas existentes.
-   * Si tiene prioridad BAJA (predeterminado), se agrega a la siguiente ronda disponible
-   * donde su empresa no estÃ© participando aÃºn.
+   * Crea un nuevo movimiento ferroviario y asigna una ronda segÃºn su prioridad.
+   * - Para prioridad ALTA: desplaza todas las rondas existentes en la localidad (+1)
+   *   y crea la nueva en rondaNÃºmero = 1, orden = 1.
+   * - Para prioridad BAJA: busca la primera ronda en la que la empresa no participa
+   *   y aÃ±ade el movimiento allÃ­; si no existe, crea una nueva al final.
    *
    * @param data Datos del movimiento a crear
-   * @returns Movimiento creado
-   * @throws Error si falla la creaciÃ³n o asignaciÃ³n de ronda
+   * @returns El movimiento creado, incluyendo empresa y localidad
+   * @throws Error si falla la creaciÃ³n o la asignaciÃ³n de la ronda
    */
   static async nuevoMovimiento(data: {
     empresaId: number;
@@ -465,68 +466,123 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
     direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
   }) {
     try {
+      // 1. Copiar y normalizar campos de entrada
       const movimientoData: any = { ...data };
 
-      // ðŸ§¹ Normalizar campos vacÃ­os
-      if (!movimientoData.posicionCabina || movimientoData.posicionCabina === '') {
+      if (!movimientoData.posicionCabina) {
         movimientoData.posicionCabina = 'Sin_Solicitar';
       }
-      if (!movimientoData.posicionChimenea || movimientoData.posicionChimenea === '') {
+      if (!movimientoData.posicionChimenea) {
         movimientoData.posicionChimenea = 'Sin_Solicitar';
       }
-      if (!movimientoData.direccionEmpuje || movimientoData.direccionEmpuje === '') {
+      if (!movimientoData.direccionEmpuje) {
         movimientoData.direccionEmpuje = 'Sin_Solicitar';
       }
-      
-      // Establecer valores predeterminados importantes
-      // Prioridad por defecto si no viene: BAJA
       if (!movimientoData.prioridad) {
         movimientoData.prioridad = 'BAJA';
       }
-      
-      // Estado inicial siempre es SOLICITADO a menos que se especifique otro
       if (!movimientoData.estado) {
         movimientoData.estado = 'SOLICITADO';
       }
 
-      // Eliminar propiedades undefined
-      for (const key in movimientoData) {
+      // Eliminar propiedades con valor undefined para evitar errores de Prisma
+      Object.keys(movimientoData).forEach((key) => {
         if (movimientoData[key] === undefined) {
           delete movimientoData[key];
         }
-      }
+      });
 
-      // ðŸš€ Crear el movimiento en la base de datos
-      const nuevoMovimiento = await prisma.movimiento.create({ 
+      // 2. Crear el movimiento en la base de datos
+      const nuevoMovimiento = await prisma.movimiento.create({
         data: movimientoData,
         include: {
           empresa: true,
           localidad: true
-        } 
+        }
       });
 
-      // ðŸŽ¯ Generar la ronda para el nuevo movimiento segÃºn sus caracterÃ­sticas
+      // 3. Asignar ronda segÃºn prioridad y estado
       if (nuevoMovimiento.estado === 'SOLICITADO') {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: nuevoMovimiento.id,
-          empresaId: nuevoMovimiento.empresaId,
-          localidadId: nuevoMovimiento.localidadId,
-          prioridad: nuevoMovimiento.prioridad as 'ALTA' | 'BAJA'
-        });
-        
-        // Si es prioridad ALTA, registrar en log
         if (nuevoMovimiento.prioridad === 'ALTA') {
-          movimientoError.info('Movimiento de ALTA prioridad creado - se reorganizaron las rondas', {
-            movimientoId: nuevoMovimiento.id,
-            empresa: nuevoMovimiento.empresa?.nombre,
-            localidad: nuevoMovimiento.localidad?.nombre
+          // Prioridad ALTA: desplazar rondas existentes e insertar al inicio
+          await prisma.$transaction(async (tx) => {
+            // Desplazar todos los nÃºmeros de ronda existentes en la localidad
+            await tx.ronda.updateMany({
+              where: { localidadId: nuevoMovimiento.localidadId },
+              data: { rondaNumero: { increment: 1 } }
+            });
+
+            // Insertar el nuevo movimiento en rondaNÃºmero = 1, orden = 1
+            await tx.ronda.create({
+              data: {
+                movimientoId: nuevoMovimiento.id,
+                empresaId: nuevoMovimiento.empresaId,
+                localidadId: nuevoMovimiento.localidadId,
+                rondaNumero: 1,
+                orden: 1
+              }
+            });
           });
+        } else {
+          // Prioridad BAJA: buscar primera ronda disponible
+          const rondaExistente = await prisma.ronda.findFirst({
+            where: {
+              localidadId: nuevoMovimiento.localidadId,
+              empresaId: { not: nuevoMovimiento.empresaId }
+            },
+            orderBy: { rondaNumero: 'asc' }
+          });
+
+          if (rondaExistente) {
+            // AÃ±adir a la ronda encontrada
+            await prisma.ronda.create({
+              data: {
+                movimientoId: nuevoMovimiento.id,
+                empresaId: nuevoMovimiento.empresaId,
+                localidadId: nuevoMovimiento.localidadId,
+                rondaNumero: rondaExistente.rondaNumero,
+                orden: rondaExistente.orden + 1
+              }
+            });
+          } else {
+            // No hay ronda disponible: crear nueva al final
+            const aggregate = await prisma.ronda.aggregate({
+              where: { localidadId: nuevoMovimiento.localidadId },
+              _max: { rondaNumero: true }
+            });
+            const siguienteRonda = (aggregate._max.rondaNumero ?? 0) + 1;
+
+            await prisma.ronda.create({
+              data: {
+                movimientoId: nuevoMovimiento.id,
+                empresaId: nuevoMovimiento.empresaId,
+                localidadId: nuevoMovimiento.localidadId,
+                rondaNumero: siguienteRonda,
+                orden: 1
+              }
+            });
+          }
+        }
+
+        // Registrar en el log si es prioridad ALTA
+        if (nuevoMovimiento.prioridad === 'ALTA') {
+          movimientoError.info(
+            'Movimiento de alta prioridad creado e insertado de forma incremental',
+            {
+              movimientoId: nuevoMovimiento.id,
+              empresa: nuevoMovimiento.empresa?.nombre,
+              localidad: nuevoMovimiento.localidad?.nombre
+            }
+          );
         }
       }
 
       return nuevoMovimiento;
-    } catch (error) {
-      movimientoError.error('Error al crear movimiento', { data, error });
+    } catch (error: any) {
+      movimientoError.error('Error al crear movimiento', {
+        data,
+        error: error.message ?? error
+      });
       throw new Error('Error al crear movimiento');
     }
   }
@@ -1113,7 +1169,7 @@ static async finalizarMovimiento(id: number) {
         data: { concluido: true },
       });
 
-      // 3. Renumerar TODA la localidad (borra rondas fully-concluidas y ajusta 1,2,3…)
+      // 3. Renumerar TODA la localidad (borra rondas fully-concluidas y ajusta 1,2,3ï¿½)
       await RondaModel.recomponerRondasLocalidad(mov.localidadId, tx);
     }
 
