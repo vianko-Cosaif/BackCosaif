@@ -648,9 +648,6 @@ static async obtenerRondasPorLocalidadConEstado(
  * @returns Array con las dos rondas actualizadas
  * @throws Error si los IDs son iguales, no existen, o no pertenecen a la misma localidad
  */
-/**
- * Intercambia el movimientoId entre dos rondas sin tocar otras filas
- */
 static async intercambiarMovimientosEntreRondas(
   rondaAId: number,
   rondaBId: number
@@ -660,7 +657,7 @@ static async intercambiarMovimientosEntreRondas(
   }
 
   return await prisma.$transaction(async tx => {
-    // 1) Leer originals
+    // 1) Leer originales
     const [a, b] = await Promise.all([
       tx.ronda.findUnique({ where: { id: rondaAId }, select: { movimientoId: true } }),
       tx.ronda.findUnique({ where: { id: rondaBId }, select: { movimientoId: true } })
@@ -670,37 +667,34 @@ static async intercambiarMovimientosEntreRondas(
     }
     const mA = a.movimientoId, mB = b.movimientoId;
 
-    // 2) Paso intermedio: dejar A en NULL (no rompe UNIQUE porque permite NULLs)
+    // 2) Poner A en NULL (libera la unique)
     await tx.ronda.update({
       where: { id: rondaAId },
       data: { movimientoId: undefined }
     });
 
-    // 3) Mover de B → A
+    // 3) Mover mA → B
     await tx.ronda.update({
       where: { id: rondaBId },
       data: { movimientoId: mA }
     });
 
-    // 4) Mover de temp (A) → B
-    const updatedB = await tx.ronda.update({
+    // 4) Mover mB → A
+    await tx.ronda.update({
       where: { id: rondaAId },
       data: { movimientoId: mB }
     });
 
-    // 5) Finalmente poner A con mB y B con mA
-    const updatedA = await tx.ronda.update({
-      where: { id: rondaBId },
-      data: { movimientoId: mB === mA ? mA : mB } // si fueran iguales (caso raro) no causa nada
-    });
-
-    // Recoger resultados
-    const finalA = await tx.ronda.findUnique({ where: { id: rondaAId } });
-    const finalB = await tx.ronda.findUnique({ where: { id: rondaBId } });
+    // 5) Leer y devolver resultados
+    const [finalA, finalB] = await Promise.all([
+      tx.ronda.findUnique({ where: { id: rondaAId } }),
+      tx.ronda.findUnique({ where: { id: rondaBId } })
+    ]);
     if (!finalA || !finalB) throw new Error("Error al terminar swap");
     return [finalA, finalB];
   });
 }
+
 
 
   
