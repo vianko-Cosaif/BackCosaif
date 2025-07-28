@@ -648,55 +648,58 @@ static async obtenerRondasPorLocalidadConEstado(
  * @returns Array con las dos rondas actualizadas
  * @throws Error si los IDs son iguales, no existen, o no pertenecen a la misma localidad
  */
+/**
+ * Intercambia el movimientoId entre dos rondas sin tocar otras filas
+ */
 static async intercambiarMovimientosEntreRondas(
   rondaAId: number,
   rondaBId: number
 ): Promise<[Ronda, Ronda]> {
-  // 1) Validar que vengan sólo dos IDs distintos
   if (rondaAId === rondaBId) {
     throw new Error("Debe indicar dos rondas distintas para el intercambio");
   }
 
-  // 2) Validar existencia y misma localidad
-  const [rondaA, rondaB] = await prisma.$transaction([
-    prisma.ronda.findUnique({
+  return await prisma.$transaction(async tx => {
+    // 1) Leer originals
+    const [a, b] = await Promise.all([
+      tx.ronda.findUnique({ where: { id: rondaAId }, select: { movimientoId: true } }),
+      tx.ronda.findUnique({ where: { id: rondaBId }, select: { movimientoId: true } })
+    ]);
+    if (!a || !b || a.movimientoId == null || b.movimientoId == null) {
+      throw new Error("Rondas o movimientos inválidos");
+    }
+    const mA = a.movimientoId, mB = b.movimientoId;
+
+    // 2) Paso intermedio: dejar A en NULL (no rompe UNIQUE porque permite NULLs)
+    await tx.ronda.update({
       where: { id: rondaAId },
-      select: { localidadId: true, movimientoId: true }
-    }),
-    prisma.ronda.findUnique({
-      where: { id: rondaBId },
-      select: { localidadId: true, movimientoId: true }
-    })
-  ]);
-
-  if (!rondaA || !rondaB) {
-    throw new Error("Alguna de las rondas no existe");
-  }
-  if (rondaA.localidadId !== rondaB.localidadId) {
-    throw new Error("Sólo se pueden intercambiar rondas de la misma localidad");
-  }
-
-  // 3) Swap en transacción con constraint diferible
-  const [updatedA, updatedB] = await prisma.$transaction(async tx => {
-    // Aplaza la validación del UNIQUE hasta el COMMIT
-    await tx.$executeRawUnsafe(
-      `SET CONSTRAINTS "Ronda_movimientoId_key" DEFERRED;`
-    );
-
-    // Intercambia los movimientoId
-    const p1 = tx.ronda.update({
-      where: { id: rondaAId },
-      data: { movimientoId: rondaB.movimientoId }
-    });
-    const p2 = tx.ronda.update({
-      where: { id: rondaBId },
-      data: { movimientoId: rondaA.movimientoId }
+      data: { movimientoId: undefined }
     });
 
-    return Promise.all([p1, p2]);
+    // 3) Mover de B → A
+    await tx.ronda.update({
+      where: { id: rondaBId },
+      data: { movimientoId: mA }
+    });
+
+    // 4) Mover de temp (A) → B
+    const updatedB = await tx.ronda.update({
+      where: { id: rondaAId },
+      data: { movimientoId: mB }
+    });
+
+    // 5) Finalmente poner A con mB y B con mA
+    const updatedA = await tx.ronda.update({
+      where: { id: rondaBId },
+      data: { movimientoId: mB === mA ? mA : mB } // si fueran iguales (caso raro) no causa nada
+    });
+
+    // Recoger resultados
+    const finalA = await tx.ronda.findUnique({ where: { id: rondaAId } });
+    const finalB = await tx.ronda.findUnique({ where: { id: rondaBId } });
+    if (!finalA || !finalB) throw new Error("Error al terminar swap");
+    return [finalA, finalB];
   });
-
-  return [updatedA, updatedB];
 }
 
 
