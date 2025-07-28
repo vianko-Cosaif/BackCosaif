@@ -427,109 +427,85 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
     throw new Error('Error al obtener estad�sticas por estado');
   }
 }
-  /**
-   * Crea un nuevo movimiento ferroviario y asigna a una ronda según su prioridad.
-   * Si el movimiento tiene prioridad ALTA, reorganizará todas las rondas existentes.
-   * Si tiene prioridad BAJA (predeterminado), se agrega a la siguiente ronda disponible
-   * donde su empresa no esté participando aún.
-   *
-   * @param data Datos del movimiento a crear
-   * @returns Movimiento creado
-   * @throws Error si falla la creación o asignación de ronda
-   */
-  static async nuevoMovimiento(data: {
-    empresaId: number;
-    creadoPorId: number;
-    localidadId: number;
-    viaOrigenId: number;
-    viaDestinoId?: number;
-    locomotiveNumber: number;
-    prioridad?: 'BAJA' | 'ALTA';
-    tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
-    estado?: string;
-    fechaSolicitud?: Date;
-    fechaInicio?: Date;
-    fechaFin?: Date;
-    fechaPausa?: Date;
-    instrucciones?: string;
-    finalizado?: boolean;
-    incidenteGlobal?: boolean;
-    clienteId?: number;
-    supervisorId?: number;
-    coordinadorId?: number;
-    operadorId?: number;
-    lavado?: boolean;
-    torno?: boolean;
-    posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
-  }) {
-    try {
-      const movimientoData: any = { ...data };
 
-      // 🧹 Normalizar campos vacíos
-      if (!movimientoData.posicionCabina || movimientoData.posicionCabina === '') {
-        movimientoData.posicionCabina = 'Sin_Solicitar';
-      }
-      if (!movimientoData.posicionChimenea || movimientoData.posicionChimenea === '') {
-        movimientoData.posicionChimenea = 'Sin_Solicitar';
-      }
-      if (!movimientoData.direccionEmpuje || movimientoData.direccionEmpuje === '') {
-        movimientoData.direccionEmpuje = 'Sin_Solicitar';
-      }
-      
-      // Establecer valores predeterminados importantes
-      // Prioridad por defecto si no viene: BAJA
-      if (!movimientoData.prioridad) {
-        movimientoData.prioridad = 'BAJA';
-      }
-      
-      // Estado inicial siempre es SOLICITADO a menos que se especifique otro
-      if (!movimientoData.estado) {
-        movimientoData.estado = 'SOLICITADO';
-      }
 
-      // Eliminar propiedades undefined
-      for (const key in movimientoData) {
-        if (movimientoData[key] === undefined) {
-          delete movimientoData[key];
-        }
-      }
+/**
+ * Crea un nuevo movimiento ferroviario y asigna una ronda según prioridad,
+ * sin desordenar las rondas ya existentes.
+ *
+ * - Para prioridad ALTA: inserta el movimiento en ronda 1 (orden incremental),
+ *   sin desplazar las demás.
+ * - Para prioridad BAJA: busca la primera ronda donde la empresa no participa;
+ *   si la encuentra, añade al final de esa ronda; si no, crea una nueva al final.
+ *
+ * @param data Datos del movimiento a crear
+ * @returns El movimiento creado, incluyendo sus relaciones empresa y localidad
+ * @throws Error si falla la creación o la asignación de la ronda
+ */
+static async nuevoMovimiento(data: {
+  empresaId: number;
+  creadoPorId: number;
+  localidadId: number;
+  viaOrigenId: number;
+  viaDestinoId?: number;
+  locomotiveNumber: number;
+  prioridad?: 'BAJA' | 'ALTA';
+  tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
+  estado?: string;
+  fechaSolicitud?: Date;
+  fechaInicio?: Date;
+  fechaFin?: Date;
+  fechaPausa?: Date;
+  instrucciones?: string;
+  finalizado?: boolean;
+  incidenteGlobal?: boolean;
+  clienteId?: number;
+  supervisorId?: number;
+  coordinadorId?: number;
+  operadorId?: number;
+  lavado?: boolean;
+  torno?: boolean;
+  posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
+}) {
+  try {
+    // 1) Normalizar valores por defecto
+    const movData: any = { ...data };
+    movData.prioridad        = movData.prioridad        ?? 'BAJA';
+    movData.estado           = movData.estado           ?? 'SOLICITADO';
+    movData.posicionCabina   = movData.posicionCabina   || 'Sin_Solicitar';
+    movData.posicionChimenea = movData.posicionChimenea || 'Sin_Solicitar';
+    movData.direccionEmpuje  = movData.direccionEmpuje  || 'Sin_Solicitar';
 
-      // 🚀 Crear el movimiento en la base de datos
-      const nuevoMovimiento = await prisma.movimiento.create({ 
-        data: movimientoData,
-        include: {
-          empresa: true,
-          localidad: true
-        } 
+    // Eliminar propiedades undefined para Prisma
+    Object.keys(movData).forEach(k => {
+      if (movData[k] === undefined) delete movData[k];
+    });
+
+    // 2) Crear el movimiento en la base de datos
+    const mv = await prisma.movimiento.create({
+      data: movData,
+      include: { empresa: true, localidad: true }
+    });
+
+    // 3) Asignar ronda sin desplazar otras
+    if (mv.estado === 'SOLICITADO') {
+      await RondaModel.generarRondaParaMovimiento({
+        movimientoId: mv.id,
+        empresaId:   mv.empresaId,
+        localidadId: mv.localidadId,
+        prioridad:   mv.prioridad as 'ALTA' | 'BAJA'
       });
-
-      // 🎯 Generar la ronda para el nuevo movimiento según sus características
-      if (nuevoMovimiento.estado === 'SOLICITADO') {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: nuevoMovimiento.id,
-          empresaId: nuevoMovimiento.empresaId,
-          localidadId: nuevoMovimiento.localidadId,
-          prioridad: nuevoMovimiento.prioridad as 'ALTA' | 'BAJA'
-        });
-        
-        // Si es prioridad ALTA, registrar en log
-        if (nuevoMovimiento.prioridad === 'ALTA') {
-          movimientoError.info('Movimiento de ALTA prioridad creado - se reorganizaron las rondas', {
-            movimientoId: nuevoMovimiento.id,
-            empresa: nuevoMovimiento.empresa?.nombre,
-            localidad: nuevoMovimiento.localidad?.nombre
-          });
-        }
-      }
-
-      return nuevoMovimiento;
-    } catch (error) {
-      movimientoError.error('Error al crear movimiento', { data, error });
-      throw new Error('Error al crear movimiento');
     }
+
+    return mv;
+  } catch (error: any) {
+    movimientoError.error('Error al crear movimiento', { data, error: error.message });
+    throw new Error('Error al crear movimiento');
   }
+}
+
 
   /**
    * Actualiza un movimiento existente y reorganiza las rondas cuando es necesario.
