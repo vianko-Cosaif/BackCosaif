@@ -438,7 +438,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
    * @returns El movimiento creado, incluyendo empresa y localidad
    * @throws Error si falla la creación o la asignación de la ronda
    */
-  static async nuevoMovimiento(data: {
+   static async nuevoMovimiento(data: {
     empresaId: number;
     creadoPorId: number;
     localidadId: number;
@@ -466,123 +466,75 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
     direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
   }) {
     try {
-      // 1. Copiar y normalizar campos de entrada
-      const movimientoData: any = { ...data };
+      // 1) Normalizar y sanitizar
+      const movData: any = { ...data };
+      movData.prioridad = movData.prioridad ?? 'BAJA';
+      movData.estado    = movData.estado    ?? 'SOLICITADO';
+      movData.posicionCabina   ||= 'Sin_Solicitar';
+      movData.posicionChimenea ||= 'Sin_Solicitar';
+      movData.direccionEmpuje  ||= 'Sin_Solicitar';
 
-      if (!movimientoData.posicionCabina) {
-        movimientoData.posicionCabina = 'Sin_Solicitar';
-      }
-      if (!movimientoData.posicionChimenea) {
-        movimientoData.posicionChimenea = 'Sin_Solicitar';
-      }
-      if (!movimientoData.direccionEmpuje) {
-        movimientoData.direccionEmpuje = 'Sin_Solicitar';
-      }
-      if (!movimientoData.prioridad) {
-        movimientoData.prioridad = 'BAJA';
-      }
-      if (!movimientoData.estado) {
-        movimientoData.estado = 'SOLICITADO';
-      }
+      Object.keys(movData).forEach(k => movData[k] === undefined && delete movData[k]);
 
-      // Eliminar propiedades con valor undefined para evitar errores de Prisma
-      Object.keys(movimientoData).forEach((key) => {
-        if (movimientoData[key] === undefined) {
-          delete movimientoData[key];
-        }
+      // 2) Crear movimiento
+      const mv = await prisma.movimiento.create({
+        data: movData,
+        include: { empresa: true, localidad: true }
       });
 
-      // 2. Crear el movimiento en la base de datos
-      const nuevoMovimiento = await prisma.movimiento.create({
-        data: movimientoData,
-        include: {
-          empresa: true,
-          localidad: true
-        }
-      });
+      // 3) Si está SOLICITADO, asignar ronda sin desplazar nada
+      if (mv.estado === 'SOLICITADO') {
+        const { localidadId, empresaId, id: movimientoId, prioridad } = mv;
 
-      // 3. Asignar ronda según prioridad y estado
-      if (nuevoMovimiento.estado === 'SOLICITADO') {
-        if (nuevoMovimiento.prioridad === 'ALTA') {
-          // Prioridad ALTA: desplazar rondas existentes e insertar al inicio
-          await prisma.$transaction(async (tx) => {
-            // Desplazar todos los números de ronda existentes en la localidad
-            await tx.ronda.updateMany({
-              where: { localidadId: nuevoMovimiento.localidadId },
-              data: { rondaNumero: { increment: 1 } }
-            });
-
-            // Insertar el nuevo movimiento en rondaNúmero = 1, orden = 1
-            await tx.ronda.create({
-              data: {
-                movimientoId: nuevoMovimiento.id,
-                empresaId: nuevoMovimiento.empresaId,
-                localidadId: nuevoMovimiento.localidadId,
-                rondaNumero: 1,
-                orden: 1
-              }
-            });
+        if (prioridad === 'ALTA') {
+          // contar cuántos ya hay en ronda 1
+          const count1 = await prisma.ronda.count({ where: { localidadId, rondaNumero: 1 } });
+          await prisma.ronda.create({
+            data: { movimientoId, empresaId, localidadId, rondaNumero: 1, orden: count1 + 1 }
           });
+
         } else {
-          // Prioridad BAJA: buscar primera ronda disponible
-          const rondaExistente = await prisma.ronda.findFirst({
-            where: {
-              localidadId: nuevoMovimiento.localidadId,
-              empresaId: { not: nuevoMovimiento.empresaId }
-            },
+          // decidir ronda inicial: 2 si existe al menos una ALTA, sino 1
+          const tieneAlta = await prisma.ronda.count({ where: { localidadId, rondaNumero: 1 } }) > 0;
+          const minRonda = tieneAlta ? 2 : 1;
+
+          // buscar primera ronda disponible
+          const existe = await prisma.ronda.findFirst({
+            where: { localidadId, rondaNumero: { gte: minRonda }, empresaId: { not: empresaId } },
             orderBy: { rondaNumero: 'asc' }
           });
 
-          if (rondaExistente) {
-            // Añadir a la ronda encontrada
+          if (existe) {
+            const maxOrden = await prisma.ronda.count({
+              where: { localidadId, rondaNumero: existe.rondaNumero }
+            });
             await prisma.ronda.create({
               data: {
-                movimientoId: nuevoMovimiento.id,
-                empresaId: nuevoMovimiento.empresaId,
-                localidadId: nuevoMovimiento.localidadId,
-                rondaNumero: rondaExistente.rondaNumero,
-                orden: rondaExistente.orden + 1
+                movimientoId,
+                empresaId,
+                localidadId,
+                rondaNumero: existe.rondaNumero,
+                orden: maxOrden + 1
               }
             });
           } else {
-            // No hay ronda disponible: crear nueva al final
-            const aggregate = await prisma.ronda.aggregate({
-              where: { localidadId: nuevoMovimiento.localidadId },
+            // si no hay, nueva al final
+            const agg = await prisma.ronda.aggregate({
+              where: { localidadId },
               _max: { rondaNumero: true }
             });
-            const siguienteRonda = (aggregate._max.rondaNumero ?? 0) + 1;
-
+            const next = (agg._max.rondaNumero ?? (minRonda - 1)) + 1;
             await prisma.ronda.create({
-              data: {
-                movimientoId: nuevoMovimiento.id,
-                empresaId: nuevoMovimiento.empresaId,
-                localidadId: nuevoMovimiento.localidadId,
-                rondaNumero: siguienteRonda,
-                orden: 1
-              }
+              data: { movimientoId, empresaId, localidadId, rondaNumero: next, orden: 1 }
             });
           }
         }
-
-        // Registrar en el log si es prioridad ALTA
-        if (nuevoMovimiento.prioridad === 'ALTA') {
-          movimientoError.info(
-            'Movimiento de alta prioridad creado e insertado de forma incremental',
-            {
-              movimientoId: nuevoMovimiento.id,
-              empresa: nuevoMovimiento.empresa?.nombre,
-              localidad: nuevoMovimiento.localidad?.nombre
-            }
-          );
-        }
       }
 
-      return nuevoMovimiento;
+      return mv;
+
     } catch (error: any) {
-      movimientoError.error('Error al crear movimiento', {
-        data,
-        error: error.message ?? error
-      });
+      movimientoError.error('Error al crear movimiento', { data, error: error.message });
       throw new Error('Error al crear movimiento');
     }
   }
@@ -596,6 +548,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
    * @returns Movimiento actualizado
    * @throws Error si falla la actualización o reorganización
    */
+
   static async editarMovimiento(
     id: number,
     data: {
@@ -627,111 +580,79 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
     }
   ) {
     try {
-      // Obtener el movimiento existente para verificar cambios importantes
-      const movimientoExistente = await prisma.movimiento.findUnique({
+      // 1) Leer existente
+      const previo = await prisma.movimiento.findUnique({
         where: { id },
         select: {
           prioridad: true,
           estado: true,
           empresaId: true,
           localidadId: true,
-          ronda: true
+          ronda: { select: { id: true, rondaNumero: true } }
         }
       });
+      if (!previo) throw new Error(`No existe movimiento ${id}`);
 
-      if (!movimientoExistente) {
-        throw new Error(`No se encontró movimiento con id ${id}`);
-      }
+      // 2) Normalizar y actualizar
+      const upd: any = { ...data };
+      upd.posicionCabina   ||= 'Sin_Solicitar';
+      upd.posicionChimenea ||= 'Sin_Solicitar';
+      upd.direccionEmpuje  ||= 'Sin_Solicitar';
+      Object.keys(upd).forEach(k => upd[k] === undefined && delete upd[k]);
 
-      // Normalizar campos de entrada
-      const updateData: any = { ...data };
-
-      if (!updateData.posicionCabina || updateData.posicionCabina === '') {
-        updateData.posicionCabina = 'Sin_Solicitar';
-      }
-      if (!updateData.posicionChimenea || updateData.posicionChimenea === '') {
-        updateData.posicionChimenea = 'Sin_Solicitar';
-      }
-      if (!updateData.direccionEmpuje || updateData.direccionEmpuje === '') {
-        updateData.direccionEmpuje = 'Sin_Solicitar';
-      }
-
-      // Eliminar propiedades undefined
-      for (const key in updateData) {
-        if (updateData[key] === undefined) {
-          delete updateData[key];
-        }
-      }
-
-      // Actualizar el movimiento en la base de datos
-      const movimientoActualizado = await prisma.movimiento.update({
+      const mv = await prisma.movimiento.update({
         where: { id },
-        data: updateData,
-        include: {
-          empresa: true,
-          localidad: true
-        }
+        data: upd,
+        include: { empresa: true, localidad: true }
       });
 
-      // Verificar si hay cambios que requieran reorganizar las rondas
-      const requiereReorganizacion = (
-        // Si cambia a prioridad ALTA
-        (data.prioridad === 'ALTA' && movimientoExistente.prioridad !== 'ALTA') ||
-        // Si cambia el estado a SOLICITADO (reactivado)
-        (data.estado === 'SOLICITADO' && movimientoExistente.estado !== 'SOLICITADO') ||
-        // Si cambió empresa o localidad
-        (data.empresaId && data.empresaId !== movimientoExistente.empresaId) ||
-        (data.localidadId && data.localidadId !== movimientoExistente.localidadId)
+      // 3) Decidir si reasignar ronda
+      const cambióRonda = (
+        (data.prioridad   && data.prioridad   !== previo.prioridad) ||
+        (data.estado     && data.estado     === 'SOLICITADO' && previo.estado !== 'SOLICITADO') ||
+        (data.empresaId  && data.empresaId  !== previo.empresaId) ||
+        (data.localidadId&& data.localidadId!== previo.localidadId)
       );
 
-      // Si tiene ronda existente y hubo cambios importantes
-      if (movimientoExistente.ronda && requiereReorganizacion) {
-        // Si existe ronda y cambia a ALTA prioridad, reorganizar todo
-        if (data.prioridad === 'ALTA') {
-          await RondaModel.generarRondaParaMovimiento({
-            movimientoId: id,
-            empresaId: movimientoActualizado.empresaId,
-            localidadId: movimientoActualizado.localidadId,
-            prioridad: 'ALTA'
-          });
-          
-          movimientoError.info('Movimiento actualizado a ALTA prioridad - se reorganizaron las rondas', {
-            movimientoId: id,
-            empresa: movimientoActualizado.empresa?.nombre,
-            localidad: movimientoActualizado.localidad?.nombre
-          });
-        } 
-        // Si cambia empresa o localidad, eliminar ronda actual y crear nueva
-        else if ((data.empresaId && data.empresaId !== movimientoExistente.empresaId) ||
-                (data.localidadId && data.localidadId !== movimientoExistente.localidadId)) {
-          
-          // Eliminar ronda existente
-          await prisma.ronda.delete({
-            where: { movimientoId: id }
-          });
-          
-          // Crear nueva ronda
-          await RondaModel.generarRondaParaMovimiento({
-            movimientoId: id,
-            empresaId: movimientoActualizado.empresaId,
-            localidadId: movimientoActualizado.localidadId,
-            prioridad: movimientoActualizado.prioridad as 'ALTA' | 'BAJA'
-          });
+      if (cambióRonda) {
+        // 3a) eliminar fila antigua si existía
+        if (previo.ronda) {
+          await prisma.ronda.delete({ where: { id: previo.ronda.id } });
         }
-      } 
-      // Si no tiene ronda y el estado es SOLICITADO, crear una
-      else if (!movimientoExistente.ronda && movimientoActualizado.estado === 'SOLICITADO') {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: id,
-          empresaId: movimientoActualizado.empresaId,
-          localidadId: movimientoActualizado.localidadId,
-          prioridad: movimientoActualizado.prioridad as 'ALTA' | 'BAJA'
+        // 3b) volver a inserción incremental
+        await this.nuevoMovimiento({
+          empresaId: mv.empresaId,
+          creadoPorId: mv.creadoPorId,         // ya no cambia
+          localidadId: mv.localidadId,
+          prioridad: mv.prioridad,
+          viaOrigenId: mv.viaOrigenId,
+          viaDestinoId: mv.viaDestinoId === null ? undefined : mv.viaDestinoId,
+          locomotiveNumber: mv.locomotiveNumber,
+          tipoMovimiento: mv.tipoMovimiento === null ? undefined : mv.tipoMovimiento,
+          estado: mv.estado,
+          fechaSolicitud: mv.fechaSolicitud ?? undefined,
+          fechaInicio: mv.fechaInicio ?? undefined,
+          fechaFin: mv.fechaFin ?? undefined,
+          fechaPausa: mv.fechaPausa ?? undefined,
+          instrucciones: mv.instrucciones ?? undefined,
+          finalizado: mv.finalizado ?? undefined,
+          incidenteGlobal: mv.incidenteGlobal ?? undefined,
+          clienteId: mv.clienteId ?? undefined,
+          supervisorId: mv.supervisorId ?? undefined,
+          coordinadorId: mv.coordinadorId ?? undefined,
+          operadorId: mv.operadorId ?? undefined,
+          lavado: mv.lavado ?? undefined,
+          torno: mv.torno ?? undefined,
+          posicionCabina: mv.posicionCabina ?? undefined,
+          posicionChimenea: mv.posicionChimenea ?? undefined,
+          direccionEmpuje: mv.direccionEmpuje ?? undefined
         });
       }
 
-      return movimientoActualizado;
-    } catch (error) {
-      movimientoError.error('Error al editar movimiento', { id, data, error });
+      return mv;
+
+    } catch (error: any) {
+      movimientoError.error('Error al editar movimiento', { id, data, error: error.message });
       throw new Error('Error al editar movimiento');
     }
   }
