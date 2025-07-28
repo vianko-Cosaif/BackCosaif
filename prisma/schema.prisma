@@ -155,23 +155,24 @@ model Incidente {
   @@index([movimientoId, estado])
 }
 
- model Ronda {
-   id           Int        @id @default(autoincrement())
-   movimientoId Int?       @unique
-   empresaId    Int
-   localidadId  Int
-   concluido    Boolean?   @default(false)
-   orden        Int
-   rondaNumero  Int        @default(1)
-   createdAt    DateTime   @default(now())
-   updatedAt    DateTime   @updatedAt
-   empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-   movimiento   Movimiento? @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+model Ronda {
+  id           Int        @id @default(autoincrement())
+  movimientoId Int        @unique
+  empresaId    Int
+  localidadId  Int
+  concluido    Boolean?   @default(false)
+  orden        Int
+  rondaNumero  Int        @default(1)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-   @@unique([movimientoId], map: "Ronda_movimientoId_key")
-   @@index([rondaNumero, orden])
-   @@index([localidadId])
- }
+  empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimiento   Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+
+  @@index([rondaNumero, orden])
+  @@index([localidadId])
+}
+
 
 
 model Token {
