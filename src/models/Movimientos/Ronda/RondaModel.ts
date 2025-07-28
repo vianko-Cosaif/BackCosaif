@@ -429,38 +429,85 @@ export class RondaModel {
     }
   }
 
-  /**
-   * Crea una ronda para un movimiento específico.
-   * Si es ALTA, reorganiza todo el sistema.
-   */
-  static async generarRondaParaMovimiento(data: { 
-    movimientoId: number; 
-    empresaId: number; 
-    localidadId: number;
-    prioridad: "ALTA" | "BAJA";
-  }) {
-    try {
-      if (data.prioridad === "ALTA") {
-        // Si es ALTA, reorganizar todo
-        await this.eliminarTodasLasRondas();
-        await this.crearTodasLasRondas();
-        return;
-      }
-      
-      // Si es BAJA, limpiar concluidas y crear una ronda
-      await this.limpiarYReorganizarRondasConcluidas();
-      await this.crearRondaParaMovimientoBaja(
-        data.movimientoId,
-        data.empresaId,
-        data.localidadId
-      );
-    } catch (error) {
-      movimientoError.error("Error al generar ronda para movimiento", { data, error });
-      throw new Error("Error al generar ronda para movimiento");
-    }
+
+  
+/**
+ * Inserta un solo movimiento en la ronda correspondiente sin 
+ * eliminar todo el conjunto de rondas.
+ */
+static async generarRondaParaMovimiento({
+  movimientoId,
+  empresaId,
+  localidadId,
+  prioridad
+}: {
+  movimientoId: number;
+  empresaId: number;
+  localidadId: number;
+  prioridad: 'ALTA' | 'BAJA';
+}) {
+  if (prioridad === 'ALTA') {
+    // 1) En transacción, desplazar todos los rondaNumero +1
+    await prisma.$transaction(async tx => {
+      await tx.ronda.updateMany({
+        where: { localidadId },
+        data: { rondaNumero: { increment: 1 } }
+      });
+      // 2) Insertar solo este movimiento en la nueva ronda 1
+      await tx.ronda.create({
+        data: {
+          movimientoId,
+          empresaId,
+          localidadId,
+          rondaNumero: 1,
+          orden: 1
+        }
+      });
+    });
+    return;
   }
 
-  // Resto de métodos siguen igual...
+  // prioridad BAJA
+  // 1) buscar primera ronda donde esta empresa no participa
+  const rondaExistente = await prisma.ronda.findFirst({
+    where: {
+      localidadId,
+      empresaId: { not: empresaId }
+    },
+    orderBy: { rondaNumero: 'asc' }
+  });
+
+  if (rondaExistente) {
+    // 2a) añadir a esa ronda
+    await prisma.ronda.create({
+      data: {
+        movimientoId,
+        empresaId,
+        localidadId,
+        rondaNumero: rondaExistente.rondaNumero,
+        orden: rondaExistente.orden + 1
+      }
+    });
+  } else {
+    // 2b) si no hay ninguna disponible, crear nueva al final
+    const agg = await prisma.ronda.aggregate({
+      where: { localidadId },
+      _max: { rondaNumero: true }
+    });
+    const siguiente = (agg._max.rondaNumero ?? 0) + 1;
+    await prisma.ronda.create({
+      data: {
+        movimientoId,
+        empresaId,
+        localidadId,
+        rondaNumero: siguiente,
+        orden: 1
+      }
+    });
+  }
+}
+
+
 
   /**
    * Obtiene todas las rondas con sus relaciones.
