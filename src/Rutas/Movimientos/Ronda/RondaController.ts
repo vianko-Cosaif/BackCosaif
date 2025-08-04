@@ -177,6 +177,59 @@ export class RondaController {
     }
   };
 
+  // PATCH /rondas/intercambiar-movimientos
+static intercambiarMovimientosEntreRondas: RequestHandler = async (req, res) => {
+  const { rondaAId, rondaBId } = req.body;
+
+  if (isNaN(Number(rondaAId)) || isNaN(Number(rondaBId))) {
+    res.status(400).json({ message: "Parámetros inválidos" });
+    return;
+  }
+
+  try {
+    const rondasActualizadas = await RondaModel.intercambiarMovimientosEntreRondas(
+      Number(rondaAId),
+      Number(rondaBId)
+    );
+    res.status(200).json({
+      message: "Movimientos de rondas intercambiados exitosamente",
+      rondas: rondasActualizadas
+    });
+  } catch (error: any) {
+    logger.error("Error al intercambiar movimientos entre rondas", { error, rondaAId, rondaBId });
+    res.status(500).json({ message: error.message || "Error al intercambiar movimientos entre rondas" });
+  }
+};
+
+
+
+  // PATCH /rondas/:id/intercambiar-movimiento
+static intercambiarMovimientoEnRonda: RequestHandler = async (req, res) => {
+  const rondaId = Number(req.params.id);
+  const { nuevoMovimientoId } = req.body;
+
+  if (isNaN(rondaId) || !nuevoMovimientoId || isNaN(Number(nuevoMovimientoId))) {
+    res.status(400).json({ message: "Parámetros inválidos" });
+    return;
+  }
+
+  try {
+    const rondaActualizada = await RondaModel.intercambiarMovimientoEnRonda(
+      rondaId,
+      Number(nuevoMovimientoId)
+    );
+    res.status(200).json({
+      message: "Movimiento de ronda intercambiado exitosamente",
+      ronda: rondaActualizada
+    });
+  } catch (error: any) {
+    logger.error("Error al intercambiar movimiento en ronda", { error, rondaId, nuevoMovimientoId });
+    res.status(500).json({ message: error.message || "Error al intercambiar movimiento en ronda" });
+  }
+};
+
+
+
   // GET /rondas/localidad/:localidadId/siguiente
   static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);

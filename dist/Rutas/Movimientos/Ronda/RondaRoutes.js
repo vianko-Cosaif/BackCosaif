@@ -45,4 +45,8 @@ router.get("/localidad/:localidadId", RondaController_1.RondaController.obtenerR
 router.get("/localidad/:localidadId/estado/:concluido", RondaController_1.RondaController.obtenerRondasPorLocalidadConEstado);
 // Obtiene el siguiente en la ronda por localidad
 router.get("/localidad/:localidadId/siguiente", RondaController_1.RondaController.obtenerSiguienteEnRonda);
+// Intercambia los movimientos de dos rondas (swap entre dos rondas)
+router.patch("/intercambiar-movimientos", RondaController_1.RondaController.intercambiarMovimientosEntreRondas);
+// Reemplaza el movimiento de UNA ronda (cambiar el movimiento por otro)
+router.patch("/:id/intercambiar-movimiento", RondaController_1.RondaController.intercambiarMovimientoEnRonda);
 exports.default = router;

@@ -1,5 +1,8 @@
-// index.ts
-import './config/firebase';   // 1??  Primera línea: inicializa
+// src/index.ts
+
+import 'dotenv/config';               // carga .env
+import './config/firebase';           // inicializa Firebase (si lo usas)
+import './Cron/Tokens';        // Â¡agenda el job de limpieza!
 import { iniciarServidor } from './Servidor/Servidor';
 
 iniciarServidor();

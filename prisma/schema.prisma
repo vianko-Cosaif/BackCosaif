@@ -165,6 +165,7 @@ model Ronda {
   rondaNumero  Int        @default(1)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
   empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   movimiento   Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
 
@@ -172,16 +173,21 @@ model Ronda {
   @@index([localidadId])
 }
 
+
+
 model Token {
   id        Int      @id @default(autoincrement())
   token     String   @unique @db.VarChar(500)
+  jti       String   @unique                 
   tipo      String   @default("auth")
   usuarioId Int
   creadoEn  DateTime @default(now())
   usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId, tipo])
+  @@index([jti])                              
 }
+
 
 
 model Actualizacion {
@@ -201,6 +207,7 @@ enum EstadoActualizacion {
 enum EstadoIncidente {
   ABIERTO
   CERRADO
+  RESUELTO
 }
 
 enum Prioridad {

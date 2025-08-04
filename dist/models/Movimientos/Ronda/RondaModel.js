@@ -186,6 +186,83 @@ class RondaModel {
         }
     }
     /**
+     * Crea una ronda para un movimiento BAJA específico.
+     * @private
+     */
+    static async crearRondaParaMovimientoBaja(movimientoId, empresaId, localidadId) {
+        try {
+            // Verificar si hay movimientos ALTA activos
+            const hayAltaActivos = await prisma.movimiento.count({
+                where: {
+                    estado: "SOLICITADO",
+                    prioridad: "ALTA",
+                    localidadId: localidadId
+                }
+            }) > 0;
+            // Ronda inicial (2 si hay ALTA, 1 si no hay)
+            const rondaInicial = hayAltaActivos ? 2 : 1;
+            // Obtener todas las rondas de esta localidad
+            const rondasExistentes = await prisma.ronda.findMany({
+                where: { localidadId },
+                orderBy: { rondaNumero: "asc" }
+            });
+            // Rastrear qué empresas están en cada ronda
+            const empresasEnRonda = new Map();
+            // Llenar el mapa con las empresas que ya están en rondas
+            for (const ronda of rondasExistentes) {
+                if (!empresasEnRonda.has(ronda.rondaNumero)) {
+                    empresasEnRonda.set(ronda.rondaNumero, new Set());
+                }
+                empresasEnRonda.get(ronda.rondaNumero).add(ronda.empresaId);
+            }
+            // Buscar la primera ronda donde no esté esta empresa
+            let rondaAsignada = null;
+            let numRonda = rondaInicial;
+            while (rondaAsignada === null) {
+                if (!empresasEnRonda.has(numRonda)) {
+                    empresasEnRonda.set(numRonda, new Set());
+                }
+                if (!empresasEnRonda.get(numRonda).has(empresaId)) {
+                    rondaAsignada = numRonda;
+                    empresasEnRonda.get(numRonda).add(empresaId);
+                }
+                else {
+                    numRonda++;
+                    // Limitar la búsqueda para evitar bucles infinitos
+                    if (numRonda > 100) {
+                        rondaAsignada = numRonda;
+                        movimiento_logger_1.movimientoError.warn("Búsqueda de ronda alcanzó 100 intentos", {
+                            movimientoId, empresaId, localidadId
+                        });
+                    }
+                }
+            }
+            // Contar movimientos en esta ronda para determinar orden
+            const ordenEnRonda = await prisma.ronda.count({
+                where: {
+                    localidadId,
+                    rondaNumero: rondaAsignada
+                }
+            }) + 1;
+            // Crear la ronda
+            return await prisma.ronda.create({
+                data: {
+                    movimientoId,
+                    empresaId,
+                    localidadId,
+                    orden: ordenEnRonda,
+                    rondaNumero: rondaAsignada
+                }
+            });
+        }
+        catch (error) {
+            movimiento_logger_1.movimientoError.error("Error en crearRondaParaMovimientoBaja", {
+                movimientoId, empresaId, localidadId, error
+            });
+            return null;
+        }
+    }
+    /**
      * Limpia rondas concluidas y reorganiza la numeración.
      * @private
      */
@@ -297,125 +374,18 @@ class RondaModel {
         }
     }
     /**
-     * CORRECCIÓN: RondaModel con lógica de incidentes
-     * ===============================================
-     */
-    /**
-     * Verifica si una empresa ya tiene movimientos ACTIVOS en una ronda específica
-     * (No cuenta movimientos DETENIDOS por incidentes)
-     */
-    static async empresaTieneMovimientoActivoEnRonda(empresaId, localidadId, rondaNumero) {
-        const movimientosActivos = await prisma.ronda.count({
-            where: {
-                localidadId,
-                rondaNumero,
-                empresaId,
-                concluido: false,
-                movimiento: {
-                    estado: {
-                        in: ['SOLICITADO', 'EN_PROCESO'] // ← Solo estados ACTIVOS
-                        // NO incluye 'DETENIDO' (por incidentes)
-                    }
-                }
-            }
-        });
-        return movimientosActivos > 0;
-    }
-    /**
-     * Crear ronda para movimiento BAJA (CORREGIDO con incidentes)
-     */
-    static async crearRondaParaMovimientoBaja(movimientoId, empresaId, localidadId) {
-        try {
-            // Verificar si hay movimientos ALTA activos
-            const hayAltaActivos = await prisma.movimiento.count({
-                where: {
-                    estado: "SOLICITADO",
-                    prioridad: "ALTA",
-                    localidadId: localidadId
-                }
-            }) > 0;
-            // Ronda inicial (2 si hay ALTA, 1 si no hay)
-            const rondaInicial = hayAltaActivos ? 2 : 1;
-            // 🔄 NUEVA LÓGICA: Buscar ronda considerando incidentes
-            let rondaAsignada = null;
-            let numRonda = rondaInicial;
-            while (rondaAsignada === null) {
-                // ✅ Verificar si empresa tiene movimientos ACTIVOS en esta ronda
-                const tieneMovimientoActivo = await this.empresaTieneMovimientoActivoEnRonda(empresaId, localidadId, numRonda);
-                if (!tieneMovimientoActivo) {
-                    rondaAsignada = numRonda;
-                }
-                else {
-                    numRonda++;
-                    // Limitar búsqueda para evitar bucles infinitos
-                    if (numRonda > 100) {
-                        rondaAsignada = numRonda;
-                        movimiento_logger_1.movimientoError.warn("Búsqueda de ronda alcanzó 100 intentos", {
-                            movimientoId, empresaId, localidadId
-                        });
-                    }
-                }
-            }
-            // Contar movimientos en esta ronda para determinar orden
-            const ordenEnRonda = await prisma.ronda.count({
-                where: {
-                    localidadId,
-                    rondaNumero: rondaAsignada,
-                    concluido: false
-                }
-            }) + 1;
-            // Crear la ronda
-            return await prisma.ronda.create({
-                data: {
-                    movimientoId,
-                    empresaId,
-                    localidadId,
-                    orden: ordenEnRonda,
-                    rondaNumero: rondaAsignada
-                }
-            });
-        }
-        catch (error) {
-            movimiento_logger_1.movimientoError.error("Error en crearRondaParaMovimientoBaja", {
-                movimientoId, empresaId, localidadId, error
-            });
-            return null;
-        }
-    }
-    /**
-     * Crear ronda para movimiento ALTA (ya estaba bien, pero agregamos consistencia)
-     */
-    static async crearRondaParaMovimientoAlta(movimientoId, empresaId, localidadId) {
-        // Para ALTAs no hay restricción de empresa, pero mantengamos consistencia
-        const ordenEnRonda = await prisma.ronda.count({
-            where: {
-                localidadId,
-                rondaNumero: 1,
-                concluido: false
-            }
-        }) + 1;
-        return await prisma.ronda.create({
-            data: {
-                movimientoId,
-                empresaId,
-                localidadId,
-                orden: ordenEnRonda,
-                rondaNumero: 1
-            }
-        });
-    }
-    /**
-     * Método principal actualizado
+     * Crea una ronda para un movimiento específico.
+     * Si es ALTA, reorganiza todo el sistema.
      */
     static async generarRondaParaMovimiento(data) {
         try {
             if (data.prioridad === "ALTA") {
-                // ALTAs siguen reorganizando todo (lógica existente)
+                // Si es ALTA, reorganizar todo
                 await this.eliminarTodasLasRondas();
                 await this.crearTodasLasRondas();
                 return;
             }
-            // Para BAJA, usar nueva lógica que considera incidentes
+            // Si es BAJA, limpiar concluidas y crear una ronda
             await this.limpiarYReorganizarRondasConcluidas();
             await this.crearRondaParaMovimientoBaja(data.movimientoId, data.empresaId, data.localidadId);
         }
@@ -423,47 +393,6 @@ class RondaModel {
             movimiento_logger_1.movimientoError.error("Error al generar ronda para movimiento", { data, error });
             throw new Error("Error al generar ronda para movimiento");
         }
-    }
-    /**
-     * Método helper adicional: obtener capacidad disponible de una ronda
-     */
-    static async obtenerCapacidadDisponibleRonda(localidadId, rondaNumero) {
-        const [total, activos, detenidos] = await Promise.all([
-            // Total de movimientos en la ronda
-            prisma.ronda.count({
-                where: { localidadId, rondaNumero, concluido: false }
-            }),
-            // Movimientos activos
-            prisma.ronda.count({
-                where: {
-                    localidadId,
-                    rondaNumero,
-                    concluido: false,
-                    movimiento: {
-                        estado: { in: ['SOLICITADO', 'EN_PROCESO'] }
-                    }
-                }
-            }),
-            // Movimientos detenidos por incidentes
-            prisma.ronda.count({
-                where: {
-                    localidadId,
-                    rondaNumero,
-                    concluido: false,
-                    movimiento: {
-                        estado: 'DETENIDO'
-                    }
-                }
-            })
-        ]);
-        const CAPACIDAD_MAXIMA = 10; // O el valor que definas
-        const disponible = CAPACIDAD_MAXIMA - activos; // Solo cuenta activos
-        return {
-            total,
-            activos,
-            detenidos,
-            disponible: Math.max(0, disponible)
-        };
     }
     // Resto de métodos siguen igual...
     /**
@@ -574,10 +503,17 @@ class RondaModel {
                 include: {
                     empresa: true,
                     movimiento: {
-                        include: {
-                            empresa: true,
+                        select: {
+                            id: true,
+                            locomotiveNumber: true, // número de la locomotora
+                            createdAt: true, // fecha de solicitud
+                            estado: true, // estado actual del movimiento
+                            lavado: true, // si va a lavado
+                            torno: true, // si va a torno
+                            prioridad: true, // opcional, si te interesa
+                            // ----------------------------
                             viaOrigen: { select: { nombre: true } },
-                            viaDestino: { select: { nombre: true } }
+                            viaDestino: { select: { nombre: true } },
                         }
                     }
                 },
@@ -622,6 +558,89 @@ class RondaModel {
         catch (error) {
             movimiento_logger_1.movimientoError.error('Error al obtener siguiente en ronda', { localidadId, error });
             throw new Error('Error al obtener el siguiente en la ronda');
+        }
+    }
+    /**
+     * Intercambia el movimientoId entre dos rondas (swap de movimientos).
+     * @param rondaAId ID de la primera ronda
+     * @param rondaBId ID de la segunda ronda
+     * @returns Array con las dos rondas actualizadas
+     * @throws Error si los IDs son iguales, no existen, o no pertenecen a la misma localidad
+     */
+    static async intercambiarMovimientosEntreRondas(rondaAId, rondaBId) {
+        if (rondaAId === rondaBId) {
+            throw new Error("Debe indicar dos rondas distintas para el intercambio");
+        }
+        return await prisma.$transaction(async (tx) => {
+            // 1) Leer las rondas completas
+            const [rondaA, rondaB] = await Promise.all([
+                tx.ronda.findUnique({ where: { id: rondaAId } }),
+                tx.ronda.findUnique({ where: { id: rondaBId } })
+            ]);
+            if (!rondaA || !rondaB) {
+                throw new Error("Rondas o movimientos inválidos");
+            }
+            // 2) Guardar los datos necesarios
+            const movimientoIdA = rondaA.movimientoId;
+            const movimientoIdB = rondaB.movimientoId;
+            // 3) Eliminar ambas rondas (esto libera la restricción única)
+            await Promise.all([
+                tx.ronda.delete({ where: { id: rondaAId } }),
+                tx.ronda.delete({ where: { id: rondaBId } })
+            ]);
+            // 4) Recrear las rondas con los movimientos intercambiados
+            const [nuevaRondaA, nuevaRondaB] = await Promise.all([
+                tx.ronda.create({
+                    data: {
+                        id: rondaAId, // Mantener el mismo ID
+                        movimientoId: movimientoIdB, // Movimiento de B
+                        empresaId: rondaA.empresaId,
+                        localidadId: rondaA.localidadId,
+                        orden: rondaA.orden,
+                        rondaNumero: rondaA.rondaNumero,
+                        concluido: rondaA.concluido
+                    }
+                }),
+                tx.ronda.create({
+                    data: {
+                        id: rondaBId, // Mantener el mismo ID
+                        movimientoId: movimientoIdA, // Movimiento de A
+                        empresaId: rondaB.empresaId,
+                        localidadId: rondaB.localidadId,
+                        orden: rondaB.orden,
+                        rondaNumero: rondaB.rondaNumero,
+                        concluido: rondaB.concluido
+                    }
+                })
+            ]);
+            return [nuevaRondaA, nuevaRondaB];
+        });
+    }
+    /**
+   * Cambia el movimiento asociado a una ronda, dejando intacto el resto de los datos.
+   * @param rondaId ID de la ronda a editar
+   * @param nuevoMovimientoId ID del movimiento que quieres asociar a esta ronda
+   * @returns Ronda actualizada
+   */
+    static async intercambiarMovimientoEnRonda(rondaId, nuevoMovimientoId) {
+        try {
+            // Verifica que existan la ronda y el movimiento
+            const ronda = await prisma.ronda.findUnique({ where: { id: rondaId } });
+            if (!ronda)
+                throw new Error('Ronda no encontrada');
+            const movimiento = await prisma.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
+            if (!movimiento)
+                throw new Error('Movimiento no encontrado');
+            // Actualiza solo el movimientoId, deja intacto lo demás
+            const rondaActualizada = await prisma.ronda.update({
+                where: { id: rondaId },
+                data: { movimientoId: nuevoMovimientoId }
+            });
+            return rondaActualizada;
+        }
+        catch (error) {
+            movimiento_logger_1.movimientoError.error('Error al intercambiar movimiento en ronda', { rondaId, nuevoMovimientoId, error });
+            throw new Error('Error al intercambiar movimiento en ronda');
         }
     }
     /**
