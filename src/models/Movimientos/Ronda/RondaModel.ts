@@ -498,119 +498,75 @@ export class RondaModel {
       throw new Error("Error al eliminar ronda");
     }
   }
-static async obtenerRondasPorLocalidad(localidadId: number) {
-  try {
-    // 1) Detectar movimientos detenidos en esta localidad
-    const detenidos = await prisma.movimiento.findMany({
-      where: {
-        localidadId,
-        estado: 'DETENIDO'
-      },
-      select: {
-        id: true,
-        empresaId: true,
-        localidadId: true
-      }
-    });
 
-    // 2) Para cada uno, forzar reorganizaci�n de rondas
-    for (const mov of detenidos) {
-      await IncidenteModel.reorganizarRondasPorIncidente(
-        mov.empresaId,
-        mov.localidadId,
-        mov.id
-      );
-    }
-
-    // 3) Ya con las rondas reordenadas, devolver el listado
-    return await prisma.ronda.findMany({
-      where: { localidadId },
-      include: {
-        empresa: true,
-        movimiento: {
-          include: {
-            empresa: true,
-            viaOrigen: { select: { nombre: true } },
-            viaDestino: { select: { nombre: true } }
+  /**
+   * Obtiene todas las rondas de una localidad.
+   */
+  static async obtenerRondasPorLocalidad(localidadId: number) {
+    try {
+      return await prisma.ronda.findMany({
+        where: { localidadId },
+        include: {
+          empresa: true,
+          movimiento: {
+            include: {
+              empresa: true,
+              viaOrigen: { select: { nombre: true } },
+              viaDestino: { select: { nombre: true } }
+            }
           }
-        }
-      },
-      orderBy: [
-        { rondaNumero: 'asc' },
-        { orden: 'asc' }
-      ]
-    });
-  } catch (error) {
-    movimientoError.error('Error al obtener rondas por localidad', { localidadId, error });
-    throw new Error('Error al obtener rondas por localidad');
-  }
-} 
-/**
- * Obtiene rondas por localidad y estado de conclusi�n.
- * Si detecta movimientos en ESTADO = 'DETENIDO',
- * forzar� la reorganizaci�n llamando a IncidenteModel.reorganizarRondasPorIncidente(...)
- */
-static async obtenerRondasPorLocalidadConEstado(
-  localidadId: number,
-  concluido: boolean
-) {
-  try {
-    // 1) Detectar movimientos detenidos en esta localidad
-    const detenidos = await prisma.movimiento.findMany({
-      where: {
-        localidadId,
-        estado: 'DETENIDO'
-      },
-      select: {
-        id: true,
-        empresaId: true,
-        localidadId: true
-      }
-    });
-
-    // 2) Para cada uno, forzar reorganizaci�n de rondas
-    for (const mov of detenidos) {
-      await IncidenteModel.reorganizarRondasPorIncidente(
-        mov.empresaId,
-        mov.localidadId,
-        mov.id
-      );
+        },
+        orderBy: [
+          { rondaNumero: 'asc' },
+          { orden:       'asc' }
+        ]
+      });
+    } catch (error) {
+      movimientoError.error('Error al obtener rondas por localidad', { localidadId, error });
+      throw new Error('Error al obtener rondas por localidad');
     }
-
-    // 3) Devolver las rondas ya reordenadas seg�n el filtro de 'concluido'
-  return await prisma.ronda.findMany({
-      where: { localidadId, concluido },
-      include: {
-        empresa: true,
-        movimiento: {
-          select: {
-            id: true,
-            locomotiveNumber: true,    // número de la locomotora
-            createdAt: true,           // fecha de solicitud
-            estado: true,              // estado actual del movimiento
-            lavado: true,              // si va a lavado
-            torno: true,               // si va a torno
-            prioridad: true,           // opcional, si te interesa
-            // ----------------------------
-            viaOrigen: { select: { nombre: true } },
-            viaDestino: { select: { nombre: true } },
-          }
-        }
-      },
-      orderBy: [
-        { rondaNumero: 'asc' },
-        { orden:       'asc' }
-      ]
-    });
-  } catch (error) {
-    movimientoError.error('Error al obtener rondas por localidad y estado', {
-      localidadId,
-      concluido,
-      error
-    });
-    throw new Error('Error al obtener rondas por localidad y estado');
   }
-}
+
+  /**
+   * Obtiene rondas por localidad y estado de conclusión.
+   */
+  static async obtenerRondasPorLocalidadConEstado(
+    localidadId: number,
+    concluido: boolean
+  ) {
+    try {
+      return await prisma.ronda.findMany({
+        where: { localidadId, concluido },
+        include: {
+          empresa: true,
+          movimiento: {
+            select: {
+              id:               true,
+              locomotiveNumber: true,
+              createdAt:        true,
+              estado:           true,
+              lavado:           true,
+              torno:            true,
+              prioridad:        true,
+              viaOrigen: { select: { nombre: true } },
+              viaDestino: { select: { nombre: true } }
+            }
+          }
+        },
+        orderBy: [
+          { rondaNumero: 'asc' },
+          { orden:       'asc' }
+        ]
+      });
+    } catch (error) {
+      movimientoError.error('Error al obtener rondas por localidad y estado', {
+        localidadId,
+        concluido,
+        error
+      });
+      throw new Error('Error al obtener rondas por localidad y estado');
+    }
+  }
 
 
   /**
