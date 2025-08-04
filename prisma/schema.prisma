@@ -207,6 +207,7 @@ enum EstadoActualizacion {
 enum EstadoIncidente {
   ABIERTO
   CERRADO
+  RESUELTO
 }
 
 enum Prioridad {
