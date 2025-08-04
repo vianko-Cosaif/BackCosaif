@@ -21,13 +21,13 @@ const PORT = process.env.PORT;
  *
  * @function iniciarServidor
  * @remarks
- * Esta funci�n:
- *  - Configura middleware global de JSON y CORS
- *  - Registra rutas agrupadas por entidad
- *  - Aplica autenticaci�n JWT con Passport
+ * Esta funcion:
+ *  Configura middleware global de JSON y CORS
+ *  Registra rutas agrupadas por entidad
+ *  -Aplica autenticacion JWT con Passport
  *  - Lanza el servidor en el puerto definido
  *
- * En caso de error cr�tico, finaliza el proceso con `process.exit(1)`.
+ * En caso de error crotico, finaliza el proceso con `process.exit(1)`.
  */
 export function iniciarServidor(): void {
   try {

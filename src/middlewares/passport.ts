@@ -24,14 +24,14 @@ const {
 } = process.env;
 
 if (!JWT_SECRET) {
-  logger.error('❌ JWT_SECRET no está definido en .env');
+  logger.error('JWT_SECRET no está definido en .env');
   throw new Error('JWT_SECRET no está definido en .env');
 }
 if (!JWT_ISSUER) {
-  logger.warn('⚠️ JWT_ISSUER no está definido en .env');
+  logger.warn('JWT_ISSUER no está definido en .env');
 }
 if (!JWT_AUDIENCE) {
-  logger.warn('⚠️ JWT_AUDIENCE no está definido en .env');
+  logger.warn('JWT_AUDIENCE no está definido en .env');
 }
 
 // ────────────────────────────────
