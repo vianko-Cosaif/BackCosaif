@@ -73,8 +73,9 @@ export class IncidenteController {
       res.json({ success: true, data: incidente });
     } catch (error) {
       incidenteControllerLogger.error('obtenerPorId', { id: req.params.id, error });
-      const status = /no encontrado/i.test(error.message) ? 404 : 500;
-      res.status(status).json({ success: false, error: error.message });
+      const errorMsg = (error instanceof Error) ? error.message : String(error);
+      const status = /no encontrado/i.test(errorMsg) ? 404 : 500;
+      res.status(status).json({ success: false, error: errorMsg });
     }
   };
 

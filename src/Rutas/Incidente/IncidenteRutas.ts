@@ -14,7 +14,7 @@ router.use(passport.authenticate('jwt', { session: false }));
 
 // ——— RUTAS DE CONSULTA ———
 
-// Listar incidentes paginados y/o filtrados by estado, empresa, localidad
+// Listar incidentes paginados y/o filtrados by estadox, empresa, localidad
 // GET /incidentes?estado=&page=&pageSize=&empresaId=&localidadId=
 router.get('/', IncidenteController.listar);
 
