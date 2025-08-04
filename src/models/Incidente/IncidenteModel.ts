@@ -23,7 +23,7 @@ function buildWhereByEstado(estado?: EstadoFiltro) {
   if (!estado) return {};
   switch (estado) {
     case 'PASADOS':
-      return { estado: { in: [EstadoIncidente.CERRADO, EstadoIncidente.RESUELTO] } };
+   return { estado: { in: [EstadoIncidente.CERRADO, EstadoIncidente.RESUELTO] } };
     case 'ABIERTO':
     case 'CERRADO':
     case 'RESUELTO':
@@ -188,12 +188,13 @@ export class IncidenteModel {
       const update: any = {};
       if (data.descripcion) update.descripcion = data.descripcion;
       if (data.estado) {
-        const mapEstado: Record<EstadoFiltro, EstadoIncidente> = {
-          ABIERTO: EstadoIncidente.ABIERTO,
-          CERRADO: EstadoIncidente.CERRADO,
-          RESUELTO: EstadoIncidente.RESUELTO,
-          PASADOS: EstadoIncidente.CERRADO
-        };
+      const mapEstado: Record<EstadoFiltro, EstadoIncidente> = {
+  ABIERTO: EstadoIncidente.ABIERTO,
+  CERRADO: EstadoIncidente.CERRADO,
+  RESUELTO: EstadoIncidente.RESUELTO,
+  PASADOS: EstadoIncidente.CERRADO
+};
+
         update.estado   = mapEstado[data.estado];
         update.fechaFin = new Date();
       }
