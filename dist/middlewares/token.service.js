@@ -86,7 +86,7 @@ async function removeToken(token) {
  * Comprueba si un `jti` está registrado (token vigente).
  */
 async function isTokenValid(jti) {
-    const dbToken = await prisma.token.findUnique({
+    const dbToken = await prisma.token.findFirst({
         where: { jti },
         select: { id: true },
     });
@@ -96,7 +96,7 @@ async function isTokenValid(jti) {
  * Obtiene el usuario dueño de un `jti`.
  */
 async function getTokenOwner(jti) {
-    const dbToken = await prisma.token.findUnique({
+    const dbToken = await prisma.token.findFirst({
         where: { jti },
         select: { usuarioId: true },
     });

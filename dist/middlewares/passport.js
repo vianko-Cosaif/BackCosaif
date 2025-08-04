@@ -48,14 +48,14 @@ const tokenService = __importStar(require("./token.service"));
 // ────────────────────────────────
 const { JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE, NODE_ENV, } = process.env;
 if (!JWT_SECRET) {
-    logger_1.logger.error('❌ JWT_SECRET no está definido en .env');
+    logger_1.logger.error('JWT_SECRET no está definido en .env');
     throw new Error('JWT_SECRET no está definido en .env');
 }
 if (!JWT_ISSUER) {
-    logger_1.logger.warn('⚠️ JWT_ISSUER no está definido en .env');
+    logger_1.logger.warn('JWT_ISSUER no está definido en .env');
 }
 if (!JWT_AUDIENCE) {
-    logger_1.logger.warn('⚠️ JWT_AUDIENCE no está definido en .env');
+    logger_1.logger.warn('JWT_AUDIENCE no está definido en .env');
 }
 // ────────────────────────────────
 // Prisma client

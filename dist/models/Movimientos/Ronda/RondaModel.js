@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RondaModel = void 0;
 const movimiento_logger_1 = require("../movimiento.logger");
-const IncidenteModel_1 = require("../../Incidente/IncidenteModel");
 const client_1 = require("@prisma/client");
 /**
  * @file RondaModel.ts
@@ -432,25 +431,11 @@ class RondaModel {
             throw new Error("Error al eliminar ronda");
         }
     }
+    /**
+     * Obtiene todas las rondas de una localidad.
+     */
     static async obtenerRondasPorLocalidad(localidadId) {
         try {
-            // 1) Detectar movimientos detenidos en esta localidad
-            const detenidos = await prisma.movimiento.findMany({
-                where: {
-                    localidadId,
-                    estado: 'DETENIDO'
-                },
-                select: {
-                    id: true,
-                    empresaId: true,
-                    localidadId: true
-                }
-            });
-            // 2) Para cada uno, forzar reorganizaci�n de rondas
-            for (const mov of detenidos) {
-                await IncidenteModel_1.IncidenteModel.reorganizarRondasPorIncidente(mov.empresaId, mov.localidadId, mov.id);
-            }
-            // 3) Ya con las rondas reordenadas, devolver el listado
             return await prisma.ronda.findMany({
                 where: { localidadId },
                 include: {
@@ -475,29 +460,10 @@ class RondaModel {
         }
     }
     /**
-     * Obtiene rondas por localidad y estado de conclusi�n.
-     * Si detecta movimientos en ESTADO = 'DETENIDO',
-     * forzar� la reorganizaci�n llamando a IncidenteModel.reorganizarRondasPorIncidente(...)
+     * Obtiene rondas por localidad y estado de conclusión.
      */
     static async obtenerRondasPorLocalidadConEstado(localidadId, concluido) {
         try {
-            // 1) Detectar movimientos detenidos en esta localidad
-            const detenidos = await prisma.movimiento.findMany({
-                where: {
-                    localidadId,
-                    estado: 'DETENIDO'
-                },
-                select: {
-                    id: true,
-                    empresaId: true,
-                    localidadId: true
-                }
-            });
-            // 2) Para cada uno, forzar reorganizaci�n de rondas
-            for (const mov of detenidos) {
-                await IncidenteModel_1.IncidenteModel.reorganizarRondasPorIncidente(mov.empresaId, mov.localidadId, mov.id);
-            }
-            // 3) Devolver las rondas ya reordenadas seg�n el filtro de 'concluido'
             return await prisma.ronda.findMany({
                 where: { localidadId, concluido },
                 include: {
@@ -505,15 +471,14 @@ class RondaModel {
                     movimiento: {
                         select: {
                             id: true,
-                            locomotiveNumber: true, // número de la locomotora
-                            createdAt: true, // fecha de solicitud
-                            estado: true, // estado actual del movimiento
-                            lavado: true, // si va a lavado
-                            torno: true, // si va a torno
-                            prioridad: true, // opcional, si te interesa
-                            // ----------------------------
+                            locomotiveNumber: true,
+                            createdAt: true,
+                            estado: true,
+                            lavado: true,
+                            torno: true,
+                            prioridad: true,
                             viaOrigen: { select: { nombre: true } },
-                            viaDestino: { select: { nombre: true } },
+                            viaDestino: { select: { nombre: true } }
                         }
                     }
                 },
