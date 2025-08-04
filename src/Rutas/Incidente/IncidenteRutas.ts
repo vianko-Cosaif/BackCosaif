@@ -48,4 +48,9 @@ router.delete('/:id', IncidenteController.eliminar);
 // POST /incidentes/:id/cerrar
 router.post('/:id/cerrar', IncidenteController.cerrar);
 
+
+// Ruta para marcar como resuelto y notificar
+router.post('/:id/resuelto', IncidenteController.resolver);
+
+
 export default router;
