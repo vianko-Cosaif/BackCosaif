@@ -8127,3 +8127,1206 @@
   layer: 'HTTP',
   timestamp: '2025-07-24 16:40:42'
 }
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 1,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-29 21:44:07'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 1,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-29 21:45:47'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 2,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-29 21:47:24'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 2,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-29 21:48:16'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 3,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-29 21:49:14'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 3,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-29 21:49:17'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 4,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:11:34'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 4,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:12:30'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 5,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:15:17'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 5,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:18:51'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 6,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:21:57'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 6,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:22:21'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 6,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:22:37'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 7,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:28:31'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 7,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:32:10'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 7,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:32:33'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 8,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:36:15'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 8,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:38:38'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 8,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 16:38:49'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 9,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:40:15'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 10,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 16:56:04'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 11,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 17:25:10'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 11,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 17:33:26'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 12,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 17:37:35'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 12,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 17:38:18'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 13,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 17:39:42'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 14,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 18:09:21'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 14,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 18:10:23'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 15,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 18:14:30'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 15,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 18:17:13'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 16,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 18:18:11'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 16,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 18:19:38'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 17,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 18:46:43'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 17,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 18:52:46'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 18,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 18:57:30'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 18,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 18:57:53'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 19,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 21:47:39'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 19,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 21:48:12'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 20,
+  movimientoId: 16,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 21:48:26'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 20,
+  movimientoId: 16,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 21:49:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 21,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 21:54:43'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 21,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 21:55:23'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 22,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 22:00:00'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 22,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:00:46'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 22,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:01:44'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 23,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 22:10:56'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 23,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:13:41'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 23,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:16:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 24,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 22:19:57'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 24,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:21:46'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 24,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:29:59'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 25,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 22:30:31'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 25,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:31:01'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 26,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 22:32:43'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 26,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:32:55'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 27,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 22:39:56'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 27,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:40:12'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 27,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 22:40:33'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 28,
+  movimientoId: 17,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-30 23:27:49'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 28,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-30 23:28:04'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 28,
+  movimientoId: 17,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 00:00:02'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 29,
+  movimientoId: 18,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 18:41:44'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 30,
+  movimientoId: 19,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 18:42:23'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 31,
+  movimientoId: 18,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 18:45:20'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 31,
+  movimientoId: 18,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 18:45:46'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 31,
+  movimientoId: 18,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 18:45:58'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 32,
+  movimientoId: 1,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 18:49:53'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 32,
+  movimientoId: 1,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 18:51:58'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 32,
+  movimientoId: 1,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 18:54:44'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 33,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 18:56:39'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 33,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 18:57:07'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 33,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 18:57:14'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 34,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 19:09:18'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 34,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 19:10:33'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 35,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 19:15:55'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 35,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 19:16:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 35,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 19:19:20'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 36,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-07-31 19:19:59'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 36,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 19:20:22'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 36,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-07-31 19:30:01'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 37,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 05:08:36'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 37,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 05:09:52'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 38,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 15:14:59'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 38,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 15:15:16'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 39,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 15:17:54'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 39,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 15:18:05'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 40,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 15:21:41'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 40,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 15:21:52'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 40,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 15:25:00'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 41,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 15:25:22'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 41,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 15:25:36'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 42,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 15:32:30'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 42,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 15:32:49'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 43,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 20:57:07'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 43,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 20:58:12'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 44,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 20:58:54'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 44,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 20:59:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 45,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-01 20:59:50'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 45,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-01 21:00:02'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 46,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 1,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-04 03:08:33'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 46,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-04 03:08:48'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 47,
+  movimientoId: 20,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-04 03:09:31'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 47,
+  movimientoId: 20,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-04 03:09:43'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 48,
+  movimientoId: 22,
+  usuarioId: 9,
+  imagenesSubidas: 0,
+  level: 'info',
+  message: 'Incidente creado',
+  timestamp: '2025-08-04 03:13:32'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  incidenteId: 48,
+  movimientoId: 22,
+  usuarioAccion: 'N/A',
+  level: 'info',
+  message: 'Incidente cerrado manualmente',
+  timestamp: '2025-08-04 03:16:17'
+}

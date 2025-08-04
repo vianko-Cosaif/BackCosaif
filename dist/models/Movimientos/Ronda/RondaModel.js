@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RondaModel = void 0;
 const movimiento_logger_1 = require("../movimiento.logger");
-const IncidenteModel_1 = require("../../Incidente/IncidenteModel");
 const client_1 = require("@prisma/client");
 /**
  * @file RondaModel.ts
@@ -432,25 +431,11 @@ class RondaModel {
             throw new Error("Error al eliminar ronda");
         }
     }
+    /**
+     * Obtiene todas las rondas de una localidad.
+     */
     static async obtenerRondasPorLocalidad(localidadId) {
         try {
-            // 1) Detectar movimientos detenidos en esta localidad
-            const detenidos = await prisma.movimiento.findMany({
-                where: {
-                    localidadId,
-                    estado: 'DETENIDO'
-                },
-                select: {
-                    id: true,
-                    empresaId: true,
-                    localidadId: true
-                }
-            });
-            // 2) Para cada uno, forzar reorganizaci�n de rondas
-            for (const mov of detenidos) {
-                await IncidenteModel_1.IncidenteModel.reorganizarRondasPorIncidente(mov.empresaId, mov.localidadId, mov.id);
-            }
-            // 3) Ya con las rondas reordenadas, devolver el listado
             return await prisma.ronda.findMany({
                 where: { localidadId },
                 include: {
@@ -475,29 +460,10 @@ class RondaModel {
         }
     }
     /**
-     * Obtiene rondas por localidad y estado de conclusi�n.
-     * Si detecta movimientos en ESTADO = 'DETENIDO',
-     * forzar� la reorganizaci�n llamando a IncidenteModel.reorganizarRondasPorIncidente(...)
+     * Obtiene rondas por localidad y estado de conclusión.
      */
     static async obtenerRondasPorLocalidadConEstado(localidadId, concluido) {
         try {
-            // 1) Detectar movimientos detenidos en esta localidad
-            const detenidos = await prisma.movimiento.findMany({
-                where: {
-                    localidadId,
-                    estado: 'DETENIDO'
-                },
-                select: {
-                    id: true,
-                    empresaId: true,
-                    localidadId: true
-                }
-            });
-            // 2) Para cada uno, forzar reorganizaci�n de rondas
-            for (const mov of detenidos) {
-                await IncidenteModel_1.IncidenteModel.reorganizarRondasPorIncidente(mov.empresaId, mov.localidadId, mov.id);
-            }
-            // 3) Devolver las rondas ya reordenadas seg�n el filtro de 'concluido'
             return await prisma.ronda.findMany({
                 where: { localidadId, concluido },
                 include: {
@@ -505,15 +471,14 @@ class RondaModel {
                     movimiento: {
                         select: {
                             id: true,
-                            locomotiveNumber: true, // número de la locomotora
-                            createdAt: true, // fecha de solicitud
-                            estado: true, // estado actual del movimiento
-                            lavado: true, // si va a lavado
-                            torno: true, // si va a torno
-                            prioridad: true, // opcional, si te interesa
-                            // ----------------------------
+                            locomotiveNumber: true,
+                            createdAt: true,
+                            estado: true,
+                            lavado: true,
+                            torno: true,
+                            prioridad: true,
                             viaOrigen: { select: { nombre: true } },
-                            viaDestino: { select: { nombre: true } },
+                            viaDestino: { select: { nombre: true } }
                         }
                     }
                 },
@@ -572,40 +537,6 @@ class RondaModel {
             throw new Error("Debe indicar dos rondas distintas para el intercambio");
         }
         return await prisma.$transaction(async (tx) => {
-<<<<<<< HEAD
-            // 1) Leer originales
-            const [a, b] = await Promise.all([
-                tx.ronda.findUnique({ where: { id: rondaAId }, select: { movimientoId: true } }),
-                tx.ronda.findUnique({ where: { id: rondaBId }, select: { movimientoId: true } })
-            ]);
-            if (!a || !b || a.movimientoId == null || b.movimientoId == null) {
-                throw new Error("Rondas o movimientos inválidos");
-            }
-            const mA = a.movimientoId, mB = b.movimientoId;
-            // 2) Poner A en NULL (libera la unique)
-            await tx.ronda.update({
-                where: { id: rondaAId },
-                data: { movimientoId: undefined }
-            });
-            // 3) Mover mA → B
-            await tx.ronda.update({
-                where: { id: rondaBId },
-                data: { movimientoId: mA }
-            });
-            // 4) Mover mB → A
-            await tx.ronda.update({
-                where: { id: rondaAId },
-                data: { movimientoId: mB }
-            });
-            // 5) Leer y devolver resultados
-            const [finalA, finalB] = await Promise.all([
-                tx.ronda.findUnique({ where: { id: rondaAId } }),
-                tx.ronda.findUnique({ where: { id: rondaBId } })
-            ]);
-            if (!finalA || !finalB)
-                throw new Error("Error al terminar swap");
-            return [finalA, finalB];
-=======
             // 1) Leer las rondas completas
             const [rondaA, rondaB] = await Promise.all([
                 tx.ronda.findUnique({ where: { id: rondaAId } }),
@@ -648,7 +579,6 @@ class RondaModel {
                 })
             ]);
             return [nuevaRondaA, nuevaRondaB];
->>>>>>> ff515a9d5e456967ca1ce4cf7cacd35e521b9d09
         });
     }
     /**

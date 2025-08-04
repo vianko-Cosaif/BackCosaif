@@ -384,72 +384,50 @@ class MovimientoModel {
         }
     }
     /**
-     * Crea un nuevo movimiento ferroviario y asigna a una ronda según su prioridad.
-     * Si el movimiento tiene prioridad ALTA, reorganizará todas las rondas existentes.
-     * Si tiene prioridad BAJA (predeterminado), se agrega a la siguiente ronda disponible
-     * donde su empresa no esté participando aún.
+     * Crea un nuevo movimiento ferroviario y asigna una ronda según prioridad,
+     * sin desordenar las rondas ya existentes.
+     *
+     * - Para prioridad ALTA: inserta el movimiento en ronda 1 (orden incremental),
+     *   sin desplazar las demás.
+     * - Para prioridad BAJA: busca la primera ronda donde la empresa no participa;
+     *   si la encuentra, añade al final de esa ronda; si no, crea una nueva al final.
      *
      * @param data Datos del movimiento a crear
-     * @returns Movimiento creado
-     * @throws Error si falla la creación o asignación de ronda
+     * @returns El movimiento creado, incluyendo sus relaciones empresa y localidad
+     * @throws Error si falla la creación o la asignación de la ronda
      */
     static async nuevoMovimiento(data) {
         try {
-            const movimientoData = { ...data };
-            // 🧹 Normalizar campos vacíos
-            if (!movimientoData.posicionCabina || movimientoData.posicionCabina === '') {
-                movimientoData.posicionCabina = 'Sin_Solicitar';
-            }
-            if (!movimientoData.posicionChimenea || movimientoData.posicionChimenea === '') {
-                movimientoData.posicionChimenea = 'Sin_Solicitar';
-            }
-            if (!movimientoData.direccionEmpuje || movimientoData.direccionEmpuje === '') {
-                movimientoData.direccionEmpuje = 'Sin_Solicitar';
-            }
-            // Establecer valores predeterminados importantes
-            // Prioridad por defecto si no viene: BAJA
-            if (!movimientoData.prioridad) {
-                movimientoData.prioridad = 'BAJA';
-            }
-            // Estado inicial siempre es SOLICITADO a menos que se especifique otro
-            if (!movimientoData.estado) {
-                movimientoData.estado = 'SOLICITADO';
-            }
-            // Eliminar propiedades undefined
-            for (const key in movimientoData) {
-                if (movimientoData[key] === undefined) {
-                    delete movimientoData[key];
-                }
-            }
-            // 🚀 Crear el movimiento en la base de datos
-            const nuevoMovimiento = await prisma.movimiento.create({
-                data: movimientoData,
-                include: {
-                    empresa: true,
-                    localidad: true
-                }
+            // 1) Normalizar valores por defecto
+            const movData = { ...data };
+            movData.prioridad = movData.prioridad ?? 'BAJA';
+            movData.estado = movData.estado ?? 'SOLICITADO';
+            movData.posicionCabina = movData.posicionCabina || 'Sin_Solicitar';
+            movData.posicionChimenea = movData.posicionChimenea || 'Sin_Solicitar';
+            movData.direccionEmpuje = movData.direccionEmpuje || 'Sin_Solicitar';
+            // Eliminar propiedades undefined para Prisma
+            Object.keys(movData).forEach(k => {
+                if (movData[k] === undefined)
+                    delete movData[k];
             });
-            // 🎯 Generar la ronda para el nuevo movimiento según sus características
-            if (nuevoMovimiento.estado === 'SOLICITADO') {
+            // 2) Crear el movimiento en la base de datos
+            const mv = await prisma.movimiento.create({
+                data: movData,
+                include: { empresa: true, localidad: true }
+            });
+            // 3) Asignar ronda sin desplazar otras
+            if (mv.estado === 'SOLICITADO') {
                 await RondaModel_1.RondaModel.generarRondaParaMovimiento({
-                    movimientoId: nuevoMovimiento.id,
-                    empresaId: nuevoMovimiento.empresaId,
-                    localidadId: nuevoMovimiento.localidadId,
-                    prioridad: nuevoMovimiento.prioridad
+                    movimientoId: mv.id,
+                    empresaId: mv.empresaId,
+                    localidadId: mv.localidadId,
+                    prioridad: mv.prioridad
                 });
-                // Si es prioridad ALTA, registrar en log
-                if (nuevoMovimiento.prioridad === 'ALTA') {
-                    movimiento_logger_1.movimientoError.info('Movimiento de ALTA prioridad creado - se reorganizaron las rondas', {
-                        movimientoId: nuevoMovimiento.id,
-                        empresa: nuevoMovimiento.empresa?.nombre,
-                        localidad: nuevoMovimiento.localidad?.nombre
-                    });
-                }
             }
-            return nuevoMovimiento;
+            return mv;
         }
         catch (error) {
-            movimiento_logger_1.movimientoError.error('Error al crear movimiento', { data, error });
+            movimiento_logger_1.movimientoError.error('Error al crear movimiento', { data, error: error.message });
             throw new Error('Error al crear movimiento');
         }
     }

@@ -39542,3 +39542,3395 @@
   module: 'Movimientos/Incidente',
   timestamp: '2025-07-24 16:40:42'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 1,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/29',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-29 21:44:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 1,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-29 21:44:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-29 21:45:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 1,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-29 21:45:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 1,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-29 21:45:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-29 21:45:47'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 2,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/29',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-29 21:47:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 2,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-29 21:47:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-29 21:48:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 2,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-29 21:48:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 2,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-29 21:48:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-29 21:48:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 3,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/29',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-29 21:49:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 3,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-29 21:49:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 3,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-29 21:49:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 3,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-29 21:49:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-29 21:49:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 4,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:11:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 4,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:11:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 4,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 16:12:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 4,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:12:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:12:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 5,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:15:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 5,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:15:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 5,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 16:18:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 5,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:18:51'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:18:51'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 6,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:21:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 6,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:21:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:22:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 6,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 16:22:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 6,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:22:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:22:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 6,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:22:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:22:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 7,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:28:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 7,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:28:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:31:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:32:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 7,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 16:32:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 7,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:32:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:32:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 7,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:32:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:32:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 8,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:36:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 8,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:36:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:36:28'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:38:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:38:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:38:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:38:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 8,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 16:38:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 8,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:38:38'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:38:38'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 8,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 16:38:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:38:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 9,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:40:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 9,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:40:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 16:55:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 10,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 16:56:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 10,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 16:56:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:07:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:08:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:08:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:21:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 17:25:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 17:25:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:25:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:33:19'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 17:33:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 17:33:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:33:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 12,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 17:37:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 12,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 17:37:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 12,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 17:38:17'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 12,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 17:38:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 17:38:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 13,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 17:39:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 13,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 17:39:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:08:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 18:09:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 18:09:21'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 18:10:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 18:10:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:10:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 18:14:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 18:14:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:17:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 18:17:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 18:17:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:17:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 18:18:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 18:18:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 18:19:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 18:19:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:19:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 17,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 18:46:43'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 17,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 18:46:43'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:46:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 17,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 18:52:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 17,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 18:52:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:52:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 18:57:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 18:57:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:57:41'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:57:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 18:57:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 18:57:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 18:57:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 21:47:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 21:47:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:48:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 21:48:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 21:48:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:48:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 21:48:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  movimientoId: 16,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 21:48:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:48:51'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:48:56'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:49:09'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:49:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  movimientoId: 16,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 21:49:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 21:49:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 16,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:49:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 21:54:43'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 21:54:43'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:55:19'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 21:55:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 21:55:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 21:55:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 22,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/07/30',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-07-30 22:00:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 22,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 22:00:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:00:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 22,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 22:00:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 22,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:00:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:00:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 22,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:01:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:01:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 23,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 22:10:56'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:12:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:12:56'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:12:59'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 23,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 22:13:40'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 23,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:13:40'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:13:40'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 23,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:16:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:16:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 24,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 22:19:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:21:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 24,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 22:21:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 24,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:21:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:21:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 24,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:29:59'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:29:59'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 25,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 22:30:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 25,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 22:31:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 25,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:31:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:31:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 26,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 22:32:43'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 26,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 22:32:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 26,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:32:55'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:32:55'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 27,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 22:39:56'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 27,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 22:40:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 27,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:40:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:40:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 27,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 22:40:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 22:40:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 28,
+  movimientoId: 17,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-30 23:27:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 23:27:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 23:27:56'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 28,
+  movimientoId: 17,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-30 23:28:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 28,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-30 23:28:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-30 23:28:03'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 28,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 00:00:02'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 17,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 00:00:02'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 29,
+  movimientoId: 18,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 18:41:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 18,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:41:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 30,
+  movimientoId: 19,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 18:42:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 18,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:42:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 19,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:42:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 19,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:44:41'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 31,
+  movimientoId: 18,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 18:45:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 18,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:45:26'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 31,
+  movimientoId: 18,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-31 18:45:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 31,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 18:45:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 18,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:45:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 31,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 18:45:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 18,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:45:58'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:49:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  desdeRonda: 1,
+  level: 'info',
+  message: 'Iniciando efecto domin�',
+  timestamp: '2025-07-31 18:49:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondasAjustadas: 5,
+  level: 'info',
+  message: 'Efecto domin� completado',
+  timestamp: '2025-07-31 18:49:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 32,
+  movimientoId: 1,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 18:49:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondaOriginal: 2,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:49:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  desdeRonda: 2,
+  level: 'info',
+  message: 'Iniciando efecto domin�',
+  timestamp: '2025-07-31 18:49:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondasAjustadas: 5,
+  level: 'info',
+  message: 'Efecto domin� completado',
+  timestamp: '2025-07-31 18:49:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 32,
+  movimientoId: 1,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-31 18:51:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 32,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 18:51:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondaOriginal: 3,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:51:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  desdeRonda: 3,
+  level: 'info',
+  message: 'Iniciando efecto domin�',
+  timestamp: '2025-07-31 18:51:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondasAjustadas: 5,
+  level: 'info',
+  message: 'Efecto domin� completado',
+  timestamp: '2025-07-31 18:51:57'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 32,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 18:54:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondaOriginal: 4,
+  localidadId: 1,
+  prioridad: 'BAJA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:54:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  desdeRonda: 4,
+  level: 'info',
+  message: 'Iniciando efecto domin�',
+  timestamp: '2025-07-31 18:54:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 1,
+  empresaId: 5,
+  rondasAjustadas: 5,
+  level: 'info',
+  message: 'Efecto domin� completado',
+  timestamp: '2025-07-31 18:54:44'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 33,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 18:56:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:56:48'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 33,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-31 18:57:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 33,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 18:57:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:57:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 33,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 18:57:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 18:57:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 34,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 19:09:18'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:09:19'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:09:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 34,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-31 19:10:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 34,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 19:10:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:10:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 35,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 19:15:55'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:16:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 35,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-31 19:16:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 35,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 19:16:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:16:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 35,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 19:19:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:19:20'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 36,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-07-31 19:19:59'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:20:14'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 36,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-07-31 19:20:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 36,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 19:20:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:20:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 36,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-07-31 19:30:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-07-31 19:30:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 37,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/08/01',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-08-01 05:08:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 37,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 05:08:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 05:08:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 37,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 05:09:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 37,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 05:09:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 05:09:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 38,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 15:14:59'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:15:05'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:15:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 38,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 15:15:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 38,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 15:15:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:15:15'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 39,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 15:17:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 39,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 15:18:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 39,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 15:18:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:18:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 40,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 15:21:41'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 40,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 15:21:51'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 40,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 15:21:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:21:52'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 40,
+  cambios: [ 'estado' ],
+  estadoAnterior: 'CERRADO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 15:25:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:25:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 41,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 15:25:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 41,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 15:25:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 41,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 15:25:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:25:35'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 42,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 15:32:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 42,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 15:32:48'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 42,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 15:32:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 15:32:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 43,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 20:57:07'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 20:58:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 20:58:02'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 20:58:04'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 20:58:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 43,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 20:58:11'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 43,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 20:58:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 20:58:12'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 44,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 20:58:54'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 44,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 20:59:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 44,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 20:59:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 20:59:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 45,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-01 20:59:50'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 45,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-01 21:00:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 45,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-01 21:00:01'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-01 21:00:02'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 46,
+  cantidad: 1,
+  carpeta: '/var/www/Cosaif/uploads/incidentes/2025/08/04',
+  level: 'info',
+  message: 'Imagenes procesadas y guardadas',
+  timestamp: '2025-08-04 03:08:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 46,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-04 03:08:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-04 03:08:39'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 46,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-04 03:08:48'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 46,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-04 03:08:48'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-04 03:08:48'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 47,
+  movimientoId: 20,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-04 03:09:31'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 47,
+  movimientoId: 20,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-04 03:09:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 47,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-04 03:09:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 20,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-04 03:09:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 48,
+  movimientoId: 22,
+  empresaId: 5,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-08-04 03:13:32'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 22,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-04 03:13:37'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 22,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-04 03:16:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 48,
+  movimientoId: 22,
+  level: 'info',
+  message: 'Movimiento reactivado tras cierre de incidente',
+  timestamp: '2025-08-04 03:16:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 48,
+  cambios: [ 'estado', 'fechaFin' ],
+  estadoAnterior: 'ABIERTO',
+  estadoNuevo: 'CERRADO',
+  level: 'info',
+  message: 'Incidente actualizado correctamente',
+  timestamp: '2025-08-04 03:16:16'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  movimientoId: 22,
+  empresaId: 5,
+  rondaOriginal: 1,
+  localidadId: 1,
+  prioridad: 'ALTA',
+  unicaEmpresa: false,
+  level: 'info',
+  message: 'Iniciando reorganizaci�n por incidente',
+  timestamp: '2025-08-04 03:16:16'
+}
