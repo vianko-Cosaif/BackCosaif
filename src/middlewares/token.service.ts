@@ -6,7 +6,7 @@ import ms, { StringValue } from 'ms';
 import { NotificadorFCM } from '../services/NotificadorFCM'; // Mantén o quita según necesites
 
 const prisma = new PrismaClient();
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ?? '3m') as StringValue;
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ?? '8h') as StringValue;
 
 /* -------------------------------------------------------------------------- */
 /*  Tipos                                                                     */
@@ -39,7 +39,7 @@ export function generateJwtToken(user: { id: number; nombre: string; rol?: strin
     expiresIn: JWT_EXPIRES_IN,
     issuer: process.env.JWT_ISSUER,
     audience: process.env.JWT_AUDIENCE,
-    jwtid: jti, // ‹‑‑ añadido al claim estándar
+    jwtid: jti, 
   };
 
   const token = jwt.sign(payload, secret, options);
