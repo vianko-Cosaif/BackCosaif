@@ -11,7 +11,7 @@ export class FmcModel {
   }
 
   /**
-   * Retorna todos los tokens asociados a un usuario específico.
+   * Retorna todos los tokens asociados a un usuario especï¿½fico.
    * @param usuarioId - ID del usuario
    */
   static async obtenerTokensPorUsuario(usuarioId: number): Promise<FcmToken[]> {
@@ -34,7 +34,7 @@ export class FmcModel {
   }
 
   /**
-   * Elimina un token específico.
+   * Elimina un token especï¿½fico.
    * @param token - Token FCM
    */
   static async eliminarToken(token: string): Promise<void> {
@@ -44,9 +44,9 @@ export class FmcModel {
   }
 
   /**
-   * Elimina todos los tokens de un usuario específico.
+   * Elimina todos los tokens de un usuario especï¿½fico.
    * @param usuarioId - ID del usuario
-   * @returns Número de tokens eliminados
+   * @returns Nï¿½mero de tokens eliminados
    */
   static async eliminarTokensPorUsuario(usuarioId: number): Promise<number> {
     const result = await prisma.fcmToken.deleteMany({
