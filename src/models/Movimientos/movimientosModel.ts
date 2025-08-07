@@ -1,7 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client'; 
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';   // ajusta la ruta si es distinta
-
+import { ViaModel } from '../Via/viaModel'; // Asegúrate de que la ruta sea correcta
 const prisma = new PrismaClient();
 
 export class MovimientoModel {
@@ -442,69 +442,69 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
  * @returns El movimiento creado, incluyendo sus relaciones empresa y localidad
  * @throws Error si falla la creación o la asignación de la ronda
  */
-static async nuevoMovimiento(data: {
-  empresaId: number;
-  creadoPorId: number;
-  localidadId: number;
-  viaOrigenId: number;
-  viaDestinoId?: number;
-  locomotiveNumber: number;
-  prioridad?: 'BAJA' | 'ALTA';
-  tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
-  estado?: string;
-  fechaSolicitud?: Date;
-  fechaInicio?: Date;
-  fechaFin?: Date;
-  fechaPausa?: Date;
-  instrucciones?: string;
-  finalizado?: boolean;
-  incidenteGlobal?: boolean;
-  clienteId?: number;
-  supervisorId?: number;
-  coordinadorId?: number;
-  operadorId?: number;
-  lavado?: boolean;
-  torno?: boolean;
-  posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-  posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-  direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
-}) {
-  try {
-    // 1) Normalizar valores por defecto
-    const movData: any = { ...data };
-    movData.prioridad        = movData.prioridad        ?? 'BAJA';
-    movData.estado           = movData.estado           ?? 'SOLICITADO';
-    movData.posicionCabina   = movData.posicionCabina   || 'Sin_Solicitar';
-    movData.posicionChimenea = movData.posicionChimenea || 'Sin_Solicitar';
-    movData.direccionEmpuje  = movData.direccionEmpuje  || 'Sin_Solicitar';
+ static async nuevoMovimiento(data: {
+    empresaId: number;
+    creadoPorId: number;
+    localidadId: number;
+    viaOrigenId: number;
+    viaDestinoId?: number;
+    locomotiveNumber: number;
+    prioridad?: 'BAJA' | 'ALTA';
+    tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
+    estado?: string;
+    fechaSolicitud?: Date;
+    instrucciones?: string;
+    clienteId?: number;
+    supervisorId?: number;
+    coordinadorId?: number;
+    operadorId?: number;
+    lavado?: boolean;
+    torno?: boolean;
+    posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+    posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+    direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
+  }) {
+    try {
+      // 1) Crear movimiento
+      const movData: any = { ...data };
+      movData.prioridad      = movData.prioridad      ?? 'BAJA';
+      movData.estado         = movData.estado         ?? 'SOLICITADO';
+      movData.posicionCabina = movData.posicionCabina || 'Sin_Solicitar';
+      movData.posicionChimenea = movData.posicionChimenea || 'Sin_Solicitar';
+      movData.direccionEmpuje  = movData.direccionEmpuje  || 'Sin_Solicitar';
+      Object.keys(movData).forEach(k => movData[k] === undefined && delete movData[k]);
 
-    // Eliminar propiedades undefined para Prisma
-    Object.keys(movData).forEach(k => {
-      if (movData[k] === undefined) delete movData[k];
-    });
-
-    // 2) Crear el movimiento en la base de datos
-    const mv = await prisma.movimiento.create({
-      data: movData,
-      include: { empresa: true, localidad: true }
-    });
-
-    // 3) Asignar ronda sin desplazar otras
-    if (mv.estado === 'SOLICITADO') {
-      await RondaModel.generarRondaParaMovimiento({
-        movimientoId: mv.id,
-        empresaId:   mv.empresaId,
-        localidadId: mv.localidadId,
-        prioridad:   mv.prioridad as 'ALTA' | 'BAJA'
+      const mv = await prisma.movimiento.create({
+        data: movData,
+        include: { empresa: true, localidad: true }
       });
-    }
 
-    return mv;
-  } catch (error: any) {
-    movimientoError.error('Error al crear movimiento', { data, error: error.message });
-    throw new Error('Error al crear movimiento');
-  }
-}
+      // 2) Si tiene víaDestino, delegamos en ViaModel para asignar sección
+      if (data.viaDestinoId !== undefined) {
+        // Esto lanzará si no hay secciones libres o ya ocupa
+        await ViaModel.asignarMovimientoASeccion(
+          data.viaDestinoId,
+          /* aquí determinas el número de sección libre, p.ej: */ 1,
+          mv.id
+        );
+      }
+
+      // 3) Generar ronda si procede
+      if (mv.estado === 'SOLICITADO') {
+        await RondaModel.generarRondaParaMovimiento({
+          movimientoId: mv.id,
+          empresaId:    mv.empresaId,
+          localidadId:  mv.localidadId,
+          prioridad:    mv.prioridad as 'ALTA' | 'BAJA'
+        });
+      }
+
+      return mv;
+    } catch (err: any) {
+      movimientoError.error('Error al crear movimiento', { data, error: err.message });
+      throw new Error('Error al crear movimiento');
+    }
+  } 
 
 
   /**
