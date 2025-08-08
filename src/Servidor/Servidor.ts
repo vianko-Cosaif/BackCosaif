@@ -11,6 +11,7 @@ import rondaRoutes from "../Rutas/Movimientos/Ronda/RondaRoutes";
 import IncidenteRoutes from "../Rutas/Incidente/IncidenteRutas";
 import FmcRutas from  "../FMC/fmcRoutes"
 import actualizacionRoutes  from "../Rutas/Actualizacion/ActualizacionRoutes";
+import Secciones from "../Rutas/Via/Secciones/SeccionRoutes";
 dotenv.config();
 
 
@@ -52,6 +53,7 @@ export function iniciarServidor(): void {
     app.use("/fcm",FmcRutas);
     app.use("/incidentes", IncidenteRoutes);
     app.use("/actualizaciones", actualizacionRoutes);
+    app.use("(/secciones", Secciones);
     // Inicia el servidor Express
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);

@@ -50,7 +50,7 @@ class NotificadorFCM {
             /* usuarios a notificar */
             const ids = [
                 mov.clienteId, mov.supervisorId, mov.coordinadorId,
-                mov.operadorId, mov.creadoPorId
+                mov.operadorId, mov.creadoPorId,
             ].filter(Boolean);
             const usuarios = await prisma.usuario.findMany({
                 where: { id: { in: ids }, activo: true },
@@ -102,51 +102,50 @@ class NotificadorFCM {
        CAMBIO DE ESTADO DEL INCIDENTE
        ---------------------------------------------- */
     static async notificarCambioEstado(incidente, estadoAnterior) {
-        try {
-            const mov = await prisma.movimiento.findUnique({
-                where: { id: incidente.movimientoId },
-                include: { empresa: true, localidad: true }
-            });
-            if (!mov)
-                return;
-            const ids = [
-                mov.clienteId, mov.supervisorId, mov.coordinadorId,
-                mov.operadorId, mov.creadoPorId
-            ].filter(Boolean);
-            const usuarios = await prisma.usuario.findMany({
-                where: { id: { in: ids }, activo: true },
-                include: { fcmTokens: true }
-            });
-            const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
-            if (tokens.length === 0)
-                return;
-            const empresa = mov.empresa?.nombre ?? 'Sin Empresa';
-            const titulo = incidente.estado === 'CERRADO'
-                ? '? INCIDENTE RESUELTO'
-                : '?? INCIDENTE ACTUALIZADO';
-            await firebase_admin_1.default.messaging().sendEachForMulticast({
-                notification: {
-                    title: titulo,
-                    body: `ID #${incidente.id} � ${empresa} � Loco ${mov.locomotiveNumber}`
-                },
-                data: {
-                    pantalla: 'Incidente',
-                    incidenteId: String(incidente.id),
-                    movimientoId: String(incidente.movimientoId),
-                    empresa,
-                    locomotora: String(mov.locomotiveNumber),
-                    estadoAnterior,
-                    estadoNuevo: incidente.estado,
-                    tipo: 'cambio_estado_incidente',
-                    timestamp: new Date().toISOString()
-                },
-                tokens
-            });
-        }
-        catch (e) {
-            console.error('? Error enviando notificaci�n de cambio de estado:', e);
-            throw e;
-        }
+        // 1) buscamos el movimiento
+        const mov = await prisma.movimiento.findUnique({
+            where: { id: incidente.movimientoId },
+            include: { empresa: true, localidad: true }
+        });
+        if (!mov)
+            return;
+        // 2) armamos la lista de IDs, incluyendo ahora al maquinista si lo necesitas
+        const ids = [
+            mov.clienteId,
+            mov.supervisorId,
+            mov.coordinadorId,
+            mov.operadorId,
+            mov.creadoPorId
+        ].filter(Boolean);
+        // 3) traemos tokens FCM
+        const usuarios = await prisma.usuario.findMany({
+            where: { id: { in: ids }, activo: true },
+            include: { fcmTokens: true }
+        });
+        const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+        if (!tokens.length)
+            return;
+        // 4) enviamos la notificación
+        const titulo = incidente.estado === 'RESUELTO'
+            ? '✅ Incidente resuelto'
+            : incidente.estado === 'CERRADO'
+                ? '❌ Incidente cerrado'
+                : 'ℹ️ Incidente actualizado';
+        await firebase_admin_1.default.messaging().sendEachForMulticast({
+            notification: {
+                title: titulo,
+                body: `ID #${incidente.id} • Loco ${mov.locomotiveNumber}`
+            },
+            data: {
+                pantalla: 'Incidente',
+                incidenteId: String(incidente.id),
+                movimientoId: String(incidente.movimientoId),
+                estadoAnterior,
+                estadoNuevo: incidente.estado,
+                timestamp: new Date().toISOString()
+            },
+            tokens
+        });
     }
     /**
      * Metodo mejorado para enviar notificaciones personalizadas

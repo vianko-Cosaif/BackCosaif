@@ -1,436 +1,350 @@
-import { Request, Response, RequestHandler } from 'express';
+// movimiento.controller.ts
+import { RequestHandler } from 'express';
 import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
-import { movimientoControllerLogger } from './movimiento.controller.logger';
-import { RondaModel } from '../../models/Movimientos/Ronda/RondaModel';
+import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
 
 export class MovimientoController {
   /**
    * GET /movimientos
-   * Obtiene todos los movimientos.
    */
   static obtenerMovimientos: RequestHandler = async (_req, res) => {
     try {
       const movimientos = await MovimientoModel.obtenerMovimientos();
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos', { error });
-      res.status(500).json({ message: 'Error al obtener movimientos', details: error });
+      log.error('Error al obtener movimientos', { error });
+      res.status(500).json({ message: 'Error al obtener movimientos' });
     }
   };
 
   /**
    * POST /movimientos
-   * Crea un nuevo movimiento y genera su ronda asociada según su prioridad.
-   * Si el movimiento tiene prioridad ALTA, reorganizará todas las rondas existentes.
+   * Crea un movimiento (el modelo intentará ocupar vía/sección y generar la ronda).
+   * Acepta opcionalmente `numeroSeccion`.
    */
+  static nuevoMovimiento: RequestHandler = async (req, res) => {
+    try {
+      const data = { ...req.body };
 
-  /**
- * POST /movimientos
- * Crea un movimiento y genera la ronda; luego notifica por FCM.
- */
-static  nuevoMovimiento: RequestHandler = async (req, res) => {
-  try {
-    const data = req.body;
-    
-    const movimientoData: any = { ...data };
+      // Normalización (el modelo también lo hace, pero aquí evitamos basura)
+      data.prioridad ??= 'BAJA';
+      data.estado ??= 'SOLICITADO';
+      data.posicionCabina ??= 'Sin_Solicitar';
+      data.posicionChimenea ??= 'Sin_Solicitar';
+      data.direccionEmpuje ??= 'Sin_Solicitar';
 
-    // ?? Normalizar campos vac os
-    movimientoData.posicionCabina   ||= 'Sin_Solicitar';
-    movimientoData.posicionChimenea ||= 'Sin_Solicitar';
-    movimientoData.direccionEmpuje  ||= 'Sin_Solicitar';
+      // Validaciones simples
+      if (!data.empresaId || !data.creadoPorId || !data.localidadId || !data.viaOrigenId || !data.locomotiveNumber) {
+        return res.status(400).json({ message: 'Faltan campos obligatorios.' });
+      }
+      if (data.prioridad && !['ALTA', 'BAJA'].includes(data.prioridad)) {
+        return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+      }
+      if (data.numeroSeccion != null && Number.isNaN(Number(data.numeroSeccion))) {
+        return res.status(400).json({ message: 'numeroSeccion debe ser numérico' });
+      }
 
-    // Valores predeterminados
-    movimientoData.prioridad ||= 'BAJA';
-    movimientoData.estado    ||= 'SOLICITADO';
+      const movimiento = await MovimientoModel.nuevoMovimiento(data);
 
-    // Eliminar undefined
-    for (const k in movimientoData) if (movimientoData[k] === undefined) delete movimientoData[k];
+      // Notificar por FCM (no bloquea la creación)
+      try {
+        await NotificadorFCM.notificarNuevoMovimiento(movimiento);
+      } catch (e) {
+        log.warn('No se pudo notificar por FCM', { error: e, movimientoId: movimiento?.id });
+      }
 
-    // ?? Crear Movimiento (incluyendo empresa + creadoPor)
-    const nuevoMovimiento = await prisma.movimiento.create({
-      data: movimientoData,
-      include: {
-        empresa: true,
-        localidad: true,
-        creadoPor: true,          // ?? necesario para el mensaje
-      },
-    });
-
-    // ?? Generar Ronda
-    if (nuevoMovimiento.estado === 'SOLICITADO') {
-      await RondaModel.generarRondaParaMovimiento({
-        movimientoId: nuevoMovimiento.id,
-        empresaId: nuevoMovimiento.empresaId,
-        localidadId: nuevoMovimiento.localidadId,
-        prioridad: nuevoMovimiento.prioridad as 'ALTA' | 'BAJA',
-      });
-
-      if (nuevoMovimiento.prioridad === 'ALTA') {
-       console.log("error")      }
+      res.status(201).json({ message: 'Movimiento creado exitosamente', movimiento });
+    } catch (error: any) {
+      log.error('Error al crear movimiento', { error, body: req.body });
+      res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
     }
+  };
 
-    // ?? Notificar por FCM
-    await NotificadorFCM.notificarNuevoMovimiento(nuevoMovimiento);
-
-    res.status(201).json({ 
-      message: 'Movimiento creado exitosamente', 
-      movimiento: nuevoMovimiento 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error al crear movimiento', details: error });
-  }
-};
   /**
    * PATCH /movimientos/:id/prioridad
-   * Cambia la prioridad de un movimiento y reorganiza las rondas si es necesario.
    */
   static cambiarPrioridad: RequestHandler = async (req, res) => {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
     const { prioridad } = req.body;
 
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'ID de movimiento inválido' });
-      return;
-    }
-
-    if (prioridad !== 'ALTA' && prioridad !== 'BAJA') {
-      res.status(400).json({ message: 'Valor de prioridad inválido. Debe ser "ALTA" o "BAJA"' });
-      return;
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID de movimiento inválido' });
+    if (!['ALTA', 'BAJA'].includes(prioridad)) {
+      return res.status(400).json({ message: 'Valor de prioridad inválido. Debe ser "ALTA" o "BAJA"' });
     }
 
     try {
-      // Obtener el movimiento actual (ya que obtenerMovimientoPorId aún no está implementado)
+      // (Opcional) podrías crear MovimientoModel.obtenerMovimientoPorId para evitar traer todo
       const movimientos = await MovimientoModel.obtenerMovimientos();
-      const movimientoOriginal = movimientos.find(m => m.id === id);
-      
-      if (!movimientoOriginal) {
-        res.status(404).json({ message: 'Movimiento no encontrado' });
-        return;
+      const original = movimientos.find(m => m.id === id);
+      if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
+
+      if (original.prioridad === prioridad) {
+        return res.status(200).json({ message: `El movimiento ya tiene prioridad ${prioridad}`, movimiento: original });
       }
-      
-      // Si ya tiene la misma prioridad, evitar operación innecesaria
-      if (movimientoOriginal.prioridad === prioridad) {
-        res.status(200).json({ 
-          message: `El movimiento ya tiene prioridad ${prioridad}`, 
-          movimiento: movimientoOriginal 
-        });
-        return;
-      }
-      
-      // Registrar evento de cambio a alta prioridad
+
       if (prioridad === 'ALTA') {
-        movimientoControllerLogger.info('Cambiando movimiento a ALTA prioridad', { 
-          id, 
-          estadoOriginal: movimientoOriginal.estado,
-          localidadId: movimientoOriginal.localidadId
+        log.info('Cambiando movimiento a ALTA prioridad', {
+          id,
+          estadoOriginal: original.estado,
+          localidadId: original.localidadId,
         });
       }
 
-      // Cambiar prioridad y reorganizar rondas si es necesario
-      const movimientoActualizado = await MovimientoModel.cambiarPrioridad(id, prioridad);
+      const movimiento = await MovimientoModel.cambiarPrioridad(id, prioridad);
+      const message =
+        prioridad === 'ALTA' && original.estado === 'SOLICITADO'
+          ? 'Prioridad actualizada a ALTA. Se reorganizaron todas las rondas.'
+          : `Prioridad actualizada a ${prioridad}`;
 
-      let message = `Prioridad actualizada a ${prioridad}`;
-      if (prioridad === 'ALTA' && movimientoOriginal.estado === 'SOLICITADO') {
-        message = 'Prioridad actualizada a ALTA. Se reorganizaron todas las rondas.';
-      }
-
-      res.status(200).json({ 
-        message,
-        movimiento: movimientoActualizado,
-        prioridadAnterior: movimientoOriginal.prioridad,
-        prioridadNueva: prioridad
-      });
+      res.status(200).json({ message, movimiento, prioridadAnterior: original.prioridad, prioridadNueva: prioridad });
     } catch (error) {
-      movimientoControllerLogger.error('Error al cambiar prioridad del movimiento', { error, id, prioridad });
-      res.status(500).json({ message: 'Error al cambiar prioridad del movimiento', details: error });
+      log.error('Error al cambiar prioridad del movimiento', { error, id, prioridad });
+      res.status(500).json({ message: 'Error al cambiar prioridad del movimiento' });
     }
   };
 
   /**
    * DELETE /movimientos/:id
-   * Elimina un movimiento por su ID.
    */
   static eliminarMovimiento: RequestHandler = async (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'ID inválido' });
-      return;
-    }
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+
     try {
       const eliminado = await MovimientoModel.eliminarMovimiento(id);
       res.status(200).json({ message: 'Movimiento eliminado correctamente', eliminado });
     } catch (error) {
-      movimientoControllerLogger.error('Error al eliminar movimiento', { error, id });
-      res.status(500).json({ message: 'Error al eliminar movimiento', details: error });
+      log.error('Error al eliminar movimiento', { error, id });
+      res.status(500).json({ message: 'Error al eliminar movimiento' });
     }
   };
 
   /**
    * GET /movimientos/pendientes
-   * Obtiene movimientos en estado SOLICITADO, EN_PROCESO o DETENIDO.
    */
   static obtenerMovimientosPendientes: RequestHandler = async (_req, res) => {
     try {
       const pendientes = await MovimientoModel.obtenerMovimientosPendientes();
       res.status(200).json(pendientes);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos pendientes', { error });
-      res.status(500).json({ message: 'Error al obtener movimientos pendientes', details: error });
+      log.error('Error al obtener movimientos pendientes', { error });
+      res.status(500).json({ message: 'Error al obtener movimientos pendientes' });
     }
   };
 
   /**
    * GET /movimientos/empresa/:empresaId/pendientes
-   * Obtiene movimientos pendientes de una empresa.
    */
   static obtenerMovimientosPendientesPorEmpresa: RequestHandler = async (req, res) => {
-    const empresaId = parseInt(req.params.empresaId, 10);
-    if (isNaN(empresaId)) {
-      res.status(400).json({ message: 'ID de empresa inválido' });
-      return;
-    }
+    const empresaId = Number(req.params.empresaId);
+    if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
+
     try {
       const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresa(empresaId);
       res.status(200).json(pendientes);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos pendientes por empresa', { error, empresaId });
-      res.status(500).json({ message: 'Error al obtener movimientos pendientes por empresa', details: error });
+      log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId });
+      res.status(500).json({ message: 'Error al obtener movimientos pendientes por empresa' });
     }
   };
 
   /**
    * GET /movimientos/all
-   * Obtiene todos los movimientos ordenados por fecha.
    */
   static obtenerTodosLosMovimientos: RequestHandler = async (_req, res) => {
     try {
       const movimientos = await MovimientoModel.obtenerTodosLosMovimientos();
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener todos los movimientos', { error });
-      res.status(500).json({ message: 'Error al obtener todos los movimientos', details: error });
+      log.error('Error al obtener todos los movimientos', { error });
+      res.status(500).json({ message: 'Error al obtener todos los movimientos' });
     }
   };
 
   /**
    * GET /movimientos/empresa/:empresaId
-   * Obtiene movimientos de una empresa.
    */
   static obtenerMovimientosPorEmpresa: RequestHandler = async (req, res) => {
-    const empresaId = parseInt(req.params.empresaId, 10);
-    if (isNaN(empresaId)) {
-      res.status(400).json({ message: 'ID de empresa inválido' });
-      return;
-    }
+    const empresaId = Number(req.params.empresaId);
+    if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
+
     try {
       const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresa(empresaId);
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos por empresa', { error, empresaId });
-      res.status(500).json({ message: 'Error al obtener movimientos por empresa', details: error });
+      log.error('Error al obtener movimientos por empresa', { error, empresaId });
+      res.status(500).json({ message: 'Error al obtener movimientos por empresa' });
     }
   };
 
   /**
    * GET /movimientos/localidad/:localidadId/pendientes
-   * Obtiene movimientos pendientes por localidad.
    */
   static obtenerMovimientosPendientesPorLocalidad: RequestHandler = async (req, res) => {
-    const localidadId = parseInt(req.params.localidadId, 10);
-    if (isNaN(localidadId)) {
-      res.status(400).json({ message: 'ID de localidad inválido' });
-      return;
-    }
+    const localidadId = Number(req.params.localidadId);
+    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
+
     try {
       const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos pendientes por localidad', { error, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad', details: error });
+      log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId });
+      res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad' });
     }
   };
 
-
   /**
    * GET /movimientos/localidad/:localidadId/all
-   * Obtiene todos los movimientos por localidad.
    */
   static obtenerTodosMovimientosPorLocalidad: RequestHandler = async (req, res) => {
-    const localidadId = parseInt(req.params.localidadId, 10);
-    if (isNaN(localidadId)) {
-      res.status(400).json({ message: 'ID de localidad inválido' });
-      return;
-    }
+    const localidadId = Number(req.params.localidadId);
+    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
+
     try {
       const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidad(localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener todos los movimientos por localidad', { error, localidadId });
-      res.status(500).json({ message: 'Error al obtener todos los movimientos por localidad', details: error });
+      log.error('Error al obtener todos los movimientos por localidad', { error, localidadId });
+      res.status(500).json({ message: 'Error al obtener todos los movimientos por localidad' });
     }
   };
 
   /**
    * GET /movimientos/localidad/:localidadId/empresa/:empresaId
-   * Obtiene movimientos por localidad y empresa.
    */
   static obtenerMovimientosPorLocalidadEmpresa: RequestHandler = async (req, res) => {
-    const localidadId = parseInt(req.params.localidadId, 10);
-    const empresaId = parseInt(req.params.empresaId, 10);
-    if (isNaN(localidadId) || isNaN(empresaId)) {
-      res.status(400).json({ message: 'ID de localidad o empresa inválido' });
-      return;
+    const localidadId = Number(req.params.localidadId);
+    const empresaId = Number(req.params.empresaId);
+    if (!Number.isInteger(localidadId) || !Number.isInteger(empresaId)) {
+      return res.status(400).json({ message: 'ID de localidad o empresa inválido' });
     }
     try {
       const movimientos = await MovimientoModel.obtenerMovimientosPorLocalidadEmpresa(localidadId, empresaId);
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId });
-      res.status(500).json({ message: 'Error al obtener movimientos por localidad y empresa', details: error });
+      log.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId });
+      res.status(500).json({ message: 'Error al obtener movimientos por localidad y empresa' });
     }
   };
 
   /**
    * GET /movimientos/empresa/:empresaId/localidad/:localidadId
-   * Obtiene movimientos de una empresa en una localidad.
    */
   static obtenerMovimientosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
-    const empresaId = parseInt(req.params.empresaId, 10);
-    const localidadId = parseInt(req.params.localidadId, 10);
-    if (isNaN(empresaId) || isNaN(localidadId)) {
-      res.status(400).json({ message: 'ID de empresa o localidad inválido' });
-      return;
+    const empresaId = Number(req.params.empresaId);
+    const localidadId = Number(req.params.localidadId);
+    if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
+      return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
     }
     try {
       const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidad(empresaId, localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos por empresa y localidad', details: error });
+      log.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId });
+      res.status(500).json({ message: 'Error al obtener movimientos por empresa y localidad' });
     }
   };
 
   /**
    * GET /movimientos/empresa/:empresaId/localidad/:localidadId/pendientes
-   * Obtiene movimientos NO concluidos de una empresa en una localidad.
    */
   static obtenerMovimientosNoConcluidosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
-    const empresaId = parseInt(req.params.empresaId, 10);
-    const localidadId = parseInt(req.params.localidadId, 10);
-    if (isNaN(empresaId) || isNaN(localidadId)) {
-      res.status(400).json({ message: 'ID de empresa o localidad inválido' });
-      return;
+    const empresaId = Number(req.params.empresaId);
+    const localidadId = Number(req.params.localidadId);
+    if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
+      return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
     }
     try {
       const pendientes = await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId, localidadId);
       res.status(200).json(pendientes);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos no concluidos por empresa y localidad', details: error });
+      log.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId });
+      res.status(500).json({ message: 'Error al obtener movimientos no concluidos por empresa y localidad' });
     }
   };
 
   /**
    * GET /movimientos/ronda/:rondaId/info
-   * Obtiene información detallada de una ronda y su movimiento asociado.
    */
   static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
-    const rondaId = parseInt(req.params.rondaId, 10);
-    if (isNaN(rondaId)) {
-      res.status(400).json({ message: 'ID de ronda inválido' });
-      return;
-    }
+    const rondaId = Number(req.params.rondaId);
+    if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
+
     try {
       const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
       res.status(200).json(info);
     } catch (error) {
-      movimientoControllerLogger.error('Error al obtener info de ronda', { error, rondaId });
-      res.status(500).json({ message: 'Error al obtener info de ronda', details: error });
+      log.error('Error al obtener info de ronda', { error, rondaId });
+      res.status(500).json({ message: 'Error al obtener info de ronda' });
     }
   };
 
   /**
    * PATCH /movimientos/:id/iniciar
-   * Cambia el estado del movimiento a EN_PROCESO y asigna fechaInicio actual.
    */
   static iniciarMovimiento: RequestHandler = async (req, res) => {
-    const id = parseInt(req.params.id, 10);
+    const id = Number(req.params.id);
     const { operadorId } = req.body;
 
-    if (isNaN(id) || typeof operadorId !== 'number') {
-      res.status(400).json({ message: 'Datos inválidos: id o operadorId faltante o incorrecto' });
-      return;
+    if (!Number.isInteger(id) || typeof operadorId !== 'number') {
+      return res.status(400).json({ message: 'Datos inválidos: id o operadorId faltante o incorrecto' });
     }
 
     try {
       const movimiento = await MovimientoModel.iniciarMovimiento(id, operadorId);
       res.status(200).json({ message: 'Movimiento iniciado', movimiento });
     } catch (error) {
-      movimientoControllerLogger.error('Error al iniciar movimiento', { id, operadorId, error });
-      res.status(500).json({ message: 'Error al iniciar movimiento', details: error });
+      log.error('Error al iniciar movimiento', { id, operadorId, error });
+      res.status(500).json({ message: 'Error al iniciar movimiento' });
     }
   };
 
   /**
    * PATCH /movimientos/:id/pausar
-   * Cambia el estado del movimiento a DETENIDO y asigna fechaPausa actual.
    */
   static pausarMovimiento: RequestHandler = async (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'ID inválido' });
-      return;
-    }
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
     try {
       const movimiento = await MovimientoModel.pausarMovimiento(id);
       res.status(200).json({ message: 'Movimiento pausado', movimiento });
     } catch (error) {
-      movimientoControllerLogger.error('Error al pausar movimiento', { id, error });
-      res.status(500).json({ message: 'Error al pausar movimiento', details: error });
+      log.error('Error al pausar movimiento', { id, error });
+      res.status(500).json({ message: 'Error al pausar movimiento' });
     }
   };
 
   /**
    * PATCH /movimientos/:id/reanudar
-   * Cambia el estado del movimiento a EN_PROCESO nuevamente.
    */
   static reanudarMovimiento: RequestHandler = async (req, res) => {
-    const id = parseInt(req.params.id, 10);
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'ID inválido' });
-      return;
-    }
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
     try {
       const movimiento = await MovimientoModel.reanudarMovimiento(id);
       res.status(200).json({ message: 'Movimiento reanudado', movimiento });
     } catch (error) {
-      movimientoControllerLogger.error('Error al reanudar movimiento', { id, error });
-      res.status(500).json({ message: 'Error al reanudar movimiento', details: error });
+      log.error('Error al reanudar movimiento', { id, error });
+      res.status(500).json({ message: 'Error al reanudar movimiento' });
     }
   };
 
-/**
- * PATCH /movimientos/:id/finalizar
- * Marca el movimiento como CONCLUIDO y compacta rondas.
- */
-static finalizarMovimiento: RequestHandler = async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) {
-    res.status(400).json({ message: 'ID inv�lido' });
-    return;
-  }
+  /**
+   * PATCH /movimientos/:id/finalizar
+   */
+  static finalizarMovimiento: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
-  try {
-    const movimiento = await MovimientoModel.finalizarMovimiento(id);
-    res.status(200).json({ message: 'Movimiento finalizado', movimiento });
-  } catch (error) {
-    movimientoControllerLogger.error('Error al finalizar movimiento', { id, error });
-    res.status(500).json({ message: 'Error al finalizar movimiento', details: error });
-  }
-};
+    try {
+      const movimiento = await MovimientoModel.finalizarMovimiento(id);
+      res.status(200).json({ message: 'Movimiento finalizado', movimiento });
+    } catch (error) {
+      log.error('Error al finalizar movimiento', { id, error });
+      res.status(500).json({ message: 'Error al finalizar movimiento' });
+    }
+  };
 }

@@ -4,6 +4,7 @@ exports.MovimientoModel = void 0;
 const client_1 = require("@prisma/client");
 const RondaModel_1 = require("./Ronda/RondaModel");
 const movimiento_logger_1 = require("./movimiento.logger"); // ajusta la ruta si es distinta
+const viaModel_1 = require("../Via/viaModel"); // Asegúrate de que la ruta sea correcta
 const prisma = new client_1.PrismaClient();
 class MovimientoModel {
     static async obtenerMovimientos() {
@@ -398,24 +399,25 @@ class MovimientoModel {
      */
     static async nuevoMovimiento(data) {
         try {
-            // 1) Normalizar valores por defecto
+            // 1) Crear movimiento
             const movData = { ...data };
             movData.prioridad = movData.prioridad ?? 'BAJA';
             movData.estado = movData.estado ?? 'SOLICITADO';
             movData.posicionCabina = movData.posicionCabina || 'Sin_Solicitar';
             movData.posicionChimenea = movData.posicionChimenea || 'Sin_Solicitar';
             movData.direccionEmpuje = movData.direccionEmpuje || 'Sin_Solicitar';
-            // Eliminar propiedades undefined para Prisma
-            Object.keys(movData).forEach(k => {
-                if (movData[k] === undefined)
-                    delete movData[k];
-            });
-            // 2) Crear el movimiento en la base de datos
+            Object.keys(movData).forEach(k => movData[k] === undefined && delete movData[k]);
             const mv = await prisma.movimiento.create({
                 data: movData,
                 include: { empresa: true, localidad: true }
             });
-            // 3) Asignar ronda sin desplazar otras
+            // 2) Si tiene víaDestino, delegamos en ViaModel para asignar sección
+            if (data.viaDestinoId !== undefined) {
+                // Esto lanzará si no hay secciones libres o ya ocupa
+                await viaModel_1.ViaModel.asignarMovimientoASeccion(data.viaDestinoId, 
+                /* aquí determinas el número de sección libre, p.ej: */ 1, mv.id);
+            }
+            // 3) Generar ronda si procede
             if (mv.estado === 'SOLICITADO') {
                 await RondaModel_1.RondaModel.generarRondaParaMovimiento({
                     movimientoId: mv.id,
@@ -426,8 +428,8 @@ class MovimientoModel {
             }
             return mv;
         }
-        catch (error) {
-            movimiento_logger_1.movimientoError.error('Error al crear movimiento', { data, error: error.message });
+        catch (err) {
+            movimiento_logger_1.movimientoError.error('Error al crear movimiento', { data, error: err.message });
             throw new Error('Error al crear movimiento');
         }
     }
