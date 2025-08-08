@@ -53,7 +53,7 @@ export function iniciarServidor(): void {
     app.use("/fcm",FmcRutas);
     app.use("/incidentes", IncidenteRoutes);
     app.use("/actualizaciones", actualizacionRoutes);
-    app.use("(/secciones", Secciones);
+    app.use("/secciones", Secciones);
     // Inicia el servidor Express
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
