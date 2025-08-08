@@ -18,6 +18,16 @@ export class RondaModel {
     });
     return c > 0;
   }
+  /** BORRA todas las rondas (uso del controller) */
+  static async eliminarTodasLasRondas() {
+    await prisma.ronda.deleteMany({});
+  }
+
+  /** Recalcula TODA la ronda desde cero (inteligente) y devuelve el resultado */
+  static async generarRondaInteligente() {
+    await this.crearTodasLasRondas();              // usa tu método privado
+    return this.obtenerRondas();                   // devuelve ya ordenado
+  }
 
   /** Ordena FIFO las ALTAS de ronda 1 por movimiento.createdAt */
   private static async reordenarAltaFIFO(localidadId: number, tx: Prisma.TransactionClient = prisma) {
