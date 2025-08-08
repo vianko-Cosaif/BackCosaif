@@ -36,4 +36,6 @@ router.delete('/:id', IncidenteController_1.IncidenteController.eliminar);
 // Cerrar manualmente un incidente (cambia estado a CERRADO)
 // POST /incidentes/:id/cerrar
 router.post('/:id/cerrar', IncidenteController_1.IncidenteController.cerrar);
+// Ruta para marcar como resuelto y notificar
+router.post('/:id/resuelto', IncidenteController_1.IncidenteController.resolver);
 exports.default = router;

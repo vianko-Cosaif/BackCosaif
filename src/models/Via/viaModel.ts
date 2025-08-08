@@ -1,74 +1,151 @@
+// ViaModel.ts
+/**
+ * ============================================================================
+ *  Ítem de información: ViaModel (Módulo de Dominio)
+ *  Versión: 1.1.0
+ *  Fecha: 2025-08-08
+ *  Estado: Aprobado
+ * ============================================================================
+ *
+ *  # Propósito
+ *  Coordinar ocupación/liberación de vías y delegar a SeccionViaModel cuando
+ *  existan secciones, manteniendo la política “la sección rige a la vía”.
+ *
+ *  # Política
+ *  - Si la vía tiene **≥1 secciones**: NUNCA escribir directamente `via.ocupada`
+ *    ni `via.movimientoId`; delegar a SeccionViaModel (que sincroniza la vía).
+ *  - Si la vía tiene **0 secciones**: la vía es “simple”, se escribe directo.
+ *
+ *  # Notas
+ *  - En asignación, si hay secciones y no se pasa `numeroSeccion`, toma la
+ *    **primera sección libre**; si no hay libres → ConflictError.
+ *  - `editarVia` filtra cambios a `ocupada/movimientoId` si hay secciones.
+ * ============================================================================
+ */
+
 import { PrismaClient } from '@prisma/client';
 import { viaError } from './via.logger';
-import { SeccionViaModel } from './Secciones/SeccionViasModel';
+import { SeccionViaModel, NotFoundError, ConflictError } from './Secciones/SeccionViasModel';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient(); // TODO: inyectar singleton
 
 export class ViaModel {
+  // -------------------- Helpers --------------------
+
+  private static async contarSecciones(viaId: number) {
+    return prisma.seccionVia.count({ where: { viaId } });
+  }
+
+  /** Devuelve el número de la primera sección libre (o null si ninguna). */
+  private static async primeraSeccionLibre(viaId: number): Promise<number | null> {
+    const libre = await prisma.seccionVia.findFirst({
+      where: { viaId, ocupada: false },
+      orderBy: { numero: 'asc' },
+      select: { numero: true },
+    });
+    return libre?.numero ?? null;
+  }
+
+  // -------------------- Ocupación / Liberación --------------------
+
   /**
-   * Asigna un movimiento a una sección de una vía y marca la vía como ocupada.
-   * Requiere número de sección. Si la vía no tiene secciones, ocupa vía completa.
-   */
-    /**
-   * Asigna un movimiento a una sección de una vía y marca la vía como ocupada.
-   * Requiere número de sección si hay secciones definidas.
-   * @param viaId - ID de la vía.
-   * @param numeroSeccion - Número de la sección a ocupar.
-   * @param movimientoId - ID del movimiento.
+   * Asignar movimiento:
+   * - 0 secciones -> ocupa la vía completa.
+   * - ≥1 secciones -> delega a SeccionViaModel (elige sección si no se pasa).
    */
   static async asignarMovimientoASeccion(
     viaId: number,
-    numeroSeccion: number,
+    numeroSeccion: number | null,
     movimientoId: number
   ) {
     try {
-      // Verificar si la vía tiene secciones
-      const secciones = await prisma.seccionVia.findMany({ where: { viaId } });
-      if (secciones.length > 0) {
-        // Delegar en SeccionViaModel para manejar sección específica
-        await SeccionViaModel.asignarMovimientoASeccion(viaId, numeroSeccion, movimientoId);
-      } else {
-        // Si no hay secciones, ocupa la vía completa
-        await prisma.via.update({
-          where: { id: viaId },
-          data: { ocupada: true, movimientoId }
+      const via = await prisma.via.findUnique({ where: { id: viaId }, select: { id: true } });
+      if (!via) throw new NotFoundError(`Vía ${viaId} no existe`);
+
+      const seccionesCount = await this.contarSecciones(viaId);
+
+      // Vía simple (0 secciones): escribir directo en Via
+      if (seccionesCount === 0) {
+        return await prisma.$transaction(async (tx) => {
+          const actual = await tx.via.findUnique({
+            where: { id: viaId },
+            select: { ocupada: true, movimientoId: true },
+          });
+
+          if (actual?.movimientoId && actual.movimientoId !== movimientoId) {
+            throw new ConflictError(`Vía ${viaId} ya está asignada a otro movimiento.`);
+          }
+
+          const updated = await tx.via.updateMany({
+            where: { id: viaId, OR: [{ movimientoId: null }, { movimientoId }] },
+            data: { ocupada: true, movimientoId },
+          });
+          if (updated.count !== 1) throw new ConflictError('La vía cambió de estado; reintenta.');
+
+          return tx.via.findUnique({ where: { id: viaId }, include: { movimiento: true } });
         });
       }
+
+      // Vía con secciones (≥1): delegar a SeccionViaModel
+      let targetSeccion = numeroSeccion ?? null;
+      if (targetSeccion == null) {
+        targetSeccion = await this.primeraSeccionLibre(viaId);
+        if (targetSeccion == null) {
+          throw new ConflictError(`La vía ${viaId} no tiene secciones libres.`);
+        }
+      }
+
+      return await SeccionViaModel.asignarMovimientoASeccion(viaId, targetSeccion, movimientoId);
     } catch (error: any) {
       viaError.error('Error en asignarMovimientoASeccion', { error, viaId, numeroSeccion, movimientoId });
       throw error;
     }
-  } 
+  }
 
   /**
-   * Libera el movimiento de una sección (o vía completa) y actualiza estado.
+   * Liberar movimiento:
+   * - 0 secciones -> libera la vía completa si pertenece al movimiento.
+   * - ≥1 secciones -> delega a SeccionViaModel.liberarMovimientoDeSeccion (libera todas las secciones del movimiento).
    */
-  static async liberarMovimientoDeSeccion(
-    viaId: number,
-    movimientoId: number
-  ) {
+  static async liberarMovimientoDeSeccion(viaId: number, movimientoId: number) {
     try {
-      // delegar en SeccionViaModel
-      await SeccionViaModel.liberarMovimientoDeSeccion(
-        viaId,
-        movimientoId
-      );
+      const viaExiste = await prisma.via.findUnique({ where: { id: viaId }, select: { id: true } });
+      if (!viaExiste) throw new NotFoundError(`Vía ${viaId} no existe`);
+
+      const seccionesCount = await this.contarSecciones(viaId);
+
+      if (seccionesCount === 0) {
+        return await prisma.$transaction(async (tx) => {
+          const updated = await tx.via.updateMany({
+            where: { id: viaId, movimientoId },
+            data: { ocupada: false, movimientoId: null },
+          });
+          if (updated.count !== 1) {
+            throw new NotFoundError('La vía no estaba ocupada por ese movimiento.');
+          }
+          return tx.via.findUnique({ where: { id: viaId } });
+        });
+      }
+
+      // Con secciones: delega (la vía se sincroniza dentro de ese flujo)
+      return await SeccionViaModel.liberarMovimientoDeSeccion(viaId, movimientoId);
     } catch (error: any) {
       viaError.error('Error en liberarMovimientoDeSeccion', { error, viaId, movimientoId });
       throw error;
     }
   }
 
-  /**
-   * Obtiene todas las vías, incluyendo su ocupación y secciones.
-   */
+  // -------------------- CRUD y consultas --------------------
+
+  /** Listado de vías (con secciones ordenadas y relaciones útiles). */
   static async obtenerVias() {
     try {
       return await prisma.via.findMany({
+        orderBy: [{ localidadId: 'asc' }, { numero: 'asc' }],
         include: {
           localidad: true,
           movimiento: true,
-          secciones: { include: { movimiento: true } },
+          secciones: { orderBy: { numero: 'asc' }, include: { movimiento: true } },
           movimientosOrigen: true,
           movimientosDestino: true,
         },
@@ -79,7 +156,6 @@ export class ViaModel {
     }
   }
 
-  /** Crea una nueva vía. */
   static async crearVia(numero: number, nombre: string, localidadId: number) {
     try {
       return await prisma.via.create({ data: { numero, nombre, localidadId } });
@@ -89,20 +165,38 @@ export class ViaModel {
     }
   }
 
-  /** Edita una vía existente. */
+  /**
+   * Edita una vía.
+   * Si la vía tiene secciones, **ignora** cambios a `ocupada` y `movimientoId`
+   * para no romper la coherencia (la sección rige el estado).
+   */
   static async editarVia(
     id: number,
-    data: { numero?: number; nombre?: string; localidadId?: number; ocupada?: boolean; movimientoId?: number | null }
+    data: {
+      numero?: number;
+      nombre?: string;
+      localidadId?: number;
+      ocupada?: boolean;
+      movimientoId?: number | null;
+    }
   ) {
     try {
-      return await prisma.via.update({ where: { id }, data });
+      const seccionesCount = await this.contarSecciones(id);
+
+      const payload: typeof data = { ...data };
+      if (seccionesCount > 0) {
+        // No permitir que se editen estos campos cuando hay secciones
+        if ('ocupada' in payload) delete payload.ocupada;
+        if ('movimientoId' in payload) delete payload.movimientoId;
+      }
+
+      return await prisma.via.update({ where: { id }, data: payload });
     } catch (error: any) {
       viaError.error('Error al editar vía', { error, id, data });
       throw error;
     }
   }
 
-  /** Elimina una vía por su ID. */
   static async eliminarVia(id: number) {
     try {
       return await prisma.via.delete({ where: { id } });
@@ -112,15 +206,15 @@ export class ViaModel {
     }
   }
 
-  /** Obtiene vías filtradas por localidad. */
   static async obtenerViasPorLocalidad(localidadId: number) {
     try {
       return await prisma.via.findMany({
         where: { localidadId },
+        orderBy: { numero: 'asc' },
         include: {
           localidad: true,
           movimiento: true,
-          secciones: { include: { movimiento: true } },
+          secciones: { orderBy: { numero: 'asc' }, include: { movimiento: true } },
           movimientosOrigen: true,
           movimientosDestino: true,
         },
@@ -130,5 +224,22 @@ export class ViaModel {
       throw error;
     }
   }
-}
 
+  static async obtenerViaPorId(id: number) {
+    try {
+      return await prisma.via.findUnique({
+        where: { id },
+        include: {
+          localidad: true,
+          movimiento: true,
+          secciones: { orderBy: { numero: 'asc' }, include: { movimiento: true } },
+          movimientosOrigen: true,
+          movimientosDestino: true,
+        },
+      });
+    } catch (error: any) {
+      viaError.error('Error al obtener vía por id', { error, id });
+      throw error;
+    }
+  }
+}

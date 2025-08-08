@@ -10,6 +10,7 @@ const multer_1 = __importDefault(require("multer"));
 const promises_1 = __importDefault(require("fs/promises"));
 const IncidenteModel_1 = require("../../models/Incidente/IncidenteModel");
 const incidente_controller_logger_1 = require("./incidente.controller.logger");
+const NotificadorFCM_1 = require("../../services/NotificadorFCM");
 // Configuración de multer (memoria, max. 4 imágenes de 10MB c/u)
 const upload = (0, multer_1.default)({
     storage: multer_1.default.memoryStorage(),
@@ -197,5 +198,33 @@ IncidenteController.servirImagen = async (req, res) => {
     }
     catch {
         res.status(404).json({ success: false, error: 'Imagen no encontrada' });
+    }
+};
+/**
+  * POST /incidentes/:id/resuelto
+  * Marca un incidente como RESUELTO y notifica a los interesados.
+  */
+IncidenteController.resolver = async (req, res) => {
+    const id = Number(req.params.id);
+    const { comentario } = req.body;
+    if (isNaN(id)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' });
+    }
+    try {
+        // 1. Obtengo el incidente original (para el estado anterior)
+        const original = await IncidenteModel_1.IncidenteModel.obtenerIncidentePorId(id);
+        // 2. Lo marco como RESUELTO
+        const actualizado = await IncidenteModel_1.IncidenteModel.editarIncidente(id, {
+            estado: 'RESUELTO',
+            // (si quieres guardar el comentario en otra parte, hazlo aquí)
+        });
+        // 3. Envío la notificación de cambio de estado
+        await NotificadorFCM_1.NotificadorFCM.notificarCambioEstado(actualizado, original.estado // p.ej. "ABIERTO" o "CERRADO"
+        );
+        return res.json({ success: true, data: actualizado });
+    }
+    catch (error) {
+        incidente_controller_logger_1.incidenteControllerLogger.error('resolver', { id, error });
+        return res.status(500).json({ success: false, error: 'Error al resolver incidente' });
     }
 };

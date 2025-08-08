@@ -1,36 +1,51 @@
-// src/models/Incidente/IncidenteModel.ts
+// IncidenteModel.ts
+/**
+ * Modelo de acceso a datos para la entidad Incidente.
+ * - Manejo de imágenes con optimización
+ * - Reorganización de rondas cuando hay incidentes
+ * - Timeouts de verificación/cierre
+ */
 
-import { PrismaClient, EstadoIncidente, Incidente as IncidenteEntity } from '@prisma/client';
+import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
+import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
+import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
 
-export type EstadoFiltro = 'ABIERTO' | 'CERRADO' | 'RESUELTO' | 'PASADOS';
-
+/**
+ * Configuración para el manejo de imágenes
+ */
 const IMAGEN_CONFIG = {
   maxWidth: 1920,
   maxHeight: 1080,
   quality: 85,
   format: 'jpeg' as const,
-  carpetaBase: path.join(process.cwd(), 'uploads', 'incidentes')
+  carpetaBase: path.join(process.cwd(), 'uploads', 'incidentes'),
 };
+
+// -------------------------
+// Helpers de filtros/paginado
+// -------------------------
+
+export type EstadoFiltro = 'ABIERTO' | 'CERRADO' | 'RESUELTO' | 'PASADOS';
 
 function buildWhereByEstado(estado?: EstadoFiltro) {
   if (!estado) return {};
-  switch (estado) {
-    case 'PASADOS':
-   return { estado: { in: [EstadoIncidente.CERRADO, EstadoIncidente.RESUELTO] } };
-    case 'ABIERTO':
-    case 'CERRADO':
-    case 'RESUELTO':
-      return { estado: EstadoIncidente[estado] };
-    default:
-      return {};
+  if (estado === 'PASADOS') {
+    return { estado: { in: [EstadoIncidente.CERRADO, (EstadoIncidente as any).RESUELTO ?? 'RESUELTO'] } };
   }
+  if (estado === 'ABIERTO' || estado === 'CERRADO') {
+    return { estado: EstadoIncidente[estado] };
+  }
+  if (estado === 'RESUELTO') {
+    return { estado: (EstadoIncidente as any).RESUELTO ?? 'RESUELTO' };
+  }
+  return {};
 }
 
 export interface PaginacionIncidentes<T> {
@@ -43,26 +58,15 @@ export interface PaginacionIncidentes<T> {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
     estadoFiltro: EstadoFiltro | null;
-    empresaId?: number;
-    localidadId?: number;
   };
 }
 
-/**
- * Listado paginado unificado con filtros opcionales
- */
 export async function listarIncidentesPaginados({
   page = 1,
-  pageSize = 20,
   estado,
-  empresaId,
-  localidadId
 }: {
   page?: number;
-  pageSize?: number;
   estado?: EstadoFiltro;
-  empresaId?: number;
-  localidadId?: number;
 }): Promise<PaginacionIncidentes<{
   id: number;
   descripcion: string;
@@ -71,66 +75,102 @@ export async function listarIncidentesPaginados({
   usuario: { id: number; nombre: string };
   movimiento: { id: number; empresaId: number; localidadId: number };
 }>> {
-  const skip = (page - 1) * pageSize;
-  const where: any = {
-    ...buildWhereByEstado(estado),
-    ...(empresaId != null ? { movimiento: { empresaId } } : {}),
-    ...(localidadId != null ? { movimiento: { localidadId } } : {})
-  };
+  const PAGE_SIZE = 20;
+  const skip = (page - 1) * PAGE_SIZE;
+  const where = buildWhereByEstado(estado);
 
   const [items, total] = await Promise.all([
     prisma.incidente.findMany({
       where,
       include: {
-        usuario:    { select: { id: true, nombre: true } },
-        movimiento: { select: { id: true, empresaId: true, localidadId: true } }
+        usuario: { select: { id: true, nombre: true } },
+        movimiento: { select: { id: true, empresaId: true, localidadId: true } },
       },
-      orderBy: [
-        { fechaInicio: 'desc' },
-        { id:          'desc' }
-      ],
+      orderBy: [{ fechaInicio: 'desc' }, { id: 'desc' }],
       skip,
-      take: pageSize
+      take: PAGE_SIZE,
     }),
-    prisma.incidente.count({ where })
+    prisma.incidente.count({ where }),
   ]);
 
-  const data = items.map(i => ({
-    id:           i.id,
-    descripcion:  i.descripcion,
-    estado:       i.estado,
-    fechaInicio:  i.fechaInicio.toISOString(),
-    usuario:      { id: i.usuario.id, nombre: i.usuario.nombre },
-    movimiento:   { id: i.movimiento.id, empresaId: i.movimiento.empresaId, localidadId: i.movimiento.localidadId }
+  const data = items.map((i) => ({
+    id: i.id,
+    descripcion: i.descripcion,
+    estado: i.estado,
+    fechaInicio: i.fechaInicio.toISOString(),
+    usuario: { id: i.usuario.id, nombre: i.usuario.nombre },
+    movimiento: { id: i.movimiento.id, empresaId: i.movimiento.empresaId, localidadId: i.movimiento.localidadId },
   }));
 
-  const totalPages     = Math.max(1, Math.ceil(total / pageSize));
-  const hasNextPage    = page < totalPages;
-  const hasPreviousPage= page > 1;
-
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   return {
     data,
     meta: {
       total,
       page,
-      pageSize,
+      pageSize: PAGE_SIZE,
       totalPages,
-      hasNextPage,
-      hasPreviousPage,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
       estadoFiltro: estado ?? null,
-      ...(empresaId   != null ? { empresaId }   : {}),
-      ...(localidadId != null ? { localidadId } : {})
-    }
+    },
   };
 }
 
+export async function listarIncidentesPorCursor({
+  cursor,
+  limit = 20,
+  estado,
+}: {
+  cursor?: { fechaInicio: string; id: number } | null;
+  limit?: number;
+  estado?: EstadoFiltro;
+}) {
+  const where = buildWhereByEstado(estado);
+  const orderBy = [{ fechaInicio: 'desc' as const }, { id: 'desc' as const }];
+
+  const result = await prisma.incidente.findMany({
+    where,
+    include: {
+      movimiento: { include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true } },
+      usuario: { select: { id: true, nombre: true, email: true } },
+    },
+    orderBy,
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor.id }, skip: 1 } : {}),
+  });
+
+  const hasNext = result.length > limit;
+  const data = hasNext ? result.slice(0, limit) : result;
+  const nextCursor = hasNext
+    ? { fechaInicio: data[data.length - 1].fechaInicio.toISOString(), id: data[data.length - 1].id }
+    : null;
+
+  return { data, cursor: nextCursor, hasNext, estado: estado ?? null };
+}
+
+/**
+ * Configuración de timeouts para incidentes
+ */
+const TIMEOUT_CONFIG = {
+  verificacion: 10 * 60 * 1000, // 10 minutos
+  bloqueo: 5 * 60 * 1000, // 5 minutos
+};
+
 export class IncidenteModel {
-  /** Obtener todos los incidentes sin paginar */
-  static async obtenerIncidentes(): Promise<IncidenteEntity[]> {
+  // =========================================================
+  // Lectura
+  // =========================================================
+  static async obtenerIncidentes() {
     try {
       return await prisma.incidente.findMany({
-        include: { movimiento: true, usuario: true },
-        orderBy: { fechaInicio: 'desc' }
+        include: {
+          movimiento: {
+            include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+          },
+          usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+        },
+        orderBy: { fechaInicio: 'desc' },
       });
     } catch (error) {
       incidenteError.error('Error al obtener incidentes', { error });
@@ -138,149 +178,798 @@ export class IncidenteModel {
     }
   }
 
-  /** Crear un nuevo incidente, opcionalmente con imágenes */
-  static async crearIncidente(data: {
-    descripcion: string;
-    movimientoId: number;
-    usuarioId: number;
-    imagenes?: Buffer[];
-  }): Promise<IncidenteEntity> {
+  static async obtenerIncidentesPorEstado(estado: 'ABIERTO' | 'CERRADO') {
     try {
-      const nuevo = await prisma.incidente.create({
-        data: {
-          descripcion:  data.descripcion,
-          movimientoId: data.movimientoId,
-          usuarioId:    data.usuarioId,
-          estado:       EstadoIncidente.ABIERTO
-        }
+      return await prisma.incidente.findMany({
+        where: { estado },
+        include: {
+          movimiento: { include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true } },
+          usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+        },
+        orderBy: { fechaInicio: 'desc' },
       });
-
-      if (data.imagenes?.length) {
-        const rutas = await this.procesarImagenes(data.imagenes, nuevo.id);
-        await prisma.incidente.update({
-          where: { id: nuevo.id },
-          data: {
-            imagen1: rutas[0] ?? null,
-            imagen2: rutas[1] ?? null,
-            imagen3: rutas[2] ?? null,
-            imagen4: rutas[3] ?? null
-          }
-        });
-      }
-
-      await NotificadorFCM.notificarNuevoIncidente(nuevo);
-      return nuevo;
     } catch (error) {
-      incidenteError.error('Error al crear incidente', { data, error });
-      throw new Error('Error al crear incidente');
+      incidenteError.error('Error al obtener incidentes por estado', { estado, error });
+      throw new Error('Error al obtener incidentes por estado');
     }
   }
 
-  /** Editar un incidente existente (descripción, estado, imágenes) */
-  static async editarIncidente(
-    id: number,
-    data: { descripcion?: string; estado?: EstadoFiltro; imagenes?: Buffer[] }
-  ): Promise<IncidenteEntity> {
+  static async obtenerIncidentesPorMovimiento(movimientoId: number) {
     try {
-      const actual = await prisma.incidente.findUnique({ where: { id } });
-      if (!actual) throw new Error('Incidente no encontrado');
+      return await prisma.incidente.findMany({
+        where: { movimientoId },
+        include: { usuario: { select: { id: true, nombre: true, email: true, empresa: true } } },
+        orderBy: { fechaInicio: 'desc' },
+      });
+    } catch (error) {
+      incidenteError.error('Error al obtener incidentes por movimiento', { movimientoId, error });
+      throw new Error('Error al obtener incidentes por movimiento');
+    }
+  }
 
-      const update: any = {};
-      if (data.descripcion) update.descripcion = data.descripcion;
-      if (data.estado) {
-      const mapEstado: Record<EstadoFiltro, EstadoIncidente> = {
-  ABIERTO: EstadoIncidente.ABIERTO,
-  CERRADO: EstadoIncidente.CERRADO,
-  RESUELTO: EstadoIncidente.RESUELTO,
-  PASADOS: EstadoIncidente.CERRADO
-};
+  static async obtenerIncidentePorId(id: number) {
+    const incidente = await prisma.incidente.findUnique({
+      where: { id },
+      include: {
+        movimiento: { include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true } },
+        usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+      },
+    });
 
-        update.estado   = mapEstado[data.estado];
-        update.fechaFin = new Date();
+    if (!incidente) {
+      throw new Error(`No existe incidente con id ${id}`);
+    }
+
+    const rutasRelativas = [incidente.imagen1, incidente.imagen2, incidente.imagen3, incidente.imagen4].filter(
+      Boolean
+    ) as string[];
+
+    return {
+      id: incidente.id,
+      descripcion: incidente.descripcion,
+      estado: incidente.estado,
+      fechaInicio: incidente.fechaInicio,
+      fechaFin: incidente.fechaFin,
+      usuario: incidente.usuario,
+      movimiento: incidente.movimiento,
+      imagenes: rutasRelativas,
+    };
+  }
+
+  // Dentro de export class IncidenteModel { ... }
+
+static async verificarPeriodoVerificacion(incidenteId: number) {
+  try {
+    const incidente = await prisma.incidente.findUnique({
+      where: { id: incidenteId },
+      select: { id: true, estado: true, fechaInicio: true }
+    });
+
+    if (!incidente) {
+      throw new Error(`No se encontró incidente con id ${incidenteId}`);
+    }
+
+    // Si ya está cerrado o resuelto, no hay verificación activa
+    if (incidente.estado === 'CERRADO' || (incidente.estado as any) === 'RESUELTO') {
+      return {
+        enPeriodoVerificacion: false,
+        enPeriodoBloqueo: false,
+        tiempoRestante: 0,
+        mensaje: 'Incidente ya está cerrado o resuelto'
+      };
+    }
+
+    const ahora = new Date();
+    const transcurrido = ahora.getTime() - incidente.fechaInicio.getTime();
+
+    const verif = TIMEOUT_CONFIG.verificacion;
+    const bloque = TIMEOUT_CONFIG.bloqueo;
+
+    const enPeriodoVerificacion = transcurrido <= verif;
+    const enPeriodoBloqueo = transcurrido > verif && transcurrido <= verif + bloque;
+
+    let tiempoRestante = 0;
+    let mensaje = '';
+
+    if (enPeriodoVerificacion) {
+      tiempoRestante = verif - transcurrido;
+      mensaje = 'Periodo de verificación activo';
+    } else if (enPeriodoBloqueo) {
+      tiempoRestante = verif + bloque - transcurrido;
+      mensaje = 'Periodo de bloqueo activo';
+    } else {
+      mensaje = 'Incidente puede ser cerrado';
+    }
+
+    return {
+      enPeriodoVerificacion,
+      enPeriodoBloqueo,
+      tiempoRestante: Math.max(0, tiempoRestante),
+      mensaje
+    };
+  } catch (error) {
+    incidenteError.error('Error al verificar periodo de verificación', { incidenteId, error });
+    throw new Error('Error al verificar periodo de verificación');
+  }
+}
+
+  static async obtenerIncidentesPaginados(page = 1, pageSize = 30, estado?: 'ABIERTO' | 'CERRADO') {
+    try {
+      const skip = (page - 1) * pageSize;
+      const whereClause: any = {};
+      if (estado) whereClause.estado = estado;
+
+      const [incidentes, total] = await Promise.all([
+        prisma.incidente.findMany({
+          where: whereClause,
+          include: { movimiento: true, usuario: true },
+          orderBy: { fechaInicio: 'desc' },
+          skip,
+          take: pageSize,
+        }),
+        prisma.incidente.count({ where: whereClause }),
+      ]);
+
+      return {
+        data: incidentes,
+        meta: {
+          total,
+          page,
+          pageSize,
+          totalPages: Math.ceil(total / pageSize),
+          hasNextPage: page * pageSize < total,
+          hasPreviousPage: page > 1,
+        },
+      };
+    } catch (error) {
+      incidenteError.error('Error al obtener incidentes paginados', { error });
+      throw new Error('Error al obtener incidentes');
+    }
+  }
+
+  static async obtenerIncidentesPorLocalidad(localidadId: number, page = 1, pageSize = 20) {
+    try {
+      const skip = (page - 1) * pageSize;
+      const [incidentes, total] = await Promise.all([
+        prisma.incidente.findMany({
+          where: { movimiento: { localidadId } },
+          include: { movimiento: true, usuario: true },
+          orderBy: { fechaInicio: 'desc' },
+          skip,
+          take: pageSize,
+        }),
+        prisma.incidente.count({ where: { movimiento: { localidadId } } }),
+      ]);
+      return {
+        data: incidentes,
+        meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
+      };
+    } catch (error) {
+      incidenteError.error('Error al obtener incidentes por localidad', { localidadId, error });
+      throw new Error('Error al obtener incidentes por localidad');
+    }
+  }
+
+  static async obtenerIncidentesPorEmpresaYLocalidad(empresaId: number, localidadId: number, page = 1, pageSize = 20) {
+    try {
+      const skip = (page - 1) * pageSize;
+      const [incidentes, total] = await Promise.all([
+        prisma.incidente.findMany({
+          where: { movimiento: { empresaId, localidadId } },
+          include: { movimiento: true, usuario: true },
+          orderBy: { fechaInicio: 'desc' },
+          skip,
+          take: pageSize,
+        }),
+        prisma.incidente.count({ where: { movimiento: { empresaId, localidadId } } }),
+      ]);
+      return {
+        data: incidentes,
+        meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
+      };
+    } catch (error) {
+      incidenteError.error('Error al obtener incidentes por empresa y localidad', { empresaId, localidadId, error });
+      throw new Error('Error al obtener incidentes por empresa y localidad');
+    }
+  }
+
+  static async obtenerIncidentesPorEmpresa(empresaId: number, page = 1, pageSize = 20) {
+    try {
+      const skip = (page - 1) * pageSize;
+      const [incidentes, total] = await Promise.all([
+        prisma.incidente.findMany({
+          where: { movimiento: { empresaId } },
+          include: { movimiento: true, usuario: true },
+          orderBy: { fechaInicio: 'desc' },
+          skip,
+          take: pageSize,
+        }),
+        prisma.incidente.count({ where: { movimiento: { empresaId } } }),
+      ]);
+      return {
+        data: incidentes,
+        meta: { total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
+      };
+    } catch (error) {
+      incidenteError.error('Error al obtener incidentes por empresa', { empresaId, error });
+      throw new Error('Error al obtener incidentes por empresa');
+    }
+  }
+
+  // =========================================================
+  // Escritura / Update
+  // =========================================================
+
+  static async editarIncidente(id: number, data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }) {
+    try {
+      const incidenteActual = await prisma.incidente.findUnique({
+        where: { id },
+        include: { movimiento: true },
+      });
+      if (!incidenteActual) throw new Error(`No se encontró incidente con id ${id}`);
+
+      const estadoAnterior = incidenteActual.estado;
+      const updateData: any = {};
+
+      if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
+
+      if (data.estado !== undefined && data.estado !== estadoAnterior) {
+        updateData.estado = data.estado;
+        updateData.fechaFin = new Date();
+
+        if (data.estado === 'RESUELTO') {
+          await prisma.movimiento.update({
+            where: { id: incidenteActual.movimientoId },
+            data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+          });
+          incidenteError.info('Movimiento reactivado tras resolución de incidente', {
+            incidenteId: id,
+            movimientoId: incidenteActual.movimientoId,
+          });
+        }
       }
 
       if (data.imagenes?.length) {
-        const prevImgs = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4]
-          .filter(Boolean) as string[];
-        for (const img of prevImgs) {
-          await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, img)).catch(() => {});
+        const anteriores = [incidenteActual.imagen1, incidenteActual.imagen2, incidenteActual.imagen3, incidenteActual.imagen4];
+        for (const ruta of anteriores) {
+          if (!ruta) continue;
+          try {
+            await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
+          } catch (err) {
+            incidenteError.warn('No se pudo eliminar imagen anterior', { ruta, err });
+          }
         }
         const rutas = await this.procesarImagenes(data.imagenes, id);
-        update.imagen1 = rutas[0] ?? null;
-        update.imagen2 = rutas[1] ?? null;
-        update.imagen3 = rutas[2] ?? null;
-        update.imagen4 = rutas[3] ?? null;
+        updateData.imagen1 = rutas[0] ?? null;
+        updateData.imagen2 = rutas[1] ?? null;
+        updateData.imagen3 = rutas[2] ?? null;
+        updateData.imagen4 = rutas[3] ?? null;
       }
 
-      return await prisma.incidente.update({ where: { id }, data: update });
+      const incidenteActualizado = await prisma.incidente.update({
+        where: { id },
+        data: updateData,
+        include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
+      });
+
+      if (data.estado && data.estado !== estadoAnterior) {
+        await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+      }
+
+      incidenteError.info('Incidente actualizado correctamente', {
+        incidenteId: id,
+        estadoAnterior,
+        estadoNuevo: incidenteActualizado.estado,
+      });
+      return incidenteActualizado;
     } catch (error) {
       incidenteError.error('Error al editar incidente', { id, data, error });
       throw new Error('Error al editar incidente');
     }
   }
 
-  /** Eliminar un incidente y sus imágenes */
-  static async eliminarIncidente(id: number): Promise<IncidenteEntity> {
+  private static async procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
     try {
-      const inc = await prisma.incidente.findUnique({ where: { id } });
-      if (!inc) throw new Error('Incidente no encontrado');
-      const imgs = [inc.imagen1, inc.imagen2, inc.imagen3, inc.imagen4]
-        .filter(Boolean) as string[];
-      for (const img of imgs) {
-        await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, img)).catch(() => {});
+      const fecha = new Date();
+      const ano = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dia = String(fecha.getDate()).padStart(2, '0');
+
+      const carpetaDestino = path.join(IMAGEN_CONFIG.carpetaBase, String(ano), mes, dia);
+      await fs.mkdir(carpetaDestino, { recursive: true });
+
+      const rutasGuardadas: string[] = [];
+      for (let i = 0; i < imagenes.length && i < 4; i++) {
+        const nombreArchivo = `incidente_${incidenteId}_imagen_${i + 1}_${Date.now()}.${IMAGEN_CONFIG.format}`;
+        const rutaCompleta = path.join(carpetaDestino, nombreArchivo);
+
+        await sharp(imagenes[i])
+          .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: IMAGEN_CONFIG.quality, progressive: true, mozjpeg: true })
+          .toFile(rutaCompleta);
+
+        rutasGuardadas.push(path.relative(IMAGEN_CONFIG.carpetaBase, rutaCompleta));
       }
-      return await prisma.incidente.delete({ where: { id } });
+
+      incidenteError.info('Imágenes procesadas y guardadas', { incidenteId, cantidad: rutasGuardadas.length, carpeta: carpetaDestino });
+      return rutasGuardadas;
+    } catch (error) {
+      incidenteError.error('Error al procesar imágenes', { incidenteId, error });
+      throw new Error('Error al procesar imágenes del incidente');
+    }
+  }
+
+  // =========================================================
+  // Reglas de reorganización por incidente
+  // =========================================================
+
+  /**
+   * Reorganiza rondas cuando se reporta un incidente en un movimiento.
+   * - ALTA: enviar al final de ronda 1 (si era la única ALTA, al moverla a ronda 2 la compactación hará que BAJA pase a ronda 1).
+   * - BAJA: aplica EFECTO CADENA sólo para esa empresa (empuja su participación a rondas posteriores).
+   *   Luego compacta para que los números de ronda sean 1..N.
+   */
+  public static async reorganizarRondasPorIncidente(empresaId: number, localidadId: number, movimientoId: number) {
+    try {
+      const rondaMovimiento = await prisma.ronda.findFirst({
+        where: { movimientoId, localidadId, concluido: false },
+        include: { movimiento: true },
+      });
+
+      if (!rondaMovimiento) {
+        incidenteError.info('No se encontró ronda para el movimiento', { movimientoId, empresaId, localidadId });
+        return;
+      }
+
+      const prioridad = rondaMovimiento.movimiento?.prioridad ?? 'BAJA';
+
+      if (prioridad === 'ALTA') {
+        // Mover al final de la ronda 1
+        await this.moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId);
+      } else {
+        // BAJA → efecto cadena para la misma empresa
+        await this.aplicarEfectoCadenaBaja(empresaId, localidadId, rondaMovimiento);
+      }
+
+      // Compactar números de ronda para que siempre sean 1..N
+      await RondaModel.recomponerRondasLocalidad(localidadId);
+    } catch (error) {
+      incidenteError.error('Error al reorganizar rondas por incidente', { empresaId, localidadId, movimientoId, error });
+      throw new Error('Error al reorganizar rondas por incidente');
+    }
+  }
+
+  /**
+   * Mueve un movimiento (cualquiera) al final de la ronda 1 en su localidad.
+   */
+  private static async moverMovimientoARonda1AlFinal(localidadId: number, empresaId: number, movimientoId: number): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
+      if (rondaActual) {
+        // quitar de su ronda y compactar origen
+        await tx.ronda.delete({ where: { id: rondaActual.id } });
+        await tx.ronda.updateMany({
+          where: { localidadId, rondaNumero: rondaActual.rondaNumero, orden: { gt: rondaActual.orden } },
+          data: { orden: { decrement: 1 } },
+        });
+      }
+
+      const ultimoOrden = await tx.ronda.count({ where: { localidadId, rondaNumero: 1, concluido: false } });
+      await tx.ronda.create({
+        data: { movimientoId, empresaId, localidadId, rondaNumero: 1, orden: ultimoOrden + 1 },
+      });
+    });
+  }
+
+  /**
+   * EFECTO CADENA para BAJA:
+   * - Toma las participaciones de la MISMA empresa desde la ronda actual hacia adelante.
+   * - El incidente “empuja” la empresa: la participación actual toma el lugar de su
+   *   siguiente slot; el siguiente toma el lugar del siguiente... y la última se manda
+   *   a la ronda siguiente (al final). Si no existe, se crea al final (nueva ronda).
+   * - Se garantiza que quede 1 participación por empresa por ronda.
+   */
+  private static async aplicarEfectoCadenaBaja(empresaId: number, localidadId: number, rondaMovimiento: Ronda & { movimiento: { prioridad: string } }) {
+    await prisma.$transaction(async (tx) => {
+      // 1) Cadena de slots de la misma empresa desde la ronda actual en adelante
+      const chain = await this.obtenerSlotsEmpresaDesde(tx, localidadId, empresaId, rondaMovimiento.rondaNumero);
+      if (chain.length === 0) return;
+
+      // 2) Caso trivial: sólo esta participación → enviarla a ronda siguiente (al final o crear nueva)
+      if (chain.length === 1) {
+        const nextRound = chain[0].rondaNumero + 1;
+        const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
+        const actual = await tx.ronda.findUnique({ where: { id: chain[0].id } });
+        if (!actual) return;
+
+        if (tam > 0) {
+          await this.moverRonda(tx, actual, nextRound, tam + 1);
+        } else {
+          const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
+          await this.moverRonda(tx, actual, (max._max.rondaNumero ?? 0) + 1, 1);
+        }
+        return;
+      }
+
+      // 3) Rotación por "empuje": current -> slot[1], slot[1] -> slot[2], ... último -> nextRound al final (o crear)
+      let current = await tx.ronda.findUnique({ where: { id: chain[0].id } });
+      if (!current) return;
+
+      for (let i = 1; i < chain.length; i++) {
+        const targetMeta = chain[i];
+        const targetRow = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
+        if (!targetRow) continue;
+
+        await this.moverRonda(tx, current, targetRow.rondaNumero, targetRow.orden);
+
+        // El “empujado” ahora es el target (mismo id), lo buscamos para continuar
+        const pushed = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
+        if (!pushed) break;
+        current = pushed;
+      }
+
+      // 4) Último elemento de la cadena → ronda siguiente
+      const last = chain[chain.length - 1];
+      const nextRound = last.rondaNumero + 1;
+      const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
+
+      if (tam > 0) {
+        await this.moverRonda(tx, current, nextRound, tam + 1);
+      } else {
+        const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
+        await this.moverRonda(tx, current, (max._max.rondaNumero ?? 0) + 1, 1);
+      }
+    });
+  }
+
+  // -------------------------
+  // Helpers internos para efecto cadena
+  // -------------------------
+
+  private static async obtenerSlotsEmpresaDesde(
+    tx: Prisma.TransactionClient,
+    localidadId: number,
+    empresaId: number,
+    desdeRonda: number
+  ) {
+    return tx.ronda.findMany({
+      where: { localidadId, empresaId, concluido: false, rondaNumero: { gte: desdeRonda } },
+      select: { id: true, rondaNumero: true, orden: true },
+      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+    });
+  }
+
+  private static async tamanoDeRonda(tx: Prisma.TransactionClient, localidadId: number, rondaNumero: number) {
+    if (!Number.isFinite(rondaNumero) || rondaNumero < 1) return 0;
+    return tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
+  }
+
+  /**
+   * Mueve una fila de ronda (row) a (targetRonda, targetOrden) manteniendo integridad:
+   * - Si cambia de ronda: compacta origen y abre hueco en destino.
+   * - Si es la misma ronda: ajusta órdenes desplazando el rango.
+   */
+  private static async moverRonda(
+    tx: Prisma.TransactionClient,
+    row: Ronda,
+    targetRonda: number,
+    targetOrden: number
+  ) {
+    const sameRound = row.rondaNumero === targetRonda;
+
+    if (sameRound) {
+      if (targetOrden === row.orden) return;
+
+      if (targetOrden > row.orden) {
+        // Bajar: los que están entre (row.orden+1 .. targetOrden) decrementan 1
+        await tx.ronda.updateMany({
+          where: {
+            localidadId: row.localidadId,
+            rondaNumero: row.rondaNumero,
+            concluido: false,
+            orden: { gt: row.orden, lte: targetOrden },
+          },
+          data: { orden: { decrement: 1 } },
+        });
+      } else {
+        // Subir: los que están entre (targetOrden .. row.orden-1) incrementan 1
+        await tx.ronda.updateMany({
+          where: {
+            localidadId: row.localidadId,
+            rondaNumero: row.rondaNumero,
+            concluido: false,
+            orden: { gte: targetOrden, lt: row.orden },
+          },
+          data: { orden: { increment: 1 } },
+        });
+      }
+
+      await tx.ronda.update({ where: { id: row.id }, data: { orden: targetOrden } });
+      return;
+    }
+
+    // Distinta ronda: compactar origen
+    await tx.ronda.updateMany({
+      where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gt: row.orden } },
+      data: { orden: { decrement: 1 } },
+    });
+
+    // Abrir hueco en destino
+    await tx.ronda.updateMany({
+      where: { localidadId: row.localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: targetOrden } },
+      data: { orden: { increment: 1 } },
+    });
+
+    // Mover
+    await tx.ronda.update({ where: { id: row.id }, data: { rondaNumero: targetRonda, orden: targetOrden } });
+  }
+
+  // =========================================================
+  // Crear / Eliminar / Timeouts
+  // =========================================================
+
+  static async crearIncidente(data: { descripcion: string; movimientoId: number; usuarioId: number; imagenes?: Buffer[] }) {
+    try {
+      // 1) Verificar movimiento
+      const movimiento = await prisma.movimiento.findUnique({
+        where: { id: data.movimientoId },
+        include: { empresa: true, localidad: true, ronda: true },
+      });
+      if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
+
+      // 2) Crear incidente (ABIERTO)
+      const nuevoIncidente = await prisma.incidente.create({
+        data: {
+          descripcion: data.descripcion,
+          movimientoId: data.movimientoId,
+          usuarioId: data.usuarioId,
+          estado: 'ABIERTO',
+        },
+      });
+
+      // 3) Procesar imágenes
+      let rutasImagenes: string[] = [];
+      if (data.imagenes?.length) {
+        rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
+      }
+
+      const incidenteConImagenes = await prisma.incidente.update({
+        where: { id: nuevoIncidente.id },
+        data: {
+          imagen1: rutasImagenes[0] ?? null,
+          imagen2: rutasImagenes[1] ?? null,
+          imagen3: rutasImagenes[2] ?? null,
+          imagen4: rutasImagenes[3] ?? null,
+        },
+        include: {
+          movimiento: { include: { empresa: true, localidad: true, ronda: true } },
+          usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+        },
+      });
+
+      // 4) Detener el movimiento
+      await prisma.movimiento.update({
+        where: { id: data.movimientoId },
+        data: { estado: 'DETENIDO', fechaPausa: new Date(), incidenteGlobal: true },
+      });
+
+      // 5) Reorganizar según prioridad
+      if (movimiento.prioridad === 'ALTA') {
+        await this.moverMovimientoARonda1AlFinal(movimiento.localidadId, movimiento.empresaId, data.movimientoId);
+      } else if (movimiento.ronda) {
+        await this.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, data.movimientoId);
+      }
+
+      // 6) Notificar
+      await NotificadorFCM.notificarNuevoIncidente(incidenteConImagenes);
+
+      incidenteError.info('Incidente creado y procesado', {
+        incidenteId: nuevoIncidente.id,
+        movimientoId: data.movimientoId,
+        empresaId: movimiento.empresaId,
+        localidadId: movimiento.localidadId,
+        imagenesGuardadas: rutasImagenes.length,
+      });
+
+      return incidenteConImagenes;
+    } catch (error) {
+      incidenteError.error('Error al crear incidente', { data, error });
+      throw new Error('Error al crear incidente');
+    }
+  }
+
+  static async eliminarIncidente(id: number) {
+    try {
+      const incidente = await prisma.incidente.findUnique({ where: { id } });
+      if (!incidente) throw new Error(`No se encontró incidente con id ${id}`);
+
+      const imagenes = [incidente.imagen1, incidente.imagen2, incidente.imagen3, incidente.imagen4];
+
+      for (const rutaImagen of imagenes) {
+        if (!rutaImagen) continue;
+        try {
+          await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, rutaImagen));
+        } catch (error) {
+          incidenteError.warn('No se pudo eliminar imagen', { rutaImagen, error });
+        }
+      }
+
+      const incidenteEliminado = await prisma.incidente.delete({ where: { id } });
+
+      incidenteError.info('Incidente eliminado correctamente', {
+        incidenteId: id,
+        imagenesEliminadas: imagenes.filter(Boolean).length,
+      });
+
+      return incidenteEliminado;
     } catch (error) {
       incidenteError.error('Error al eliminar incidente', { id, error });
       throw new Error('Error al eliminar incidente');
     }
   }
 
-  /** Obtener incidente por ID, con relaciones */
-  static async obtenerIncidentePorId(id: number): Promise<IncidenteEntity> {
-    const inc = await prisma.incidente.findUnique({
-      where: { id },
-      include: { movimiento: true, usuario: true }
-    });
-    if (!inc) throw new Error('Incidente no encontrado');
-    return inc;
-  }
+  static async cerrarIncidentesVencidos() {
+    try {
+      const tiempoLimite = new Date(Date.now() - (TIMEOUT_CONFIG.verificacion + TIMEOUT_CONFIG.bloqueo));
 
-  /** Verificar periodo de verificación/bloqueo (simplificado) */
-  static async verificarPeriodoVerificacion(incidenteId: number) {
-    const inc = await prisma.incidente.findUnique({
-      where: { id: incidenteId },
-      select: { estado: true, fechaInicio: true }
-    });
-    if (!inc) throw new Error('Incidente no encontrado');
-    return { estado: inc.estado, fechaInicio: inc.fechaInicio };
-  }
+      const incidentesVencidos = await prisma.incidente.findMany({
+        where: { estado: 'ABIERTO', fechaInicio: { lte: tiempoLimite } },
+      });
 
-  /** Procesa y guarda imágenes optimizadas */
-  private static async procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
-    const fecha  = new Date();
-    const carpeta = path.join(
-      IMAGEN_CONFIG.carpetaBase,
-      `${fecha.getFullYear()}`,
-      `${fecha.getMonth()+1}`,
-      `${fecha.getDate()}`
-    );
-    await fs.mkdir(carpeta, { recursive: true });
-    const rutas: string[] = [];
-    for (let i = 0; i < imagenes.length && i < 4; i++) {
-      const nombre = `inc_${incidenteId}_${Date.now()}_${i}.${IMAGEN_CONFIG.format}`;
-      const full   = path.join(carpeta, nombre);
-      await sharp(imagenes[i])
-        .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, { fit: 'inside' })
-        .jpeg({ quality: IMAGEN_CONFIG.quality })
-        .toFile(full);
-      rutas.push(path.relative(IMAGEN_CONFIG.carpetaBase, full));
+      let cerrados = 0;
+      for (const inc of incidentesVencidos) {
+        await this.editarIncidente(inc.id, { estado: 'CERRADO' });
+        cerrados++;
+      }
+
+      if (cerrados > 0) {
+        incidenteError.info('Incidentes cerrados automáticamente por timeout', {
+          cantidad: cerrados,
+          tiempoLimite: tiempoLimite.toISOString(),
+        });
+      }
+
+      return cerrados;
+    } catch (error) {
+      incidenteError.error('Error al cerrar incidentes vencidos', { error });
+      throw new Error('Error al cerrar incidentes vencidos');
     }
-    return rutas;
   }
 
-  /** Obtener ruta absoluta de imagen */
-  static obtenerRutaCompletaImagen(rutaRel: string) {
-    return path.join(IMAGEN_CONFIG.carpetaBase, rutaRel);
+  static obtenerRutaCompletaImagen(rutaRelativa: string): string {
+    return path.join(IMAGEN_CONFIG.carpetaBase, rutaRelativa);
+  }
+
+  // =========================================================
+  // Notificaciones
+  // =========================================================
+
+  static async notificarCambioEstado(incidente: Incidente, estadoAnterior: string): Promise<void> {
+    try {
+      const movimiento = await prisma.movimiento.findUnique({
+        where: { id: incidente.movimientoId },
+        include: { empresa: true, localidad: true },
+      });
+      if (!movimiento) return;
+
+      const ids: number[] = [];
+      if (movimiento.clienteId) ids.push(movimiento.clienteId);
+      if (movimiento.supervisorId) ids.push(movimiento.supervisorId);
+      if (movimiento.coordinadorId) ids.push(movimiento.coordinadorId);
+      if (movimiento.operadorId) ids.push(movimiento.operadorId);
+      if (movimiento.creadoPorId) ids.push(movimiento.creadoPorId);
+
+      const usuariosConTokens = await prisma.usuario.findMany({
+        where: { id: { in: ids }, activo: true },
+        include: { fcmTokens: true },
+      });
+      const tokens = usuariosConTokens.flatMap((u) => u.fcmTokens.map((t) => t.token));
+      if (tokens.length === 0) return;
+
+      const empresaNombre = movimiento.empresa?.nombre ?? 'Sin Empresa';
+      const descripcion =
+        incidente.descripcion.length > 50 ? incidente.descripcion.slice(0, 50) + '…' : incidente.descripcion;
+
+      const titulo =
+        incidente.estado === ('RESUELTO' as any)
+          ? '✅ INCIDENTE RESUELTO'
+          : incidente.estado === ('CERRADO' as any)
+          ? '❌ INCIDENTE CERRADO'
+          : '🔄 INCIDENTE ACTUALIZADO';
+
+      const mensaje = {
+        notification: { title: titulo, body: `ID #${incidente.id} • ${empresaNombre} • Loco ${movimiento.locomotiveNumber}` },
+        data: {
+          pantalla: 'Incidente',
+          incidenteId: String(incidente.id),
+          movimientoId: String(incidente.movimientoId),
+          empresa: empresaNombre,
+          locomotora: String(movimiento.locomotiveNumber),
+          estadoAnterior,
+          estadoNuevo: incidente.estado,
+          descripcion,
+          tipo: 'cambio_estado_incidente',
+          fecha: new Date().toISOString(),
+        },
+        tokens,
+      };
+
+      await admin.messaging().sendEachForMulticast(mensaje);
+    } catch (error) {
+      console.error('Error enviando notificación de cambio de estado:', error);
+      throw error;
+    }
+  }
+
+  // =========================================================
+  // Reglas complementarias
+  // =========================================================
+
+  private static async esUnicaEmpresaEnRondas(empresaId: number, localidadId: number): Promise<boolean> {
+    const empresas = await prisma.ronda.findMany({
+      where: { localidadId, concluido: false },
+      select: { empresaId: true },
+      distinct: ['empresaId'],
+    });
+    return empresas.length === 1 && empresas[0].empresaId === empresaId;
+  }
+
+  static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
+    const incidente = await prisma.incidente.findUnique({
+      where: { id },
+      include: { movimiento: { include: { empresa: true, localidad: true } } },
+    });
+
+    if (!incidente) throw new Error('Incidente no encontrado');
+    if (incidente.estado === 'CERRADO') throw new Error('Incidente ya cerrado');
+
+    const actualizado = await prisma.incidente.update({
+      where: { id },
+      data: { estado: 'CERRADO', fechaFin: new Date() },
+      include: { movimiento: true },
+    });
+
+    // Si sólo hay una empresa en las rondas de esa localidad, reorganiza internamente
+    const unica = await this.esUnicaEmpresaEnRondas(incidente.movimiento.empresaId, incidente.movimiento.localidadId);
+    if (unica) {
+      await this.reorganizarRondasPorIncidente(
+        incidente.movimiento.empresaId,
+        incidente.movimiento.localidadId,
+        incidente.movimientoId
+      );
+    }
+
+    // Notificación a usuarios activos de la empresa en la localidad
+    const usuarios = await prisma.usuario.findMany({
+      where: {
+        localidadId: incidente.movimiento.localidadId,
+        empresaId: incidente.movimiento.empresaId,
+        activo: true,
+        rol: { in: ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'] },
+      },
+      include: { fcmTokens: true },
+    });
+
+    const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token));
+    if (tokens.length > 0) {
+      const empresa = incidente.movimiento.empresa?.nombre ?? 'Sin Empresa';
+      const loco = incidente.movimiento.locomotiveNumber;
+
+      await admin.messaging().sendEachForMulticast({
+        notification: { title: '✅ INCIDENTE RESUELTO', body: `Incidente resuelto por el cliente: "${comentario}"` },
+        data: {
+          pantalla: 'Incidente',
+          incidenteId: String(actualizado.id),
+          movimientoId: String(incidente.movimientoId),
+          empresa,
+          locomotora: String(loco),
+          tipo: 'incidente_resuelto_cliente',
+          timestamp: new Date().toISOString(),
+        },
+        tokens,
+      });
+    }
+
+    return actualizado;
   }
 }

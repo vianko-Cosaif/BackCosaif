@@ -17,6 +17,7 @@ const RondaRoutes_1 = __importDefault(require("../Rutas/Movimientos/Ronda/RondaR
 const IncidenteRutas_1 = __importDefault(require("../Rutas/Incidente/IncidenteRutas"));
 const fmcRoutes_1 = __importDefault(require("../FMC/fmcRoutes"));
 const ActualizacionRoutes_1 = __importDefault(require("../Rutas/Actualizacion/ActualizacionRoutes"));
+const SeccionRoutes_1 = __importDefault(require("../Rutas/Via/Secciones/SeccionRoutes"));
 dotenv_1.default.config();
 const PORT = process.env.PORT;
 /**
@@ -51,6 +52,7 @@ function iniciarServidor() {
         app.use("/fcm", fmcRoutes_1.default);
         app.use("/incidentes", IncidenteRutas_1.default);
         app.use("/actualizaciones", ActualizacionRoutes_1.default);
+        app.use("(/secciones", SeccionRoutes_1.default);
         // Inicia el servidor Express
         app.listen(PORT, () => {
             console.log(`Servidor corriendo en puerto ${PORT}`);

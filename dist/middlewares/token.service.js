@@ -15,7 +15,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const uuid_1 = require("uuid");
 const NotificadorFCM_1 = require("../services/NotificadorFCM"); // Mantén o quita según necesites
 const prisma = new client_1.PrismaClient();
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ?? '3m');
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN ?? '8h');
 /* -------------------------------------------------------------------------- */
 /*  Generar JWT                                                               */
 /* -------------------------------------------------------------------------- */
@@ -32,7 +32,7 @@ function generateJwtToken(user) {
         expiresIn: JWT_EXPIRES_IN,
         issuer: process.env.JWT_ISSUER,
         audience: process.env.JWT_AUDIENCE,
-        jwtid: jti, // ‹‑‑ añadido al claim estándar
+        jwtid: jti,
     };
     const token = jsonwebtoken_1.default.sign(payload, secret, options);
     return { token, jti };

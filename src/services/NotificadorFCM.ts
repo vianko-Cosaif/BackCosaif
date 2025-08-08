@@ -130,6 +130,10 @@ static async notificarCambioEstado(
       mov.creadoPorId
     ].filter(Boolean) as number[];
 
+
+
+
+    
     // 3) traemos tokens FCM
     const usuarios = await prisma.usuario.findMany({
       where: { id: { in: ids }, activo: true },

@@ -1,10 +1,55 @@
-import { Prisma, PrismaClient } from '@prisma/client'; 
+// MovimientoModel.ts
+import { Prisma, PrismaClient } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
-import { movimientoError } from './movimiento.logger';   // ajusta la ruta si es distinta
-import { ViaModel } from '../Via/viaModel'; // Asegúrate de que la ruta sea correcta
-const prisma = new PrismaClient();
+import { movimientoError } from './movimiento.logger';
+import { ViaModel } from '../Via/viaModel';
+import { ConflictError } from '../Via/Secciones/SeccionViasModel'; // si lo exportas desde ahí
+
+const prisma = new PrismaClient(); // TODO: usar singleton/inyección
 
 export class MovimientoModel {
+  // -------------------- Helpers internos --------------------
+
+  /** Devuelve el número de la primera sección libre (o null si ninguna). */
+  private static async primeraSeccionLibre(viaId: number): Promise<number | null> {
+    const libre = await prisma.seccionVia.findFirst({
+      where: { viaId, ocupada: false },
+      orderBy: { numero: 'asc' },
+      select: { numero: true },
+    });
+    return libre?.numero ?? null;
+  }
+
+  /** Intenta ocupar la vía (sección o vía completa) para el movimiento. */
+  private static async intentarOcuparViaDestino(
+    viaId: number,
+    movimientoId: number,
+    numeroSeccion?: number | null
+  ): Promise<void> {
+    // ¿Cuántas secciones tiene?
+    const count = await prisma.seccionVia.count({ where: { viaId } });
+
+    if (count === 0) {
+      // Vía "simple": ocupar vía completa
+      await ViaModel.asignarMovimientoASeccion(viaId, null, movimientoId);
+      return;
+    }
+
+    // Vía con secciones: usar la que se pida o elegir primera libre
+    let seccion = numeroSeccion ?? null;
+    if (seccion == null) {
+      const libre = await this.primeraSeccionLibre(viaId);
+      if (libre == null) {
+        throw new ConflictError(`La vía ${viaId} no tiene secciones libres.`);
+      }
+      seccion = libre;
+    }
+
+    await ViaModel.asignarMovimientoASeccion(viaId, seccion, movimientoId);
+  }
+
+  // -------------------- Consultas --------------------
+
   static async obtenerMovimientos() {
     try {
       return await prisma.movimiento.findMany({
@@ -23,431 +68,251 @@ export class MovimientoModel {
       throw new Error('Error al obtener movimientos');
     }
   }
-/**
- * Actualizaciones para MovimientoModel.ts
- * 
- * Nuevos m�todos para manejo de estados DETENIDO y CANCELADO
- * Estos m�todos deben agregarse a la clase MovimientoModel existente
- */
 
-/**
- * Detiene un movimiento y lo marca como DETENIDO.
- * Generalmente usado cuando hay un incidente activo.
- * 
- * @param id ID del movimiento a detener
- * @param razon Raz�n opcional por la cual se detiene
- * @returns Movimiento actualizado
- */
-static async detenerMovimiento(id: number, razon?: string) {
-  try {
-    const fechaActual = new Date();
-    
-    const movimientoDetenido = await prisma.movimiento.update({
-      where: { id },
-      data: {
-        estado: 'DETENIDO',
-        fechaPausa: fechaActual,
-        updatedAt: fechaActual,
-        // Si se proporciona una raz�n, se puede guardar en instrucciones
-        ...(razon && { instrucciones: razon })
-      },
-      include: {
-        empresa: true,
-        localidad: true,
-        ronda: true
-      }
-    });
+  // -------------------- Cambios de estado atómicos principales --------------------
 
-    movimientoError.info('Movimiento detenido', {
-      movimientoId: id,
-      razon: razon || 'No especificada',
-      empresa: movimientoDetenido.empresa?.nombre,
-      localidad: movimientoDetenido.localidad?.nombre
-    });
-
-    return movimientoDetenido;
-  } catch (error) {
-    movimientoError.error('Error al detener movimiento', { id, razon, error });
-    throw new Error('Error al detener movimiento');
-  }
-}
-
-/**
- * Cancela un movimiento permanentemente.
- * Un movimiento cancelado no puede ser reactivado.
- * 
- * @param id ID del movimiento a cancelar
- * @param razonCancelacion Raz�n de la cancelaci�n
- * @param usuarioId ID del usuario que cancela (opcional)
- * @returns Movimiento cancelado
- */static async cancelarMovimiento(
-  id: number,
-  razonCancelacion: string,
-  usuarioId?: number
-) {
-  try {
-    const fechaActual = new Date();
-    
-    // Obtener el movimiento con su ronda
-    const movimiento = await prisma.movimiento.findUnique({
-      where: { id },
-      include: { 
-        ronda: true,
-        empresa: true,
-        localidad: true 
-      }
-    });
-
-    if (!movimiento) {
-      throw new Error(`No se encontr� movimiento con id ${id}`);
-    }
-
-    // Actualizar el movimiento a CANCELADO
-    const movimientoCancelado = await prisma.movimiento.update({
-      where: { id },
-      data: {
-        estado: 'CANCELADO',
-        finalizado: true,
-        fechaFin: fechaActual,
-        updatedAt: fechaActual,
-        instrucciones: `CANCELADO: ${razonCancelacion}`,
-        incidenteGlobal: false
-      },
-      include: {
-        empresa: true,
-        localidad: true,
-        ronda: true
-      }
-    });
-
-    // Si ten�a una ronda asignada, eliminarla y renumerar
-    if (movimiento.ronda) {
-      // Eliminar la ronda
-      await prisma.ronda.delete({
-        where: { id: movimiento.ronda.id }
+  static async detenerMovimiento(id: number, razon?: string) {
+    try {
+      const fechaActual = new Date();
+      const movimientoDetenido = await prisma.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'DETENIDO',
+          fechaPausa: fechaActual,
+          updatedAt: fechaActual,
+          ...(razon && { instrucciones: razon }),
+        },
+        include: { empresa: true, localidad: true, ronda: true },
       });
 
-      // Renumera de 1..N en esa localidad
-      await RondaModel.recomponerRondasLocalidad(movimiento.localidadId);
-
-      movimientoError.info('Ronda eliminada por cancelaci�n de movimiento', {
+      movimientoError.info('Movimiento detenido', {
         movimientoId: id,
-        rondaId: movimiento.ronda.id,
-        rondaNumero: movimiento.ronda.rondaNumero
+        razon: razon || 'No especificada',
+        empresa: movimientoDetenido.empresa?.nombre,
+        localidad: movimientoDetenido.localidad?.nombre,
       });
+
+      return movimientoDetenido;
+    } catch (error) {
+      movimientoError.error('Error al detener movimiento', { id, razon, error });
+      throw new Error('Error al detener movimiento');
     }
-
-    movimientoError.info('Movimiento cancelado', {
-      movimientoId: id,
-      razonCancelacion,
-      usuarioId: usuarioId || 'No especificado',
-      empresa: movimiento.empresa?.nombre,
-      localidad: movimiento.localidad?.nombre,
-      teniaRonda: !!movimiento.ronda
-    });
-
-    return movimientoCancelado;
-  } catch (error) {
-    movimientoError.error('Error al cancelar movimiento', { 
-      id, 
-      razonCancelacion, 
-      usuarioId, 
-      error 
-    });
-    throw new Error('Error al cancelar movimiento');
   }
-}
 
-/**
- * Reactiva un movimiento desde estado DETENIDO a EN_PROCESO.
- * Solo funciona si el movimiento est� en estado DETENIDO.
- * 
- * @param id ID del movimiento a reactivar
- * @param operadorId ID del operador que reactiva (opcional)
- * @returns Movimiento reactivado
- */
-static async reactivarMovimiento(id: number, operadorId?: number) {
-  try {
-    const fechaActual = new Date();
-    
-    // Verificar estado actual
-    const movimientoActual = await prisma.movimiento.findUnique({
-      where: { id },
-      select: { 
-        estado: true, 
-        empresa: { select: { nombre: true } },
-        localidad: { select: { nombre: true } }
+  static async cancelarMovimiento(id: number, razonCancelacion: string, usuarioId?: number) {
+    try {
+      const fechaActual = new Date();
+
+      const movimiento = await prisma.movimiento.findUnique({
+        where: { id },
+        include: { ronda: true, empresa: true, localidad: true },
+      });
+      if (!movimiento) throw new Error(`No se encontró movimiento con id ${id}`);
+
+      // Marcar cancelado
+      const movimientoCancelado = await prisma.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'CANCELADO',
+          finalizado: true,
+          fechaFin: fechaActual,
+          updatedAt: fechaActual,
+          instrucciones: `CANCELADO: ${razonCancelacion}`,
+          incidenteGlobal: false,
+        },
+        include: { empresa: true, localidad: true, ronda: true, viaDestino: { select: { id: true } } },
+      });
+
+      // Liberar ocupación de vía destino (si la tenía)
+      if (movimientoCancelado.viaDestino?.id) {
+        await ViaModel.liberarMovimientoDeSeccion(movimientoCancelado.viaDestino.id, id);
       }
-    });
 
-    if (!movimientoActual) {
-      throw new Error(`No se encontr� movimiento con id ${id}`);
-    }
-
-    if (movimientoActual.estado !== 'DETENIDO') {
-      throw new Error(`El movimiento debe estar en estado DETENIDO para ser reactivado. Estado actual: ${movimientoActual.estado}`);
-    }
-
-    const movimientoReactivado = await prisma.movimiento.update({
-      where: { id },
-      data: {
-        estado: 'EN_PROCESO',
-        fechaInicio: fechaActual, // Actualizar fecha de inicio
-        fechaPausa: null, // Limpiar fecha de pausa
-        updatedAt: fechaActual,
-        incidenteGlobal: false, // Limpiar flag de incidente
-        ...(operadorId && { operadorId })
-      },
-      include: {
-        empresa: true,
-        localidad: true,
-        ronda: true
+      // Ronda: eliminar y recomponer
+      if (movimiento.ronda) {
+        await prisma.ronda.delete({ where: { id: movimiento.ronda.id } });
+        await RondaModel.recomponerRondasLocalidad(movimiento.localidadId);
+        movimientoError.info('Ronda eliminada por cancelación de movimiento', {
+          movimientoId: id,
+          rondaId: movimiento.ronda.id,
+          rondaNumero: movimiento.ronda.rondaNumero,
+        });
       }
-    });
 
-    movimientoError.info('Movimiento reactivado', {
-      movimientoId: id,
-      operadorId: operadorId || 'No especificado',
-      empresa: movimientoActual.empresa?.nombre,
-      localidad: movimientoActual.localidad?.nombre
-    });
+      movimientoError.info('Movimiento cancelado', {
+        movimientoId: id,
+        razonCancelacion,
+        usuarioId: usuarioId || 'No especificado',
+        empresa: movimiento.empresa?.nombre,
+        localidad: movimiento.localidad?.nombre,
+        teniaRonda: !!movimiento.ronda,
+      });
 
-    return movimientoReactivado;
-  } catch (error) {
-    movimientoError.error('Error al reactivar movimiento', { id, operadorId, error });
-    throw new Error('Error al reactivar movimiento');
+      return movimientoCancelado;
+    } catch (error) {
+      movimientoError.error('Error al cancelar movimiento', { id, razonCancelacion, usuarioId, error });
+      throw new Error('Error al cancelar movimiento');
+    }
   }
-}
 
-/**
- * Cambia el estado de un movimiento con validaciones.
- * M�todo unificado para cambios de estado con reglas de negocio.
- * 
- * @param id ID del movimiento
- * @param nuevoEstado Nuevo estado del movimiento
- * @param opciones Opciones adicionales para el cambio de estado
- * @returns Movimiento actualizado
- */
-static async cambiarEstadoMovimiento(
-  id: number,
-  nuevoEstado: string,
-  opciones: {
-    operadorId?: number;
-    razon?: string;
-    forzar?: boolean;
-  } = {}
-) {
-  try {
-    const { operadorId, razon, forzar = false } = opciones;
+  static async reactivarMovimiento(id: number, operadorId?: number) {
+    try {
+      const fechaActual = new Date();
+      const movimientoActual = await prisma.movimiento.findUnique({
+        where: { id },
+        select: {
+          estado: true,
+          empresa: { select: { nombre: true } },
+          localidad: { select: { nombre: true } },
+        },
+      });
 
-    // -- 1. Estado actual --------------------------------------------------------
-    const movimientoActual = await prisma.movimiento.findUnique({
-      where: { id },
-      include: { empresa: true, localidad: true, ronda: true }
-    });
-    if (!movimientoActual) throw new Error(`No se encontr� movimiento con id ${id}`);
-
-    // -- 2. Validaciones de transici�n (si no se fuerza) ------------------------
-    if (!forzar) {
-      const transiciones: Record<string, string[]> = {
-        SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
-        EN_PROCESO: ['DETENIDO', 'CONCLUIDO', 'CANCELADO'],
-        DETENIDO  : ['EN_PROCESO', 'CANCELADO', 'CONCLUIDO'],
-        CONCLUIDO : [],
-        CANCELADO : []
-      };
-      const permitidos = transiciones[movimientoActual.estado] ?? [];
-      if (!permitidos.includes(nuevoEstado)) {
+      if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
+      if (movimientoActual.estado !== 'DETENIDO') {
         throw new Error(
-          `Transici�n inv�lida: ${movimientoActual.estado} ? ${nuevoEstado}. ` +
-          `Permitidas: ${permitidos.join(', ')}`
+          `El movimiento debe estar en estado DETENIDO para ser reactivado. Estado actual: ${movimientoActual.estado}`
         );
       }
-    }
 
-    // -- 3. Datos de actualizaci�n ----------------------------------------------
-    const ahora = new Date();
-    const updateData: any = { estado: nuevoEstado, updatedAt: ahora };
-
-    switch (nuevoEstado) {
-      case 'EN_PROCESO':
-        Object.assign(updateData, {
-          fechaInicio: ahora,
-          fechaPausa : null,
+      const movimientoReactivado = await prisma.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'EN_PROCESO',
+          fechaInicio: fechaActual,
+          fechaPausa: null,
+          updatedAt: fechaActual,
           incidenteGlobal: false,
-          ...(operadorId && { operadorId })
-        });
-        break;
+          ...(operadorId && { operadorId }),
+        },
+        include: { empresa: true, localidad: true, ronda: true },
+      });
 
-      case 'DETENIDO':
-        Object.assign(updateData, {
-          fechaPausa: ahora,
-          ...(razon && { instrucciones: razon })
-        });
-        break;
+      movimientoError.info('Movimiento reactivado', {
+        movimientoId: id,
+        operadorId: operadorId || 'No especificado',
+        empresa: movimientoActual.empresa?.nombre,
+        localidad: movimientoActual.localidad?.nombre,
+      });
 
-      case 'CONCLUIDO':
-        Object.assign(updateData, {
-          fechaFin: ahora,
-          finalizado: true,
-          incidenteGlobal: false
-        });
-        break;
-
-      case 'CANCELADO':
-        Object.assign(updateData, {
-          fechaFin: ahora,
-          finalizado: true,
-          incidenteGlobal: false,
-          ...(razon && { instrucciones: `CANCELADO: ${razon}` })
-        });
-        break;
+      return movimientoReactivado;
+    } catch (error) {
+      movimientoError.error('Error al reactivar movimiento', { id, operadorId, error });
+      throw new Error('Error al reactivar movimiento');
     }
+  }
 
-    // -- 4. Actualizar movimiento -----------------------------------------------
-    const movimientoActualizado = await prisma.movimiento.update({
-      where: { id },
-      data : updateData,
-      include: { empresa: true, localidad: true, ronda: true }
-    });
+  static async cambiarEstadoMovimiento(
+    id: number,
+    nuevoEstado: string,
+    opciones: { operadorId?: number; razon?: string; forzar?: boolean } = {}
+  ) {
+    try {
+      const { operadorId, razon, forzar = false } = opciones;
 
-    // -- 5. Gesti�n de ronda ----------------------------------------------------
-    if (movimientoActual.ronda) {
-      if (nuevoEstado === 'CONCLUIDO') {
-        await RondaModel.marcarRondaComoConcluida(movimientoActual.ronda.id);
-      } else if (nuevoEstado === 'CANCELADO') {
-        // Eliminar ronda y renumerar en la localidad
-        await prisma.ronda.delete({ where: { id: movimientoActual.ronda.id } });
-        await RondaModel.recomponerRondasLocalidad(movimientoActual.localidadId);
+      const movimientoActual = await prisma.movimiento.findUnique({
+        where: { id },
+        include: { empresa: true, localidad: true, ronda: true, viaDestino: { select: { id: true } } },
+      });
+      if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
+
+      if (!forzar) {
+        const transiciones: Record<string, string[]> = {
+          SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
+          EN_PROCESO: ['DETENIDO', 'CONCLUIDO', 'CANCELADO'],
+          DETENIDO: ['EN_PROCESO', 'CANCELADO', 'CONCLUIDO'],
+          CONCLUIDO: [],
+          CANCELADO: [],
+        };
+        const permitidos = transiciones[movimientoActual.estado] ?? [];
+        if (!permitidos.includes(nuevoEstado)) {
+          throw new Error(
+            `Transición inválida: ${movimientoActual.estado} → ${nuevoEstado}. Permitidas: ${permitidos.join(', ')}`
+          );
+        }
       }
+
+      const ahora = new Date();
+      const updateData: any = { estado: nuevoEstado, updatedAt: ahora };
+
+      switch (nuevoEstado) {
+        case 'EN_PROCESO':
+          Object.assign(updateData, {
+            fechaInicio: ahora,
+            fechaPausa: null,
+            incidenteGlobal: false,
+            ...(operadorId && { operadorId }),
+          });
+          break;
+        case 'DETENIDO':
+          Object.assign(updateData, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
+          break;
+        case 'CONCLUIDO':
+          Object.assign(updateData, { fechaFin: ahora, finalizado: true, incidenteGlobal: false });
+          break;
+        case 'CANCELADO':
+          Object.assign(updateData, {
+            fechaFin: ahora,
+            finalizado: true,
+            incidenteGlobal: false,
+            ...(razon && { instrucciones: `CANCELADO: ${razon}` }),
+          });
+          break;
+      }
+
+      const movimientoActualizado = await prisma.movimiento.update({
+        where: { id },
+        data: updateData,
+        include: { empresa: true, localidad: true, ronda: true, viaDestino: { select: { id: true } } },
+      });
+
+      // Si concluye o cancela → liberar ocupación
+      if ((nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') && movimientoActualizado.viaDestino?.id) {
+        await ViaModel.liberarMovimientoDeSeccion(movimientoActualizado.viaDestino.id, id);
+      }
+
+      // Gestión de ronda
+      if (movimientoActual.ronda) {
+        if (nuevoEstado === 'CONCLUIDO') {
+          await RondaModel.marcarRondaComoConcluida(movimientoActual.ronda.id);
+          await RondaModel.recomponerRondasLocalidad(movimientoActual.localidadId);
+        } else if (nuevoEstado === 'CANCELADO') {
+          await prisma.ronda.delete({ where: { id: movimientoActual.ronda.id } });
+          await RondaModel.recomponerRondasLocalidad(movimientoActual.localidadId);
+        }
+      }
+
+      movimientoError.info('Estado de movimiento cambiado', {
+        movimientoId: id,
+        estadoAnterior: movimientoActual.estado,
+        estadoNuevo: nuevoEstado,
+        operadorId: operadorId ?? 'No especificado',
+        razon: razon ?? 'No especificada',
+        empresa: movimientoActual.empresa?.nombre,
+        localidad: movimientoActual.localidad?.nombre,
+      });
+
+      return movimientoActualizado;
+    } catch (error) {
+      movimientoError.error('Error al cambiar estado de movimiento', { id, nuevoEstado, opciones, error });
+      throw new Error('Error al cambiar estado de movimiento');
     }
-
-    // -- 6. Log -----------------------------------------------------------------
-    movimientoError.info('Estado de movimiento cambiado', {
-      movimientoId : id,
-      estadoAnterior: movimientoActual.estado,
-      estadoNuevo  : nuevoEstado,
-      operadorId   : operadorId ?? 'No especificado',
-      razon        : razon ?? 'No especificada',
-      empresa      : movimientoActual.empresa?.nombre,
-      localidad    : movimientoActual.localidad?.nombre
-    });
-
-    return movimientoActualizado;
-  } catch (error) {
-    movimientoError.error('Error al cambiar estado de movimiento', {
-      id, nuevoEstado, opciones, error
-    });
-    throw new Error('Error al cambiar estado de movimiento');
   }
-}
 
-/**
- * Obtiene movimientos por estado espec�fico.
- * �til para filtrar por estados como DETENIDO, CANCELADO, etc.
- * 
- * @param estado Estado a filtrar
- * @param incluirRelaciones Si incluir las relaciones completas
- * @returns Lista de movimientos en el estado especificado
- */
-static async obtenerMovimientosPorEstado(estado: string, incluirRelaciones: boolean = true) {
-  try {
-    const include = incluirRelaciones ? {
-      empresa: true,
-      creadoPor: true,
-      localidad: true,
-      viaOrigen: true,
-      viaDestino: true,
-      incidentes: true,
-      ronda: true,
-    } : undefined;
+  // -------------------- Creación / edición alineadas a secciones --------------------
 
-    return await prisma.movimiento.findMany({
-      where: { estado: estado as any }, // Cast expl�cito
-      include,
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
-  } catch (error) {
-    movimientoError.error('Error al obtener movimientos por estado', { estado, error });
-    throw new Error('Error al obtener movimientos por estado');
-  }
-}
-
-/**
- * Obtiene estad�sticas de movimientos por estado.
- * �til para dashboards y reportes.
- * 
- * @param fechaInicio Fecha de inicio del per�odo (opcional)
- * @param fechaFin Fecha de fin del per�odo (opcional)
- * @returns Estad�sticas agrupadas por estado
- */
-static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
-  try {
-    const whereCondition: any = {};
-    
-    if (fechaInicio && fechaFin) {
-      whereCondition.createdAt = {
-        gte: fechaInicio,
-        lte: fechaFin
-      };
-    }
-
-    const estadisticas = await prisma.movimiento.groupBy({
-      by: ['estado'],
-      where: whereCondition,
-      _count: {
-        id: true
-      },
-      orderBy: {
-        estado: 'asc'
-      }
-    });
-
-    // Convertir a formato m�s legible
-    const resultado = estadisticas.reduce((acc, stat) => {
-      acc[stat.estado] = stat._count.id;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Agregar total
-    const total = Object.values(resultado).reduce((sum, count) => sum + count, 0);
-    
-    return {
-      porEstado: resultado,
-      total,
-      periodo: fechaInicio && fechaFin ? {
-        inicio: fechaInicio.toISOString(),
-        fin: fechaFin.toISOString()
-      } : null
-    };
-  } catch (error) {
-    movimientoError.error('Error al obtener estad�sticas por estado', { fechaInicio, fechaFin, error });
-    throw new Error('Error al obtener estad�sticas por estado');
-  }
-}
-
-
-/**
- * Crea un nuevo movimiento ferroviario y asigna una ronda según prioridad,
- * sin desordenar las rondas ya existentes.
- *
- * - Para prioridad ALTA: inserta el movimiento en ronda 1 (orden incremental),
- *   sin desplazar las demás.
- * - Para prioridad BAJA: busca la primera ronda donde la empresa no participa;
- *   si la encuentra, añade al final de esa ronda; si no, crea una nueva al final.
- *
- * @param data Datos del movimiento a crear
- * @returns El movimiento creado, incluyendo sus relaciones empresa y localidad
- * @throws Error si falla la creación o la asignación de la ronda
- */
- static async nuevoMovimiento(data: {
+  /**
+   * Crea un movimiento. Si trae `viaDestinoId`, intenta ocupar:
+   * - vía completa (si no tiene secciones),
+   * - o la primera sección libre (o `numeroSeccion` si se proporcionó).
+   * Si no hay espacio, queda en ESPERA y se agrega a Ronda.
+   */
+  static async nuevoMovimiento(data: {
     empresaId: number;
     creadoPorId: number;
     localidadId: number;
     viaOrigenId: number;
     viaDestinoId?: number;
+    numeroSeccion?: number; // <<< opcional: si quieres forzar sección
     locomotiveNumber: number;
     prioridad?: 'BAJA' | 'ALTA';
     tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
@@ -465,56 +330,59 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
     direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
   }) {
     try {
-      // 1) Crear movimiento
       const movData: any = { ...data };
-      movData.prioridad      = movData.prioridad      ?? 'BAJA';
-      movData.estado         = movData.estado         ?? 'SOLICITADO';
+      movData.prioridad = movData.prioridad ?? 'BAJA';
+      movData.estado = movData.estado ?? 'SOLICITADO';
       movData.posicionCabina = movData.posicionCabina || 'Sin_Solicitar';
       movData.posicionChimenea = movData.posicionChimenea || 'Sin_Solicitar';
-      movData.direccionEmpuje  = movData.direccionEmpuje  || 'Sin_Solicitar';
-      Object.keys(movData).forEach(k => movData[k] === undefined && delete movData[k]);
+      movData.direccionEmpuje = movData.direccionEmpuje || 'Sin_Solicitar';
+      Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
 
       const mv = await prisma.movimiento.create({
         data: movData,
-        include: { empresa: true, localidad: true }
+        include: { empresa: true, localidad: true, viaDestino: true },
       });
 
-      // 2) Si tiene víaDestino, delegamos en ViaModel para asignar sección
-      if (data.viaDestinoId !== undefined) {
-        // Esto lanzará si no hay secciones libres o ya ocupa
-        await ViaModel.asignarMovimientoASeccion(
-          data.viaDestinoId,
-          /* aquí determinas el número de sección libre, p.ej: */ 1,
-          mv.id
-        );
+      // Intentar ocupar vía destino si aplica
+      if (data.viaDestinoId) {
+        try {
+          await this.intentarOcuparViaDestino(data.viaDestinoId, mv.id, data.numeroSeccion ?? null);
+        } catch (e: any) {
+          // Si no hay espacio → mandar a ESPERA y seguir con ronda
+          if (e instanceof ConflictError) {
+            await prisma.movimiento.update({
+              where: { id: mv.id },
+              data: { estado: 'ESPERA' },
+            });
+          } else {
+            throw e;
+          }
+        }
       }
 
-      // 3) Generar ronda si procede
-      if (mv.estado === 'SOLICITADO') {
+      // Generar ronda si está SOLICITADO o ESPERA
+      const movActual = await prisma.movimiento.findUnique({ where: { id: mv.id } });
+      if (movActual && (movActual.estado === 'SOLICITADO' || movActual.estado === 'ESPERA')) {
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: mv.id,
-          empresaId:    mv.empresaId,
-          localidadId:  mv.localidadId,
-          prioridad:    mv.prioridad as 'ALTA' | 'BAJA'
+          empresaId: mv.empresaId,
+          localidadId: mv.localidadId,
+          prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
         });
       }
 
-      return mv;
+      return await prisma.movimiento.findUnique({
+        where: { id: mv.id },
+        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+      });
     } catch (err: any) {
-      movimientoError.error('Error al crear movimiento', { data, error: err.message });
+      movimientoError.error('Error al crear movimiento', { data, error: err?.message || err });
       throw new Error('Error al crear movimiento');
     }
-  } 
-
+  }
 
   /**
-   * Actualiza un movimiento existente y reorganiza las rondas cuando es necesario.
-   * Cuando se actualiza la prioridad a ALTA, se reorganizan todas las rondas.
-   * 
-   * @param id ID del movimiento a editar
-   * @param data Datos a actualizar
-   * @returns Movimiento actualizado
-   * @throws Error si falla la actualización o reorganización
+   * Edita un movimiento. Si cambia `viaDestinoId`, libera la anterior y ocupa la nueva.
    */
   static async editarMovimiento(
     id: number,
@@ -528,6 +396,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
       localidadId?: number;
       viaOrigenId?: number;
       viaDestinoId?: number;
+      numeroSeccion?: number; // <<< opcional
       locomotiveNumber?: number;
       lavado?: boolean;
       torno?: boolean;
@@ -547,189 +416,132 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
     }
   ) {
     try {
-      // Obtener el movimiento existente para verificar cambios importantes
-      const movimientoExistente = await prisma.movimiento.findUnique({
+      const actual = await prisma.movimiento.findUnique({
         where: { id },
         select: {
           prioridad: true,
           estado: true,
           empresaId: true,
           localidadId: true,
-          ronda: true
-        }
+          viaDestinoId: true,
+          ronda: true,
+        },
       });
+      if (!actual) throw new Error(`No se encontró movimiento con id ${id}`);
 
-      if (!movimientoExistente) {
-        throw new Error(`No se encontró movimiento con id ${id}`);
-      }
-
-      // Normalizar campos de entrada
       const updateData: any = { ...data };
+      updateData.posicionCabina = updateData.posicionCabina || 'Sin_Solicitar';
+      updateData.posicionChimenea = updateData.posicionChimenea || 'Sin_Solicitar';
+      updateData.direccionEmpuje = updateData.direccionEmpuje || 'Sin_Solicitar';
+      Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
 
-      if (!updateData.posicionCabina || updateData.posicionCabina === '') {
-        updateData.posicionCabina = 'Sin_Solicitar';
-      }
-      if (!updateData.posicionChimenea || updateData.posicionChimenea === '') {
-        updateData.posicionChimenea = 'Sin_Solicitar';
-      }
-      if (!updateData.direccionEmpuje || updateData.direccionEmpuje === '') {
-        updateData.direccionEmpuje = 'Sin_Solicitar';
-      }
-
-      // Eliminar propiedades undefined
-      for (const key in updateData) {
-        if (updateData[key] === undefined) {
-          delete updateData[key];
-        }
-      }
-
-      // Actualizar el movimiento en la base de datos
-      const movimientoActualizado = await prisma.movimiento.update({
+      // Actualiza movimiento
+      const movUpd = await prisma.movimiento.update({
         where: { id },
         data: updateData,
-        include: {
-          empresa: true,
-          localidad: true
-        }
+        include: { empresa: true, localidad: true, viaDestino: true },
       });
 
-      // Verificar si hay cambios que requieran reorganizar las rondas
-      const requiereReorganizacion = (
-        // Si cambia a prioridad ALTA
-        (data.prioridad === 'ALTA' && movimientoExistente.prioridad !== 'ALTA') ||
-        // Si cambia el estado a SOLICITADO (reactivado)
-        (data.estado === 'SOLICITADO' && movimientoExistente.estado !== 'SOLICITADO') ||
-        // Si cambió empresa o localidad
-        (data.empresaId && data.empresaId !== movimientoExistente.empresaId) ||
-        (data.localidadId && data.localidadId !== movimientoExistente.localidadId)
-      );
+      // ¿Cambió de vía destino?
+      if (data.viaDestinoId && data.viaDestinoId !== actual.viaDestinoId) {
+        // liberar anterior
+        if (actual.viaDestinoId) {
+          await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id);
+        }
+        // ocupar nueva
+        try {
+          await this.intentarOcuparViaDestino(data.viaDestinoId, id, data.numeroSeccion ?? null);
+        } catch (e: any) {
+          if (e instanceof ConflictError) {
+            await prisma.movimiento.update({ where: { id }, data: { estado: 'ESPERA' } });
+          } else {
+            throw e;
+          }
+        }
+      }
 
-      // Si tiene ronda existente y hubo cambios importantes
-      if (movimientoExistente.ronda && requiereReorganizacion) {
-        // Si existe ronda y cambia a ALTA prioridad, reorganizar todo
+      // ¿Requiere recomponer rondas?
+      const requiereReorg =
+        (data.prioridad === 'ALTA' && actual.prioridad !== 'ALTA') ||
+        (data.estado === 'SOLICITADO' && actual.estado !== 'SOLICITADO') ||
+        (data.empresaId && data.empresaId !== actual.empresaId) ||
+        (data.localidadId && data.localidadId !== actual.localidadId);
+
+      if (actual.ronda && requiereReorg) {
         if (data.prioridad === 'ALTA') {
           await RondaModel.generarRondaParaMovimiento({
             movimientoId: id,
-            empresaId: movimientoActualizado.empresaId,
-            localidadId: movimientoActualizado.localidadId,
-            prioridad: 'ALTA'
+            empresaId: movUpd.empresaId,
+            localidadId: movUpd.localidadId,
+            prioridad: 'ALTA',
           });
-          
-          movimientoError.info('Movimiento actualizado a ALTA prioridad - se reorganizaron las rondas', {
-            movimientoId: id,
-            empresa: movimientoActualizado.empresa?.nombre,
-            localidad: movimientoActualizado.localidad?.nombre
-          });
-        } 
-        // Si cambia empresa o localidad, eliminar ronda actual y crear nueva
-        else if ((data.empresaId && data.empresaId !== movimientoExistente.empresaId) ||
-                (data.localidadId && data.localidadId !== movimientoExistente.localidadId)) {
-          
-          // Eliminar ronda existente
-          await prisma.ronda.delete({
-            where: { movimientoId: id }
-          });
-          
-          // Crear nueva ronda
+        } else if (
+          (data.empresaId && data.empresaId !== actual.empresaId) ||
+          (data.localidadId && data.localidadId !== actual.localidadId)
+        ) {
+          await prisma.ronda.delete({ where: { movimientoId: id } });
           await RondaModel.generarRondaParaMovimiento({
             movimientoId: id,
-            empresaId: movimientoActualizado.empresaId,
-            localidadId: movimientoActualizado.localidadId,
-            prioridad: movimientoActualizado.prioridad as 'ALTA' | 'BAJA'
+            empresaId: movUpd.empresaId,
+            localidadId: movUpd.localidadId,
+            prioridad: (movUpd.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
           });
         }
-      } 
-      // Si no tiene ronda y el estado es SOLICITADO, crear una
-      else if (!movimientoExistente.ronda && movimientoActualizado.estado === 'SOLICITADO') {
+      } else if (!actual.ronda && movUpd.estado === 'SOLICITADO') {
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: id,
-          empresaId: movimientoActualizado.empresaId,
-          localidadId: movimientoActualizado.localidadId,
-          prioridad: movimientoActualizado.prioridad as 'ALTA' | 'BAJA'
+          empresaId: movUpd.empresaId,
+          localidadId: movUpd.localidadId,
+          prioridad: (movUpd.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
         });
       }
 
-      return movimientoActualizado;
+      return movUpd;
     } catch (error) {
       movimientoError.error('Error al editar movimiento', { id, data, error });
       throw new Error('Error al editar movimiento');
     }
   }
 
+  // -------------------- Otros métodos ya existentes (sin cambios de lógica) --------------------
+
   static async eliminarMovimiento(id: number) {
     try {
-      return await prisma.movimiento.delete({
-        where: { id },
-      });
+      return await prisma.movimiento.delete({ where: { id } });
     } catch (error) {
       movimientoError.error('Error al eliminar movimiento', { id, error });
       throw new Error('Error al eliminar movimiento');
     }
   }
 
-  /**
-   * Cambia la prioridad de un movimiento y reorganiza las rondas si es necesario.
-   * 
-   * @param id ID del movimiento
-   * @param prioridad Nueva prioridad ('ALTA' o 'BAJA')
-   * @returns Movimiento actualizado
-   */
   static async cambiarPrioridad(id: number, prioridad: 'ALTA' | 'BAJA') {
     try {
-      // Obtener el movimiento con su ronda
       const movimiento = await prisma.movimiento.findUnique({
         where: { id },
-        include: { 
-          ronda: true,
-          empresa: true,
-          localidad: true 
-        }
+        include: { ronda: true, empresa: true, localidad: true },
       });
+      if (!movimiento) throw new Error(`No se encontró movimiento con id ${id}`);
+      if (movimiento.prioridad === prioridad) return movimiento;
 
-      if (!movimiento) {
-        throw new Error(`No se encontró movimiento con id ${id}`);
-      }
-
-      // Si no cambia la prioridad, no hacer nada
-      if (movimiento.prioridad === prioridad) {
-        return movimiento;
-      }
-
-      // Actualizar la prioridad del movimiento
       const movimientoActualizado = await prisma.movimiento.update({
         where: { id },
-        data: { prioridad }
+        data: { prioridad },
       });
 
-      // Si el movimiento está en SOLICITADO y cambia a ALTA prioridad
       if (movimiento.estado === 'SOLICITADO' && prioridad === 'ALTA') {
-        // Reorganizar todas las rondas
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: id,
           empresaId: movimiento.empresaId,
           localidadId: movimiento.localidadId,
-          prioridad: 'ALTA'
+          prioridad: 'ALTA',
         });
-        
-        movimientoError.info('Prioridad cambiada a ALTA - se reorganizaron las rondas', {
-          movimientoId: id,
-          empresa: movimiento.empresa?.nombre,
-          localidad: movimiento.localidad?.nombre
-        });
-      } 
-      // Si cambia a BAJA prioridad y tiene ronda
-      else if (prioridad === 'BAJA' && movimiento.ronda && movimiento.estado === 'SOLICITADO') {
-        // Eliminar ronda actual
-        await prisma.ronda.delete({
-          where: { movimientoId: id }
-        });
-        
-        // Crear nueva ronda con prioridad BAJA
+      } else if (prioridad === 'BAJA' && movimiento.ronda && movimiento.estado === 'SOLICITADO') {
+        await prisma.ronda.delete({ where: { movimientoId: id } });
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: id,
           empresaId: movimiento.empresaId,
           localidadId: movimiento.localidadId,
-          prioridad: 'BAJA'
+          prioridad: 'BAJA',
         });
       }
 
@@ -743,9 +555,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
   static async obtenerMovimientosPendientes() {
     try {
       return await prisma.movimiento.findMany({
-        where: {
-          estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO'] },
-        },
+        where: { estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -765,10 +575,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
   static async obtenerMovimientosPendientesPorEmpresa(empresaId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: {
-          empresaId,
-          estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] },
-        },
+        where: { empresaId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -784,6 +591,7 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
       throw new Error('Error al obtener movimientos pendientes por empresa');
     }
   }
+
   static async obtenerTodosLosMovimientos() {
     try {
       return await prisma.movimiento.findMany({
@@ -796,22 +604,18 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
           incidentes: true,
           ronda: true,
         },
-        orderBy: {
-          createdAt: 'asc', // Opcional, para que te los regrese ordenados por creación
-        },
+        orderBy: { createdAt: 'asc' },
       });
     } catch (error) {
       movimientoError.error('Error al obtener todos los movimientos', { error });
       throw new Error('Error al obtener todos los movimientos');
     }
   }
-  
+
   static async obtenerMovimientosPorEmpresa(empresaId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: {
-          empresaId,
-        },
+        where: { empresaId },
         include: {
           empresa: true,
           creadoPor: true,
@@ -821,108 +625,18 @@ static async obtenerEstadisticasPorEstado(fechaInicio?: Date, fechaFin?: Date) {
           incidentes: true,
           ronda: true,
         },
-        orderBy: {
-          createdAt: 'asc',
-        },
+        orderBy: { createdAt: 'asc' },
       });
     } catch (error) {
       movimientoError.error('Error al obtener movimientos por empresa', { empresaId, error });
       throw new Error('Error al obtener movimientos por empresa');
     }
   }
-  
-  // ✅ Obtener movimientos pendientes por localidad
-static async obtenerMovimientosPendientesPorLocalidad(localidadId: number) {
-  try {
-    return await prisma.movimiento.findMany({
-      where: {
-        localidadId,
-        estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] },
-      },
-      include: {
-        empresa: true,
-        creadoPor: true,
-        localidad: true,
-        viaOrigen: true,
-        viaDestino: true,
-        incidentes: true,
-        ronda: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-  } catch (error) {
-    movimientoError.error('Error al obtener movimientos pendientes por localidad', { localidadId, error });
-    throw new Error('Error al obtener movimientos pendientes por localidad');
-  }
-}
 
-// ✅ Obtener todos los movimientos por localidad
-static async obtenerTodosMovimientosPorLocalidad(localidadId: number) {
-  try {
-    return await prisma.movimiento.findMany({
-      where: {
-        localidadId,
-      },
-      include: {
-        empresa: true,
-        creadoPor: true,
-        localidad: true,
-        viaOrigen: true,
-        viaDestino: true,
-        incidentes: true,
-        ronda: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-  } catch (error) {
-    movimientoError.error('Error al obtener todos los movimientos por localidad', { localidadId, error });
-    throw new Error('Error al obtener todos los movimientos por localidad');
-  }
-}
-
-// ✅ Obtener movimientos por localidad y empresa
-static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaId: number) {
-  try {
-    return await prisma.movimiento.findMany({
-      where: {
-        localidadId,
-        empresaId,
-      },
-      include: {
-        empresa: true,
-        creadoPor: true,
-        localidad: true,
-        viaOrigen: true,
-        viaDestino: true,
-        incidentes: true,
-        ronda: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-  } catch (error) {
-    movimientoError.error('Error al obtener movimientos por localidad y empresa', { localidadId, empresaId, error });
-    throw new Error('Error al obtener movimientos por localidad y empresa');
-  }
-}
-  /**
-   * Obtener todos los movimientos de una empresa en una localidad
-   */
-  static async obtenerMovimientosPorEmpresaYLocalidad(
-    empresaId: number,
-    localidadId: number
-  ) {
+  static async obtenerMovimientosPendientesPorLocalidad(localidadId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: {
-          empresaId,
-          localidadId,
-        },
+        where: { localidadId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -932,33 +646,89 @@ static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaI
           incidentes: true,
           ronda: true,
         },
-        orderBy: {
-          createdAt: 'asc',
-        },
+        orderBy: { createdAt: 'asc' },
       });
     } catch (error) {
-      movimientoError.error(
-        'Error al obtener movimientos por empresa y localidad',
-        { empresaId, localidadId, error }
-      );
+      movimientoError.error('Error al obtener movimientos pendientes por localidad', { localidadId, error });
+      throw new Error('Error al obtener movimientos pendientes por localidad');
+    }
+  }
+
+  static async obtenerTodosMovimientosPorLocalidad(localidadId: number) {
+    try {
+      return await prisma.movimiento.findMany({
+        where: { localidadId },
+        include: {
+          empresa: true,
+          creadoPor: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          incidentes: true,
+          ronda: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    } catch (error) {
+      movimientoError.error('Error al obtener todos los movimientos por localidad', { localidadId, error });
+      throw new Error('Error al obtener todos los movimientos por localidad');
+    }
+  }
+
+  static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaId: number) {
+    try {
+      return await prisma.movimiento.findMany({
+        where: { localidadId, empresaId },
+        include: {
+          empresa: true,
+          creadoPor: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          incidentes: true,
+          ronda: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    } catch (error) {
+      movimientoError.error('Error al obtener movimientos por localidad y empresa', {
+        localidadId,
+        empresaId,
+        error,
+      });
+      throw new Error('Error al obtener movimientos por localidad y empresa');
+    }
+  }
+
+  static async obtenerMovimientosPorEmpresaYLocalidad(empresaId: number, localidadId: number) {
+    try {
+      return await prisma.movimiento.findMany({
+        where: { empresaId, localidadId },
+        include: {
+          empresa: true,
+          creadoPor: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          incidentes: true,
+          ronda: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    } catch (error) {
+      movimientoError.error('Error al obtener movimientos por empresa y localidad', {
+        empresaId,
+        localidadId,
+        error,
+      });
       throw new Error('Error al obtener movimientos por empresa y localidad');
     }
   }
 
-  /**
-   * Obtener movimientos NO concluidos (finalizado = false) de una empresa en una localidad
-   */
-  static async obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(
-    empresaId: number,
-    localidadId: number
-  ) {
+  static async obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId: number, localidadId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: {
-          empresaId,
-          localidadId,
-          finalizado: false,
-        },
+        where: { empresaId, localidadId, finalizado: false },
         include: {
           empresa: true,
           creadoPor: true,
@@ -968,34 +738,23 @@ static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaI
           incidentes: true,
           ronda: true,
         },
-        orderBy: {
-          createdAt: 'asc',
-        },
+        orderBy: { createdAt: 'asc' },
       });
     } catch (error) {
-      movimientoError.error(
-        'Error al obtener movimientos no concluidos por empresa y localidad',
-        { empresaId, localidadId, error }
-      );
-      throw new Error(
-        'Error al obtener movimientos no concluidos por empresa y localidad'
-      );
+      movimientoError.error('Error al obtener movimientos no concluidos por empresa y localidad', {
+        empresaId,
+        localidadId,
+        error,
+      });
+      throw new Error('Error al obtener movimientos no concluidos por empresa y localidad');
     }
   }
 
-  /**
-   * Obtiene información completa de una ronda a partir de su ID,
-   * incluyendo empresa, datos del movimiento (vía origen, vía destino)
-   * y flags de lavado y torno.
-   */
   static async obtenerInfoPorRonda(rondaId: number) {
     try {
       const info = await RondaModel.obtenerInfoPorRonda(rondaId);
-      if (!info) {
-        throw new Error(`No se encontró la ronda con ID ${rondaId}`);
-      }
+      if (!info) throw new Error(`No se encontró la ronda con ID ${rondaId}`);
 
-      // Transformación opcional: extraer solo los campos necesarios
       return {
         rondaId: info.rondaId,
         rondaNumero: info.rondaNumero,
@@ -1024,9 +783,9 @@ static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaI
         data: {
           estado: 'EN_PROCESO',
           fechaInicio: fechaActual,
-          operadorId: operadorId, 
+          operadorId,
           updatedAt: fechaActual,
-                },
+        },
       });
     } catch (error) {
       movimientoError.error('Error al iniciar movimiento', { id, error });
@@ -1039,27 +798,20 @@ static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaI
       const fechaActual = new Date();
       return await prisma.movimiento.update({
         where: { id },
-        data: {
-          estado: 'DETENIDO',
-          fechaPausa: fechaActual,
-          updatedAt: fechaActual,
-        },
+        data: { estado: 'DETENIDO', fechaPausa: fechaActual, updatedAt: fechaActual },
       });
     } catch (error) {
       movimientoError.error('Error al pausar movimiento', { id, error });
       throw new Error('Error al pausar movimiento');
     }
   }
+
   static async reanudarMovimiento(id: number) {
     try {
       const fechaActual = new Date();
       return await prisma.movimiento.update({
         where: { id },
-        data: {
-          estado: 'EN_PROCESO',
-          fechaInicio: fechaActual,
-          updatedAt: fechaActual,
-        },
+        data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, updatedAt: fechaActual },
       });
     } catch (error) {
       movimientoError.error('Error al reanudar movimiento', { id, error });
@@ -1067,34 +819,25 @@ static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaI
     }
   }
 
-
-// MovimientoModel.ts
-static async finalizarMovimiento(id: number) {
-  return prisma.$transaction(async (tx) => {
-    // 1. Marcar el movimiento como CONCLUIDO
-    const mov = await tx.movimiento.update({
-      where: { id },
-      data: {
-        estado: 'CONCLUIDO',
-        finalizado: true,
-        fechaFin: new Date(),
-      },
-      include: { ronda: true },
-    });
-
-    // 2. Si tiene ronda, marcarla concluida
-    if (mov.ronda) {
-      await tx.ronda.update({
-        where: { id: mov.ronda.id },
-        data: { concluido: true },
+  static async finalizarMovimiento(id: number) {
+    return prisma.$transaction(async (tx) => {
+      const mov = await tx.movimiento.update({
+        where: { id },
+        data: { estado: 'CONCLUIDO', finalizado: true, fechaFin: new Date() },
+        include: { ronda: true, viaDestino: { select: { id: true } } },
       });
 
-      // 3. Renumerar TODA la localidad (borra rondas fully-concluidas y ajusta 1,2,3�)
-      await RondaModel.recomponerRondasLocalidad(mov.localidadId, tx);
-    }
+      // liberar ocupación
+      if (mov.viaDestino?.id) {
+        await ViaModel.liberarMovimientoDeSeccion(mov.viaDestino.id, id);
+      }
 
-    return mov;
-  });
-}
+      if (mov.ronda) {
+        await tx.ronda.update({ where: { id: mov.ronda.id }, data: { concluido: true } });
+        await RondaModel.recomponerRondasLocalidad(mov.localidadId, tx);
+      }
 
+      return mov;
+    });
+  }
 }

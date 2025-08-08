@@ -1,26 +1,26 @@
 // src/controllers/IncidenteController.ts
-
 import { Request, Response, RequestHandler } from 'express';
 import multer from 'multer';
 import fs from 'fs/promises';
 import {
   IncidenteModel,
   EstadoFiltro,
-  listarIncidentesPaginados
+  listarIncidentesPaginados, // sólo para RESUELTO/PASADOS con pageSize fijo
 } from '../../models/Incidente/IncidenteModel';
 import { incidenteControllerLogger } from './incidente.controller.logger';
-import { NotificadorFCM } from '../../services/NotificadorFCM';
 
-// Configuración de multer (memoria, max. 4 imágenes de 10MB c/u)
+// ─────────────────────────────────────────────────────────────
+// Multer (memoria, máx. 4 imágenes de 10MB c/u, tipos permitidos)
+// ─────────────────────────────────────────────────────────────
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 4 },
   fileFilter: (_req, file, cb) => {
-    const permitidos = ['image/jpeg','image/jpg','image/png','image/webp'];
-    permitidos.includes(file.mimetype)
+    const ok = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    ok.includes(file.mimetype)
       ? cb(null, true)
       : cb(new Error('Solo se permiten JPEG, JPG, PNG o WEBP'));
-  }
+  },
 });
 export const uploadImagenes = upload.array('imagenes', 4);
 
@@ -29,30 +29,53 @@ export class IncidenteController {
    * GET /incidentes
    * Listado paginado con filtros opcionales:
    * ?estado=&page=&pageSize=&empresaId=&localidadId=
+   *
+   * Reglas:
+   * - Con empresa/localidad → se usan métodos específicos paginados del modelo.
+   * - Sin filtros de empresa/localidad → obtenerIncidentesPaginados (acepta ABIERTO|CERRADO).
+   * - Para RESUELTO/PASADOS → usar listarIncidentesPaginados (pageSize=20 fijo).
    */
   static listar: RequestHandler = async (req, res) => {
     try {
-      const {
-        estado: e,
-        page: p,
-        pageSize: ps,
-        empresaId: emp,
-        localidadId: loc
-      } = req.query;
-      const page     = Math.max(1, Number(p)  || 1);
+      const { estado: e, page: p, pageSize: ps, empresaId: emp, localidadId: loc } = req.query;
+
+      const page = Math.max(1, Number(p) || 1);
       const pageSize = Math.max(1, Number(ps) || 20);
-      const estado: EstadoFiltro | undefined =
-        ['ABIERTO','CERRADO','RESUELTO','PASADOS'].includes(e as string)
-          ? (e as EstadoFiltro)
-          : undefined;
-      const result = await listarIncidentesPaginados({
-        page,
-        pageSize,
-        estado,
-        empresaId:   emp ? Number(emp) : undefined,
-        localidadId: loc ? Number(loc) : undefined
-      });
-      res.json({ success: true, data: result.data, meta: result.meta });
+      const empresaId = emp ? Number(emp) : undefined;
+      const localidadId = loc ? Number(loc) : undefined;
+
+      const estadoStr = typeof e === 'string' ? e.toUpperCase() : undefined;
+      const estado: EstadoFiltro | undefined = (['ABIERTO', 'CERRADO', 'RESUELTO', 'PASADOS'] as const).includes(
+        estadoStr as any
+      )
+        ? (estadoStr as EstadoFiltro)
+        : undefined;
+
+      // Rama con filtros de empresa/localidad (los métodos del modelo no filtran por RESUELTO/PASADOS)
+      if (empresaId && localidadId) {
+        const r = await IncidenteModel.obtenerIncidentesPorEmpresaYLocalidad(empresaId, localidadId, page, pageSize);
+        return res.json({ success: true, data: r.data, meta: r.meta });
+      }
+      if (empresaId && !localidadId) {
+        const r = await IncidenteModel.obtenerIncidentesPorEmpresa(empresaId, page, pageSize);
+        return res.json({ success: true, data: r.data, meta: r.meta });
+      }
+      if (!empresaId && localidadId) {
+        const r = await IncidenteModel.obtenerIncidentesPorLocalidad(localidadId, page, pageSize);
+        return res.json({ success: true, data: r.data, meta: r.meta });
+      }
+
+      // Sin empresa/localidad:
+      // - Si piden RESUELTO o PASADOS, usamos el helper con pageSize fijo (20)
+      if (estado === 'RESUELTO' || estado === 'PASADOS') {
+        const r = await listarIncidentesPaginados({ page, estado });
+        return res.json({ success: true, data: r.data, meta: r.meta });
+      }
+
+      // - Si piden ABIERTO/CERRADO o nada → método del modelo (acepta pageSize)
+      const estadoSimple = estado === 'ABIERTO' || estado === 'CERRADO' ? estado : undefined;
+      const r = await IncidenteModel.obtenerIncidentesPaginados(page, pageSize, estadoSimple);
+      return res.json({ success: true, data: r.data, meta: r.meta });
     } catch (error) {
       incidenteControllerLogger.error('listar', { error, query: req.query });
       res.status(500).json({ success: false, error: 'Error al listar incidentes' });
@@ -73,8 +96,8 @@ export class IncidenteController {
       res.json({ success: true, data: incidente });
     } catch (error) {
       incidenteControllerLogger.error('obtenerPorId', { id: req.params.id, error });
-      const errorMsg = (error instanceof Error) ? error.message : String(error);
-      const status = /no encontrado/i.test(errorMsg) ? 404 : 500;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const status = /no (se )?encontr|no existe/i.test(errorMsg) ? 404 : 500;
       res.status(status).json({ success: false, error: errorMsg });
     }
   };
@@ -87,18 +110,14 @@ export class IncidenteController {
     try {
       const { descripcion, movimientoId, usuarioId } = req.body;
       if (!descripcion || !movimientoId || !usuarioId) {
-        return res
-          .status(400)
-          .json({ success: false, error: 'Faltan campos obligatorios' });
+        return res.status(400).json({ success: false, error: 'Faltan campos obligatorios' });
       }
-      const buffers = Array.isArray(req.files)
-        ? (req.files as Express.Multer.File[]).map(f => f.buffer)
-        : [];
+      const buffers = Array.isArray(req.files) ? (req.files as Express.Multer.File[]).map((f) => f.buffer) : [];
       const nuevo = await IncidenteModel.crearIncidente({
-        descripcion : descripcion.trim(),
+        descripcion: String(descripcion).trim(),
         movimientoId: Number(movimientoId),
-        usuarioId   : Number(usuarioId),
-        imagenes    : buffers.length ? buffers : undefined
+        usuarioId: Number(usuarioId),
+        imagenes: buffers.length ? buffers : undefined,
       });
       res.status(201).json({ success: true, data: nuevo });
     } catch (error) {
@@ -114,20 +133,21 @@ export class IncidenteController {
   static editar: RequestHandler = async (req, res) => {
     try {
       const id = Number(req.params.id);
-      const { descripcion, estado } = req.body;
       if (isNaN(id)) {
         return res.status(400).json({ success: false, error: 'ID inválido' });
       }
-      if (estado && !['ABIERTO','CERRADO','RESUELTO','PASADOS'].includes(estado)) {
-        return res.status(400).json({ success: false, error: 'Estado inválido' });
+
+      const { descripcion, estado } = req.body as { descripcion?: string; estado?: string };
+
+      if (estado && !['ABIERTO', 'CERRADO', 'RESUELTO'].includes(estado.toUpperCase())) {
+        return res.status(400).json({ success: false, error: 'Estado inválido (use ABIERTO, CERRADO o RESUELTO)' });
       }
-      const buffers = Array.isArray(req.files)
-        ? (req.files as Express.Multer.File[]).map(f => f.buffer)
-        : [];
+
+      const buffers = Array.isArray(req.files) ? (req.files as Express.Multer.File[]).map((f) => f.buffer) : [];
       const actualizado = await IncidenteModel.editarIncidente(id, {
         descripcion: descripcion?.trim(),
-        estado:      estado as EstadoFiltro,
-        imagenes:    buffers.length ? buffers : undefined
+        estado: estado ? (estado.toUpperCase() as 'ABIERTO' | 'CERRADO' | 'RESUELTO') : undefined,
+        imagenes: buffers.length ? buffers : undefined,
       });
       res.json({ success: true, data: actualizado });
     } catch (error) {
@@ -156,7 +176,7 @@ export class IncidenteController {
 
   /**
    * GET /incidentes/:id/verificacion
-   * Verifica periodo de verificación / bloqueo (simplificado)
+   * Verifica periodo de verificación / bloqueo
    */
   static verificarPeriodo: RequestHandler = async (req, res) => {
     try {
@@ -174,7 +194,7 @@ export class IncidenteController {
 
   /**
    * POST /incidentes/:id/cerrar
-   * Cierra manualmente un incidente (cambia estado a CERRADO)
+   * Cambia estado a CERRADO (el modelo ya notifica si aplica)
    */
   static cerrar: RequestHandler = async (req, res) => {
     try {
@@ -193,11 +213,12 @@ export class IncidenteController {
   /**
    * GET /incidentes/imagen/:ruta
    * Sirve la imagen correspondiente a la ruta relativa
+   * Nota: si usas subcarpetas (aaaa/mm/dd/archivo.jpg) conviene usar query (?ruta=)
    */
   static servirImagen: RequestHandler = async (req, res) => {
     try {
-      const ruta      = req.params.ruta as string;
-      const fullPath  = IncidenteModel.obtenerRutaCompletaImagen(ruta);
+      const ruta = req.params.ruta as string;
+      const fullPath = IncidenteModel.obtenerRutaCompletaImagen(ruta);
       await fs.access(fullPath);
       res.sendFile(fullPath);
     } catch {
@@ -205,39 +226,23 @@ export class IncidenteController {
     }
   };
 
- /**
+  /**
    * POST /incidentes/:id/resuelto
-   * Marca un incidente como RESUELTO y notifica a los interesados.
+   * Marca un incidente como RESUELTO.
+   * (No llamamos a Notificador aquí: el modelo ya notifica al cambiar estado)
    */
   static resolver: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    const { comentario } = req.body;
-    if (isNaN(id)) {
-      return res.status(400).json({ success: false, error: 'ID inválido' });
-    }
-
     try {
-      // 1. Obtengo el incidente original (para el estado anterior)
-      const original = await IncidenteModel.obtenerIncidentePorId(id);
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' });
+      }
 
-      // 2. Lo marco como RESUELTO
-      const actualizado = await IncidenteModel.editarIncidente(id, {
-        estado: 'RESUELTO',
-        // (si quieres guardar el comentario en otra parte, hazlo aquí)
-      });
-
-      // 3. Envío la notificación de cambio de estado
-      await NotificadorFCM.notificarCambioEstado(
-        actualizado,
-        original.estado   // p.ej. "ABIERTO" o "CERRADO"
-      );
-
+      const actualizado = await IncidenteModel.editarIncidente(id, { estado: 'RESUELTO' });
       return res.json({ success: true, data: actualizado });
     } catch (error: any) {
-      incidenteControllerLogger.error('resolver', { id, error });
+      incidenteControllerLogger.error('resolver', { id: req.params.id, error });
       return res.status(500).json({ success: false, error: 'Error al resolver incidente' });
     }
   };
-
-  
 }

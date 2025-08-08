@@ -36,6 +36,31 @@ model Usuario {
   rol             Rol
   empresaId       Int
   localidadId     Int
+  fcmTokens       FcmToken[]
+
+  activo          Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  incidentes      Incidente[]
+  movimientos     Movimiento[] @relation("UsuarioMovimiento")
+  coordinadorMovs Movimiento[] @relation("CoordinadorMovimiento")
+  creados         Movimiento[] @relation("UsuarioCreador")
+  operadorMovs    Movimiento[] @relation("OperadorMovimiento")
+  supervisorMovs  Movimiento[] @relation("SupervisorMovimiento")
+  tokens          Token[]
+  empresa         Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  localidad       Localidad    @relation(fields: [localidadId], references: [id])
+
+  @@index([empresaId, activo])
+  @@index([localidadId, rol])
+  // @@index([empresaId, localidadId, rol, activo]
+  id              Int          @id @default(autoincrement())
+  nombre          String       @unique
+  email           String       @unique
+  contrasena      String
+  rol             Rol
+  empresaId       Int
+  localidadId     Int
   fcmTokens         FcmToken[]
 
   activo          Boolean      @default(false)
@@ -67,25 +92,31 @@ model FcmToken {
 
 
 model Via {
-  id            Int            @id @default(autoincrement())
-  numero        Int
-  nombre        String
-  localidadId   Int
-  ocupada       Boolean        @default(false)
-  movimientoId  Int?           
-  movimiento    Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
+  id              Int            @id @default(autoincrement())
+  numero          Int
+  nombre          String
+  localidadId     Int
+  ocupada         Boolean        @default(false)
+  movimientoId    Int?
+  movimiento      Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  // (Opcional) si quieres alternar política de ocupación
+  // permiteConcurrencia Boolean @default(false)
 
-  secciones     SeccionVia[]   
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  secciones       SeccionVia[]
   movimientosDestino Movimiento[] @relation("ViaDestinoMovimiento")
   movimientosOrigen  Movimiento[] @relation("ViaOrigenMovimiento")
-  localidad      Localidad      @relation(fields: [localidadId], references: [id])
+  localidad        Localidad      @relation(fields: [localidadId], references: [id])
 
   @@unique([numero, localidadId])
   @@unique([nombre, localidadId])
-}
+  // <<< NUEVO: agiliza lecturas/updates de ocupación
+  @@index([movimientoId])
+  @@index([localidadId, numero])
+}}
 
 model SeccionVia {
   id           Int         @id @default(autoincrement())
@@ -93,10 +124,14 @@ model SeccionVia {
   numero       Int
   nombre       String?
   ocupada      Boolean     @default(false)
-  movimientoId Int?        
+  movimientoId Int?
   movimiento   Movimiento? @relation("SeccionOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
   via          Via         @relation(fields: [viaId], references: [id], onDelete: Cascade)
+
   @@unique([viaId, numero])
+  @@index([viaId, ocupada])
+  @@index([viaId, movimientoId])
+  @@index([viaId, movimientoId, ocupada])
 }
 
 
@@ -186,6 +221,7 @@ model Ronda {
 
   empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   movimiento   Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  localidad    Localidad  @relation(fields: [localidadId], references: [id], onDelete: Restrict)
 
   @@index([rondaNumero, orden])
   @@index([localidadId])
