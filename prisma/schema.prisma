@@ -53,31 +53,6 @@ model Usuario {
 
   @@index([empresaId, activo])
   @@index([localidadId, rol])
-  // @@index([empresaId, localidadId, rol, activo]
-  id              Int          @id @default(autoincrement())
-  nombre          String       @unique
-  email           String       @unique
-  contrasena      String
-  rol             Rol
-  empresaId       Int
-  localidadId     Int
-  fcmTokens         FcmToken[]
-
-  activo          Boolean      @default(false)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  incidentes      Incidente[]
-  movimientos     Movimiento[] @relation("UsuarioMovimiento")
-  coordinadorMovs Movimiento[] @relation("CoordinadorMovimiento")
-  creados         Movimiento[] @relation("UsuarioCreador")
-  operadorMovs    Movimiento[] @relation("OperadorMovimiento")
-  supervisorMovs  Movimiento[] @relation("SupervisorMovimiento")
-  tokens          Token[]
-  empresa         Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  localidad       Localidad    @relation(fields: [localidadId], references: [id])
-
-  @@index([empresaId, activo])
-  @@index([localidadId, rol])
 }
 
 model FcmToken {
@@ -116,7 +91,7 @@ model Via {
   // <<< NUEVO: agiliza lecturas/updates de ocupación
   @@index([movimientoId])
   @@index([localidadId, numero])
-}}
+}
 
 model SeccionVia {
   id           Int         @id @default(autoincrement())
