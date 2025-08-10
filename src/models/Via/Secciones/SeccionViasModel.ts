@@ -62,43 +62,53 @@ export class SeccionViaModel {
 
   // -------------------- CRUD --------------------
 
+// Dentro de export class SeccionViaModel { ... }
+
   /**
    * Crea una sección en una vía.
-   * - Si `numero` no se pasa, usa max(numero)+1 en esa vía.
-   * - Si `nombre` no se pasa, usa "Sección {numero}".
-   * - Sincroniza la vía tras crear.
+   * - Si no envías "numero", asigna el siguiente consecutivo dentro de la vía.
+   * - "nombre" es opcional; por defecto "Sección <numero>".
+   * - Resincroniza el estado de la vía tras crear.
    */
-  static async crearSeccion(viaId: number, nombre?: string, numero?: number) {
+  static async crearSeccion(
+    viaId: number,
+    nombre?: string,
+    numero?: number
+  ) {
     return prisma.$transaction(async (tx) => {
+      // Validar que la vía exista
       const via = await tx.via.findUnique({ where: { id: viaId }, select: { id: true } });
-      if (!via) throw new NotFoundError(`Vía ${viaId} no existe`);
-
-      let num: number;
-      if (Number.isInteger(Number(numero))) {
-        num = Number(numero);
-        const dup = await tx.seccionVia.findUnique({
-          where: { viaId_numero: { viaId, numero: num } },
-          select: { id: true },
-        });
-        if (dup) throw new ConflictError(`Ya existe la sección ${num} en la vía ${viaId}`);
-      } else {
-        const max = await tx.seccionVia.findFirst({
-          where: { viaId },
-          orderBy: { numero: 'desc' },
-          select: { numero: true },
-        });
-        num = (max?.numero ?? 0) + 1;
+      if (!via) {
+        throw new NotFoundError(`La vía ${viaId} no existe`);
       }
 
-      const nombreFinal =
-        typeof nombre === 'string' && nombre.trim() !== '' ? nombre.trim() : `Sección ${num}`;
+      // Calcular número si no viene
+      let num = Number.isInteger(numero) ? (numero as number) : undefined;
+      if (num === undefined) {
+        const last = await tx.seccionVia.aggregate({
+          where: { viaId },
+          _max: { numero: true },
+        });
+        num = (last._max.numero ?? 0) + 1;
+      }
 
+      // Normalizar nombre (opcional)
+      const nombreFinal =
+        (nombre && nombre.trim()) || `Sección ${num}`;
+
+      // Crear
       const creada = await tx.seccionVia.create({
-        data: { viaId, numero: num, nombre: nombreFinal, ocupada: false, movimientoId: null },
-        include: { via: true, movimiento: true },
+        data: {
+          viaId,
+          numero: num,
+          nombre: nombreFinal,
+          // ocupada: false por default (según schema)
+        },
       });
 
+      // Sincronizar estado de la vía con sus secciones
       await SeccionViaModel.syncViaFromSections(tx, viaId);
+
       return creada;
     });
   }
