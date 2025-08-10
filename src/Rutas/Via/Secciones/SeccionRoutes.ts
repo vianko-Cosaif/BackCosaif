@@ -1,23 +1,47 @@
 // secciones.routes.ts
 import { Router } from 'express';
-import { SeccionViaController } from './SeccionVIasController'; // <- fijate el nombre/case
+import passport from '../../../middlewares/passport';
+import { SeccionViaController } from './SeccionVIasController';
 
 const router = Router();
 
-// LISTADOS
-// Opción con query param (modelo NO expone "obtener todas", así que pedimos viaId)
-router.get('/secciones', SeccionViaController.obtenerSecciones);
-// Opción REST explícita por vía
-router.get('/secciones/via/:viaId', SeccionViaController.obtenerSeccionesPorVia);
+// Protegemos todo con JWT
+router.use(passport.authenticate('jwt', { session: false }));
 
-// CRUD (si en tu modelo aún no existen, el controller responde 501 Not Implemented)
-router.post('/secciones/via/:viaId', SeccionViaController.crearSeccion);
-router.put('/secciones/:id', SeccionViaController.editarSeccion);
-router.delete('/secciones/:id', SeccionViaController.eliminarSeccion);
+// ===== LISTADOS =====
+// GET /secciones?viaId=123
+router.get('/', SeccionViaController.obtenerSecciones);
 
-// OCUPACIÓN (alineado al modelo actual)
-router.post('/secciones/via/:viaId/asignar', SeccionViaController.asignarMovimiento);
-router.post('/secciones/via/:viaId/liberar', SeccionViaController.liberarSeccion);
-router.post('/secciones/via/:viaId/liberar-todas', SeccionViaController.liberarTodasPorMovimiento);
+// GET /secciones/via/:viaId
+router.get('/via/:viaId', SeccionViaController.obtenerSeccionesPorVia);
+
+// GET /secciones/:id
+router.get('/:id', SeccionViaController.obtenerSeccionPorId);
+
+// GET /secciones/via/:viaId/numero/:numero
+router.get('/via/:viaId/numero/:numero', SeccionViaController.obtenerSeccionPorClave);
+
+// ===== CRUD =====
+// POST /secciones           (body: { viaId, nombre?, numero? })
+router.post('/', SeccionViaController.crearSeccion);
+
+// POST /secciones/via/:viaId (body: { nombre?, numero? })
+router.post('/via/:viaId', SeccionViaController.crearSeccionEnVia);
+
+// PUT /secciones/:id         (body: { nombre?, numero? })
+router.put('/:id', SeccionViaController.editarSeccion);
+
+// DELETE /secciones/:id
+router.delete('/:id', SeccionViaController.eliminarSeccion);
+
+// ===== OCUPACIÓN =====
+// POST /secciones/via/:viaId/asignar       (body: { numero, movimientoId })
+router.post('/via/:viaId/asignar', SeccionViaController.asignarMovimiento);
+
+// POST /secciones/via/:viaId/liberar       (body: { numero, movimientoId })
+router.post('/via/:viaId/liberar', SeccionViaController.liberarSeccion);
+
+// POST /secciones/via/:viaId/liberar-todas (body: { movimientoId })
+router.post('/via/:viaId/liberar-todas', SeccionViaController.liberarTodasPorMovimiento);
 
 export default router;
