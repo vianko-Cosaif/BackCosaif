@@ -188,4 +188,5 @@ export class SeccionViaController {
       sendError(res, error, 'Error al liberar secciones del movimiento');
     }
   };
+  
 }
