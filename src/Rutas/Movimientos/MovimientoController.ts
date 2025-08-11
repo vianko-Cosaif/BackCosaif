@@ -5,9 +5,7 @@ import { movimientoControllerLogger as log } from './movimiento.controller.logge
 import { NotificadorFCM } from '../../services/NotificadorFCM';
 
 export class MovimientoController {
-  /**
-   * GET /movimientos
-   */
+  // GET /movimientos
   static obtenerMovimientos: RequestHandler = async (_req, res) => {
     try {
       const movimientos = await MovimientoModel.obtenerMovimientos();
@@ -18,23 +16,19 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * POST /movimientos
-   * Crea un movimiento (el modelo intentará ocupar vía/sección y generar la ronda).
-   * Acepta opcionalmente `numeroSeccion`.
-   */
+  // POST /movimientos
   static nuevoMovimiento: RequestHandler = async (req, res) => {
     try {
       const data = { ...req.body };
 
-      // Normalización (el modelo también lo hace, pero aquí evitamos basura)
+      // Normalización ligera (el modelo también sanea)
       data.prioridad ??= 'BAJA';
       data.estado ??= 'SOLICITADO';
       data.posicionCabina ??= 'Sin_Solicitar';
       data.posicionChimenea ??= 'Sin_Solicitar';
       data.direccionEmpuje ??= 'Sin_Solicitar';
 
-      // Validaciones simples
+      // Validaciones mínimas
       if (!data.empresaId || !data.creadoPorId || !data.localidadId || !data.viaOrigenId || !data.locomotiveNumber) {
         return res.status(400).json({ message: 'Faltan campos obligatorios.' });
       }
@@ -47,7 +41,6 @@ export class MovimientoController {
 
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
 
-      // Notificar por FCM (no bloquea la creación)
       try {
         await NotificadorFCM.notificarNuevoMovimiento(movimiento);
       } catch (e) {
@@ -61,9 +54,21 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/prioridad
-   */
+  // PUT /movimientos/:id  (editar campos y/o cambiar viaDestinoId/numeroSeccion)
+  static editarMovimiento: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+
+    try {
+      const movimiento = await MovimientoModel.editarMovimiento(id, req.body ?? {});
+      res.status(200).json({ message: 'Movimiento actualizado', movimiento });
+    } catch (error) {
+      log.error('Error al editar movimiento', { id, body: req.body, error });
+      res.status(500).json({ message: 'Error al editar movimiento' });
+    }
+  };
+
+  // PATCH /movimientos/:id/prioridad
   static cambiarPrioridad: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     const { prioridad } = req.body;
@@ -74,7 +79,6 @@ export class MovimientoController {
     }
 
     try {
-      // (Opcional) podrías crear MovimientoModel.obtenerMovimientoPorId para evitar traer todo
       const movimientos = await MovimientoModel.obtenerMovimientos();
       const original = movimientos.find(m => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
@@ -104,9 +108,23 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * DELETE /movimientos/:id
-   */
+  // PATCH /movimientos/:id/cancelar
+  static cancelarMovimiento: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    const { razon, usuarioId } = req.body ?? {};
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (!razon || typeof razon !== 'string') return res.status(400).json({ message: 'Debe indicar la razón' });
+
+    try {
+      const movimiento = await MovimientoModel.cancelarMovimiento(id, razon, usuarioId);
+      res.status(200).json({ message: 'Movimiento cancelado', movimiento });
+    } catch (error) {
+      log.error('Error al cancelar movimiento', { id, razon, usuarioId, error });
+      res.status(500).json({ message: 'Error al cancelar movimiento' });
+    }
+  };
+
+  // DELETE /movimientos/:id
   static eliminarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -120,9 +138,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/pendientes
-   */
+  // GET /movimientos/pendientes
   static obtenerMovimientosPendientes: RequestHandler = async (_req, res) => {
     try {
       const pendientes = await MovimientoModel.obtenerMovimientosPendientes();
@@ -133,9 +149,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId/pendientes
-   */
+  // GET /movimientos/empresa/:empresaId/pendientes
   static obtenerMovimientosPendientesPorEmpresa: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
@@ -149,9 +163,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/all
-   */
+  // GET /movimientos/all
   static obtenerTodosLosMovimientos: RequestHandler = async (_req, res) => {
     try {
       const movimientos = await MovimientoModel.obtenerTodosLosMovimientos();
@@ -162,9 +174,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId
-   */
+  // GET /movimientos/empresa/:empresaId
   static obtenerMovimientosPorEmpresa: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
@@ -178,9 +188,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/localidad/:localidadId/pendientes
-   */
+  // GET /movimientos/localidad/:localidadId/pendientes
   static obtenerMovimientosPendientesPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
@@ -194,9 +202,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/localidad/:localidadId/all
-   */
+  // GET /movimientos/localidad/:localidadId/all
   static obtenerTodosMovimientosPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
@@ -210,9 +216,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/localidad/:localidadId/empresa/:empresaId
-   */
+  // GET /movimientos/localidad/:localidadId/empresa/:empresaId
   static obtenerMovimientosPorLocalidadEmpresa: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     const empresaId = Number(req.params.empresaId);
@@ -228,9 +232,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId/localidad/:localidadId
-   */
+  // GET /movimientos/empresa/:empresaId/localidad/:localidadId
   static obtenerMovimientosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     const localidadId = Number(req.params.localidadId);
@@ -246,9 +248,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId/localidad/:localidadId/pendientes
-   */
+  // GET /movimientos/empresa/:empresaId/localidad/:localidadId/pendientes
   static obtenerMovimientosNoConcluidosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     const localidadId = Number(req.params.localidadId);
@@ -264,9 +264,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * GET /movimientos/ronda/:rondaId/info
-   */
+  // GET /movimientos/ronda/:rondaId/info
   static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     const rondaId = Number(req.params.rondaId);
     if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
@@ -280,9 +278,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/iniciar
-   */
+  // PATCH /movimientos/:id/iniciar
   static iniciarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     const { operadorId } = req.body;
@@ -300,9 +296,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/pausar
-   */
+  // PATCH /movimientos/:id/pausar
   static pausarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -316,9 +310,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/reanudar
-   */
+  // PATCH /movimientos/:id/reanudar
   static reanudarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -332,9 +324,7 @@ export class MovimientoController {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/finalizar
-   */
+  // PATCH /movimientos/:id/finalizar
   static finalizarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -345,6 +335,26 @@ export class MovimientoController {
     } catch (error) {
       log.error('Error al finalizar movimiento', { id, error });
       res.status(500).json({ message: 'Error al finalizar movimiento' });
+    }
+  };
+
+  // PATCH /movimientos/:id/estado  (cambio de estado genérico opcional)
+  static cambiarEstado: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    const { estado, operadorId, razon, forzar } = req.body ?? {};
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (!estado || typeof estado !== 'string') return res.status(400).json({ message: 'Debe indicar estado destino' });
+
+    try {
+      const movimiento = await MovimientoModel.cambiarEstadoMovimiento(id, estado, {
+        operadorId,
+        razon,
+        forzar: !!forzar,
+      });
+      res.status(200).json({ message: `Movimiento → ${estado}`, movimiento });
+    } catch (error) {
+      log.error('Error al cambiar estado de movimiento', { id, estado, error });
+      res.status(500).json({ message: 'Error al cambiar estado de movimiento' });
     }
   };
 }
