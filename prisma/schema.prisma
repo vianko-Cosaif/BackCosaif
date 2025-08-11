@@ -18,15 +18,17 @@ model Empresa {
 }
 
 model Localidad {
-  id          Int          @id @default(autoincrement())
-  nombre      String       @unique
-  estado      String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  movimientos Movimiento[]
-  usuarios    Usuario[]
-  vias        Via[]
-  rondas      Ronda[]      // ← lado opuesto de Ronda.localidad
+  id           Int          @id @default(autoincrement())
+  nombre       String       @unique
+  estado       String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  movimientos  Movimiento[]
+  usuarios     Usuario[]
+  vias         Via[]
+  rondas       Ronda[]
+  capacidades  CapacidadServicioLocalidad[]
+  ocupaciones  OcupacionServicio[]
 }
 
 model Usuario {
@@ -66,18 +68,18 @@ model FcmToken {
 }
 
 model Via {
-  id                Int            @id @default(autoincrement())
-  numero            Int
-  nombre            String
-  localidadId       Int
-  ocupada           Boolean        @default(false)
-  movimientoId      Int?
-  movimiento        Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
+  id                 Int            @id @default(autoincrement())
+  numero             Int
+  nombre             String
+  localidadId        Int
+  ocupada            Boolean        @default(false)
+  movimientoId       Int?
+  movimiento         Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
-  secciones         SeccionVia[]
+  secciones          SeccionVia[]
   movimientosDestino Movimiento[]  @relation("ViaDestinoMovimiento")
   movimientosOrigen  Movimiento[]  @relation("ViaOrigenMovimiento")
   localidad          Localidad      @relation(fields: [localidadId], references: [id])
@@ -131,6 +133,7 @@ model Movimiento {
   incidenteGlobal  Boolean?          @default(false)
   direccionEmpuje  DireccionEmpuje?  @default(Sin_Solicitar)
   posicionCabina   PosicionCabina?
+  entregado        Boolean?          @default(false) // libera slots/vías cuando true
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -144,11 +147,12 @@ model Movimiento {
   supervisor       Usuario?          @relation("SupervisorMovimiento", fields: [supervisorId], references: [id], onDelete: Restrict)
   viaDestino       Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
   viaOrigen        Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
-  ronda            Ronda?
 
-  // ← lados opuestos requeridos
+  rondas             Ronda[]
   viaOcupante        Via[]         @relation("ViaOcupante")
   seccionesOcupantes SeccionVia[]  @relation("SeccionOcupante")
+  ocupacionServicio  OcupacionServicio?
+  eventos            MovimientoEvento[]
 
   @@index([empresaId, estado])
   @@index([fechaInicio, fechaFin])
@@ -184,12 +188,13 @@ model Incidente {
 
 model Ronda {
   id           Int        @id @default(autoincrement())
-  movimientoId Int        @unique
+  movimientoId Int
   empresaId    Int
   localidadId  Int
   concluido    Boolean?   @default(false)
   orden        Int
   rondaNumero  Int        @default(1)
+  tipoRonda    TipoRonda  @default(NATURAL)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -199,6 +204,85 @@ model Ronda {
 
   @@index([rondaNumero, orden])
   @@index([localidadId])
+  @@index([localidadId, tipoRonda, rondaNumero, orden])
+  @@unique([movimientoId, tipoRonda]) // un movimiento no se duplica dentro del mismo tipo de ronda
+}
+
+model RondaCursor {
+  id            Int        @id @default(autoincrement())
+  localidadId   Int
+  tipoRonda     TipoRonda
+  lastEmpresaId Int?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  localidad     Localidad  @relation(fields: [localidadId], references: [id], onDelete: Cascade)
+
+  @@unique([localidadId, tipoRonda])
+}
+
+// ====== Capacidad y Ocupación de servicios (Lavado/Torno) ======
+
+enum TipoServicio {
+  LAVADO
+  TORNO
+}
+
+model CapacidadServicioLocalidad {
+  id          Int           @id @default(autoincrement())
+  localidadId Int
+  servicio    TipoServicio
+  capacidad   Int           @default(0)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  localidad   Localidad     @relation(fields: [localidadId], references: [id], onDelete: Cascade)
+
+  @@unique([localidadId, servicio])
+  @@index([localidadId, servicio, capacidad])
+}
+
+model OcupacionServicio {
+  id           Int           @id @default(autoincrement())
+  localidadId  Int
+  servicio     TipoServicio
+  movimientoId Int           @unique
+  activo       Boolean       @default(true)
+  startedAt    DateTime      @default(now())
+  endedAt      DateTime?
+
+  localidad    Localidad     @relation(fields: [localidadId], references: [id], onDelete: Cascade)
+  movimiento   Movimiento    @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+
+  @@index([localidadId, servicio, activo])
+}
+
+// ====== Auditoría de eventos de movimiento (quién hizo qué y cuándo) ======
+
+model MovimientoEvento {
+  id           Int         @id @default(autoincrement())
+  movimientoId Int
+  actorId      Int
+  tipo         EventoTipo
+  participantes Json?
+  fecha        DateTime    @default(now())
+
+  movimiento   Movimiento  @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  actor        Usuario     @relation(fields: [actorId], references: [id])
+
+  @@index([movimientoId, fecha])
+}
+
+enum EventoTipo {
+  CREADO
+  INICIADO
+  PAUSADO
+  REANUDADO
+  CONCLUIDO
+  CANCELADO
+  EDITADO
+  REASIGNADO
 }
 
 model Token {
@@ -284,4 +368,10 @@ enum DireccionEmpuje {
 enum TipoMovimiento {
   MD_TRABAJANDO
   REMOLCADA
+}
+
+enum TipoRonda {
+  NATURAL
+  LAVADO
+  TORNO
 }

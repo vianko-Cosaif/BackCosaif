@@ -1,35 +1,28 @@
 /**
  * @file RondaController.ts
- * @author Isaac 
- * @version 1.2.0 2025-05-16
+ * @author Isaac
+ * @version 1.3.0 2025-08-11
  *
- * @description
- * Controlador HTTP para la entidad **Ronda**. Expone los endpoints REST
- * necesarios para gestionar generación, consulta y eliminación de rondas
- * ferroviarias, incluyendo datos completos del movimiento y nombres de vías.
- * 
- * Ahora incluye soporte para el sistema de prioridades:
- * - ALTA: Reorganiza todas las rondas existentes
- * - BAJA: Mantiene el principio de una empresa por ronda
+ * Controlador HTTP para **Ronda**.
+ * Cubre generación, consulta, intercambio, siguiente en ronda y conclusión.
  */
 
-import { Request, Response, RequestHandler } from "express";
+import { RequestHandler } from "express";
 import { RondaModel } from "../../../models/Movimientos/Ronda/RondaModel";
 import { movimientoControllerLogger as logger } from "../movimiento.controller.logger";
+
+// Helpers
+const isBoolStr = (v?: string) => v === "true" || v === "false";
 
 export class RondaController {
   // POST /rondas/generar
   static generarRondaInteligente: RequestHandler = async (_req, res) => {
     try {
       const rondas = await RondaModel.generarRondaInteligente();
-      res.status(201).json({ 
-        message: "Rondas generadas exitosamente", 
-        rondas,
-        count: rondas.length
-      });
+      res.status(201).json({ message: "Rondas generadas", count: rondas.length, rondas });
     } catch (error) {
-      logger.error("Error al generar ronda inteligente", { error });
-      res.status(500).json({ message: "Error al generar ronda inteligente" });
+      logger.error("generarRondaInteligente", { error });
+      res.status(500).json({ message: "Error al generar rondas" });
     }
   };
 
@@ -38,13 +31,9 @@ export class RondaController {
     try {
       await RondaModel.eliminarTodasLasRondas();
       const rondas = await RondaModel.generarRondaInteligente();
-      res.status(200).json({ 
-        message: "Rondas reorganizadas exitosamente", 
-        rondas,
-        count: rondas.length 
-      });
+      res.status(200).json({ message: "Rondas reorganizadas", count: rondas.length, rondas });
     } catch (error) {
-      logger.error("Error al reorganizar rondas", { error });
+      logger.error("reorganizarRondas", { error });
       res.status(500).json({ message: "Error al reorganizar rondas" });
     }
   };
@@ -55,7 +44,7 @@ export class RondaController {
       await RondaModel.eliminarTodasLasRondas();
       res.sendStatus(204);
     } catch (error) {
-      logger.error("Error al eliminar todas las rondas", { error });
+      logger.error("eliminarTodasLasRondas", { error });
       res.status(500).json({ message: "Error al eliminar todas las rondas" });
     }
   };
@@ -66,46 +55,32 @@ export class RondaController {
     const { empresaId, localidadId, prioridad } = req.body as {
       empresaId: unknown;
       localidadId: unknown;
-      prioridad?: 'ALTA' | 'BAJA';
+      prioridad?: "ALTA" | "BAJA";
     };
 
-    if (isNaN(movimientoId) || typeof empresaId !== "number" || typeof localidadId !== "number") {
-      res.status(400).json({ message: "Parámetros inválidos" });
-      return;
+    if (!Number.isInteger(movimientoId) || typeof empresaId !== "number" || typeof localidadId !== "number") {
+      return res.status(400).json({ message: "Parámetros inválidos" });
     }
-
-    // Validar el parámetro de prioridad si viene
-    if (prioridad !== undefined && prioridad !== 'ALTA' && prioridad !== 'BAJA') {
-      res.status(400).json({ message: "Valor de prioridad inválido. Debe ser 'ALTA' o 'BAJA'" });
-      return;
+    if (prioridad && prioridad !== "ALTA" && prioridad !== "BAJA") {
+      return res.status(400).json({ message: "prioridad inválida (ALTA|BAJA)" });
     }
 
     try {
-      // Asignar valor por defecto a prioridad si no viene
-      const prioridadFinal = prioridad || 'BAJA';
-      
-      await RondaModel.generarRondaParaMovimiento({
-        movimientoId,
-        empresaId,
-        localidadId,
-        prioridad: prioridadFinal
-      });
+      const prioridadFinal = prioridad ?? "BAJA";
+      await RondaModel.generarRondaParaMovimiento({ movimientoId, empresaId, localidadId, prioridad: prioridadFinal });
 
-      // Mensaje específico según prioridad
-      let message = "Ronda creada exitosamente";
-      if (prioridadFinal === 'ALTA') {
-        message = "Ronda de ALTA prioridad creada. Se reorganizaron todas las rondas";
-      }
-      
-      res.status(201).json({ 
-        message,
+      res.status(201).json({
+        message:
+          prioridadFinal === "ALTA"
+            ? "Ronda de ALTA prioridad creada y rondas reorganizadas"
+            : "Ronda creada",
         movimientoId,
         empresaId,
         localidadId,
-        prioridad: prioridadFinal
+        prioridad: prioridadFinal,
       });
     } catch (error) {
-      logger.error("Error al generar ronda para movimiento", { error, movimientoId, prioridad });
+      logger.error("generarRondaParaMovimiento", { error, movimientoId, empresaId, localidadId, prioridad });
       res.status(500).json({ message: "Error al generar ronda para movimiento" });
     }
   };
@@ -116,7 +91,7 @@ export class RondaController {
       const rondas = await RondaModel.obtenerRondas();
       res.status(200).json(rondas);
     } catch (error) {
-      logger.error("Error al obtener rondas", { error });
+      logger.error("obtenerRondas", { error });
       res.status(500).json({ message: "Error al obtener rondas" });
     }
   };
@@ -124,15 +99,13 @@ export class RondaController {
   // DELETE /rondas/:id
   static eliminarRonda: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    if (isNaN(id)) {
-      res.status(400).json({ message: "ID de ronda inválido" });
-      return;
-    }
+    if (!Number.isInteger(id)) return res.status(400).json({ message: "ID de ronda inválido" });
+
     try {
       await RondaModel.eliminarRonda(id);
       res.sendStatus(204);
     } catch (error) {
-      logger.error("Error al eliminar ronda", { error, id });
+      logger.error("eliminarRonda", { error, id });
       res.status(500).json({ message: "Error al eliminar ronda" });
     }
   };
@@ -140,15 +113,13 @@ export class RondaController {
   // GET /rondas/localidad/:localidadId
   static obtenerRondasPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
-    if (isNaN(localidadId)) {
-      res.status(400).json({ message: "ID de localidad inválido" });
-      return;
-    }
+    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: "ID de localidad inválido" });
+
     try {
       const rondas = await RondaModel.obtenerRondasPorLocalidad(localidadId);
       res.status(200).json(rondas);
     } catch (error) {
-      logger.error("Error al obtener rondas por localidad", { error, localidadId });
+      logger.error("obtenerRondasPorLocalidad", { error, localidadId });
       res.status(500).json({ message: "Error al obtener rondas por localidad" });
     }
   };
@@ -157,127 +128,95 @@ export class RondaController {
   static obtenerRondasPorLocalidadConEstado: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     const concluidoParam = req.params.concluido?.toLowerCase();
-    const concluido = concluidoParam === "true";
 
-    if (isNaN(localidadId) || !["true", "false"].includes(concluidoParam)) {
-      res.status(400).json({ message: "Parámetros inválidos" });
-      return;
+    if (!Number.isInteger(localidadId) || !isBoolStr(concluidoParam)) {
+      return res.status(400).json({ message: "Parámetros inválidos" });
     }
 
     try {
-      const rondas = await RondaModel.obtenerRondasPorLocalidadConEstado(localidadId, concluido);
+      const rondas = await RondaModel.obtenerRondasPorLocalidadConEstado(localidadId, concluidoParam === "true");
       res.status(200).json(rondas);
     } catch (error) {
-      logger.error("Error al obtener rondas por localidad y estado", {
-        error,
-        localidadId,
-        concluido,
-      });
+      logger.error("obtenerRondasPorLocalidadConEstado", { error, localidadId, concluido: concluidoParam });
       res.status(500).json({ message: "Error al obtener rondas por localidad y estado" });
     }
   };
 
   // PATCH /rondas/intercambiar-movimientos
-static intercambiarMovimientosEntreRondas: RequestHandler = async (req, res) => {
-  const { rondaAId, rondaBId } = req.body;
+  static intercambiarMovimientosEntreRondas: RequestHandler = async (req, res) => {
+    const { rondaAId, rondaBId } = req.body;
+    if (!Number.isInteger(Number(rondaAId)) || !Number.isInteger(Number(rondaBId))) {
+      return res.status(400).json({ message: "Parámetros inválidos" });
+    }
 
-  if (isNaN(Number(rondaAId)) || isNaN(Number(rondaBId))) {
-    res.status(400).json({ message: "Parámetros inválidos" });
-    return;
-  }
-
-  try {
-    const rondasActualizadas = await RondaModel.intercambiarMovimientosEntreRondas(
-      Number(rondaAId),
-      Number(rondaBId)
-    );
-    res.status(200).json({
-      message: "Movimientos de rondas intercambiados exitosamente",
-      rondas: rondasActualizadas
-    });
-  } catch (error: any) {
-    logger.error("Error al intercambiar movimientos entre rondas", { error, rondaAId, rondaBId });
-    res.status(500).json({ message: error.message || "Error al intercambiar movimientos entre rondas" });
-  }
-};
-
-
+    try {
+      const rondas = await RondaModel.intercambiarMovimientosEntreRondas(Number(rondaAId), Number(rondaBId));
+      res.status(200).json({ message: "Intercambio realizado", rondas });
+    } catch (error: any) {
+      logger.error("intercambiarMovimientosEntreRondas", { error, rondaAId, rondaBId });
+      res.status(500).json({ message: error?.message || "Error al intercambiar movimientos" });
+    }
+  };
 
   // PATCH /rondas/:id/intercambiar-movimiento
-static intercambiarMovimientoEnRonda: RequestHandler = async (req, res) => {
-  const rondaId = Number(req.params.id);
-  const { nuevoMovimientoId } = req.body;
+  static intercambiarMovimientoEnRonda: RequestHandler = async (req, res) => {
+    const rondaId = Number(req.params.id);
+    const { nuevoMovimientoId } = req.body;
 
-  if (isNaN(rondaId) || !nuevoMovimientoId || isNaN(Number(nuevoMovimientoId))) {
-    res.status(400).json({ message: "Parámetros inválidos" });
-    return;
-  }
+    if (!Number.isInteger(rondaId) || !Number.isInteger(Number(nuevoMovimientoId))) {
+      return res.status(400).json({ message: "Parámetros inválidos" });
+    }
 
-  try {
-    const rondaActualizada = await RondaModel.intercambiarMovimientoEnRonda(
-      rondaId,
-      Number(nuevoMovimientoId)
-    );
-    res.status(200).json({
-      message: "Movimiento de ronda intercambiado exitosamente",
-      ronda: rondaActualizada
-    });
-  } catch (error: any) {
-    logger.error("Error al intercambiar movimiento en ronda", { error, rondaId, nuevoMovimientoId });
-    res.status(500).json({ message: error.message || "Error al intercambiar movimiento en ronda" });
-  }
-};
-
-
+    try {
+      const ronda = await RondaModel.intercambiarMovimientoEnRonda(rondaId, Number(nuevoMovimientoId));
+      res.status(200).json({ message: "Movimiento intercambiado", ronda });
+    } catch (error: any) {
+      logger.error("intercambiarMovimientoEnRonda", { error, rondaId, nuevoMovimientoId });
+      res.status(500).json({ message: error?.message || "Error al intercambiar movimiento" });
+    }
+  };
 
   // GET /rondas/localidad/:localidadId/siguiente
   static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
-    if (isNaN(localidadId)) {
-      res.status(400).json({ message: "ID de localidad inválido" });
-      return;
-    }
+    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: "ID de localidad inválido" });
+
     try {
       const siguiente = await RondaModel.obtenerSiguienteEnRonda(localidadId);
       res.status(200).json(siguiente ?? {});
     } catch (error) {
-      logger.error("Error al obtener el siguiente en la ronda", { error, localidadId });
-      res.status(500).json({ message: "Error al obtener el siguiente en la ronda" });
+      logger.error("obtenerSiguienteEnRonda", { error, localidadId });
+      res.status(500).json({ message: "Error al obtener el siguiente" });
     }
   };
 
   // GET /rondas/:id/info
   static obtenerInfoRonda: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    if (isNaN(id)) {
-      res.status(400).json({ message: "ID de ronda inválido" });
-      return;
-    }
+    if (!Number.isInteger(id)) return res.status(400).json({ message: "ID de ronda inválido" });
+
     try {
       const info = await RondaModel.obtenerInfoPorRonda(id);
       res.status(200).json(info);
     } catch (error) {
-      logger.error("Error al obtener información de ronda", { error, id });
-      res.status(500).json({ message: "Error al obtener información de ronda" });
+      logger.error("obtenerInfoRonda", { error, id });
+      res.status(500).json({ message: "Error al obtener info de ronda" });
     }
   };
 
   // PATCH /rondas/:id/concluir
   static marcarRondaComoConcluida: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    if (isNaN(id)) {
-      res.status(400).json({ message: "ID de ronda inválido" });
-      return;
-    }
+    if (!Number.isInteger(id)) return res.status(400).json({ message: "ID de ronda inválido" });
+
     try {
       const ronda = await RondaModel.marcarRondaComoConcluida(id);
-      res.status(200).json({ 
-        message: "Ronda marcada como concluida",
-        ronda
-      });
+      res.status(200).json({ message: "Ronda concluida", ronda });
     } catch (error) {
-      logger.error("Error al marcar ronda como concluida", { error, id });
-      res.status(500).json({ message: "Error al marcar ronda como concluida" });
+      logger.error("marcarRondaComoConcluida", { error, id });
+      res.status(500).json({ message: "Error al concluir ronda" });
     }
   };
 }
+
+export default RondaController;
