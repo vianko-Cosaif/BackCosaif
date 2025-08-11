@@ -29,6 +29,7 @@ model Localidad {
   rondas       Ronda[]
   capacidades  CapacidadServicioLocalidad[]
   ocupaciones  OcupacionServicio[]
+  rondaCursors RondaCursor[]            // <— opuesto de RondaCursor.localidad
 }
 
 model Usuario {
@@ -49,6 +50,7 @@ model Usuario {
   creados         Movimiento[] @relation("UsuarioCreador")
   operadorMovs    Movimiento[] @relation("OperadorMovimiento")
   supervisorMovs  Movimiento[] @relation("SupervisorMovimiento")
+  eventos         MovimientoEvento[]    // <— opuesto de MovimientoEvento.actor
   tokens          Token[]
   empresa         Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   localidad       Localidad    @relation(fields: [localidadId], references: [id])
@@ -133,20 +135,20 @@ model Movimiento {
   incidenteGlobal  Boolean?          @default(false)
   direccionEmpuje  DireccionEmpuje?  @default(Sin_Solicitar)
   posicionCabina   PosicionCabina?
-  entregado        Boolean?          @default(false) // libera slots/vías cuando true
+  entregado        Boolean?          @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  incidentes       Incidente[]
-  cliente          Usuario?          @relation("UsuarioMovimiento", fields: [clienteId], references: [id], onDelete: Restrict)
-  coordinador      Usuario?          @relation("CoordinadorMovimiento", fields: [coordinadorId], references: [id], onDelete: Restrict)
-  creadoPor        Usuario           @relation("UsuarioCreador", fields: [creadoPorId], references: [id])
-  empresa          Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  localidad        Localidad         @relation(fields: [localidadId], references: [id])
-  operador         Usuario?          @relation("OperadorMovimiento", fields: [operadorId], references: [id], onDelete: Restrict)
-  supervisor       Usuario?          @relation("SupervisorMovimiento", fields: [supervisorId], references: [id], onDelete: Restrict)
-  viaDestino       Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
-  viaOrigen        Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
+  incidentes         Incidente[]
+  cliente            Usuario?          @relation("UsuarioMovimiento", fields: [clienteId], references: [id], onDelete: Restrict)
+  coordinador        Usuario?          @relation("CoordinadorMovimiento", fields: [coordinadorId], references: [id], onDelete: Restrict)
+  creadoPor          Usuario           @relation("UsuarioCreador", fields: [creadoPorId], references: [id])
+  empresa            Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  localidad          Localidad         @relation(fields: [localidadId], references: [id])
+  operador           Usuario?          @relation("OperadorMovimiento", fields: [operadorId], references: [id], onDelete: Restrict)
+  supervisor         Usuario?          @relation("SupervisorMovimiento", fields: [supervisorId], references: [id], onDelete: Restrict)
+  viaDestino         Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
+  viaOrigen          Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
 
   rondas             Ronda[]
   viaOcupante        Via[]         @relation("ViaOcupante")
@@ -205,7 +207,7 @@ model Ronda {
   @@index([rondaNumero, orden])
   @@index([localidadId])
   @@index([localidadId, tipoRonda, rondaNumero, orden])
-  @@unique([movimientoId, tipoRonda]) // un movimiento no se duplica dentro del mismo tipo de ronda
+  @@unique([movimientoId, tipoRonda])
 }
 
 model RondaCursor {
@@ -220,8 +222,6 @@ model RondaCursor {
 
   @@unique([localidadId, tipoRonda])
 }
-
-// ====== Capacidad y Ocupación de servicios (Lavado/Torno) ======
 
 enum TipoServicio {
   LAVADO
@@ -258,18 +258,16 @@ model OcupacionServicio {
   @@index([localidadId, servicio, activo])
 }
 
-// ====== Auditoría de eventos de movimiento (quién hizo qué y cuándo) ======
-
 model MovimientoEvento {
-  id           Int         @id @default(autoincrement())
-  movimientoId Int
-  actorId      Int
-  tipo         EventoTipo
+  id            Int         @id @default(autoincrement())
+  movimientoId  Int
+  actorId       Int
+  tipo          EventoTipo
   participantes Json?
-  fecha        DateTime    @default(now())
+  fecha         DateTime    @default(now())
 
-  movimiento   Movimiento  @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
-  actor        Usuario     @relation(fields: [actorId], references: [id])
+  movimiento    Movimiento  @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  actor         Usuario     @relation(fields: [actorId], references: [id])
 
   @@index([movimientoId, fecha])
 }
