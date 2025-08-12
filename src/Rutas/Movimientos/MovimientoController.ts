@@ -22,7 +22,7 @@ export class MovimientoController {
     try {
       const data = { ...req.body };
 
-      // Normalización ligera (el modelo también sanea)
+      // Normalización ligera
       data.prioridad ??= 'BAJA';
       data.estado ??= 'SOLICITADO';
       data.posicionCabina ??= 'Sin_Solicitar';

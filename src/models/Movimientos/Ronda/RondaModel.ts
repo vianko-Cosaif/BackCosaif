@@ -279,86 +279,82 @@ export class RondaModel {
     }
   }
 
-// === swaps entre rondas (robustos) ===
-static async intercambiarMovimientosEntreRondas(rondaAId: number, rondaBId: number) {
-  return prisma.$transaction(async (tx) => {
-    const [A, B] = await Promise.all([
-      tx.ronda.findUnique({ where: { id: rondaAId }, include: { movimiento: { select: { empresaId: true, localidadId: true, lavado: true, torno: true } } } }),
-      tx.ronda.findUnique({ where: { id: rondaBId }, include: { movimiento: { select: { empresaId: true, localidadId: true, lavado: true, torno: true } } } }),
-    ]);
-    if (!A || !B) throw new Error("Rondas inválidas");
-    if (A.concluido || B.concluido) throw new Error("No se puede intercambiar rondas concluidas");
-    if (A.localidadId !== B.localidadId) throw new Error("Intercambio inválido: distinta localidad");
-    if (A.tipoRonda !== B.tipoRonda) throw new Error("Intercambio inválido: distinto tipoRonda");
+  // === swaps entre rondas (robustos) ===
+  static async intercambiarMovimientosEntreRondas(rondaAId: number, rondaBId: number) {
+    return prisma.$transaction(async (tx) => {
+      const [A, B] = await Promise.all([
+        tx.ronda.findUnique({ where: { id: rondaAId }, include: { movimiento: { select: { empresaId: true, localidadId: true, lavado: true, torno: true } } } }),
+        tx.ronda.findUnique({ where: { id: rondaBId }, include: { movimiento: { select: { empresaId: true, localidadId: true, lavado: true, torno: true } } } }),
+      ]);
+      if (!A || !B) throw new Error("Rondas inválidas");
+      if (A.concluido || B.concluido) throw new Error("No se puede intercambiar rondas concluidas");
+      if (A.localidadId !== B.localidadId) throw new Error("Intercambio inválido: distinta localidad");
+      if (A.tipoRonda !== B.tipoRonda) throw new Error("Intercambio inválido: distinto tipoRonda");
 
-    // Verifica que los movimientos pertenezcan a la misma localidad
-    if (A.movimiento.localidadId !== A.localidadId || B.movimiento.localidadId !== B.localidadId) {
-      throw new Error("Movimiento/localidad inconsistente");
-    }
+      // Verifica que los movimientos pertenezcan a la misma localidad
+      if (A.movimiento.localidadId !== A.localidadId || B.movimiento.localidadId !== B.localidadId) {
+        throw new Error("Movimiento/localidad inconsistente");
+      }
 
-    // Swap de movimientoId y sincronización de empresaId (manteniendo tipoRonda/rondaNumero/orden)
-    await Promise.all([
-      tx.ronda.update({
-        where: { id: A.id },
-        data: { movimientoId: B.movimientoId, empresaId: B.movimiento.empresaId },
-      }),
-      tx.ronda.update({
-        where: { id: B.id },
-        data: { movimientoId: A.movimientoId, empresaId: A.movimiento.empresaId },
-      }),
-    ]);
+      // Swap de movimientoId y sincronización de empresaId (manteniendo tipoRonda/rondaNumero/orden)
+      await Promise.all([
+        tx.ronda.update({
+          where: { id: A.id },
+          data: { movimientoId: B.movimientoId, empresaId: B.movimiento.empresaId },
+        }),
+        tx.ronda.update({
+          where: { id: B.id },
+          data: { movimientoId: A.movimientoId, empresaId: A.movimiento.empresaId },
+        }),
+      ]);
 
-    const [A2, B2] = await Promise.all([
-      tx.ronda.findUnique({ where: { id: A.id } }),
-      tx.ronda.findUnique({ where: { id: B.id } }),
-    ]);
-    return [A2!, B2!];
-  });
-}
-
-static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
-  return prisma.$transaction(async (tx) => {
-    const [r, m] = await Promise.all([
-      tx.ronda.findUnique({ where: { id: rondaId } }),
-      tx.movimiento.findUnique({ where: { id: nuevoMovimientoId }, select: { empresaId: true, localidadId: true, lavado: true, torno: true } }),
-    ]);
-    if (!r) throw new Error("Ronda no encontrada");
-    if (!m) throw new Error("Movimiento no encontrado");
-    if (r.concluido) throw new Error("La ronda ya está concluida");
-    if (m.localidadId !== r.localidadId) throw new Error("Movimiento de distinta localidad");
-
-    // Enforce tipoRonda del movimiento contra la fila destino
-    const tipoMovimiento: TipoRonda = m.lavado ? "LAVADO" : m.torno ? "TORNO" : "NATURAL";
-    if (tipoMovimiento !== r.tipoRonda) {
-      throw new Error("El movimiento no corresponde al tipo de esta ronda");
-    }
-
-    // Actualiza movimiento y empresa para mantener reglas de una-por-empresa-por-ronda
-    const updated = await tx.ronda.update({
-      where: { id: r.id },
-      data: { movimientoId: nuevoMovimientoId, empresaId: m.empresaId },
+      const [A2, B2] = await Promise.all([
+        tx.ronda.findUnique({ where: { id: A.id } }),
+        tx.ronda.findUnique({ where: { id: B.id } }),
+      ]);
+      return [A2!, B2!];
     });
-    return updated;
-  });
-}
+  }
 
+  static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
+    return prisma.$transaction(async (tx) => {
+      const [r, m] = await Promise.all([
+        tx.ronda.findUnique({ where: { id: rondaId } }),
+        tx.movimiento.findUnique({ where: { id: nuevoMovimientoId }, select: { empresaId: true, localidadId: true, lavado: true, torno: true } }),
+      ]);
+      if (!r) throw new Error("Ronda no encontrada");
+      if (!m) throw new Error("Movimiento no encontrado");
+      if (r.concluido) throw new Error("La ronda ya está concluida");
+      if (m.localidadId !== r.localidadId) throw new Error("Movimiento de distinta localidad");
 
+      // Enforce tipoRonda del movimiento contra la fila destino
+      const tipoMovimiento: TipoRonda = m.lavado ? "LAVADO" : m.torno ? "TORNO" : "NATURAL";
+      if (tipoMovimiento !== r.tipoRonda) {
+        throw new Error("El movimiento no corresponde al tipo de esta ronda");
+      }
 
+      // Actualiza movimiento y empresa para mantener reglas de una-por-empresa-por-ronda
+      const updated = await tx.ronda.update({
+        where: { id: r.id },
+        data: { movimientoId: nuevoMovimientoId, empresaId: m.empresaId },
+      });
+      return updated;
+    });
+  }
 
+  // === wrappers de compatibilidad con código legado ===
+  static async marcarRondasDeMovimientoComoConcluidas(movimientoId: number) {
+    const ids = await prisma.ronda.findMany({
+      where: { movimientoId, concluido: false },
+      select: { id: true },
+    });
+    await this.marcarRondasComoConcluidas(ids.map(r => r.id));
+  }
 
-// === wrappers de compatibilidad con código legado ===
-static async marcarRondasDeMovimientoComoConcluidas(movimientoId: number) {
-  const ids = await prisma.ronda.findMany({
-    where: { movimientoId, concluido: false },
-    select: { id: true },
-  });
-  await this.marcarRondasComoConcluidas(ids.map(r => r.id));
-}
-
-static async removerDeTodasLasRondas(movimientoId: number, tx?: Prisma.TransactionClient) {
-  const db = tx ?? prisma;
-  await db.ronda.deleteMany({ where: { movimientoId } });
-}
+  static async removerDeTodasLasRondas(movimientoId: number, tx?: Prisma.TransactionClient) {
+    const db = tx ?? prisma;
+    await db.ronda.deleteMany({ where: { movimientoId } });
+  }
 
   // =============== SELECCIÓN (BATCH / SIMULTÁNEO) ===============
 
@@ -597,62 +593,61 @@ static async removerDeTodasLasRondas(movimientoId: number, tx?: Prisma.Transacti
     }
   }
 
-private static async _incidenteAlta(ronda: Ronda & { movimiento: { prioridad: string } }) {
-  await prisma.$transaction(async (tx) => {
-    const { localidadId, tipoRonda } = ronda;
+  private static async _incidenteAlta(ronda: Ronda & { movimiento: { prioridad: string } }) {
+    await prisma.$transaction(async (tx) => {
+      const { localidadId, tipoRonda } = ronda;
 
-    // ALTAS en R1 (mismo tipo)
-    const altasR1 = await tx.ronda.findMany({
-      where: {
-        localidadId, tipoRonda, rondaNumero: 1, concluido: false,
-        movimiento: { prioridad: "ALTA" as Prioridad },
-      },
-      orderBy: { orden: "asc" },
-    });
+      // ALTAS en R1 (mismo tipo)
+      const altasR1 = await tx.ronda.findMany({
+        where: {
+          localidadId, tipoRonda, rondaNumero: 1, concluido: false,
+          movimiento: { prioridad: "ALTA" as Prioridad },
+        },
+        orderBy: { orden: "asc" },
+      });
 
-    // Caso: varias ALTAS ⇒ enviar esta al final de R1 (FIFO)
-    if (altasR1.length > 1) {
-      const actual = altasR1.find(a => a.id === ronda.id);
-      if (actual) {
-        // compacta hueco en R1
-        await tx.ronda.updateMany({
-          where: { localidadId, tipoRonda, rondaNumero: 1, concluido: false, orden: { gt: actual.orden } },
-          data: { orden: { decrement: 1 } },
-        });
-        const maxOrden = await tx.ronda.count({ where: { localidadId, tipoRonda, rondaNumero: 1, concluido: false } });
-        await tx.ronda.update({ where: { id: actual.id }, data: { rondaNumero: 1, orden: maxOrden } });
+      // Caso: varias ALTAS ⇒ enviar esta al final de R1 (FIFO)
+      if (altasR1.length > 1) {
+        const actual = altasR1.find(a => a.id === ronda.id);
+        if (actual) {
+          // compacta hueco en R1
+          await tx.ronda.updateMany({
+            where: { localidadId, tipoRonda, rondaNumero: 1, concluido: false, orden: { gt: actual.orden } },
+            data: { orden: { decrement: 1 } },
+          });
+          const maxOrden = await tx.ronda.count({ where: { localidadId, tipoRonda, rondaNumero: 1, concluido: false } });
+          await tx.ronda.update({ where: { id: actual.id }, data: { rondaNumero: 1, orden: maxOrden } });
+        }
+        await this.reordenarAltaFIFO(localidadId, tipoRonda, tx);
+        await this.recomponerRondasLocalidad(localidadId, tx);
+        return;
       }
+
+      // Caso: ÚNICA ALTA ⇒ intentar swap R1:1 con R2:1
+      const r1Primera = await tx.ronda.findFirst({
+        where: { localidadId, tipoRonda, rondaNumero: 1, concluido: false },
+        orderBy: { orden: "asc" },
+      });
+      const r2Primera = await tx.ronda.findFirst({
+        where: { localidadId, tipoRonda, rondaNumero: 2, concluido: false },
+        orderBy: { orden: "asc" },
+      });
+
+      if (r1Primera && r2Primera) {
+        // swap posicional usando moverRonda
+        await this.moverRonda(tx, r1Primera, 2, 1);
+        const r2Ref = await tx.ronda.findUnique({ where: { id: r2Primera.id } });
+        if (r2Ref) await this.moverRonda(tx, r2Ref, 1, 1);
+        await this.reordenarAltaFIFO(localidadId, tipoRonda, tx);
+        await this.recomponerRondasLocalidad(localidadId, tx);
+        return;
+      }
+
+      // Si no existe R2 todavía, NO mover (mantén posición actual)
       await this.reordenarAltaFIFO(localidadId, tipoRonda, tx);
       await this.recomponerRondasLocalidad(localidadId, tx);
-      return;
-    }
-
-    // Caso: ÚNICA ALTA ⇒ intentar swap R1:1 con R2:1
-    const r1Primera = await tx.ronda.findFirst({
-      where: { localidadId, tipoRonda, rondaNumero: 1, concluido: false },
-      orderBy: { orden: "asc" },
     });
-    const r2Primera = await tx.ronda.findFirst({
-      where: { localidadId, tipoRonda, rondaNumero: 2, concluido: false },
-      orderBy: { orden: "asc" },
-    });
-
-    if (r1Primera && r2Primera) {
-      // swap posicional usando moverRonda
-      await this.moverRonda(tx, r1Primera, 2, 1);
-      const r2Ref = await tx.ronda.findUnique({ where: { id: r2Primera.id } });
-      if (r2Ref) await this.moverRonda(tx, r2Ref, 1, 1);
-      await this.reordenarAltaFIFO(localidadId, tipoRonda, tx);
-      await this.recomponerRondasLocalidad(localidadId, tx);
-      return;
-    }
-
-    // Si no existe R2 todavía, NO mover (mantén posición actual)
-    await this.reordenarAltaFIFO(localidadId, tipoRonda, tx);
-    await this.recomponerRondasLocalidad(localidadId, tx);
-  });
-}
-
+  }
 
   private static async _incidenteBaja(ronda: Ronda & { movimiento: { prioridad: string } }) {
     await prisma.$transaction(async (tx) => {
@@ -867,9 +862,6 @@ private static async _incidenteAlta(ronda: Ronda & { movimiento: { prioridad: st
         where: { id },
         data: { concluido: true, updatedAt: new Date() },
       });
-      await this.touchCursor(r.localidadId, r.tipoRonda, r.empresaId);
-      await this.recomponerRondasLocalidad(r.localidadId);
-      return r;
     } catch (error) {
       movimientoError.error("Error al marcar ronda como concluida", { id, error });
       throw new Error("Error al marcar ronda como concluida");
