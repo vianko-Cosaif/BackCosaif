@@ -18,18 +18,15 @@ model Empresa {
 }
 
 model Localidad {
-  id           Int          @id @default(autoincrement())
-  nombre       String       @unique
-  estado       String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  movimientos  Movimiento[]
-  usuarios     Usuario[]
-  vias         Via[]
-  rondas       Ronda[]
-  capacidades  CapacidadServicioLocalidad[]
-  ocupaciones  OcupacionServicio[]
-  rondaCursors RondaCursor[]            // <— opuesto de RondaCursor.localidad
+  id          Int          @id @default(autoincrement())
+  nombre      String       @unique
+  estado      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  movimientos Movimiento[]
+  usuarios    Usuario[]
+  vias        Via[]
+  rondas      Ronda[]      // ← lado opuesto de Ronda.localidad
 }
 
 model Usuario {
@@ -50,7 +47,6 @@ model Usuario {
   creados         Movimiento[] @relation("UsuarioCreador")
   operadorMovs    Movimiento[] @relation("OperadorMovimiento")
   supervisorMovs  Movimiento[] @relation("SupervisorMovimiento")
-  eventos         MovimientoEvento[]    // <— opuesto de MovimientoEvento.actor
   tokens          Token[]
   empresa         Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   localidad       Localidad    @relation(fields: [localidadId], references: [id])
@@ -70,18 +66,18 @@ model FcmToken {
 }
 
 model Via {
-  id                 Int            @id @default(autoincrement())
-  numero             Int
-  nombre             String
-  localidadId        Int
-  ocupada            Boolean        @default(false)
-  movimientoId       Int?
-  movimiento         Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
+  id                Int            @id @default(autoincrement())
+  numero            Int
+  nombre            String
+  localidadId       Int
+  ocupada           Boolean        @default(false)
+  movimientoId      Int?
+  movimiento        Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
 
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  secciones          SeccionVia[]
+  secciones         SeccionVia[]
   movimientosDestino Movimiento[]  @relation("ViaDestinoMovimiento")
   movimientosOrigen  Movimiento[]  @relation("ViaOrigenMovimiento")
   localidad          Localidad      @relation(fields: [localidadId], references: [id])
@@ -135,26 +131,24 @@ model Movimiento {
   incidenteGlobal  Boolean?          @default(false)
   direccionEmpuje  DireccionEmpuje?  @default(Sin_Solicitar)
   posicionCabina   PosicionCabina?
-  entregado        Boolean?          @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  incidentes         Incidente[]
-  cliente            Usuario?          @relation("UsuarioMovimiento", fields: [clienteId], references: [id], onDelete: Restrict)
-  coordinador        Usuario?          @relation("CoordinadorMovimiento", fields: [coordinadorId], references: [id], onDelete: Restrict)
-  creadoPor          Usuario           @relation("UsuarioCreador", fields: [creadoPorId], references: [id])
-  empresa            Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  localidad          Localidad         @relation(fields: [localidadId], references: [id])
-  operador           Usuario?          @relation("OperadorMovimiento", fields: [operadorId], references: [id], onDelete: Restrict)
-  supervisor         Usuario?          @relation("SupervisorMovimiento", fields: [supervisorId], references: [id], onDelete: Restrict)
-  viaDestino         Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
-  viaOrigen          Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
+  incidentes       Incidente[]
+  cliente          Usuario?          @relation("UsuarioMovimiento", fields: [clienteId], references: [id], onDelete: Restrict)
+  coordinador      Usuario?          @relation("CoordinadorMovimiento", fields: [coordinadorId], references: [id], onDelete: Restrict)
+  creadoPor        Usuario           @relation("UsuarioCreador", fields: [creadoPorId], references: [id])
+  empresa          Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  localidad        Localidad         @relation(fields: [localidadId], references: [id])
+  operador         Usuario?          @relation("OperadorMovimiento", fields: [operadorId], references: [id], onDelete: Restrict)
+  supervisor       Usuario?          @relation("SupervisorMovimiento", fields: [supervisorId], references: [id], onDelete: Restrict)
+  viaDestino       Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
+  viaOrigen        Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
+  ronda            Ronda?
 
-  rondas             Ronda[]
+  // ← lados opuestos requeridos
   viaOcupante        Via[]         @relation("ViaOcupante")
   seccionesOcupantes SeccionVia[]  @relation("SeccionOcupante")
-  ocupacionServicio  OcupacionServicio?
-  eventos            MovimientoEvento[]
 
   @@index([empresaId, estado])
   @@index([fechaInicio, fechaFin])
@@ -190,13 +184,12 @@ model Incidente {
 
 model Ronda {
   id           Int        @id @default(autoincrement())
-  movimientoId Int
+  movimientoId Int        @unique
   empresaId    Int
   localidadId  Int
   concluido    Boolean?   @default(false)
   orden        Int
   rondaNumero  Int        @default(1)
-  tipoRonda    TipoRonda  @default(NATURAL)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -206,81 +199,6 @@ model Ronda {
 
   @@index([rondaNumero, orden])
   @@index([localidadId])
-  @@index([localidadId, tipoRonda, rondaNumero, orden])
-  @@unique([movimientoId, tipoRonda])
-}
-
-model RondaCursor {
-  id            Int        @id @default(autoincrement())
-  localidadId   Int
-  tipoRonda     TipoRonda
-  lastEmpresaId Int?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  localidad     Localidad  @relation(fields: [localidadId], references: [id], onDelete: Cascade)
-
-  @@unique([localidadId, tipoRonda])
-}
-
-enum TipoServicio {
-  LAVADO
-  TORNO
-}
-
-model CapacidadServicioLocalidad {
-  id          Int           @id @default(autoincrement())
-  localidadId Int
-  servicio    TipoServicio
-  capacidad   Int           @default(0)
-
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  localidad   Localidad     @relation(fields: [localidadId], references: [id], onDelete: Cascade)
-
-  @@unique([localidadId, servicio])
-  @@index([localidadId, servicio, capacidad])
-}
-
-model OcupacionServicio {
-  id           Int           @id @default(autoincrement())
-  localidadId  Int
-  servicio     TipoServicio
-  movimientoId Int           @unique
-  activo       Boolean       @default(true)
-  startedAt    DateTime      @default(now())
-  endedAt      DateTime?
-
-  localidad    Localidad     @relation(fields: [localidadId], references: [id], onDelete: Cascade)
-  movimiento   Movimiento    @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
-
-  @@index([localidadId, servicio, activo])
-}
-
-model MovimientoEvento {
-  id            Int         @id @default(autoincrement())
-  movimientoId  Int
-  actorId       Int
-  tipo          EventoTipo
-  participantes Json?
-  fecha         DateTime    @default(now())
-
-  movimiento    Movimiento  @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
-  actor         Usuario     @relation(fields: [actorId], references: [id])
-
-  @@index([movimientoId, fecha])
-}
-
-enum EventoTipo {
-  CREADO
-  INICIADO
-  PAUSADO
-  REANUDADO
-  CONCLUIDO
-  CANCELADO
-  EDITADO
-  REASIGNADO
 }
 
 model Token {
@@ -366,10 +284,4 @@ enum DireccionEmpuje {
 enum TipoMovimiento {
   MD_TRABAJANDO
   REMOLCADA
-}
-
-enum TipoRonda {
-  NATURAL
-  LAVADO
-  TORNO
 }

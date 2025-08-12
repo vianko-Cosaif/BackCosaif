@@ -1,14 +1,11 @@
 // SeccionViaController.ts
 import { RequestHandler } from 'express';
-import { PrismaClient } from '@prisma/client';
 import {
   SeccionViaModel,
   NotFoundError,
   ConflictError,
 } from '../../../models/Via/Secciones/SeccionViasModel';
 import { seccionError } from '../../../models/Via/Secciones/seccion.logger';
-
-const prisma = new PrismaClient();
 
 // Helper: mapear errores de dominio → HTTP
 function sendError(res: any, error: any, msg: string) {
@@ -31,7 +28,7 @@ function sendError(res: any, error: any, msg: string) {
 export class SeccionViaController {
   /**
    * GET /secciones?viaId=123
-   * Lista las secciones de una vía (query param).
+   * Lista las secciones de una vía (usa query param porque el modelo NO expone "obtener todas").
    */
   static obtenerSecciones: RequestHandler = async (req, res) => {
     const viaId = Number(req.query.viaId);
@@ -70,167 +67,27 @@ export class SeccionViaController {
     }
   };
 
-  /**
-   * GET /secciones/:id
-   * Obtiene una sección por ID.
-   */
-  static obtenerSeccionPorId: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({ error: 'id inválido' });
-    }
-    try {
-      const sec = await prisma.seccionVia.findUnique({ where: { id } });
-      if (!sec) return res.status(404).json({ error: 'Sección no encontrada' });
-      res.status(200).json(sec);
-    } catch (error: any) {
-      seccionError.error('Error al obtener sección por id', { error, id });
-      sendError(res, error, 'Error al obtener sección');
-    }
+  // ------------------- CRUD de secciones (no implementado en el modelo) -------------------
+
+  /** POST /secciones/via/:viaId  */
+  static crearSeccion: RequestHandler = async (_req, res) => {
+    return res
+      .status(501)
+      .json({ error: 'No implementado en el dominio (SeccionViaModel).' });
   };
 
-  /**
-   * GET /secciones/via/:viaId/numero/:numero
-   * Obtiene una sección por clave compuesta (viaId, numero).
-   */
-  static obtenerSeccionPorClave: RequestHandler = async (req, res) => {
-    const viaId = Number(req.params.viaId);
-    const numero = Number(req.params.numero);
-    if (!Number.isInteger(viaId) || !Number.isInteger(numero)) {
-      return res.status(400).json({ error: 'viaId y numero deben ser numéricos' });
-    }
-    try {
-      const sec = await SeccionViaModel.obtenerSeccion(viaId, numero);
-      if (!sec) return res.status(404).json({ error: 'Sección no encontrada' });
-      res.status(200).json(sec);
-    } catch (error: any) {
-      seccionError.error('Error al obtener sección por clave', { error, viaId, numero });
-      sendError(res, error, 'Error al obtener sección');
-    }
+  /** PUT /secciones/:id */
+  static editarSeccion: RequestHandler = async (_req, res) => {
+    return res
+      .status(501)
+      .json({ error: 'No implementado en el dominio (SeccionViaModel).' });
   };
 
-  // ------------------- CRUD de secciones -------------------
-
-  /**
-   * POST /secciones
-   * body: { viaId: number, nombre?: string, numero?: number }
-   * Variante sin param en URL (útil para el front que llama /secciones).
-   */
-  static crearSeccion: RequestHandler = async (req, res) => {
-    const { viaId, nombre, numero } = req.body ?? {};
-    if (!Number.isInteger(Number(viaId))) {
-      return res.status(400).json({ error: 'viaId es requerido y debe ser numérico' });
-    }
-    try {
-      const creada = await SeccionViaModel.crearSeccion(
-        Number(viaId),
-        typeof nombre === 'string' ? nombre : undefined,
-        Number.isInteger(Number(numero)) ? Number(numero) : undefined
-      );
-      return res.status(201).json(creada);
-    } catch (error: any) {
-      seccionError.error('Error al crear sección (POST /secciones)', {
-        error, viaId, numero, nombre,
-      });
-      sendError(res, error, 'Error al crear sección');
-    }
-  };
-
-  /**
-   * POST /secciones/via/:viaId
-   * body: { nombre?: string, numero?: number }
-   * Alias por si prefieres crear con viaId en la ruta.
-   */
-  static crearSeccionEnVia: RequestHandler = async (req, res) => {
-    const viaId = Number(req.params.viaId);
-    const { nombre, numero } = req.body ?? {};
-    if (!Number.isInteger(viaId)) {
-      return res.status(400).json({ error: 'viaId inválido' });
-    }
-    try {
-      const creada = await SeccionViaModel.crearSeccion(
-        viaId,
-        typeof nombre === 'string' ? nombre : undefined,
-        Number.isInteger(Number(numero)) ? Number(numero) : undefined
-      );
-      return res.status(201).json(creada);
-    } catch (error: any) {
-      seccionError.error('Error al crear sección (POST /secciones/via/:viaId)', {
-        error, viaId, numero, nombre,
-      });
-      sendError(res, error, 'Error al crear sección');
-    }
-  };
-
-  /**
-   * PUT /secciones/:id
-   * body: { nombre?: string, numero?: number }
-   * Renombra y/o cambia el número de la sección.
-   */
-  static editarSeccion: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    const { nombre, numero } = req.body ?? {};
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({ error: 'id inválido' });
-    }
-
-    const data: any = {};
-    if (typeof nombre === 'string') data.nombre = nombre.trim() || null;
-    if (Number.isInteger(Number(numero))) data.numero = Number(numero);
-
-    if (Object.keys(data).length === 0) {
-      return res.status(400).json({ error: 'Nada que actualizar' });
-    }
-
-    try {
-      const existe = await prisma.seccionVia.findUnique({
-        where: { id },
-        select: { id: true, viaId: true },
-      });
-      if (!existe) return res.status(404).json({ error: 'Sección no encontrada' });
-
-      const actualizada = await prisma.seccionVia.update({
-        where: { id },
-        data,
-      });
-
-      // No cambia ocupación, pero si cambia el número mantenemos consistencia general
-      // @ts-ignore (método private en la declaración)
-      await SeccionViaModel.syncViaFromSections(prisma, existe.viaId);
-
-      return res.status(200).json(actualizada);
-    } catch (error: any) {
-      seccionError.error('Error al editar sección', { error, id, nombre, numero });
-      sendError(res, error, 'Error al editar sección');
-    }
-  };
-
-  /**
-   * DELETE /secciones/:id
-   * Elimina la sección y resincroniza la vía.
-   */
-  static eliminarSeccion: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({ error: 'id inválido' });
-    }
-    try {
-      const sec = await prisma.seccionVia.findUnique({
-        where: { id },
-        select: { id: true, viaId: true },
-      });
-      if (!sec) return res.status(404).json({ error: 'Sección no encontrada' });
-
-      await prisma.seccionVia.delete({ where: { id } });
-
-      // @ts-ignore
-      await SeccionViaModel.syncViaFromSections(prisma, sec.viaId);
-
-      return res.status(204).send();
-    } catch (error: any) {
-      seccionError.error('Error al eliminar sección', { error, id });
-      sendError(res, error, 'Error al eliminar sección');
-    }
+  /** DELETE /secciones/:id */
+  static eliminarSeccion: RequestHandler = async (_req, res) => {
+    return res
+      .status(501)
+      .json({ error: 'No implementado en el dominio (SeccionViaModel).' });
   };
 
   // ------------------- Ocupación de secciones -------------------
