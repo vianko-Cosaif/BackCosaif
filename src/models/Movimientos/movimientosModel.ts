@@ -221,136 +221,139 @@ export class MovimientoModel {
     }
   }
 
-  // ===================== Cambios de estado =====================
+// ===================== Cambios de estado =====================
 
-  static async cambiarEstadoMovimiento(
-    id: number,
-    nuevoEstado: EstadoMovimiento,
-    opciones: { operadorId?: number; razon?: string; forzar?: boolean; actorId?: number } = {}
-  ) {
-    const { operadorId, razon, forzar = false, actorId } = opciones;
+static async cambiarEstadoMovimiento(
+  id: number,
+  nuevoEstado: EstadoMovimiento,
+  opciones: { operadorId?: number; razon?: string; forzar?: boolean; actorId?: number } = {}
+) {
+  const { operadorId, razon, forzar = false, actorId } = opciones;
 
-    return prisma.$transaction(async (tx) => {
-      const mov = await tx.movimiento.findUnique({
-        where: { id },
-        include: { empresa: true, localidad: true, rondas: true, viaDestino: true },
-      });
-      if (!mov) throw new Error(`No se encontró movimiento ${id}`);
-
-      // Validar transición si no es "forzar"
-      if (!forzar) {
-        const transiciones: Record<EstadoMovimiento, EstadoMovimiento[]> = {
-          SOLICITADO: [EstadoMovimiento.EN_PROCESO, EstadoMovimiento.DETENIDO, EstadoMovimiento.CANCELADO],
-          EN_PROCESO: [EstadoMovimiento.DETENIDO, EstadoMovimiento.CONCLUIDO, EstadoMovimiento.CANCELADO],
-          DETENIDO:   [EstadoMovimiento.EN_PROCESO, EstadoMovimiento.CANCELADO, EstadoMovimiento.CONCLUIDO],
-          ESPERA:     [EstadoMovimiento.EN_PROCESO, EstadoMovimiento.CANCELADO],
-          MODIFICADO: [EstadoMovimiento.SOLICITADO, EstadoMovimiento.CANCELADO],
-          CONCLUIDO:  [],
-          CANCELADO:  [],
-        };
-        const permitidos = transiciones[mov.estado] ?? [];
-        if (!permitidos.includes(nuevoEstado)) {
-          throw new Error(`Transición inválida: ${mov.estado} → ${nuevoEstado}. Permitidas: ${permitidos.join(', ')}`);
-        }
-      }
-
-      // Si vamos a EN_PROCESO y es servicio → intentar ruteo + sección + slot
-      if (nuevoEstado === EstadoMovimiento.EN_PROCESO) {
-        const tipo = this.decidirTipoRonda({ lavado: mov.lavado, torno: mov.torno });
-        if (tipo !== TipoRonda.NATURAL) {
-          const servicio = tipo === TipoRonda.LAVADO ? TipoServicio.LAVADO : TipoRonda.TORNO;
-
-          const routed = await this.autoRuteoYOCuparServicio(tx, {
-            id: mov.id,
-            localidadId: mov.localidadId,
-            viaDestinoId: mov.viaDestinoId ?? null,
-            lavado: mov.lavado,
-            torno: mov.torno,
-          });
-
-          if (!routed.ok) {
-            // Sin secciones libres: quedar en ESPERA (no tocar rondas, no lanzar error)
-            const espera = await tx.movimiento.update({
-              where: { id },
-              data: { estado: EstadoMovimiento.ESPERA, updatedAt: new Date() },
-              include: { rondas: true, viaDestino: { select: { id: true } } },
-            });
-            await this.logEvento(tx, id, EventoTipo.EDITADO, actorId ?? operadorId ?? mov.creadoPorId, {
-              motivo: 'Sin secciones libres (servicio)',
-            });
-            return espera;
-          }
-
-          // Tomar slot de servicio (capacidad)
-          await this.ocuparSlotServicio(tx, mov.localidadId, TipoServicio[servicio as any] ?? TipoServicio.LAVADO, id);
-        }
-      }
-
-      // Mutación base
-      const ahora = new Date();
-      const data: Prisma.MovimientoUpdateInput = { estado: nuevoEstado, updatedAt: ahora };
-      if (nuevoEstado === EstadoMovimiento.EN_PROCESO) {
-        Object.assign(data, { fechaInicio: ahora, fechaPausa: null, incidenteGlobal: false });
-        if (operadorId) Object.assign(data, { operadorId });
-      }
-      if (nuevoEstado === EstadoMovimiento.DETENIDO) {
-        Object.assign(data, { fechaPausa: ahora, instrucciones: razon ?? undefined });
-      }
-      if (nuevoEstado === EstadoMovimiento.CONCLUIDO) {
-        Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false, entregado: true });
-      }
-      if (nuevoEstado === EstadoMovimiento.CANCELADO) {
-        Object.assign(data, {
-          fechaFin: ahora,
-          finalizado: true,
-          incidenteGlobal: false,
-          instrucciones: razon ? `CANCELADO: ${razon}` : undefined,
-        });
-      }
-
-      const after = await tx.movimiento.update({
-        where: { id },
-        data,
-        include: { rondas: true, viaDestino: { select: { id: true } } },
-      });
-
-      // Si concluye/cancela → liberar ocupaciones (slot servicio + vía) y cerrar rondas (SIN llamar a métodos con $transaction interno)
-      if (nuevoEstado === EstadoMovimiento.CONCLUIDO || nuevoEstado === EstadoMovimiento.CANCELADO) {
-        const tipo = this.decidirTipoRonda({ lavado: after.lavado ?? false, torno: after.torno ?? false });
-        if (tipo !== TipoRonda.NATURAL) {
-          await this.liberarSlotServicio(tx, id);
-        }
-        if (after.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(after.viaDestino.id, id, tx);
-        }
-
-        if (after.rondas?.length) {
-          // cerrar filas de ronda del movimiento dentro de ESTE tx
-          await tx.ronda.updateMany({ where: { movimientoId: id, concluido: false }, data: { concluido: true, updatedAt: new Date() } });
-          await RondaModel.recomponerRondasLocalidad(after.localidadId, tx);
-        }
-      }
-
-      // Auditoría
-      const participantes = {
-        empresaId: after.empresaId,
-        clienteId: after.clienteId,
-        supervisorId: after.supervisorId,
-        coordinadorId: after.coordinadorId,
-        operadorId: operadorId ?? after.operadorId,
-      };
-      const tipoEvento: EventoTipo =
-        nuevoEstado === EstadoMovimiento.EN_PROCESO ? EventoTipo.INICIADO :
-        nuevoEstado === EstadoMovimiento.DETENIDO   ? EventoTipo.PAUSADO  :
-        nuevoEstado === EstadoMovimiento.CONCLUIDO  ? EventoTipo.CONCLUIDO:
-        nuevoEstado === EstadoMovimiento.CANCELADO  ? EventoTipo.CANCELADO:
-                                                      EventoTipo.EDITADO;
-
-      await this.logEvento(tx, id, tipoEvento, actorId ?? operadorId ?? after.operadorId ?? after.creadoPorId, participantes);
-
-      return after;
+  return prisma.$transaction(async (tx) => {
+    const mov = await tx.movimiento.findUnique({
+      where: { id },
+      include: { empresa: true, localidad: true, rondas: true, viaDestino: true },
     });
-  }
+    if (!mov) throw new Error(`No se encontró movimiento ${id}`);
+
+    // Validar transición si no es "forzar"
+    if (!forzar) {
+      const transiciones: Record<EstadoMovimiento, EstadoMovimiento[]> = {
+        SOLICITADO: [EstadoMovimiento.EN_PROCESO, EstadoMovimiento.DETENIDO, EstadoMovimiento.CANCELADO],
+        EN_PROCESO: [EstadoMovimiento.DETENIDO, EstadoMovimiento.CONCLUIDO, EstadoMovimiento.CANCELADO],
+        DETENIDO:   [EstadoMovimiento.EN_PROCESO, EstadoMovimiento.CANCELADO, EstadoMovimiento.CONCLUIDO],
+        ESPERA:     [EstadoMovimiento.EN_PROCESO, EstadoMovimiento.CANCELADO],
+        MODIFICADO: [EstadoMovimiento.SOLICITADO, EstadoMovimiento.CANCELADO],
+        CONCLUIDO:  [],
+        CANCELADO:  [],
+      };
+      const permitidos = transiciones[mov.estado] ?? [];
+      if (!permitidos.includes(nuevoEstado)) {
+        throw new Error(`Transición inválida: ${mov.estado} → ${nuevoEstado}. Permitidas: ${permitidos.join(', ')}`);
+      }
+    }
+
+    // Si vamos a EN_PROCESO y es servicio → intentar ruteo + sección + slot
+    if (nuevoEstado === EstadoMovimiento.EN_PROCESO) {
+      const tipo = this.decidirTipoRonda({ lavado: mov.lavado, torno: mov.torno });
+      if (tipo !== TipoRonda.NATURAL) {
+        const servicio: TipoServicio =
+          tipo === TipoRonda.LAVADO ? TipoServicio.LAVADO : TipoServicio.TORNO;
+
+        const routed = await this.autoRuteoYOCuparServicio(tx, {
+          id: mov.id,
+          localidadId: mov.localidadId,
+          viaDestinoId: mov.viaDestinoId ?? null,
+          lavado: mov.lavado,
+          torno: mov.torno,
+        });
+
+        if (!routed.ok) {
+          // Sin secciones libres: quedar en ESPERA (no tocar rondas, no lanzar error)
+          const espera = await tx.movimiento.update({
+            where: { id },
+            data: { estado: EstadoMovimiento.ESPERA, updatedAt: new Date() },
+            include: { rondas: true, viaDestino: { select: { id: true } } },
+          });
+          await this.logEvento(tx, id, EventoTipo.EDITADO, actorId ?? operadorId ?? mov.creadoPorId, {
+            motivo: 'Sin secciones libres (servicio)',
+          });
+          return espera;
+        }
+
+        // Tomar slot de servicio (capacidad)
+        await this.ocuparSlotServicio(tx, mov.localidadId, servicio, id);
+      }
+    }
+
+    // Mutación base
+    const ahora = new Date();
+    const data: Prisma.MovimientoUpdateInput = { estado: nuevoEstado, updatedAt: ahora };
+    if (nuevoEstado === EstadoMovimiento.EN_PROCESO) {
+      Object.assign(data, { fechaInicio: ahora, fechaPausa: null, incidenteGlobal: false });
+      if (operadorId) Object.assign(data, { operadorId });
+    }
+    if (nuevoEstado === EstadoMovimiento.DETENIDO) {
+      Object.assign(data, { fechaPausa: ahora, instrucciones: razon ?? undefined });
+    }
+    if (nuevoEstado === EstadoMovimiento.CONCLUIDO) {
+      Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false, entregado: true });
+    }
+    if (nuevoEstado === EstadoMovimiento.CANCELADO) {
+      Object.assign(data, {
+        fechaFin: ahora,
+        finalizado: true,
+        incidenteGlobal: false,
+        instrucciones: razon ? `CANCELADO: ${razon}` : undefined,
+      });
+    }
+
+    const after = await tx.movimiento.update({
+      where: { id },
+      data,
+      include: { rondas: true, viaDestino: { select: { id: true } } },
+    });
+
+    // Si concluye/cancela → liberar ocupaciones (slot servicio + vía) y cerrar rondas
+    if (nuevoEstado === EstadoMovimiento.CONCLUIDO || nuevoEstado === EstadoMovimiento.CANCELADO) {
+      const tipo = this.decidirTipoRonda({ lavado: after.lavado ?? false, torno: after.torno ?? false });
+      if (tipo !== TipoRonda.NATURAL) {
+        await this.liberarSlotServicio(tx, id);
+      }
+      if (after.viaDestino?.id) {
+        await ViaModel.liberarMovimientoDeSeccion(after.viaDestino.id, id, tx);
+      }
+
+      if (after.rondas?.length) {
+        await tx.ronda.updateMany({
+          where: { movimientoId: id, concluido: false },
+          data: { concluido: true, updatedAt: new Date() },
+        });
+        await RondaModel.recomponerRondasLocalidad(after.localidadId, tx);
+      }
+    }
+
+    // Auditoría
+    const participantes = {
+      empresaId: after.empresaId,
+      clienteId: after.clienteId,
+      supervisorId: after.supervisorId,
+      coordinadorId: after.coordinadorId,
+      operadorId: operadorId ?? after.operadorId,
+    };
+    const tipoEvento: EventoTipo =
+      nuevoEstado === EstadoMovimiento.EN_PROCESO ? EventoTipo.INICIADO :
+      nuevoEstado === EstadoMovimiento.DETENIDO   ? EventoTipo.PAUSADO  :
+      nuevoEstado === EstadoMovimiento.CONCLUIDO  ? EventoTipo.CONCLUIDO:
+      nuevoEstado === EstadoMovimiento.CANCELADO  ? EventoTipo.CANCELADO:
+                                                    EventoTipo.EDITADO;
+
+    await this.logEvento(tx, id, tipoEvento, actorId ?? operadorId ?? after.operadorId ?? after.creadoPorId, participantes);
+
+    return after;
+  });
+}
 
   // Azúcar para UX
   static async iniciarMovimiento(id: number, operadorId: number, actorId?: number) {
