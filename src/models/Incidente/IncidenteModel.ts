@@ -6,7 +6,7 @@
  * - Micro-cron por incidente (cierre automático a los 10 minutos)
  */
 
-import { PrismaClient, Incidente, Prisma, Ronda } from '@prisma/client';
+import { PrismaClient, Incidente, Prisma, Ronda, EstadoIncidente } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
@@ -32,13 +32,13 @@ const IMAGEN_CONFIG = {
 
 export type EstadoFiltro = 'ABIERTO' | 'CERRADO' | 'RESUELTO' | 'PASADOS';
 
-function buildWhereByEstado(estado?: EstadoFiltro) {
+function buildWhereByEstado(estado?: EstadoFiltro): Prisma.IncidenteWhereInput {
   if (!estado) return {};
   if (estado === 'PASADOS') {
-    return { estado: { in: ['CERRADO', 'RESUELTO'] } };
+    return { estado: { in: [EstadoIncidente.CERRADO, EstadoIncidente.RESUELTO] } };
   }
   if (estado === 'ABIERTO' || estado === 'CERRADO' || estado === 'RESUELTO') {
-    return { estado };
+    return { estado: EstadoIncidente[estado] };
   }
   return {};
 }
@@ -72,7 +72,7 @@ export async function listarIncidentesPaginados({
 }>> {
   const PAGE_SIZE = 20;
   const skip = (page - 1) * PAGE_SIZE;
-  const where = buildWhereByEstado(estado);
+  const where: Prisma.IncidenteWhereInput = buildWhereByEstado(estado);
 
   const [items, total] = await Promise.all([
     prisma.incidente.findMany({
@@ -93,8 +93,12 @@ export async function listarIncidentesPaginados({
     descripcion: i.descripcion,
     estado: i.estado,
     fechaInicio: i.fechaInicio.toISOString(),
-    usuario: { id: i.usuario.id, nombre: i.usuario.nombre },
-    movimiento: { id: i.movimiento.id, empresaId: i.movimiento.empresaId, localidadId: i.movimiento.localidadId },
+    usuario: { id: (i as any).usuario.id, nombre: (i as any).usuario.nombre },
+    movimiento: {
+      id: (i as any).movimiento.id,
+      empresaId: (i as any).movimiento.empresaId,
+      localidadId: (i as any).movimiento.localidadId,
+    },
   }));
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -121,7 +125,7 @@ export async function listarIncidentesPorCursor({
   limit?: number;
   estado?: EstadoFiltro;
 }) {
-  const where = buildWhereByEstado(estado);
+  const where: Prisma.IncidenteWhereInput = buildWhereByEstado(estado);
   const orderBy = [{ fechaInicio: 'desc' as const }, { id: 'desc' as const }];
 
   const result = await prisma.incidente.findMany({
@@ -166,7 +170,7 @@ async function programarCierreAutomatico(incidenteId: number) {
   const timer = setTimeout(async () => {
     try {
       const inc = await prisma.incidente.findUnique({ where: { id: incidenteId }, select: { estado: true } });
-      if (inc && inc.estado === 'ABIERTO') {
+      if (inc && inc.estado === EstadoIncidente.ABIERTO) {
         await IncidenteModel.editarIncidente(incidenteId, { estado: 'CERRADO' });
       }
     } catch (e) {
@@ -199,7 +203,7 @@ export class IncidenteModel {
     }
   }
 
-  static async obtenerIncidentesPorEstado(estado: 'ABIERTO' | 'CERRADO') {
+  static async obtenerIncidentesPorEstado(estado: EstadoIncidente) {
     try {
       return await prisma.incidente.findMany({
         where: { estado },
@@ -266,7 +270,7 @@ export class IncidenteModel {
 
       if (!incidente) throw new Error(`No se encontró incidente con id ${incidenteId}`);
 
-      if (incidente.estado === 'CERRADO' || incidente.estado === 'RESUELTO') {
+      if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === EstadoIncidente.RESUELTO) {
         return {
           enPeriodoVerificacion: false,
           enPeriodoBloqueo: false,
@@ -309,11 +313,11 @@ export class IncidenteModel {
     }
   }
 
-  static async obtenerIncidentesPaginados(page = 1, pageSize = 30, estado?: 'ABIERTO' | 'CERRADO') {
+  static async obtenerIncidentesPaginados(page = 1, pageSize = 30, estado?: EstadoIncidente) {
     try {
       const skip = (page - 1) * pageSize;
-      const whereClause: any = {};
-      if (estado) whereClause.estado = estado;
+      const whereClause: Prisma.IncidenteWhereInput = {};
+      if (estado) (whereClause as any).estado = estado;
 
       const [incidentes, total] = await Promise.all([
         prisma.incidente.findMany({
@@ -348,13 +352,13 @@ export class IncidenteModel {
       const skip = (page - 1) * pageSize;
       const [incidentes, total] = await Promise.all([
         prisma.incidente.findMany({
-          where: { movimiento: { localidadId } },
+          where: { movimiento: { localidadId } as any },
           include: { movimiento: true, usuario: true },
           orderBy: { fechaInicio: 'desc' },
           skip,
           take: pageSize,
         }),
-        prisma.incidente.count({ where: { movimiento: { localidadId } } }),
+        prisma.incidente.count({ where: { movimiento: { localidadId } as any } }),
       ]);
       return {
         data: incidentes,
@@ -371,13 +375,13 @@ export class IncidenteModel {
       const skip = (page - 1) * pageSize;
       const [incidentes, total] = await Promise.all([
         prisma.incidente.findMany({
-          where: { movimiento: { empresaId, localidadId } },
+          where: { movimiento: { empresaId, localidadId } as any },
           include: { movimiento: true, usuario: true },
           orderBy: { fechaInicio: 'desc' },
           skip,
           take: pageSize,
         }),
-        prisma.incidente.count({ where: { movimiento: { empresaId, localidadId } } }),
+        prisma.incidente.count({ where: { movimiento: { empresaId, localidadId } as any } }),
       ]);
       return {
         data: incidentes,
@@ -394,13 +398,13 @@ export class IncidenteModel {
       const skip = (page - 1) * pageSize;
       const [incidentes, total] = await Promise.all([
         prisma.incidente.findMany({
-          where: { movimiento: { empresaId } },
+          where: { movimiento: { empresaId } as any },
           include: { movimiento: true, usuario: true },
           orderBy: { fechaInicio: 'desc' },
           skip,
           take: pageSize,
         }),
-        prisma.incidente.count({ where: { movimiento: { empresaId } } }),
+        prisma.incidente.count({ where: { movimiento: { empresaId } as any } }),
       ]);
       return {
         data: incidentes,
@@ -416,7 +420,7 @@ export class IncidenteModel {
   // Escritura / Update
   // =========================================================
 
-  static async editarIncidente(id: number, data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }) {
+  static async editarIncidente(id: number, data: { descripcion?: string; estado?: EstadoIncidente; imagenes?: Buffer[] }) {
     try {
       const incidenteActual = await prisma.incidente.findUnique({
         where: { id },
@@ -425,21 +429,21 @@ export class IncidenteModel {
       if (!incidenteActual) throw new Error(`No se encontró incidente con id ${id}`);
 
       const estadoAnterior = incidenteActual.estado;
-      const updateData: any = {};
+      const updateData: Prisma.IncidenteUpdateInput = {};
 
       let debeReordenar = false;
       let empresaId: number | null = null;
       let localidadId: number | null = null;
       let movimientoId: number | null = null;
 
-      if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
+      if (data.descripcion !== undefined) (updateData as any).descripcion = data.descripcion;
 
       if (data.estado !== undefined && data.estado !== estadoAnterior) {
-        updateData.estado = data.estado;
-        updateData.fechaFin = new Date();
+        (updateData as any).estado = data.estado;
+        (updateData as any).fechaFin = new Date();
 
         // Al RESOLVER: reactivar movimiento y NO reordenar rondas
-        if (data.estado === 'RESUELTO') {
+        if (data.estado === EstadoIncidente.RESUELTO) {
           await prisma.movimiento.update({
             where: { id: incidenteActual.movimientoId },
             data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
@@ -452,9 +456,9 @@ export class IncidenteModel {
         }
 
         // Al CERRAR: reordenar rondas
-        if (data.estado === 'CERRADO') {
-          empresaId = incidenteActual.movimiento.empresaId;
-          localidadId = incidenteActual.movimiento.localidadId;
+        if (data.estado === EstadoIncidente.CERRADO) {
+          empresaId = (incidenteActual as any).movimiento.empresaId;
+          localidadId = (incidenteActual as any).movimiento.localidadId;
           movimientoId = incidenteActual.movimientoId;
           debeReordenar = true;
           cancelarCierreAutomatico(id);
@@ -472,10 +476,10 @@ export class IncidenteModel {
           }
         }
         const rutas = await this.procesarImagenes(data.imagenes, id);
-        updateData.imagen1 = rutas[0] ?? null;
-        updateData.imagen2 = rutas[1] ?? null;
-        updateData.imagen3 = rutas[2] ?? null;
-        updateData.imagen4 = rutas[3] ?? null;
+        (updateData as any).imagen1 = rutas[0] ?? null;
+        (updateData as any).imagen2 = rutas[1] ?? null;
+        (updateData as any).imagen3 = rutas[2] ?? null;
+        (updateData as any).imagen4 = rutas[3] ?? null;
       }
 
       const incidenteActualizado = await prisma.incidente.update({
@@ -489,13 +493,13 @@ export class IncidenteModel {
       }
 
       if (data.estado && data.estado !== estadoAnterior) {
-        await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+        await this.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior);
       }
 
       incidenteError.info('Incidente actualizado correctamente', {
         incidenteId: id,
         estadoAnterior,
-        estadoNuevo: incidenteActualizado.estado,
+        estadoNuevo: (incidenteActualizado as any).estado,
       });
       return incidenteActualizado;
     } catch (error) {
@@ -556,7 +560,7 @@ export class IncidenteModel {
         return;
       }
 
-      const prioridad = rondaMovimiento.movimiento?.prioridad ?? 'BAJA';
+      const prioridad = (rondaMovimiento as any).movimiento?.prioridad ?? 'BAJA';
 
       if (prioridad === 'ALTA') {
         await this.moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId);
@@ -587,7 +591,7 @@ export class IncidenteModel {
           tipoRonda,
           rondaNumero: 1,
           concluido: false,
-          movimiento: { prioridad: 'ALTA' },
+          movimiento: { prioridad: 'ALTA' } as any,
         },
       });
 
@@ -777,7 +781,7 @@ export class IncidenteModel {
           descripcion: data.descripcion,
           movimientoId: data.movimientoId,
           usuarioId: data.usuarioId,
-          estado: 'ABIERTO',
+          estado: EstadoIncidente.ABIERTO,
         },
       });
 
@@ -861,12 +865,12 @@ export class IncidenteModel {
     try {
       const tiempoLimite = new Date(Date.now() - TIMEOUT_CONFIG.verificacion);
       const incidentesVencidos = await prisma.incidente.findMany({
-        where: { estado: 'ABIERTO', fechaInicio: { lte: tiempoLimite } },
+        where: { estado: EstadoIncidente.ABIERTO, fechaInicio: { lte: tiempoLimite } },
       });
 
       let cerrados = 0;
       for (const inc of incidentesVencidos) {
-        await this.editarIncidente(inc.id, { estado: 'CERRADO' });
+        await this.editarIncidente(inc.id, { estado: EstadoIncidente.CERRADO });
         cerrados++;
       }
 
@@ -895,7 +899,7 @@ export class IncidenteModel {
   static async notificarCambioEstado(incidente: Incidente, estadoAnterior: string): Promise<void> {
     try {
       const movimiento = await prisma.movimiento.findUnique({
-        where: { id: incidente.movimientoId },
+        where: { id: (incidente as any).movimientoId },
         include: { empresa: true, localidad: true },
       });
       if (!movimiento) return;
@@ -911,32 +915,30 @@ export class IncidenteModel {
         include: { fcmTokens: true },
       });
 
-      const tokens = Array.from(
-        new Set(usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token)))
-      );
+      const tokens = Array.from(new Set(usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token))));
       if (tokens.length === 0) return;
 
-      const empresaNombre = movimiento.empresa?.nombre ?? 'Sin Empresa';
+      const empresaNombre = (movimiento as any).empresa?.nombre ?? 'Sin Empresa';
       const descripcion =
-        incidente.descripcion.length > 50 ? incidente.descripcion.slice(0, 50) + '…' : incidente.descripcion;
+        (incidente as any).descripcion.length > 50 ? (incidente as any).descripcion.slice(0, 50) + '…' : (incidente as any).descripcion;
 
       const titulo =
-        incidente.estado === 'RESUELTO'
+        (incidente as any).estado === EstadoIncidente.RESUELTO
           ? '✅ INCIDENTE RESUELTO'
-          : incidente.estado === 'CERRADO'
+          : (incidente as any).estado === EstadoIncidente.CERRADO
           ? '❌ INCIDENTE CERRADO'
           : '🔄 INCIDENTE ACTUALIZADO';
 
       const mensaje = {
-        notification: { title: titulo, body: `ID #${incidente.id} • ${empresaNombre} • Loco ${movimiento.locomotiveNumber}` },
+        notification: { title: titulo, body: `ID #${(incidente as any).id} • ${empresaNombre} • Loco ${(movimiento as any).locomotiveNumber}` },
         data: {
           pantalla: 'Incidente',
-          incidenteId: String(incidente.id),
-          movimientoId: String(incidente.movimientoId),
+          incidenteId: String((incidente as any).id),
+          movimientoId: String((incidente as any).movimientoId),
           empresa: empresaNombre,
-          locomotora: String(movimiento.locomotiveNumber),
+          locomotora: String((movimiento as any).locomotiveNumber),
           estadoAnterior,
-          estadoNuevo: incidente.estado,
+          estadoNuevo: (incidente as any).estado,
           descripcion,
           tipo: 'cambio_estado_incidente',
           fecha: new Date().toISOString(),
@@ -975,11 +977,11 @@ export class IncidenteModel {
     });
 
     if (!incidente) throw new Error('Incidente no encontrado');
-    if (incidente.estado === 'CERRADO') throw new Error('Incidente ya cerrado');
+    if (incidente.estado === EstadoIncidente.CERRADO) throw new Error('Incidente ya cerrado');
 
     const actualizado = await prisma.incidente.update({
       where: { id },
-      data: { estado: 'CERRADO', fechaFin: new Date() },
+      data: { estado: EstadoIncidente.CERRADO, fechaFin: new Date() },
       include: { movimiento: true },
     });
 
@@ -987,15 +989,15 @@ export class IncidenteModel {
 
     // Reordenar SIEMPRE al cerrar
     await this.reorganizarRondasPorIncidente(
-      incidente.movimiento.empresaId,
-      incidente.movimiento.localidadId,
-      incidente.movimientoId
+      (incidente as any).movimiento.empresaId,
+      (incidente as any).movimiento.localidadId,
+      (incidente as any).movimientoId
     );
 
     // Notificar cierre con comentario
     const usuarios = await prisma.usuario.findMany({
       where: {
-        empresaId: incidente.movimiento.empresaId,
+        empresaId: (incidente as any).movimiento.empresaId,
         activo: true,
         rol: { in: ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'] as any },
       },
@@ -1004,15 +1006,15 @@ export class IncidenteModel {
 
     const tokens = Array.from(new Set(usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token))));
     if (tokens.length > 0) {
-      const empresa = incidente.movimiento.empresa?.nombre ?? 'Sin Empresa';
-      const loco = incidente.movimiento.locomotiveNumber;
+      const empresa = (incidente as any).movimiento.empresa?.nombre ?? 'Sin Empresa';
+      const loco = (incidente as any).movimiento.locomotiveNumber;
 
       await admin.messaging().sendEachForMulticast({
         notification: { title: '❌ INCIDENTE CERRADO', body: `Cerrado por cliente: "${comentario}"` },
         data: {
           pantalla: 'Incidente',
-          incidenteId: String(actualizado.id),
-          movimientoId: String(incidente.movimientoId),
+          incidenteId: String((actualizado as any).id),
+          movimientoId: String((incidente as any).movimientoId),
           empresa,
           locomotora: String(loco),
           tipo: 'incidente_cerrado_cliente',
@@ -1022,14 +1024,14 @@ export class IncidenteModel {
       });
     }
 
-    return actualizado;
+    return actualizado as any;
   }
 
   // Conveniencia: endpoints dedicados
   static async resolverIncidente(id: number) {
-    return this.editarIncidente(id, { estado: 'RESUELTO' });
+    return this.editarIncidente(id, { estado: EstadoIncidente.RESUELTO });
   }
   static async cerrarIncidente(id: number) {
-    return this.editarIncidente(id, { estado: 'CERRADO' });
+    return this.editarIncidente(id, { estado: EstadoIncidente.CERRADO });
   }
 }
