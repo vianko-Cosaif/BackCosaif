@@ -1,5 +1,6 @@
-// movimiento.controller.ts
+// src/Rutas/Movimientos/MovimientoController.ts
 import { RequestHandler } from 'express';
+import { EstadoMovimiento, Prioridad } from '@prisma/client';
 import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
@@ -54,7 +55,7 @@ export class MovimientoController {
     }
   };
 
-  // PUT /movimientos/:id  (editar campos y/o cambiar viaDestinoId/numeroSeccion)
+  // PUT /movimientos/:id
   static editarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -71,10 +72,10 @@ export class MovimientoController {
   // PATCH /movimientos/:id/prioridad
   static cambiarPrioridad: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { prioridad } = req.body;
+    const { prioridad } = req.body as { prioridad: Prioridad };
 
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID de movimiento inválido' });
-    if (!['ALTA', 'BAJA'].includes(prioridad)) {
+    if (!Object.values(Prioridad).includes(prioridad)) {
       return res.status(400).json({ message: 'Valor de prioridad inválido. Debe ser "ALTA" o "BAJA"' });
     }
 
@@ -338,18 +339,24 @@ export class MovimientoController {
     }
   };
 
-  // PATCH /movimientos/:id/estado  (cambio de estado genérico opcional)
+  // PATCH /movimientos/:id/estado
   static cambiarEstado: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { estado, operadorId, razon, forzar } = req.body ?? {};
+    const estado = req.body?.estado as EstadoMovimiento | undefined;
+    const operadorId = typeof req.body?.operadorId === 'number' ? req.body.operadorId : undefined;
+    const razon = typeof req.body?.razon === 'string' ? req.body.razon : undefined;
+    const forzar = !!req.body?.forzar;
+
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
-    if (!estado || typeof estado !== 'string') return res.status(400).json({ message: 'Debe indicar estado destino' });
+    if (!estado || !Object.values(EstadoMovimiento).includes(estado)) {
+      return res.status(400).json({ message: 'Debe indicar un estado válido' });
+    }
 
     try {
       const movimiento = await MovimientoModel.cambiarEstadoMovimiento(id, estado, {
         operadorId,
         razon,
-        forzar: !!forzar,
+        forzar,
       });
       res.status(200).json({ message: `Movimiento → ${estado}`, movimiento });
     } catch (error) {
