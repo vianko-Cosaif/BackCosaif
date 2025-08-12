@@ -343,12 +343,8 @@ static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: n
 }
 
 
-static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
-  return prisma.ronda.update({
-    where: { id: rondaId },
-    data: { movimientoId: nuevoMovimientoId },
-  });
-}
+
+
 
 // === wrappers de compatibilidad con código legado ===
 static async marcarRondasDeMovimientoComoConcluidas(movimientoId: number) {
