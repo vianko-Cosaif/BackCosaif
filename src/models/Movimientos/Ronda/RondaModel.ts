@@ -279,6 +279,51 @@ export class RondaModel {
     }
   }
 
+  // === swaps entre rondas ===
+static async intercambiarMovimientosEntreRondas(rondaAId: number, rondaBId: number) {
+  return prisma.$transaction(async tx => {
+    const [A, B] = await Promise.all([
+      tx.ronda.findUnique({ where: { id: rondaAId } }),
+      tx.ronda.findUnique({ where: { id: rondaBId } }),
+    ]);
+    if (!A || !B) throw new Error('Rondas inválidas');
+
+    const movA = A.movimientoId, movB = B.movimientoId;
+
+    await Promise.all([
+      tx.ronda.update({ where: { id: rondaAId }, data: { movimientoId: movB } }),
+      tx.ronda.update({ where: { id: rondaBId }, data: { movimientoId: movA } }),
+    ]);
+
+    const [A2, B2] = await Promise.all([
+      tx.ronda.findUnique({ where: { id: rondaAId } }),
+      tx.ronda.findUnique({ where: { id: rondaBId } }),
+    ]);
+    return [A2!, B2!];
+  });
+}
+
+static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
+  return prisma.ronda.update({
+    where: { id: rondaId },
+    data: { movimientoId: nuevoMovimientoId },
+  });
+}
+
+// === wrappers de compatibilidad con código legado ===
+static async marcarRondasDeMovimientoComoConcluidas(movimientoId: number) {
+  const ids = await prisma.ronda.findMany({
+    where: { movimientoId, concluido: false },
+    select: { id: true },
+  });
+  await this.marcarRondasComoConcluidas(ids.map(r => r.id));
+}
+
+static async removerDeTodasLasRondas(movimientoId: number, tx?: Prisma.TransactionClient) {
+  const db = tx ?? prisma;
+  await db.ronda.deleteMany({ where: { movimientoId } });
+}
+
   // =============== SELECCIÓN (BATCH / SIMULTÁNEO) ===============
 
   /**
