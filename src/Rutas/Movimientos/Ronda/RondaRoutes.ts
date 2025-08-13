@@ -1,22 +1,23 @@
 /**
  * @file RondaRoutes.ts
- * @author Isaac Serrano Campos <isaac.serrano@vianko.com.mx>
- * @version 1.1.0 2025-04-28
+ * @author Isaac Serrano
+ * @version 1.2.0 2025-05-16
  *
  * @description
- * Define las rutas HTTP para la entidad **Ronda** y las asocia con los
- * manejadores del `RondaController`. Este router se monta bajo el prefijo
- * `/rondas` en el archivo principal de rutas.
+ * Rutas HTTP para **Ronda**, alineadas con el RondaController actual.
  *
  * @routes
- *  - POST    /rondas/generar                          → Genera todas las rondas de forma automática
- *  - DELETE  /rondas                                  → Elimina todas las rondas existentes
- *  - POST    /rondas/movimiento/:movimientoId         → Crea una ronda para un movimiento específico
- *  - GET     /rondas                                  → Obtiene todas las rondas registradas
- *  - DELETE  /rondas/:id                              → Elimina una ronda por su ID
- *  - GET     /rondas/localidad/:localidadId           → Obtiene todas las rondas de una localidad
- *  - GET     /rondas/localidad/:localidadId/estado/:concluido → Obtiene rondas por localidad y estado (true|false)
- *  - GET     /rondas/localidad/:localidadId/siguiente → Obtiene el siguiente en la ronda (por orden y número)
+ *  - POST    /rondas/movimiento/:movimientoId                  → Crear ronda para un movimiento
+ *  - GET     /rondas                                           → Listar rondas
+ *  - DELETE  /rondas/:id                                       → Eliminar una ronda
+ *  - GET     /rondas/localidad/:localidadId                    → Rondas por localidad
+ *  - GET     /rondas/localidad/:localidadId/estado/:concluido  → Rondas por localidad y estado
+ *  - GET     /rondas/localidad/:localidadId/siguiente          → Siguiente (FIFO)
+ *  - GET     /rondas/localidad/:localidadId/siguiente-inteligente → Siguiente inteligente
+ *  - PATCH   /rondas/intercambiar-movimientos                  → Intercambiar movimientos entre dos rondas
+ *  - PATCH   /rondas/:id/intercambiar-movimiento               → Reemplazar el movimiento de una ronda
+ *  - GET     /rondas/:id/info                                  → Info detallada de una ronda
+ *  - PATCH   /rondas/:id/concluir                              → Marcar ronda como concluida
  */
 
 import { Router } from "express";
@@ -28,47 +29,37 @@ const router = Router();
 // Protege todas las rutas con autenticación JWT
 router.use(passport.authenticate("jwt", { session: false }));
 
-// Genera todas las rondas de forma inteligente
-router.post("/generar", RondaController.generarRondaInteligente);
-
-// Elimina todas las rondas (uso administrativo)
-router.delete("/", RondaController.eliminarTodasLasRondas);
-
-// Crea una ronda para un movimiento individual
+// Crear ronda para un movimiento
 router.post("/movimiento/:movimientoId", RondaController.generarRondaParaMovimiento);
 
-// Lista todas las rondas existentes
+// Listar rondas
 router.get("/", RondaController.obtenerRondas);
 
-// Elimina una ronda por su ID
+// Eliminar una ronda por ID
 router.delete("/:id", RondaController.eliminarRonda);
 
-// Obtiene todas las rondas para una localidad
+// Rondas por localidad
 router.get("/localidad/:localidadId", RondaController.obtenerRondasPorLocalidad);
 
-// Obtiene las rondas de una localidad según su estado (concluido o no)
-router.get(
-  "/localidad/:localidadId/estado/:concluido",
-  RondaController.obtenerRondasPorLocalidadConEstado
-);
+// Rondas por localidad y estado
+router.get("/localidad/:localidadId/estado/:concluido", RondaController.obtenerRondasPorLocalidadConEstado);
 
-// Obtiene el siguiente en la ronda por localidad
-router.get(
-  "/localidad/:localidadId/siguiente",
-  RondaController.obtenerSiguienteEnRonda
-);
+// Siguiente en ronda (FIFO)
+router.get("/localidad/:localidadId/siguiente", RondaController.obtenerSiguienteEnRonda);
 
+// Siguiente inteligente (salta bloqueados y notifica si aplica)
+router.get("/localidad/:localidadId/siguiente-inteligente", RondaController.obtenerSiguienteInteligente);
 
-// Intercambia los movimientos de dos rondas (swap entre dos rondas)
-router.patch(
-  "/intercambiar-movimientos",
-  RondaController.intercambiarMovimientosEntreRondas
-);
+// Intercambiar movimientos entre dos rondas
+router.patch("/intercambiar-movimientos", RondaController.intercambiarMovimientosEntreRondas);
 
-// Reemplaza el movimiento de UNA ronda (cambiar el movimiento por otro)
-router.patch(
-  "/:id/intercambiar-movimiento",
-  RondaController.intercambiarMovimientoEnRonda
-);
+// Reemplazar el movimiento de una ronda
+router.patch("/:id/intercambiar-movimiento", RondaController.intercambiarMovimientoEnRonda);
+
+// Info detallada de una ronda
+router.get("/:id/info", RondaController.obtenerInfoRonda);
+
+// Marcar ronda como concluida
+router.patch("/:id/concluir", RondaController.marcarRondaComoConcluida);
 
 export default router;

@@ -1,7 +1,7 @@
 /**
  * @file RondaController.ts
  * @author Isaac
- * @version 1.3.0 2025-05-16
+ * @version 1.3.1 2025-05-16
  */
 
 import { RequestHandler } from "express";
@@ -9,56 +9,6 @@ import { RondaModel } from "../../../models/Movimientos/Ronda/RondaModel";
 import { movimientoControllerLogger as logger } from "../movimiento.controller.logger";
 
 export class RondaController {
-  // POST /rondas/generar
-  static generarRondaInteligente: RequestHandler = async (_req, res) => {
-    try {
-      const rondas = await RondaModel.generarRondaInteligente?.();
-      // Ejecuta "siguiente inteligente" por localidad (efecto colateral: reordena y notifica bloqueos)
-      const locs = Array.from(new Set((rondas ?? []).map(r => r.localidadId)));
-      await Promise.all(locs.map(id => RondaModel.siguienteInteligente(id)));
-
-      res.status(201).json({
-        message: "Rondas generadas exitosamente",
-        rondas: rondas ?? [],
-        count: rondas?.length ?? 0
-      });
-    } catch (error) {
-      logger.error("Error al generar ronda inteligente", { error });
-      res.status(500).json({ message: "Error al generar ronda inteligente" });
-    }
-  };
-
-  // POST /rondas/reorganizar
-  static reorganizarRondas: RequestHandler = async (_req, res) => {
-    try {
-      await RondaModel.eliminarTodasLasRondas?.();
-      const rondas = await RondaModel.generarRondaInteligente?.();
-
-      const locs = Array.from(new Set((rondas ?? []).map(r => r.localidadId)));
-      await Promise.all(locs.map(id => RondaModel.siguienteInteligente(id)));
-
-      res.status(200).json({
-        message: "Rondas reorganizadas exitosamente",
-        rondas: rondas ?? [],
-        count: rondas?.length ?? 0
-      });
-    } catch (error) {
-      logger.error("Error al reorganizar rondas", { error });
-      res.status(500).json({ message: "Error al reorganizar rondas" });
-    }
-  };
-
-  // DELETE /rondas
-  static eliminarTodasLasRondas: RequestHandler = async (_req, res) => {
-    try {
-      await RondaModel.eliminarTodasLasRondas?.();
-      res.sendStatus(204);
-    } catch (error) {
-      logger.error("Error al eliminar todas las rondas", { error });
-      res.status(500).json({ message: "Error al eliminar todas las rondas" });
-    }
-  };
-
   // POST /rondas/movimiento/:movimientoId
   static generarRondaParaMovimiento: RequestHandler = async (req, res) => {
     const movimientoId = Number(req.params.movimientoId);
@@ -87,7 +37,6 @@ export class RondaController {
         prioridad: prioridadFinal
       });
 
-      // Ejecuta lógica inteligente y devuelve el candidato (o motivo) junto con la respuesta
       const next = await RondaModel.siguienteInteligente(localidadId);
 
       res.status(201).json({
@@ -127,7 +76,6 @@ export class RondaController {
     }
     try {
       const eliminada = await RondaModel.eliminarRonda(id);
-      // Efecto colateral: recalcular siguiente para la localidad afectada
       await RondaModel.siguienteInteligente(eliminada.localidadId);
       res.sendStatus(204);
     } catch (error) {
@@ -183,7 +131,6 @@ export class RondaController {
 
     try {
       const [ra, rb] = await RondaModel.intercambiarMovimientosEntreRondas(Number(rondaAId), Number(rondaBId));
-      // Ejecuta “siguiente inteligente” en las localidades afectadas (pueden ser distintas)
       const locs = Array.from(new Set([ra.localidadId, rb.localidadId]));
       await Promise.all(locs.map(id => RondaModel.siguienteInteligente(id)));
 
@@ -237,7 +184,7 @@ export class RondaController {
     }
   };
 
-  // GET /rondas/localidad/:localidadId/siguiente-inteligente (salta bloqueados, notifica si todos lo están)
+  // GET /rondas/localidad/:localidadId/siguiente-inteligente
   static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (isNaN(localidadId)) {
