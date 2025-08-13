@@ -42,8 +42,7 @@ async function hayLavadosPendientes(localidadId: number, tx: Tx = prisma) {
     where: {
       localidadId,
       finalizado: false,
-      estado: { in: ['SOLICITADO','ESPERA','DETENIDO','EN_PROCESO'] },
-      lavado: true
+      lavado: true,
     }
   });
   return c > 0;
@@ -66,7 +65,6 @@ async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMov
       localidadId,
       id: { not: excluirMovimientoId ?? 0 },
       finalizado: false,
-      estado: { in: ['EN_PROCESO','DETENIDO','ASIGNADO','SOLICITADO','ESPERA'] as any },
       OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
     },
   });
@@ -79,10 +77,9 @@ async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: T
     where: {
       localidadId,
       finalizado: false,
-      estado: { in: ['EN_PROCESO','DETENIDO','ASIGNADO','SOLICITADO','ESPERA'] as any },
       OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
     },
-    orderBy: [{ estado: 'asc' }, { updatedAt: 'desc' }]
+    orderBy: [{ updatedAt: 'desc' }]
   });
   return bloq || null;
 }
