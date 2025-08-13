@@ -3,9 +3,106 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import { ViaModel } from '../Via/viaModel';
-import { ConflictError } from '../Via/Secciones/SeccionViasModel'; // si lo exportas desde ahí
+import { ConflictError } from '../Via/Secciones/SeccionViasModel';
+import admin from 'firebase-admin';
 
 const prisma = new PrismaClient(); // TODO: usar singleton/inyección
+
+async function tokensDeUsuarios(ids: number[]) {
+  if (!ids.length) return [];
+  const usuarios = await prisma.usuario.findMany({
+    where: { id: { in: ids }, activo: true },
+    include: { fcmTokens: true },
+  });
+  return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+}
+
+async function notificarMovimientoCreado(movId: number) {
+  const m = await prisma.movimiento.findUnique({
+    where: { id: movId },
+    include: {
+      empresa: { select: { nombre: true } },
+      localidad: { select: { id: true, nombre: true } },
+      viaOrigen: { select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
+      creadoPor: { select: { id: true, nombre: true } },
+    },
+  });
+  if (!m) return;
+
+  const destinatarios: number[] = [];
+  if (m.coordinadorId) destinatarios.push(m.coordinadorId);
+  if (m.supervisorId) destinatarios.push(m.supervisorId);
+
+  const tokens = await tokensDeUsuarios(destinatarios);
+  if (!tokens.length) return;
+
+  const title = `Nuevo movimiento (${m.prioridad})`;
+  const body =
+    `Creado por: ${m.creadoPor?.nombre ?? 'N/D'} · ` +
+    `Fecha: ${new Date(m.createdAt).toLocaleString()} · ` +
+    `Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
+    `Locomotora: ${m.locomotiveNumber} · ` +
+    `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'} · ` +
+    `Comentario: ${m.instrucciones ?? '—'}`;
+
+  await admin.messaging().sendEachForMulticast({
+    notification: { title, body },
+    data: {
+      tipo: 'movimiento_creado',
+      movimientoId: String(m.id),
+      prioridad: String(m.prioridad),
+      creadoPor: String(m.creadoPor?.nombre ?? ''),
+      fecha: new Date(m.createdAt).toISOString(),
+      empresa: String(m.empresa?.nombre ?? ''),
+      localidadId: String(m.localidadId),
+      viaOrigen: String(m.viaOrigen?.nombre ?? ''),
+      viaDestino: String(m.viaDestino?.nombre ?? ''),
+    },
+    tokens,
+  });
+}
+
+async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
+  const m = await prisma.movimiento.findUnique({
+    where: { id: movId },
+    include: {
+      empresa: { select: { nombre: true } },
+      localidad: { select: { id: true, nombre: true } },
+      viaOrigen: { select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
+      creadoPor: { select: { nombre: true } },
+    },
+  });
+  if (!m) return;
+
+  // ADMIN + COORDINADOR + SUPERVISOR
+  const admins = await prisma.usuario.findMany({
+    where: { localidadId: m.localidadId, activo: true, rol: { in: ['ADMIN','COORDINADOR','SUPERVISOR'] as any } },
+    include: { fcmTokens: true },
+  });
+  const tokens = admins.flatMap(u => u.fcmTokens.map(t => t.token));
+  if (!tokens.length) return;
+
+  await admin.messaging().sendEachForMulticast({
+    notification: {
+      title: `Cambio de prioridad → ${nueva}`,
+      body:
+        `Movimiento #${m.id} · Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
+        `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'}`
+    },
+    data: {
+      tipo: 'cambio_prioridad',
+      movimientoId: String(m.id),
+      prioridad: nueva,
+      creadoPor: String(m.creadoPor?.nombre ?? ''),
+      fecha: new Date().toISOString(),
+      empresa: String(m.empresa?.nombre ?? ''),
+      localidadId: String(m.localidadId),
+    },
+    tokens,
+  });
+}
 
 export class MovimientoModel {
   // -------------------- Helpers internos --------------------
@@ -26,22 +123,17 @@ export class MovimientoModel {
     movimientoId: number,
     numeroSeccion?: number | null
   ): Promise<void> {
-    // ¿Cuántas secciones tiene?
     const count = await prisma.seccionVia.count({ where: { viaId } });
 
     if (count === 0) {
-      // Vía "simple": ocupar vía completa
       await ViaModel.asignarMovimientoASeccion(viaId, null, movimientoId);
       return;
     }
 
-    // Vía con secciones: usar la que se pida o elegir primera libre
     let seccion = numeroSeccion ?? null;
     if (seccion == null) {
       const libre = await this.primeraSeccionLibre(viaId);
-      if (libre == null) {
-        throw new ConflictError(`La vía ${viaId} no tiene secciones libres.`);
-      }
+      if (libre == null) throw new ConflictError(`La vía ${viaId} no tiene secciones libres.`);
       seccion = libre;
     }
 
@@ -109,7 +201,6 @@ export class MovimientoModel {
       });
       if (!movimiento) throw new Error(`No se encontró movimiento con id ${id}`);
 
-      // Marcar cancelado
       const movimientoCancelado = await prisma.movimiento.update({
         where: { id },
         data: {
@@ -123,12 +214,10 @@ export class MovimientoModel {
         include: { empresa: true, localidad: true, ronda: true, viaDestino: { select: { id: true } } },
       });
 
-      // Liberar ocupación de vía destino (si la tenía)
       if (movimientoCancelado.viaDestino?.id) {
         await ViaModel.liberarMovimientoDeSeccion(movimientoCancelado.viaDestino.id, id);
       }
 
-      // Ronda: eliminar y recomponer
       if (movimiento.ronda) {
         await prisma.ronda.delete({ where: { id: movimiento.ronda.id } });
         await RondaModel.recomponerRondasLocalidad(movimiento.localidadId);
@@ -265,12 +354,10 @@ export class MovimientoModel {
         include: { empresa: true, localidad: true, ronda: true, viaDestino: { select: { id: true } } },
       });
 
-      // Si concluye o cancela → liberar ocupación
       if ((nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') && movimientoActualizado.viaDestino?.id) {
         await ViaModel.liberarMovimientoDeSeccion(movimientoActualizado.viaDestino.id, id);
       }
 
-      // Gestión de ronda
       if (movimientoActual.ronda) {
         if (nuevoEstado === 'CONCLUIDO') {
           await RondaModel.marcarRondaComoConcluida(movimientoActual.ronda.id);
@@ -305,6 +392,7 @@ export class MovimientoModel {
    * - vía completa (si no tiene secciones),
    * - o la primera sección libre (o `numeroSeccion` si se proporcionó).
    * Si no hay espacio, queda en ESPERA y se agrega a Ronda.
+   * Notifica a coordinador y supervisor con detalles.
    */
   static async nuevoMovimiento(data: {
     empresaId: number;
@@ -312,7 +400,7 @@ export class MovimientoModel {
     localidadId: number;
     viaOrigenId: number;
     viaDestinoId?: number;
-    numeroSeccion?: number; // <<< opcional: si quieres forzar sección
+    numeroSeccion?: number;
     locomotiveNumber: number;
     prioridad?: 'BAJA' | 'ALTA';
     tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
@@ -343,24 +431,18 @@ export class MovimientoModel {
         include: { empresa: true, localidad: true, viaDestino: true },
       });
 
-      // Intentar ocupar vía destino si aplica
       if (data.viaDestinoId) {
         try {
           await this.intentarOcuparViaDestino(data.viaDestinoId, mv.id, data.numeroSeccion ?? null);
         } catch (e: any) {
-          // Si no hay espacio → mandar a ESPERA y seguir con ronda
           if (e instanceof ConflictError) {
-            await prisma.movimiento.update({
-              where: { id: mv.id },
-              data: { estado: 'ESPERA' },
-            });
+            await prisma.movimiento.update({ where: { id: mv.id }, data: { estado: 'ESPERA' } });
           } else {
             throw e;
           }
         }
       }
 
-      // Generar ronda si está SOLICITADO o ESPERA
       const movActual = await prisma.movimiento.findUnique({ where: { id: mv.id } });
       if (movActual && (movActual.estado === 'SOLICITADO' || movActual.estado === 'ESPERA')) {
         await RondaModel.generarRondaParaMovimiento({
@@ -370,6 +452,9 @@ export class MovimientoModel {
           prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
         });
       }
+
+      // Notificación de creación
+      await notificarMovimientoCreado(mv.id);
 
       return await prisma.movimiento.findUnique({
         where: { id: mv.id },
@@ -396,7 +481,7 @@ export class MovimientoModel {
       localidadId?: number;
       viaOrigenId?: number;
       viaDestinoId?: number;
-      numeroSeccion?: number; // <<< opcional
+      numeroSeccion?: number;
       locomotiveNumber?: number;
       lavado?: boolean;
       torno?: boolean;
@@ -435,20 +520,14 @@ export class MovimientoModel {
       updateData.direccionEmpuje = updateData.direccionEmpuje || 'Sin_Solicitar';
       Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
 
-      // Actualiza movimiento
       const movUpd = await prisma.movimiento.update({
         where: { id },
         data: updateData,
         include: { empresa: true, localidad: true, viaDestino: true },
       });
 
-      // ¿Cambió de vía destino?
       if (data.viaDestinoId && data.viaDestinoId !== actual.viaDestinoId) {
-        // liberar anterior
-        if (actual.viaDestinoId) {
-          await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id);
-        }
-        // ocupar nueva
+        if (actual.viaDestinoId) await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id);
         try {
           await this.intentarOcuparViaDestino(data.viaDestinoId, id, data.numeroSeccion ?? null);
         } catch (e: any) {
@@ -460,7 +539,6 @@ export class MovimientoModel {
         }
       }
 
-      // ¿Requiere recomponer rondas?
       const requiereReorg =
         (data.prioridad === 'ALTA' && actual.prioridad !== 'ALTA') ||
         (data.estado === 'SOLICITADO' && actual.estado !== 'SOLICITADO') ||
@@ -503,7 +581,7 @@ export class MovimientoModel {
     }
   }
 
-  // -------------------- Otros métodos ya existentes (sin cambios de lógica) --------------------
+  // -------------------- Otros métodos ya existentes (con notificación de prioridad) --------------------
 
   static async eliminarMovimiento(id: number) {
     try {
@@ -544,6 +622,9 @@ export class MovimientoModel {
           prioridad: 'BAJA',
         });
       }
+
+      // Notificar cambio de prioridad (ADMIN/COORDINADOR/SUPERVISOR)
+      await notificarCambioPrioridad(id, prioridad);
 
       return movimientoActualizado;
     } catch (error) {
@@ -827,7 +908,6 @@ export class MovimientoModel {
         include: { ronda: true, viaDestino: { select: { id: true } } },
       });
 
-      // liberar ocupación
       if (mov.viaDestino?.id) {
         await ViaModel.liberarMovimientoDeSeccion(mov.viaDestino.id, id);
       }
