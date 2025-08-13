@@ -30,11 +30,23 @@ async function notificarMovimientoCreado(movId: number) {
   });
   if (!m) return;
 
-  const destinatarios: number[] = [];
-  if (m.coordinadorId) destinatarios.push(m.coordinadorId);
-  if (m.supervisorId) destinatarios.push(m.supervisorId);
+  // Coordinador, supervisor, operador y TODOS los maquinistas/operadores de la localidad
+  const destinatarios = new Set<number>();
+  if (m.coordinadorId) destinatarios.add(m.coordinadorId);
+  if (m.supervisorId) destinatarios.add(m.supervisorId);
+  if (m.operadorId) destinatarios.add(m.operadorId);
 
-  const tokens = await tokensDeUsuarios(destinatarios);
+  const maquinistas = await prisma.usuario.findMany({
+    where: {
+      activo: true,
+      localidadId: m.localidadId,
+      rol: { in: ['MAQUINISTA', 'OPERADOR'] as any },
+    },
+    select: { id: true },
+  });
+  maquinistas.forEach(u => destinatarios.add(u.id));
+
+  const tokens = await tokensDeUsuarios([...destinatarios]);
   if (!tokens.length) return;
 
   const title = `Nuevo movimiento (${m.prioridad})`;
@@ -62,6 +74,7 @@ async function notificarMovimientoCreado(movId: number) {
     tokens,
   });
 }
+
 
 async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
   const m = await prisma.movimiento.findUnique({
