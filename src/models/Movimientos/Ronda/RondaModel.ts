@@ -1,14 +1,36 @@
 // RondaModel.ts
 import { movimientoError } from "../movimiento.logger";
-import type { Prisma, Ronda, Movimiento, Usuario } from '@prisma/client';
+import type { Prisma, Ronda, Movimiento } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
 
-// ================== UTILIDADES DE TIEMPO / PRIORIDAD ==================
+// ================== BUFFER DE NOTIFICACIONES (UNA SOLA VEZ) ==================
+const TTL_MS = 60 * 60 * 1000; // 1h
+const _notifBuffer = new Map<string, number>(); // key -> expiresAt
 
+function _markNotified(key: string) {
+  _notifBuffer.set(key, Date.now() + TTL_MS);
+}
+function _wasNotified(key: string) {
+  const exp = _notifBuffer.get(key);
+  if (!exp) return false;
+  if (Date.now() > exp) {
+    _notifBuffer.delete(key);
+    return false;
+  }
+  return true;
+}
+function _keySkip(localidadId: number, movimientoId: number) {
+  return `skip:${localidadId}:${movimientoId}`;
+}
+function _keyAllBlocked(localidadId: number) {
+  return `allblocked:${localidadId}`;
+}
+
+// ================== UTILIDADES DE TIEMPO / PRIORIDAD ==================
 function esVentanaLavado(d = new Date()) {
   const h = d.getHours();
   // 21:00–04:59
@@ -38,7 +60,6 @@ async function hayUnaSolaEmpresa(localidadId: number, tx: Tx = prisma) {
 
 // ================== BLOQUEOS (VÍAS / SECCIONES) ==================
 
-/** Vía simple: bloqueada si existe algún movimiento activo que la use (origen/destino). */
 async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMovimientoId?: number, tx: Tx = prisma) {
   const activos = await tx.movimiento.count({
     where: {
@@ -52,22 +73,33 @@ async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMov
   return activos > 0;
 }
 
+/** Busca *una* máquina que pueda estar bloqueando esa vía (best-effort). */
+async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: Tx = prisma) {
+  const bloq = await tx.movimiento.findFirst({
+    where: {
+      localidadId,
+      finalizado: false,
+      estado: { in: ['EN_PROCESO','DETENIDO','ASIGNADO','SOLICITADO','ESPERA'] as any },
+      OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
+    },
+    orderBy: [{ estado: 'asc' }, { updatedAt: 'desc' }]
+  });
+  return bloq || null;
+}
+
 /** ¿El movimiento de la ronda está bloqueado por falta de sección/vía de destino? */
 async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
-    select: { id: true, localidadId: true, viaDestinoId: true, lavado: true, torno: true }
+    select: { id: true, localidadId: true, viaDestinoId: true }
   });
   if (!mov?.viaDestinoId) return false;
 
-  // ¿Tiene secciones?
   const secciones = await tx.seccionVia.count({ where: { viaId: mov.viaDestinoId } });
   if (secciones === 0) {
-    // Vía simple: considera bloqueada si algún otro movimiento la ocupa/usa
     return await viaSimpleBloqueada(mov.localidadId, mov.viaDestinoId, mov.id, tx);
   }
 
-  // Vía con secciones: si no hay ninguna libre, bloqueado
   const libre = await tx.seccionVia.findFirst({
     where: { viaId: mov.viaDestinoId, ocupada: false },
     select: { id: true }
@@ -75,7 +107,6 @@ async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   return !libre;
 }
 
-/** Falla dura si las vías del movimiento están bloqueadas (para operaciones que NO deben reordenar). */
 async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = prisma) {
   if (!m) return;
   if (m.viaDestinoId) {
@@ -92,18 +123,78 @@ async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = pri
 
 // ================== NOTIFICACIONES ==================
 
+async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
+  if (!ids.length) return [];
+  const usuarios = await tx.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
+  return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+}
+
 async function notificarRolesLocalidad(localidadId: number, titulo: string, body: string, data: Record<string,string>) {
   const usuarios = await prisma.usuario.findMany({
     where: { localidadId, activo: true, rol: { in: ['ADMIN', 'COORDINADOR', 'SUPERVISOR'] as any } },
     include: { fcmTokens: true },
   });
   const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
-  if (tokens.length === 0) return;
+  if (!tokens.length) return;
   await admin.messaging().sendEachForMulticast({ notification: { title: titulo, body }, data, tokens });
 }
 
+async function notificarSaltoPorBloqueo(r: Ronda, motivo: string, tx: Tx = prisma) {
+  const m = await tx.movimiento.findUnique({
+    where: { id: r.movimientoId },
+    include: {
+      empresa: { select: { nombre: true } },
+      viaOrigen: { select: { nombre: true } },
+      viaDestino: { select: { id: true, nombre: true } },
+    },
+  });
+  if (!m) return;
+  if (m.estado === 'DETENIDO') return; // no spamear detenidos
+
+  const key = _keySkip(r.localidadId, m.id);
+  if (_wasNotified(key)) return;
+
+  // intentar identificar bloqueador
+  let bloqueadorTxt = '';
+  if (m.viaDestinoId) {
+    const bloq = await movimientoQueBloqueaVia(m.localidadId, m.viaDestinoId, tx);
+    if (bloq) bloqueadorTxt = `; bloqueada por mov #${bloq.id} (loco ${bloq.locomotiveNumber ?? 'N/D'})`;
+  }
+
+  const title = `Se saltó tu movimiento #${m.id}`;
+  const body =
+    `Motivo: ${motivo}${bloqueadorTxt}. ` +
+    `Empresa: ${m.empresa?.nombre ?? 'N/D'} · Loco: ${m.locomotiveNumber} · ` +
+    `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'}. ` +
+    `Seguiremos con el siguiente disponible.`;
+
+  const destinatarios: number[] = [];
+  if ((m as any).clienteId) destinatarios.push((m as any).clienteId);
+  if ((m as any).supervisorId) destinatarios.push((m as any).supervisorId);
+  if ((m as any).coordinadorId) destinatarios.push((m as any).coordinadorId);
+
+  const tokens = await tokensDeUsuarios(destinatarios, tx);
+  if (tokens.length) {
+    await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data: {
+        tipo: 'salto_por_bloqueo',
+        movimientoId: String(m.id),
+        localidadId: String(r.localidadId),
+        viaDestino: String(m.viaDestino?.nombre ?? ''),
+        motivo
+      },
+      tokens
+    });
+    _markNotified(key);
+  }
+}
+
 async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
-  // Por empresa, toma el primer movimiento que bloquea y avisa a cliente/supervisor/coordinador
+  const keyAll = _keyAllBlocked(localidadId);
+  if (_wasNotified(keyAll)) return;
+
+  // Por empresa, toma el primer movimiento bloqueado y avisa a cliente/supervisor/coordinador
   const rondas = await tx.ronda.findMany({
     where: { localidadId, concluido: false },
     include: { movimiento: { select: { id: true, empresaId: true, clienteId: true, supervisorId: true, coordinadorId: true } } },
@@ -117,26 +208,30 @@ async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
   }
 
   for (const [empresaId, movimientoId] of porEmpresa) {
-    const m = await tx.movimiento.findUnique({ where: { id: movimientoId }, select: { clienteId: true, supervisorId: true, coordinadorId: true } });
-    const ids = [m?.clienteId, m?.supervisorId, m?.coordinadorId].filter(Boolean) as number[];
-    if (!ids.length) continue;
-    const usuarios = await tx.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
-    const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+    const m = await tx.movimiento.findUnique({
+      where: { id: movimientoId },
+      include: { viaDestino: { select: { id: true, nombre: true } }, empresa: { select: { nombre: true } } }
+    });
+    if (!m) continue;
+
+    const ids = [m.clienteId, m.supervisorId, m.coordinadorId].filter(Boolean) as number[];
+    const tokens = await tokensDeUsuarios(ids, tx);
     if (!tokens.length) continue;
 
     await admin.messaging().sendEachForMulticast({
-      notification: { title: '⚠️ Movimiento bloqueado', body: 'Se requiere mover la máquina: sin secciones/vías disponibles para lavado/torno.' },
+      notification: { title: '⚠️ Todos los movimientos bloqueados', body: `Empresa ${m.empresa?.nombre ?? 'N/D'}: vía/Secciones ocupadas en destino ${m.viaDestino?.nombre ?? 'N/D'}.` },
       data: { tipo: 'bloqueo_vias', localidadId: String(localidadId), empresaId: String(empresaId), movimientoId: String(movimientoId), timestamp: new Date().toISOString() },
       tokens
     });
   }
+
+  _markNotified(keyAll);
 }
 
 // ================== MODELO ==================
 
 export class RondaModel {
   // ---------- HELPERS CRUD RONDA ----------
-
   private static async hayAltas(localidadId: number, tx: Tx = prisma) {
     const c = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } } });
     return c > 0;
@@ -207,8 +302,6 @@ export class RondaModel {
   }
 
   // ---------- ORDEN ALTAS (R1) ----------
-
-  /** ALTAS en ronda 1: fuera de ventana -> FIFO por createdAt; en ventana con lavados -> round-robin por empresa. */
   private static async reordenarAltasSegunReglas(localidadId: number, tx: Tx = prisma) {
     const enVentana = esVentanaLavado();
     const hayLavados = enVentana ? await hayLavadosPendientes(localidadId, tx) : false;
@@ -220,7 +313,6 @@ export class RondaModel {
     });
 
     if (!hayLavados) {
-      // FIFO simple
       for (let i = 0; i < altas.length; i++) {
         const orden = i + 1;
         if (altas[i].orden !== orden) {
@@ -230,7 +322,7 @@ export class RondaModel {
       return;
     }
 
-    // Round-robin por empresa (respetando FIFO dentro de cada empresa)
+    // Round-robin por empresa en ventana de lavado
     const porEmpresa = new Map<number, Array<typeof altas[number]>>();
     for (const a of altas) {
       const arr = porEmpresa.get(a.movimiento.empresaId) ?? [];
@@ -258,8 +350,6 @@ export class RondaModel {
   }
 
   // ---------- GENERACIÓN / INSERCIÓN ----------
-
-  /** Inserta un movimiento en rondas respetando reglas (ALTAS no destruye: crea R1 si hace falta desplazando +1). */
   static async generarRondaParaMovimiento(data: {
     movimientoId: number;
     empresaId: number;
@@ -273,13 +363,11 @@ export class RondaModel {
         const existe = await tx.ronda.findFirst({ where: { movimientoId: data.movimientoId } });
         if (existe) return;
 
-        // (ALTAS pueden llegar aun con vías ocupadas; no bloqueamos la inserción en ronda)
         const hayAltaR1 = await tx.ronda.count({
           where: { localidadId: data.localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
         });
 
         if (hayAltaR1 === 0) {
-          // Crea R1 para ALTAS desplazando todo +1
           await tx.ronda.updateMany({ where: { localidadId: data.localidadId, concluido: false }, data: { rondaNumero: { increment: 1 } } });
           await notificarRolesLocalidad(
             data.localidadId,
@@ -297,7 +385,7 @@ export class RondaModel {
         await this.reordenarAltasSegunReglas(data.localidadId, tx);
         await this.recomponerRondasLocalidad(data.localidadId, tx);
 
-        if (esVentanaLavado() && mov.lavado) {
+        if (esVentanaLavado() && (mov as any).lavado) {
           await notificarRolesLocalidad(
             data.localidadId,
             'Prioridad LAVADO aplicada',
@@ -309,12 +397,11 @@ export class RondaModel {
       return;
     }
 
-    // BAJA normal (no incidente)
+    // BAJA
     await prisma.$transaction(async (tx) => {
       const mov = await tx.movimiento.findUnique({ where: { id: data.movimientoId } });
       if (!mov) throw new Error('Movimiento no encontrado');
 
-      // Primera ronda donde la empresa NO participa; si ninguna, crear nueva al final
       const existenAltas = await this.hayAltas(data.localidadId, tx);
       let r = existenAltas ? 2 : 1;
       for (let guard = 0; guard < 200; guard++) {
@@ -333,8 +420,6 @@ export class RondaModel {
   }
 
   // ---------- INCIDENTES ----------
-
-  /** Aplica reglas de incidente: ALTA (R1) / BAJA (efecto-cadena por empresa). */
   static async aplicarIncidente(localidadId: number, movimientoId: number) {
     const ronda = await prisma.ronda.findFirst({
       where: { localidadId, movimientoId, concluido: false },
@@ -342,7 +427,6 @@ export class RondaModel {
     });
     if (!ronda) return;
 
-    // Una sola empresa → evita reorden para no repetir
     if (await hayUnaSolaEmpresa(localidadId)) return;
 
     if (ronda.movimiento.prioridad === 'ALTA') {
@@ -352,7 +436,6 @@ export class RondaModel {
     }
   }
 
-  /** Incidente ALTA: si R1 no tenía ALTAS, crea R1 y coloca; si ya hay ALTAS, manda al final y reordena por reglas. */
   private static async _incidenteAlta(ronda: Ronda & { movimiento: Movimiento }) {
     await prisma.$transaction(async (tx) => {
       const { localidadId, movimiento } = ronda;
@@ -376,7 +459,7 @@ export class RondaModel {
 
       await this.recomponerRondasLocalidad(localidadId, tx);
 
-      if (esVentanaLavado() && (movimiento.lavado || movimiento.torno)) {
+      if (esVentanaLavado() && ((movimiento as any).lavado || (movimiento as any).torno)) {
         await notificarRolesLocalidad(
           localidadId,
           'Prioridad LAVADO/TORNO aplicada',
@@ -387,7 +470,6 @@ export class RondaModel {
     });
   }
 
-  /** Incidente BAJA: rota TODOS los slots de la empresa hacia adelante; el último cae a ronda siguiente o a nueva ronda. */
   private static async _incidenteBajaCadenaCompleta(ronda: Ronda & { movimiento: Movimiento }) {
     await prisma.$transaction(async (tx) => {
       const { localidadId, empresaId } = ronda;
@@ -424,12 +506,15 @@ export class RondaModel {
     });
   }
 
-  // ---------- MOTOR DE SELECCIÓN (ENDPOINT INTELIGENTE) ----------
-
-  /** Retorna el siguiente candidato listo; salta bloqueados sin incidentar. Notifica si todos bloqueados. */
+  // ---------- MOTOR: SIGUIENTE INTELIGENTE (AUTO-EVAL EN CADA INVOCACIÓN) ----------
+  /**
+   * Evalúa la lista, reordena ALTAS de R1, salta bloqueados *sin incidentar*,
+   * notifica 1 sola vez al dueño (cliente/supervisor/coordinador) explicando el salto,
+   * y devuelve el candidato listo o el motivo de que todos están bloqueados.
+   */
   public static async siguienteInteligente(localidadId: number) {
     return prisma.$transaction(async (tx) => {
-      // Reordenar ALTAS de R1 según reglas (solo afecta R1)
+      // Reordenar ALTAS de R1 según reglas
       await this.reordenarAltasSegunReglas(localidadId, tx);
 
       const unicaEmpresa = await hayUnaSolaEmpresa(localidadId, tx);
@@ -437,7 +522,14 @@ export class RondaModel {
       // Lista ordenada global
       const lista = await tx.ronda.findMany({
         where: { localidadId, concluido: false },
-        include: { movimiento: { select: { id: true, empresaId: true, prioridad: true, lavado: true, viaDestinoId: true } } },
+        include: {
+          movimiento: {
+            select: {
+              id: true, empresaId: true, prioridad: true, estado: true,
+              lavado: true, viaDestinoId: true, locomotiveNumber: true
+            }
+          }
+        },
         orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
       });
       if (lista.length === 0) return { vacio: true as const };
@@ -448,7 +540,10 @@ export class RondaModel {
           return { candidato: r };
         }
 
-        // si bloqueado y hay más elementos en su misma ronda y NO es única empresa → mandarlo al final de su ronda
+        // notificar salto (una vez)
+        await notificarSaltoPorBloqueo(r, r.movimiento.viaDestinoId ? 'vía/secciones de destino ocupadas' : 'destino no disponible', tx);
+
+        // si bloqueado y hay más elementos en su misma ronda y NO es única empresa → mandar al final de su ronda
         const tam = await this.tamanoDeRonda(tx, r.localidadId, r.rondaNumero);
         if (!unicaEmpresa && tam > 1) {
           await tx.ronda.updateMany({
@@ -459,14 +554,13 @@ export class RondaModel {
         }
       }
 
-      // Todos bloqueados
+      // Todos bloqueados → notificar por empresa (una vez)
       await notificarBloqueos(localidadId, tx);
       return { motivo: 'todos_bloqueados' as const };
     });
   }
 
   // ---------- LIMPIEZA ----------
-
   private static async limpiarYReorganizarRondasConcluidas() {
     const locs = await prisma.ronda.findMany({ select: { localidadId: true }, distinct: ['localidadId'] });
     for (const { localidadId } of locs) {
@@ -478,7 +572,6 @@ export class RondaModel {
   }
 
   // ---------- QUERIES VARIAS ----------
-
   static async obtenerRondas() {
     try {
       return await prisma.ronda.findMany({
@@ -657,8 +750,8 @@ export class RondaModel {
           prioridad: info.movimiento.prioridad,
           viaOrigen: info.movimiento.viaOrigen,
           viaDestino: info.movimiento.viaDestino,
-          lavado: info.movimiento.lavado,
-          torno: info.movimiento.torno,
+          lavado: (info.movimiento as any).lavado,
+          torno: (info.movimiento as any).torno,
         },
       };
     } catch (error: any) {
