@@ -128,7 +128,7 @@ async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
 
 async function notificarRolesLocalidad(localidadId: number, titulo: string, body: string, data: Record<string,string>) {
   const usuarios = await prisma.usuario.findMany({
-    where: { localidadId, activo: true, rol: { in: ['ADMIN', 'COORDINADOR', 'SUPERVISOR'] as any } },
+    where: { localidadId, activo: true, rol: { in: ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR'] as any } },
     include: { fcmTokens: true },
   });
   const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
@@ -281,6 +281,33 @@ export class RondaModel {
     return tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
   }
 
+  // +++++++++++++ NUEVO: compactar órdenes por ronda
+  private static async compactarOrdenesRonda(tx: Tx, localidadId: number, rondaNumero: number) {
+    const filas = await tx.ronda.findMany({
+      where: { localidadId, rondaNumero, concluido: false },
+      orderBy: { orden: 'asc' },
+      select: { id: true, orden: true },
+    });
+    for (let i = 0; i < filas.length; i++) {
+      const esperado = i + 1;
+      if (filas[i].orden !== esperado) {
+        await tx.ronda.update({ where: { id: filas[i].id }, data: { orden: esperado } });
+      }
+    }
+  }
+
+  // +++++++++++++ NUEVO: último slot de una empresa a partir de una ronda
+  private static async ultimoSlotEmpresaDesde(
+    tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
+  ): Promise<{ rondaNumero: number; orden: number } | null> {
+    const last = await tx.ronda.findFirst({
+      where: { localidadId, concluido: false, empresaId, rondaNumero: { gte: desdeRonda } },
+      orderBy: [{ rondaNumero: 'desc' }, { orden: 'desc' }],
+      select: { rondaNumero: true, orden: true },
+    });
+    return last ?? null;
+  }
+
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
     await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
     const grupos = await tx.ronda.findMany({
@@ -294,6 +321,8 @@ export class RondaModel {
       if (g.rondaNumero !== idx) {
         await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
       }
+      // compactar órdenes de cada ronda normalizada
+      await this.compactarOrdenesRonda(tx, localidadId, idx);
       idx++;
     }
   }
@@ -505,9 +534,8 @@ export class RondaModel {
 
   // ---------- MOTOR: SIGUIENTE INTELIGENTE (AUTO-EVAL EN CADA INVOCACIÓN) ----------
   /**
-   * Evalúa la lista, reordena ALTAS de R1, salta bloqueados *sin incidentar*,
-   * notifica 1 sola vez al dueño (cliente/supervisor/coordinador) explicando el salto,
-   * y devuelve el candidato listo o el motivo de que todos están bloqueados.
+   * Evalúa la lista, reordena ALTAS de R1, salta bloqueados con reacomodo en cascada,
+   * notifica 1 sola vez al dueño, y devuelve el candidato listo o el motivo.
    */
   public static async siguienteInteligente(localidadId: number) {
     return prisma.$transaction(async (tx) => {
@@ -534,20 +562,39 @@ export class RondaModel {
       for (const r of lista) {
         const bloqueado = await estaBloqueadoPorVias(r, tx);
         if (!bloqueado) {
+          // asegurar compacción de su ronda antes de devolver
+          await RondaModel.compactarOrdenesRonda(tx, r.localidadId, r.rondaNumero);
           return { candidato: r };
         }
 
         // notificar salto (una vez)
-        await notificarSaltoPorBloqueo(r, r.movimiento.viaDestinoId ? 'vía/secciones de destino ocupadas' : 'destino no disponible', tx);
+        await notificarSaltoPorBloqueo(
+          r,
+          r.movimiento.viaDestinoId ? 'vía/secciones de destino ocupadas' : 'destino no disponible',
+          tx
+        );
 
-        // si bloqueado y hay más elementos en su misma ronda y NO es única empresa → mandar al final de su ronda
-        const tam = await this.tamanoDeRonda(tx, r.localidadId, r.rondaNumero);
-        if (!unicaEmpresa && tam > 1) {
-          await tx.ronda.updateMany({
-            where: { localidadId, rondaNumero: r.rondaNumero, concluido: false, orden: { gt: r.orden } },
-            data: { orden: { decrement: 1 } }
+        // === REACOMODO EN CASCADA POR EMPRESA ===
+        // 1) cerrar hueco en su ronda
+        await tx.ronda.updateMany({
+          where: { localidadId: r.localidadId, rondaNumero: r.rondaNumero, concluido: false, orden: { gt: r.orden } },
+          data: { orden: { decrement: 1 } },
+        });
+
+        // 2) enviar detrás del último de SU EMPRESA desde su ronda hacia adelante
+        const ultimo = await RondaModel.ultimoSlotEmpresaDesde(tx, r.localidadId, r.empresaId, r.rondaNumero);
+        if (ultimo) {
+          const tam = await RondaModel.tamanoDeRonda(tx, r.localidadId, ultimo.rondaNumero);
+          await tx.ronda.update({
+            where: { id: r.id },
+            data: { rondaNumero: ultimo.rondaNumero, orden: Math.min(tam + 1, ultimo.orden + 1) },
           });
+          await RondaModel.compactarOrdenesRonda(tx, r.localidadId, ultimo.rondaNumero);
+        } else {
+          // 3) si no hay más de su empresa, va al final de su ronda actual
+          const tam = await RondaModel.tamanoDeRonda(tx, r.localidadId, r.rondaNumero);
           await tx.ronda.update({ where: { id: r.id }, data: { orden: tam } });
+          await RondaModel.compactarOrdenesRonda(tx, r.localidadId, r.rondaNumero);
         }
       }
 
