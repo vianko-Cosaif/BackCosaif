@@ -2,7 +2,7 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
-import { ViaModel } from '../Via/viaModel';
+import { ViaModel, ViaOcupadaPorOtroError } from '../Via/viaModel';
 import { ConflictError } from '../Via/Secciones/SeccionViasModel';
 import admin from 'firebase-admin';
 
@@ -21,10 +21,10 @@ async function notificarMovimientoCreado(movId: number) {
   const m = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
-      empresa:   { select: { nombre: true } },
+      empresa: { select: { nombre: true } },
       localidad: { select: { id: true, nombre: true } },
       viaOrigen: { select: { nombre: true } },
-      viaDestino:{ select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
       creadoPor: { select: { nombre: true } },
     },
   });
@@ -35,11 +35,11 @@ async function notificarMovimientoCreado(movId: number) {
     where: {
       activo: true,
       localidadId: m.localidadId,
-      rol: { in: ['SUPERVISOR','COORDINADOR','MAQUINISTA','OPERADOR'] as any },
+      rol: { in: ['SUPERVISOR', 'COORDINADOR', 'MAQUINISTA', 'OPERADOR'] as any },
     },
     include: { fcmTokens: true },
   });
-  const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+  const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token));
   if (!tokens.length) return;
 
   const title = `Nuevo movimiento (${m.prioridad})`;
@@ -72,10 +72,10 @@ async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
   const m = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
-      empresa:   { select: { nombre: true } },
+      empresa: { select: { nombre: true } },
       localidad: { select: { id: true, nombre: true } },
       viaOrigen: { select: { nombre: true } },
-      viaDestino:{ select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
       creadoPor: { select: { nombre: true } },
     },
   });
@@ -113,6 +113,36 @@ async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
   });
 }
 
+// Notifica SOLO al solicitante cuando el destino está ocupado por otro movimiento
+async function notificarDestinoOcupadoASolicitante(
+  solicitanteId: number | undefined,
+  movId: number,
+  viaId: number,
+  bloqueadorId: number,
+  locomotiveNumber?: number | null
+) {
+  if (!solicitanteId) return;
+  const tokens = await tokensDeUsuarios([solicitanteId]);
+  if (!tokens.length) return;
+
+  const via = await prisma.via.findUnique({ where: { id: viaId }, select: { nombre: true } });
+
+  await admin.messaging().sendEachForMulticast({
+    notification: {
+      title: 'Destino ocupado',
+      body: `Tu movimiento #${movId} quedó en ESPERA: destino ${via?.nombre ?? 'N/D'} ocupado por locomotora ${locomotiveNumber ?? 'N/D'} (mov #${bloqueadorId}).`,
+    },
+    data: {
+      tipo: 'destino_ocupado',
+      movimientoId: String(movId),
+      viaId: String(viaId),
+      bloqueadorId: String(bloqueadorId),
+      locomotiveNumber: String(locomotiveNumber ?? ''),
+    },
+    tokens,
+  });
+}
+
 export class MovimientoModel {
   // -------------------- Helpers internos --------------------
 
@@ -139,7 +169,7 @@ export class MovimientoModel {
 
     if (count === 0) {
       // vía simple
-      await ViaModel.asignarMovimientoASeccion(viaId, null, movimientoId);
+      await ViaModel.asignarMovimientoASeccion(viaId, null, movimientoId, tx);
       return;
     }
 
@@ -150,7 +180,7 @@ export class MovimientoModel {
       seccion = libre;
     }
 
-    await ViaModel.asignarMovimientoASeccion(viaId, seccion, movimientoId);
+    await ViaModel.asignarMovimientoASeccion(viaId, seccion, movimientoId, tx);
   }
 
   // -------------------- Consultas --------------------
@@ -228,7 +258,7 @@ export class MovimientoModel {
         });
 
         if (cancelado.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(cancelado.viaDestino.id, id);
+          await ViaModel.liberarMovimientoDeSeccion(cancelado.viaDestino.id, id, tx);
         }
 
         if (original.ronda) {
@@ -337,18 +367,21 @@ export class MovimientoModel {
         const ahora = new Date();
         const data: any = { estado: nuevoEstado, updatedAt: ahora };
 
-        if (nuevoEstado === 'EN_PROCESO') Object.assign(data, { fechaInicio: ahora, fechaPausa: null, incidenteGlobal: false, ...(operadorId && { operadorId }) });
-        if (nuevoEstado === 'DETENIDO')  Object.assign(data, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
+        if (nuevoEstado === 'EN_PROCESO')
+          Object.assign(data, { fechaInicio: ahora, fechaPausa: null, incidenteGlobal: false, ...(operadorId && { operadorId }) });
+        if (nuevoEstado === 'DETENIDO') Object.assign(data, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
         if (nuevoEstado === 'CONCLUIDO') Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false });
-        if (nuevoEstado === 'CANCELADO') Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false, ...(razon && { instrucciones: `CANCELADO: ${razon}` }) });
+        if (nuevoEstado === 'CANCELADO')
+          Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false, ...(razon && { instrucciones: `CANCELADO: ${razon}` }) });
 
         const updated = await tx.movimiento.update({
-          where: { id }, data,
+          where: { id },
+          data,
           include: { ronda: true, viaDestino: { select: { id: true } } },
         });
 
         if ((nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') && updated.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(updated.viaDestino.id, id);
+          await ViaModel.liberarMovimientoDeSeccion(updated.viaDestino.id, id, tx);
         }
 
         if (movAct.ronda) {
@@ -390,6 +423,7 @@ export class MovimientoModel {
    * - o la primera sección libre (o `numeroSeccion` si se proporcionó).
    * Si no hay espacio, queda en ESPERA y se agrega a Ronda.
    * Notifica a SUPERVISOR/COORDINADOR/MAQUINISTA/OPERADOR de la localidad.
+   * Además, si está ocupada, se notifica SOLO al solicitante con la loco que bloquea.
    */
   static async nuevoMovimiento(data: {
     empresaId: number;
@@ -423,15 +457,38 @@ export class MovimientoModel {
       movData.direccionEmpuje ??= 'Sin_Solicitar';
       Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
 
-      const { mv, needsRonda } = await prisma.$transaction(async (tx) => {
+      const { mv, needsRonda, bloqueador } = await prisma.$transaction(async (tx) => {
         const mv = await tx.movimiento.create({ data: movData });
+
+        let bloqueador:
+          | { viaId: number; bloqueadorId: number; locomotiveNumber?: number | null }
+          | undefined;
 
         if (data.viaDestinoId) {
           try {
             await this.intentarOcuparViaDestino(data.viaDestinoId, mv.id, data.numeroSeccion ?? null, tx);
           } catch (e: any) {
-            if (e instanceof ConflictError) {
+            if (e instanceof ViaOcupadaPorOtroError) {
               await tx.movimiento.update({ where: { id: mv.id }, data: { estado: 'ESPERA' } });
+              bloqueador = {
+                viaId: data.viaDestinoId,
+                bloqueadorId: e.bloqueadorId,
+                locomotiveNumber: e.locomotiveNumber,
+              };
+            } else if (e instanceof ConflictError) {
+              // fallback genérico
+              await tx.movimiento.update({ where: { id: mv.id }, data: { estado: 'ESPERA' } });
+              const v = await tx.via.findUnique({
+                where: { id: data.viaDestinoId },
+                select: { movimientoId: true, movimiento: { select: { locomotiveNumber: true } } },
+              });
+              if (v?.movimientoId) {
+                bloqueador = {
+                  viaId: data.viaDestinoId,
+                  bloqueadorId: v.movimientoId,
+                  locomotiveNumber: v.movimiento?.locomotiveNumber ?? null,
+                };
+              }
             } else {
               throw e;
             }
@@ -440,7 +497,7 @@ export class MovimientoModel {
 
         const cur = await tx.movimiento.findUnique({ where: { id: mv.id }, select: { estado: true } });
         const needsRonda = !!cur && (cur.estado === 'SOLICITADO' || cur.estado === 'ESPERA');
-        return { mv, needsRonda };
+        return { mv, needsRonda, bloqueador };
       });
 
       if (needsRonda) {
@@ -453,6 +510,18 @@ export class MovimientoModel {
       }
 
       await notificarMovimientoCreado(mv.id);
+
+      // Notifica SOLO al solicitante si estaba ocupada
+      if (bloqueador) {
+        await notificarDestinoOcupadoASolicitante(
+          data.creadoPorId ?? data.clienteId,
+          mv.id,
+          bloqueador.viaId,
+          bloqueador.bloqueadorId,
+          bloqueador.locomotiveNumber
+        );
+      }
+
       await RondaModel.siguienteInteligente(mv.localidadId);
 
       return await prisma.movimiento.findUnique({
@@ -467,6 +536,7 @@ export class MovimientoModel {
 
   /**
    * Edita un movimiento. Si cambia `viaDestinoId`, libera la anterior y ocupa la nueva.
+   * Si está ocupada, el movimiento queda en ESPERA y se notifica SOLO al solicitante.
    */
   static async editarMovimiento(
     id: number,
@@ -500,7 +570,7 @@ export class MovimientoModel {
     }
   ) {
     try {
-      const { movUpd, requiereReorg } = await prisma.$transaction(async (tx) => {
+      const { movUpd, requiereReorg, bloqueador, solicitanteId } = await prisma.$transaction(async (tx) => {
         const actual = await tx.movimiento.findUnique({
           where: { id },
           select: {
@@ -510,6 +580,8 @@ export class MovimientoModel {
             localidadId: true,
             viaDestinoId: true,
             ronda: true,
+            creadoPorId: true,
+            clienteId: true,
           },
         });
         if (!actual) throw new Error(`No se encontró movimiento con id ${id}`);
@@ -520,6 +592,10 @@ export class MovimientoModel {
         updateData.direccionEmpuje ??= 'Sin_Solicitar';
         Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
 
+        let bloqueador:
+          | { viaId: number; bloqueadorId: number; locomotiveNumber?: number | null }
+          | undefined;
+
         const movUpd = await tx.movimiento.update({
           where: { id },
           data: updateData,
@@ -527,12 +603,30 @@ export class MovimientoModel {
         });
 
         if (data.viaDestinoId && data.viaDestinoId !== actual.viaDestinoId) {
-          if (actual.viaDestinoId) await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id);
+          if (actual.viaDestinoId) await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id, tx);
           try {
             await this.intentarOcuparViaDestino(data.viaDestinoId, id, data.numeroSeccion ?? null, tx);
           } catch (e: any) {
-            if (e instanceof ConflictError) {
+            if (e instanceof ViaOcupadaPorOtroError) {
               await tx.movimiento.update({ where: { id }, data: { estado: 'ESPERA' } });
+              bloqueador = {
+                viaId: data.viaDestinoId,
+                bloqueadorId: e.bloqueadorId,
+                locomotiveNumber: e.locomotiveNumber,
+              };
+            } else if (e instanceof ConflictError) {
+              await tx.movimiento.update({ where: { id }, data: { estado: 'ESPERA' } });
+              const v = await tx.via.findUnique({
+                where: { id: data.viaDestinoId },
+                select: { movimientoId: true, movimiento: { select: { locomotiveNumber: true } } },
+              });
+              if (v?.movimientoId) {
+                bloqueador = {
+                  viaId: data.viaDestinoId,
+                  bloqueadorId: v.movimientoId,
+                  locomotiveNumber: v.movimiento?.locomotiveNumber ?? null,
+                };
+              }
             } else {
               throw e;
             }
@@ -545,7 +639,9 @@ export class MovimientoModel {
           (data.empresaId && data.empresaId !== actual.empresaId) ||
           (data.localidadId && data.localidadId !== actual.localidadId);
 
-        return { movUpd, requiereReorg, actual };
+        const solicitanteId = data.creadoPorId ?? actual.creadoPorId ?? actual.clienteId;
+
+        return { movUpd, requiereReorg, actual, bloqueador, solicitanteId };
       });
 
       if (requiereReorg) {
@@ -570,6 +666,16 @@ export class MovimientoModel {
             });
           }
         }
+      }
+
+      if (bloqueador) {
+        await notificarDestinoOcupadoASolicitante(
+          solicitanteId,
+          id,
+          bloqueador.viaId,
+          bloqueador.bloqueadorId,
+          bloqueador.locomotiveNumber
+        );
       }
 
       await RondaModel.siguienteInteligente(movUpd.localidadId);
@@ -919,7 +1025,7 @@ export class MovimientoModel {
         });
 
         if (res.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(res.viaDestino.id, id);
+          await ViaModel.liberarMovimientoDeSeccion(res.viaDestino.id, id, tx);
         }
 
         if (res.ronda) {
