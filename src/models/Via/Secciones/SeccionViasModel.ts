@@ -1,14 +1,13 @@
-// SeccionViaModel.ts
+// SeccionViasModel.ts
 /**
  * ============================================================================
  *  Ítem de información: SeccionViaModel (Módulo de Dominio)
- *  Versión: 1.1.0
- *  Fecha: 2025-08-08
+ *  Versión: 1.2.0
+ *  Fecha: 2025-08-13
  *  Estado: Aprobado
  * ============================================================================
  *
  *  # Propósito
- *  (ISO/IEC/IEEE 15289 §5, ISO/IEC 12207 - Desarrollo)
  *  Controlar la ocupación de secciones de una vía y mantener la consistencia
  *  de `via.{ocupada, movimientoId}` derivándola SIEMPRE del estado real de
  *  sus secciones.
@@ -23,38 +22,28 @@
  *          - Ocupadas de **un solo** movimiento → `via.ocupada=true`, `via.movimientoId=<id>`
  *          - Ocupadas por **>1** movimientos → `via.ocupada=true`, `via.movimientoId=null`
  *
- *  # Alcance (ISO/IEC 26514)
- *  - Consultas por vía/sección.
- *  - Asignar y liberar secciones.
- *  - Sincronizar vía tras cambios en secciones (misma transacción).
- *
  *  # Concurrencia
  *  - Todas las escrituras se realizan en `prisma.$transaction`.
- *  - Se emplea `updateMany(...).count` como check optimista.
+ *  - Se emplea `updateMany(...).count` como check optimista (idempotente).
  *
  *  # Errores
  *  - NotFoundError → entidad no existe / precondición no cumplida.
  *  - ConflictError → estado cambió por concurrencia.
- *
- *  # Historial
- *  - 1.1.0: Se elimina validación bloqueante en vía (permite concurrencia por secciones)
- *           y se añade `syncViaFromSections`.
- *  - 1.0.0: Versión inicial.
  * ============================================================================
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
 
-const prisma = new PrismaClient(); // TODO: centralizar/injectar singleton
+const prisma = new PrismaClient(); // TODO: centralizar/inyectar singleton
 
-/** Errores de dominio (exportables si quieres capturarlos por tipo) */
+/** Errores de dominio exportables */
 export class NotFoundError extends Error {}
 export class ConflictError extends Error {}
 
 export class SeccionViaModel {
-  /**
-   * Obtiene todas las secciones de una vía (ordenadas).
-   */
+  // -------------------- Consultas --------------------
+
+  /** Todas las secciones de una vía (ordenadas) */
   static async obtenerSeccionesPorVia(viaId: number) {
     return prisma.seccionVia.findMany({
       where: { viaId },
@@ -63,14 +52,14 @@ export class SeccionViaModel {
     });
   }
 
-  /**
-   * Obtiene una sección por clave compuesta (viaId, numero).
-   */
+  /** Obtiene una sección por clave compuesta (viaId, numero). */
   static async obtenerSeccion(viaId: number, numero: number) {
     return prisma.seccionVia.findUnique({
       where: { viaId_numero: { viaId, numero } },
     });
   }
+
+  // -------------------- Comandos --------------------
 
   /**
    * Asigna un movimiento a una sección.
@@ -146,7 +135,7 @@ export class SeccionViaModel {
 
   /**
    * Libera TODAS las secciones de una vía ocupadas por un movimiento.
-   * - Útil para “desocupar” rápido cuando termina un movimiento.
+   * - Útil para “desocupar” rápido cuando termina/cancela un movimiento.
    */
   static async liberarMovimientoDeSeccion(viaId: number, movimientoId: number) {
     return prisma.$transaction(async (tx) => {
@@ -160,6 +149,8 @@ export class SeccionViaModel {
       return tx.via.findUnique({ where: { id: viaId }, include: { secciones: true } });
     });
   }
+
+  // -------------------- Sincronización de Vía --------------------
 
   /**
    * Sincroniza la vía desde sus secciones.
