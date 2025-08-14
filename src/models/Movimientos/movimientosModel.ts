@@ -139,7 +139,7 @@ export class MovimientoModel {
 
     if (count === 0) {
       // vía simple
-      await ViaModel.asignarMovimientoASeccion(viaId, null, movimientoId, tx);
+      await ViaModel.asignarMovimientoASeccion(viaId, null, movimientoId);
       return;
     }
 
@@ -150,7 +150,7 @@ export class MovimientoModel {
       seccion = libre;
     }
 
-    await ViaModel.asignarMovimientoASeccion(viaId, seccion, movimientoId, tx);
+    await ViaModel.asignarMovimientoASeccion(viaId, seccion, movimientoId);
   }
 
   // -------------------- Consultas --------------------
@@ -228,7 +228,7 @@ export class MovimientoModel {
         });
 
         if (cancelado.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(cancelado.viaDestino.id, id, tx);
+          await ViaModel.liberarMovimientoDeSeccion(cancelado.viaDestino.id, id);
         }
 
         if (original.ronda) {
@@ -348,7 +348,7 @@ export class MovimientoModel {
         });
 
         if ((nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') && updated.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(updated.viaDestino.id, id, tx);
+          await ViaModel.liberarMovimientoDeSeccion(updated.viaDestino.id, id);
         }
 
         if (movAct.ronda) {
@@ -527,7 +527,7 @@ export class MovimientoModel {
         });
 
         if (data.viaDestinoId && data.viaDestinoId !== actual.viaDestinoId) {
-          if (actual.viaDestinoId) await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id, tx);
+          if (actual.viaDestinoId) await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id);
           try {
             await this.intentarOcuparViaDestino(data.viaDestinoId, id, data.numeroSeccion ?? null, tx);
           } catch (e: any) {
@@ -919,7 +919,7 @@ export class MovimientoModel {
         });
 
         if (res.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(res.viaDestino.id, id, tx);
+          await ViaModel.liberarMovimientoDeSeccion(res.viaDestino.id, id);
         }
 
         if (res.ronda) {
