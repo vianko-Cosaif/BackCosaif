@@ -2,43 +2,27 @@
 /**
  * ============================================================================
  *  Ítem de información: SeccionViaModel (Módulo de Dominio)
- *  Versión: 1.2.0
+ *  Versión: 1.3.0
  *  Fecha: 2025-08-13
  *  Estado: Aprobado
  * ============================================================================
- *
- *  # Propósito
- *  Controlar la ocupación de secciones de una vía y mantener la consistencia
- *  de `via.{ocupada, movimientoId}` derivándola SIEMPRE del estado real de
- *  sus secciones.
- *
- *  # Política de negocio
- *  - La **sección** es la fuente de verdad.
- *  - Derivación de `via`:
- *      - **0 secciones** → este módulo NO toca la vía (la maneja ViaModel).
- *      - **1 sección**  → `via` refleja exactamente esa sección.
- *      - **2+ secciones**:
- *          - 0 ocupadas → `via.ocupada=false`, `via.movimientoId=null`
- *          - Ocupadas de **un solo** movimiento → `via.ocupada=true`, `via.movimientoId=<id>`
- *          - Ocupadas por **>1** movimientos → `via.ocupada=true`, `via.movimientoId=null`
- *
- *  # Concurrencia
- *  - Todas las escrituras se realizan en `prisma.$transaction`.
- *  - Se emplea `updateMany(...).count` como check optimista (idempotente).
- *
- *  # Errores
- *  - NotFoundError → entidad no existe / precondición no cumplida.
- *  - ConflictError → estado cambió por concurrencia.
+ *  Propósito: gobernar secciones y derivar via.{ocupada, movimientoId}.
+ *  Concurrencia: todas las escrituras en prisma.$transaction.
+ *  Errores de dominio: NotFoundError, ConflictError.
  * ============================================================================
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient(); // TODO: centralizar/inyectar singleton
+const prisma = new PrismaClient(); // TODO: inyectar singleton
 
 /** Errores de dominio exportables */
 export class NotFoundError extends Error {}
 export class ConflictError extends Error {}
+
+export type SeccionPatch = {
+  numero?: number;
+  nombre?: string | null;
+};
 
 export class SeccionViaModel {
   // -------------------- Consultas --------------------
@@ -52,51 +36,92 @@ export class SeccionViaModel {
     });
   }
 
-  /** Obtiene una sección por clave compuesta (viaId, numero). */
+  /** Sección por clave compuesta (viaId, numero) */
   static async obtenerSeccion(viaId: number, numero: number) {
     return prisma.seccionVia.findUnique({
       where: { viaId_numero: { viaId, numero } },
     });
   }
 
-  // -------------------- Comandos --------------------
+  /** Sección por id */
+  static async obtenerSeccionPorId(id: number) {
+    return prisma.seccionVia.findUnique({ where: { id } });
+  }
+
+  // -------------------- CRUD --------------------
+
+  /** Crear sección. Sincroniza vía tras crear. */
+  static async crearSeccion(viaId: number, numero: number, nombre?: string | null) {
+    return prisma.$transaction(async (tx) => {
+      const nueva = await tx.seccionVia.create({
+        data: { viaId, numero, nombre: nombre ?? null, ocupada: false, movimientoId: null },
+      });
+      await SeccionViaModel.syncViaFromSections(tx, viaId);
+      return nueva;
+    });
+  }
 
   /**
-   * Asigna un movimiento a una sección.
-   * - Idempotente si ya está ocupada por el mismo movimiento.
-   * - Sincroniza la vía en la misma transacción.
+   * Editar sección por id.
+   * - Permite cambiar numero/nombre.
+   * - Si cambias `numero` respeta @@unique([viaId, numero]).
+   * - No toca ocupación ni movimientoId.
    */
-  static async asignarMovimientoASeccion(
-    viaId: number,
-    numeroSeccion: number,
-    movimientoId: number
-  ) {
+  static async editarSeccion(id: number, patch: SeccionPatch) {
+    const data: Prisma.SeccionViaUpdateInput = {};
+    if (typeof patch.numero === 'number') data.numero = patch.numero;
+    if (patch.nombre !== undefined) data.nombre = patch.nombre;
+
+    // Necesitamos viaId para decidir si sincronizar o no (no debería ser necesario).
+    const before = await prisma.seccionVia.findUnique({
+      where: { id },
+      select: { viaId: true },
+    });
+    if (!before) throw new NotFoundError('Sección no existe');
+
+    const updated = await prisma.seccionVia.update({ where: { id }, data });
+
+    // Cambiar numero/nombre no altera ocupación → no requiere sync.
+    return updated;
+  }
+
+  /** Eliminar sección. Sincroniza vía tras eliminar. */
+  static async eliminarSeccion(id: number) {
     return prisma.$transaction(async (tx) => {
-      // 1) Obtener sección (clave compuesta)
+      const row = await tx.seccionVia.findUnique({
+        where: { id },
+        select: { viaId: true },
+      });
+      if (!row) throw new NotFoundError('Sección no existe');
+
+      await tx.seccionVia.delete({ where: { id } });
+      await SeccionViaModel.syncViaFromSections(tx, row.viaId);
+      return true;
+    });
+  }
+
+  // -------------------- Comandos de ocupación --------------------
+
+  /** Asignar un movimiento a una sección (idempotente si ya coincide). */
+  static async asignarMovimientoASeccion(viaId: number, numeroSeccion: number, movimientoId: number) {
+    return prisma.$transaction(async (tx) => {
       const seccion = await tx.seccionVia.findUnique({
         where: { viaId_numero: { viaId, numero: numeroSeccion } },
         select: { id: true, ocupada: true, movimientoId: true },
       });
-      if (!seccion) {
-        throw new NotFoundError(`Sección ${numeroSeccion} no existe en vía ${viaId}`);
-      }
+      if (!seccion) throw new NotFoundError(`Sección ${numeroSeccion} no existe en vía ${viaId}`);
       if (seccion.ocupada && seccion.movimientoId !== movimientoId) {
         throw new ConflictError(`Sección ${numeroSeccion} ya ocupada por otro movimiento`);
       }
 
-      // 2) Ocupación con verificación optimista (permite idempotencia)
       const upd = await tx.seccionVia.updateMany({
         where: { id: seccion.id, OR: [{ ocupada: false }, { movimientoId }] },
         data: { ocupada: true, movimientoId },
       });
-      if (upd.count !== 1) {
-        throw new ConflictError('La sección cambió de estado; reintenta.');
-      }
+      if (upd.count !== 1) throw new ConflictError('La sección cambió de estado; reintenta.');
 
-      // 3) Derivar estado de la vía desde las secciones
       await SeccionViaModel.syncViaFromSections(tx, viaId);
 
-      // 4) Retornar estado actualizado
       return tx.seccionVia.findUnique({
         where: { viaId_numero: { viaId, numero: numeroSeccion } },
         include: { via: true, movimiento: true },
@@ -104,15 +129,8 @@ export class SeccionViaModel {
     });
   }
 
-  /**
-   * Libera una sección ocupada por un movimiento.
-   * - Sincroniza la vía en la misma transacción.
-   */
-  static async liberarSeccion(
-    viaId: number,
-    numeroSeccion: number,
-    movimientoId: number
-  ) {
+  /** Liberar una sección ocupada por un movimiento. */
+  static async liberarSeccion(viaId: number, numeroSeccion: number, movimientoId: number) {
     return prisma.$transaction(async (tx) => {
       const res = await tx.seccionVia.updateMany({
         where: { viaId, numero: numeroSeccion, ocupada: true, movimientoId },
@@ -133,19 +151,14 @@ export class SeccionViaModel {
     });
   }
 
-  /**
-   * Libera TODAS las secciones de una vía ocupadas por un movimiento.
-   * - Útil para “desocupar” rápido cuando termina/cancela un movimiento.
-   */
+  /** Liberar todas las secciones de una vía ocupadas por un movimiento. */
   static async liberarMovimientoDeSeccion(viaId: number, movimientoId: number) {
     return prisma.$transaction(async (tx) => {
       await tx.seccionVia.updateMany({
         where: { viaId, ocupada: true, movimientoId },
         data: { ocupada: false, movimientoId: null },
       });
-
       await SeccionViaModel.syncViaFromSections(tx, viaId);
-
       return tx.via.findUnique({ where: { id: viaId }, include: { secciones: true } });
     });
   }
@@ -158,10 +171,7 @@ export class SeccionViaModel {
    * - 1 sección    → vía “espejo” de esa sección.
    * - 2+ secciones → ver política en el encabezado.
    */
-  private static async syncViaFromSections(
-    tx: Prisma.TransactionClient,
-    viaId: number
-  ) {
+  private static async syncViaFromSections(tx: Prisma.TransactionClient, viaId: number) {
     const [totalSecciones, ocupadas, movsDistinct] = await Promise.all([
       tx.seccionVia.count({ where: { viaId } }),
       tx.seccionVia.count({ where: { viaId, ocupada: true } }),
@@ -172,16 +182,11 @@ export class SeccionViaModel {
       }),
     ]);
 
-    // 0 secciones → la gobierna ViaModel (no tocar)
     if (totalSecciones === 0) return;
 
-    // 1 sección → vía espejo de la sección
     if (totalSecciones === 1) {
       if (ocupadas === 0) {
-        await tx.via.update({
-          where: { id: viaId },
-          data: { ocupada: false, movimientoId: null },
-        });
+        await tx.via.update({ where: { id: viaId }, data: { ocupada: false, movimientoId: null } });
       } else {
         await tx.via.update({
           where: { id: viaId },
@@ -191,12 +196,8 @@ export class SeccionViaModel {
       return;
     }
 
-    // 2+ secciones → derivación por cardinalidad de movimientos
     if (ocupadas === 0) {
-      await tx.via.update({
-        where: { id: viaId },
-        data: { ocupada: false, movimientoId: null },
-      });
+      await tx.via.update({ where: { id: viaId }, data: { ocupada: false, movimientoId: null } });
       return;
     }
 
