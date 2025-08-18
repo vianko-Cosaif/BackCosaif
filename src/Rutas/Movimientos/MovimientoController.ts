@@ -3,6 +3,40 @@ import { RequestHandler } from 'express';
 import { MovimientoModel } from '../../models/Movimientos/movimientosModel'; // <- casing correcto
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 
+/** ---- Helpers de META (no tocamos Vías/Secciones desde aquí) ----
+ * Guardamos intención en `instrucciones` con tags para que OTRO servicio
+ * (o el maquinista) actúe al CONCLUIR: [META DESTINO:123|SECCION:2|LIBERAR]
+ */
+function buildMetaTag(opts: {
+  viaDestinoId?: number;
+  numeroSeccion?: number;
+  liberarOrigen?: boolean;
+}) {
+  const parts: string[] = [];
+  if (opts.viaDestinoId) parts.push(`DESTINO:${Number(opts.viaDestinoId)}`);
+  if (opts.numeroSeccion != null) parts.push(`SECCION:${Number(opts.numeroSeccion)}`);
+  if (opts.liberarOrigen) parts.push('LIBERAR');
+  return parts.length ? `[META ${parts.join('|')}] ` : '';
+}
+
+function parseMetaFromInstrucciones(instr?: string) {
+  const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
+  if (!instr) return meta;
+  const m = instr.match(/\[META ([^\]]+)\]/i);
+  if (!m) return meta;
+  const tokens = m[1].split('|').map(s => s.trim().toUpperCase());
+  for (const t of tokens) {
+    if (t === 'LIBERAR') meta.liberar = true;
+    if (t.startsWith('DESTINO:')) {
+      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) meta.destinoId = v;
+    }
+    if (t.startsWith('SECCION:')) {
+      const s = Number(t.split(':')[1]); if (!Number.isNaN(s)) meta.seccion = s;
+    }
+  }
+  return meta;
+}
+
 export class MovimientoController {
   // GET /movimientos
   static obtenerMovimientos: RequestHandler = async (_req, res) => {
@@ -15,29 +49,58 @@ export class MovimientoController {
     }
   };
 
-  // POST /movimientos
+  // POST /movimientos  (NO ocupa/libera vías aquí)
   static nuevoMovimiento: RequestHandler = async (req, res) => {
     try {
-      const data = { ...req.body };
-      data.prioridad ??= 'BAJA';
-      data.estado ??= 'SOLICITADO';
-      data.posicionCabina ??= 'Sin_Solicitar';
-      data.posicionChimenea ??= 'Sin_Solicitar';
-      data.direccionEmpuje ??= 'Sin_Solicitar';
+      const raw = { ...req.body };
 
-      if (!data.empresaId || !data.creadoPorId || !data.localidadId || !data.viaOrigenId || !data.locomotiveNumber) {
+      // Defaults
+      raw.prioridad ??= 'BAJA';
+      raw.estado ??= 'SOLICITADO';
+      raw.posicionCabina ??= 'Sin_Solicitar';
+      raw.posicionChimenea ??= 'Sin_Solicitar';
+      raw.direccionEmpuje ??= 'Sin_Solicitar';
+
+      // Validaciones mínimas
+      if (!raw.empresaId || !raw.creadoPorId || !raw.localidadId || !raw.viaOrigenId || !raw.locomotiveNumber) {
         return res.status(400).json({ message: 'Faltan campos obligatorios.' });
       }
-      if (data.prioridad && !['ALTA', 'BAJA'].includes(data.prioridad)) {
+      if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
         return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
       }
-      if (data.numeroSeccion != null && Number.isNaN(Number(data.numeroSeccion))) {
+      if (raw.numeroSeccion != null && Number.isNaN(Number(raw.numeroSeccion))) {
         return res.status(400).json({ message: 'numeroSeccion debe ser numérico' });
       }
 
+      // Deducción de intención sin tocar DB de Vías:
+      const liberarOrigenFlag =
+        raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
+
+      const meta = buildMetaTag({
+        viaDestinoId: raw.viaDestinoId,            // lo guardamos como META, no asignamos
+        numeroSeccion: raw.numeroSeccion,          // idem
+        liberarOrigen: liberarOrigenFlag,          // palabra clave "liberar"
+      });
+
+      // Inyectamos META al inicio de instrucciones y **removemos** campos operativos
+      const data = {
+        ...raw,
+        instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
+      };
+      delete (data as any).viaDestinoId;
+      delete (data as any).numeroSeccion;
+
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
-      // Nota: la notificación ya la envía el Modelo; no repetimos aquí.
-      res.status(201).json({ message: 'Movimiento creado exitosamente', movimiento });
+
+      res.status(201).json({
+        message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
+        meta: {
+          destinoSolicitado: raw.viaDestinoId ?? null,
+          seccionSolicitada: raw.numeroSeccion ?? null,
+          liberarOrigen: liberarOrigenFlag,
+        },
+        movimiento,
+      });
     } catch (error: any) {
       log.error('Error al crear movimiento', { error, body: req.body });
       res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
@@ -74,7 +137,7 @@ export class MovimientoController {
       const movimiento = await MovimientoModel.cambiarPrioridad(id, prioridad);
       const message =
         prioridad === 'ALTA' && original.estado === 'SOLICITADO'
-          ? 'Prioridad actualizada a ALTA. Se reorganizaron todas las rondas.'
+          ? 'Prioridad actualizada a ALTA. Se reorganizaron las rondas.'
           : `Prioridad actualizada a ${prioridad}`;
 
       res.status(200).json({ message, movimiento, prioridadAnterior: original.prioridad, prioridadNueva: prioridad });
@@ -91,7 +154,7 @@ export class MovimientoController {
 
     try {
       await MovimientoModel.eliminarMovimiento(id);
-      res.sendStatus(204); // si prefieres 200 con payload, haz que el modelo retorne el mov eliminado y respóndelo aquí
+      res.sendStatus(204);
     } catch (error) {
       log.error('Error al eliminar movimiento', { error, id });
       res.status(500).json({ message: 'Error al eliminar movimiento' });
@@ -284,14 +347,38 @@ export class MovimientoController {
     }
   };
 
-  // PATCH /movimientos/:id/finalizar
+  // PATCH /movimientos/:id/finalizar  (NO libera/ocupa aquí; solo sugiere acciones)
   static finalizarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
     try {
+      // Obtenemos el movimiento actual para leer origen+meta antes de finalizar
+      const todos = await MovimientoModel.obtenerMovimientos();
+      const original = todos.find(m => m.id === id);
+      if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
+
+      const meta = parseMetaFromInstrucciones(original.instrucciones ?? undefined);
+
       const movimiento = await MovimientoModel.finalizarMovimiento(id);
-      res.status(200).json({ message: 'Movimiento finalizado', movimiento });
+
+      // Acciones SUGERIDAS para que otro servicio (no este controller) ejecute
+      const accionesSugeridas: any = {};
+      if (meta.liberar && original.viaOrigenId) {
+        accionesSugeridas.liberarOrigen = { viaId: original.viaOrigenId };
+      }
+      if (meta.destinoId) {
+        accionesSugeridas.ocuparDestino = {
+          viaId: meta.destinoId,
+          numeroSeccion: meta.seccion ?? 'PRIMERA_LIBRE',
+        };
+      }
+
+      res.status(200).json({
+        message: 'Movimiento finalizado. Acciones operativas sugeridas adjuntas.',
+        accionesSugeridas,
+        movimiento,
+      });
     } catch (error) {
       log.error('Error al finalizar movimiento', { id, error });
       res.status(500).json({ message: 'Error al finalizar movimiento' });
