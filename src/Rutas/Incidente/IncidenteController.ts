@@ -1,7 +1,8 @@
 // src/controllers/IncidenteController.ts
-import { Request, Response, RequestHandler } from 'express';
+import { Request, Response, RequestHandler, ErrorRequestHandler } from 'express';
 import multer from 'multer';
 import fs from 'fs/promises';
+import path from 'path';
 import {
   IncidenteModel,
   EstadoFiltro,
@@ -23,6 +24,17 @@ const upload = multer({
   },
 });
 export const uploadImagenes = upload.array('imagenes', 4);
+
+// Manejo uniforme de errores de subida
+export const manejarErroresUpload: ErrorRequestHandler = (err, _req, res, _next) => {
+  if (!err) return res.status(500).json({ success: false, error: 'Error desconocido' });
+  const msg = /File too large/i.test(err.message)
+    ? 'Imagen demasiado grande (máx 10MB)'
+    : /Solo se permiten/i.test(err.message)
+    ? err.message
+    : 'Error al subir imágenes';
+  return res.status(400).json({ success: false, error: msg });
+};
 
 export class IncidenteController {
   /**
@@ -211,18 +223,60 @@ export class IncidenteController {
   };
 
   /**
-   * GET /incidentes/imagen/:ruta
-   * Sirve la imagen correspondiente a la ruta relativa
-   * Nota: si usas subcarpetas (aaaa/mm/dd/archivo.jpg) conviene usar query (?ruta=)
+   * POST /incidentes/:id/continuar
+   * Marca CERRADO y dispara la reorganización desde el modelo de rondas
+   */
+  static continuar: RequestHandler = async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const { comentario } = req.body as { comentario?: string };
+      if (isNaN(id)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' });
+      }
+      const inc = await IncidenteModel.continuarMovimiento(id, (comentario ?? '').toString());
+      return res.json({ success: true, data: inc });
+    } catch (error: any) {
+      incidenteControllerLogger.error('continuar', { id: req.params.id, error });
+      const msg = error instanceof Error ? error.message : 'Error al continuar movimiento';
+      return res.status(/ya cerrado/i.test(msg) ? 409 : 500).json({ success: false, error: msg });
+    }
+  };
+
+  /**
+   * POST /incidentes/cerrar-vencidos
+   * Cierra automáticamente incidentes vencidos (para cron/admin)
+   */
+  static cerrarVencidos: RequestHandler = async (_req, res) => {
+    try {
+      const cerrados = await IncidenteModel.cerrarIncidentesVencidos();
+      return res.json({ success: true, data: { cerrados } });
+    } catch (error) {
+      incidenteControllerLogger.error('cerrarVencidos', { error });
+      return res.status(500).json({ success: false, error: 'Error al cerrar incidentes vencidos' });
+    }
+  };
+
+  /**
+   * GET /incidentes/imagen  (?ruta=aaaa/mm/dd/archivo.jpg)
+   * o GET /incidentes/imagen/:ruta (una sola parte)
+   * Sirve la imagen correspondiente a la ruta relativa (con saneo)
    */
   static servirImagen: RequestHandler = async (req, res) => {
     try {
-      const ruta = req.params.ruta as string;
-      const fullPath = IncidenteModel.obtenerRutaCompletaImagen(ruta);
+      const rutaParam = (req.query.ruta as string) ?? (req.params.ruta as string) ?? '';
+      if (!rutaParam) return res.status(400).json({ success: false, error: 'Ruta requerida' });
+
+      // saneo básico contra path traversal
+      const normalizada = path.posix.normalize(rutaParam).replace(/^(\.\.\/)+/, '');
+      if (normalizada.includes('..')) {
+        return res.status(400).json({ success: false, error: 'Ruta inválida' });
+      }
+
+      const fullPath = IncidenteModel.obtenerRutaCompletaImagen(normalizada);
       await fs.access(fullPath);
-      res.sendFile(fullPath);
+      return res.sendFile(fullPath);
     } catch {
-      res.status(404).json({ success: false, error: 'Imagen no encontrada' });
+      return res.status(404).json({ success: false, error: 'Imagen no encontrada' });
     }
   };
 

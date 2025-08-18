@@ -4,7 +4,8 @@ import { Router } from 'express';
 import passport from '../../middlewares/passport';
 import {
   IncidenteController,
-  uploadImagenes
+  uploadImagenes,
+  manejarErroresUpload, // <-- capturar errores de Multer
 } from './IncidenteController';
 
 const router = Router();
@@ -18,17 +19,19 @@ router.use(passport.authenticate('jwt', { session: false }));
 // GET /incidentes?estado=&page=&pageSize=&empresaId=&localidadId=
 router.get('/', IncidenteController.listar);
 
-// Obtener un incidente por su ID
-// GET /incidentes/:id
-router.get('/:id', IncidenteController.obtenerPorId);
+// Servir imagen de incidente (dos variantes)
+// GET /incidentes/imagen?ruta=aaaa/mm/dd/archivo.jpg
+router.get('/imagen', IncidenteController.servirImagen);
+// GET /incidentes/imagen/:ruta
+router.get('/imagen/:ruta(*)', IncidenteController.servirImagen);
 
 // Verificar periodo de verificación / bloqueo
 // GET /incidentes/:id/verificacion
 router.get('/:id/verificacion', IncidenteController.verificarPeriodo);
 
-// Servir imagen de incidente
-// GET /incidentes/imagen/:ruta
-router.get('/imagen/:ruta(*)', IncidenteController.servirImagen);
+// Obtener un incidente por su ID
+// GET /incidentes/:id
+router.get('/:id', IncidenteController.obtenerPorId);
 
 // ——— RUTAS DE ESCRITURA ———
 
@@ -40,6 +43,9 @@ router.post('/', uploadImagenes, IncidenteController.crear);
 // PUT /incidentes/:id
 router.put('/:id', uploadImagenes, IncidenteController.editar);
 
+// Manejo de errores de subida (Multer)
+router.use(manejarErroresUpload);
+
 // Eliminar un incidente y sus imágenes
 // DELETE /incidentes/:id
 router.delete('/:id', IncidenteController.eliminar);
@@ -48,9 +54,16 @@ router.delete('/:id', IncidenteController.eliminar);
 // POST /incidentes/:id/cerrar
 router.post('/:id/cerrar', IncidenteController.cerrar);
 
+// Continuar movimiento: marca CERRADO y reorganiza desde el modelo de rondas
+// POST /incidentes/:id/continuar
+router.post('/:id/continuar', IncidenteController.continuar);
+
+// Cierre automático de vencidos (para cron/admin)
+// POST /incidentes/cerrar-vencidos
+router.post('/cerrar-vencidos', IncidenteController.cerrarVencidos);
 
 // Ruta para marcar como resuelto y notificar
+// POST /incidentes/:id/resuelto
 router.post('/:id/resuelto', IncidenteController.resolver);
-
 
 export default router;
