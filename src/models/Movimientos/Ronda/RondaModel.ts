@@ -183,7 +183,6 @@ async function notificarTapado(r: Ronda, tx: Tx = prisma) {
       localidadId: String(r.localidadId),
       viaDestino: String(m.viaDestino?.nombre ?? ''),
       bloqueadorId: bloq ? String(bloq.id) : '',
-      locoBloqueador: bloq?.locomotiveNumber ?? '',
       empresaBloqueadora: bloq?.empresa?.nombre ?? '',
       timestamp: new Date().toISOString(),
     },
