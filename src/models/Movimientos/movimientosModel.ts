@@ -5,20 +5,28 @@ import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
 
 const prisma = new PrismaClient(); // TODO: usar singleton/inyección
+const clientISO = () => new Date().toISOString();
 
 // ==============================
 // Helpers
 // ==============================
 function parseInstruccionesMeta(txt?: string) {
-  const s = txt || '';
-  const mDest = s.match(/\[META\s*DESTINO\s*:(\d+)\]/i);
-  const mOrig = s.match(/\[META\s*ORIGEN\s*:(\d+)\]/i);
-  const mSec  = s.match(/\[META\s*SECCION\s*:(\d+)\]/i);
-  return {
-    destinoViaId: mDest ? Number(mDest[1]) : null,
-    origenViaId:  mOrig ? Number(mOrig[1]) : null,
-    seccion:      mSec  ? Number(mSec[1])  : null,
-  };
+  const s = String(txt ?? '');
+  const metaMatch = s.match(/\[META\s+([^\]]+)\]/i);
+  const out = { destinoViaId: null as number | null, origenViaId: null as number | null, seccion: null as number | null };
+  if (!metaMatch) return out;
+
+  for (const raw of metaMatch[1].split('|')) {
+    const t = raw.trim().toUpperCase();
+    if (t.startsWith('DESTINO:')) {
+      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) out.destinoViaId = v;
+    } else if (t.startsWith('ORIGEN:')) {
+      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) out.origenViaId = v;
+    } else if (t.startsWith('SECCION:')) {
+      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) out.seccion = v;
+    }
+  }
+  return out;
 }
 
 function resolverDestinoNombre(m: { viaDestino?: { nombre: string } | null; lavado?: boolean | null; torno?: boolean | null; }) {
@@ -201,7 +209,7 @@ export class MovimientoModel {
 
         if (original.ronda) {
           await tx.ronda.delete({ where: { id: original.ronda.id } });
-          await RondaModel.recomponerRondasLocalidad(original.localidadId, tx);
+          await RondaModel.recomponerRondasLocalidad(original.localidadId, tx, { clientLocalISO: clientISO() });
         }
 
         movimientoError.info('Movimiento cancelado', {
@@ -321,10 +329,10 @@ export class MovimientoModel {
         if (movAct.ronda) {
           if (nuevoEstado === 'CONCLUIDO') {
             await tx.ronda.update({ where: { id: movAct.ronda.id }, data: { concluido: true } });
-            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
+            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx, { clientLocalISO: clientISO() });
           } else if (nuevoEstado === 'CANCELADO') {
             await tx.ronda.delete({ where: { id: movAct.ronda.id } });
-            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
+            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx, { clientLocalISO: clientISO() });
           }
         }
 
@@ -362,7 +370,6 @@ export class MovimientoModel {
     localidadId: number;
     viaOrigenId: number;
     viaDestinoId?: number;
-    numeroSeccion?: number; // solo informativo; no se usa para DB aquí
     locomotiveNumber: number;
     prioridad?: 'BAJA' | 'ALTA';
     tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
@@ -413,18 +420,21 @@ export class MovimientoModel {
       // Crear
       const mv = await prisma.movimiento.create({ data: movData });
 
-      // Encolar si aplica
+      // Encolar si aplica (respeta ALTAS/BAJAS y ventana horaria vía RondaModel)
       const cur = await prisma.movimiento.findUnique({
         where: { id: mv.id },
         select: { estado: true, prioridad: true, empresaId: true, localidadId: true },
       });
       if (cur && (cur.estado === 'SOLICITADO' || cur.estado === 'ESPERA')) {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: mv.id,
-          empresaId: cur.empresaId,
-          localidadId: cur.localidadId,
-          prioridad: (cur.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
-        });
+        await RondaModel.generarRondaParaMovimiento(
+          {
+            movimientoId: mv.id,
+            empresaId: cur.empresaId,
+            localidadId: cur.localidadId,
+            prioridad: (cur.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+          },
+          { clientLocalISO: clientISO() }
+        );
       }
 
       await notificarMovimientoCreado(mv.id);
@@ -455,7 +465,6 @@ export class MovimientoModel {
       localidadId?: number;
       viaOrigenId?: number;
       viaDestinoId?: number;
-      numeroSeccion?: number; // informativo; se usará fuera al concluir
       locomotiveNumber?: number;
       lavado?: boolean;
       torno?: boolean;
@@ -484,7 +493,7 @@ export class MovimientoModel {
 
         const updateData: any = { ...data };
 
-        // Si llega instrucciones nuevas y no se manda viaDestinoId, intenta resolver del meta
+        // Si llega instrucciones nuevas y no se manda viaDestinoId, intenta resolver del META
         if (!updateData.viaDestinoId && updateData.instrucciones) {
           const meta = parseInstruccionesMeta(updateData.instrucciones);
           if (meta.destinoViaId) updateData.viaDestinoId = meta.destinoViaId;
@@ -517,19 +526,25 @@ export class MovimientoModel {
         });
         if (cur) {
           if (cur.prioridad === 'ALTA' && cur.estado === 'SOLICITADO') {
-            await RondaModel.generarRondaParaMovimiento({
-              movimientoId: id,
-              empresaId: cur.empresaId,
-              localidadId: cur.localidadId,
-              prioridad: 'ALTA',
-            });
+            await RondaModel.generarRondaParaMovimiento(
+              {
+                movimientoId: id,
+                empresaId: cur.empresaId,
+                localidadId: cur.localidadId,
+                prioridad: 'ALTA',
+              },
+              { clientLocalISO: clientISO() }
+            );
           } else if (!cur.ronda && cur.estado === 'SOLICITADO') {
-            await RondaModel.generarRondaParaMovimiento({
-              movimientoId: id,
-              empresaId: cur.empresaId,
-              localidadId: cur.localidadId,
-              prioridad: (cur.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
-            });
+            await RondaModel.generarRondaParaMovimiento(
+              {
+                movimientoId: id,
+                empresaId: cur.empresaId,
+                localidadId: cur.localidadId,
+                prioridad: (cur.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+              },
+              { clientLocalISO: clientISO() }
+            );
           }
         }
       }
@@ -573,21 +588,28 @@ export class MovimientoModel {
         data: { prioridad },
       });
 
+      // Respetar orden ALTAS/BAJAS y ventana horaria (Guadalajara) a través de RondaModel
       if (movimiento.estado === 'SOLICITADO' && prioridad === 'ALTA') {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: id,
-          empresaId: movimiento.empresaId,
-          localidadId: movimiento.localidadId,
-          prioridad: 'ALTA',
-        });
+        await RondaModel.generarRondaParaMovimiento(
+          {
+            movimientoId: id,
+            empresaId: movimiento.empresaId,
+            localidadId: movimiento.localidadId,
+            prioridad: 'ALTA',
+          },
+          { clientLocalISO: clientISO() }
+        );
       } else if (prioridad === 'BAJA' && movimiento.ronda && movimiento.estado === 'SOLICITADO') {
         await prisma.ronda.delete({ where: { movimientoId: id } });
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: id,
-          empresaId: movimiento.empresaId,
-          localidadId: movimiento.localidadId,
-          prioridad: 'BAJA',
-        });
+        await RondaModel.generarRondaParaMovimiento(
+          {
+            movimientoId: id,
+            empresaId: movimiento.empresaId,
+            localidadId: movimiento.localidadId,
+            prioridad: 'BAJA',
+          },
+          { clientLocalISO: clientISO() }
+        );
       }
 
       await notificarCambioPrioridad(id, prioridad);
@@ -824,14 +846,14 @@ export class MovimientoModel {
           id: info.movimiento.id,
           viaOrigen: movFull?.viaOrigen || info.movimiento.viaOrigen || null,
           viaDestino: movFull?.viaDestino || info.movimiento.viaDestino || null,
-          lavado: movFull?.lavado ?? info.movimiento.lavado ?? false,
-          torno: movFull?.torno ?? info.movimiento.torno ?? false,
+          lavado: (movFull as any)?.lavado ?? (info.movimiento as any).lavado ?? false,
+          torno: (movFull as any)?.torno ?? (info.movimiento as any).torno ?? false,
           instrucciones: movFull?.instrucciones ?? null,
           meta, // { destinoViaId, origenViaId, seccion }
           destinoResuelto: resolverDestinoNombre({
             viaDestino: movFull?.viaDestino || info.movimiento.viaDestino,
-            lavado: movFull?.lavado ?? info.movimiento.lavado,
-            torno: movFull?.torno ?? info.movimiento.torno,
+            lavado: (movFull as any)?.lavado ?? (info.movimiento as any).lavado,
+            torno: (movFull as any)?.torno ?? (info.movimiento as any).torno,
           }),
         },
       };
@@ -906,7 +928,7 @@ export class MovimientoModel {
 
         if (res.ronda) {
           await tx.ronda.update({ where: { id: res.ronda.id }, data: { concluido: true } });
-          await RondaModel.recomponerRondasLocalidad(res.localidadId, tx);
+          await RondaModel.recomponerRondasLocalidad(res.localidadId, tx, { clientLocalISO: clientISO() });
         }
 
         return res;
