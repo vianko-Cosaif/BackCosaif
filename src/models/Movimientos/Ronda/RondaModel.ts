@@ -17,7 +17,6 @@ function _wasNotified(key: string) {
   if (Date.now() > exp) { _notifBuffer.delete(key); return false; }
   return true;
 }
-function _keySkip(localidadId: number, movimientoId: number) { return `skip:${localidadId}:${movimientoId}`; }
 function _keyAllBlocked(localidadId: number) { return `allblocked:${localidadId}`; }
 function _keyTapado(localidadId: number, movimientoId: number) { return `tapado:${localidadId}:${movimientoId}`; }
 
@@ -42,8 +41,7 @@ async function _getLocalidadFlags(localidadId: number, tx: Tx = prisma) {
   if (_locFlagsCache.has(localidadId)) return _locFlagsCache.get(localidadId)!;
   const loc = await tx.localidad.findUnique({ where: { id: localidadId }, select: { nombre: true } });
   const name = _normalize(loc?.nombre ?? '');
-  const any = name.includes('guadalajara'); // "GUadalajara", "guadalajara", "Guadalajara", con o sin texto extra
-  // "Guadalajara2" | "Guadalajara 2" | "... Guadalajara 2 - Patio"
+  const any = name.includes('guadalajara');
   const gdl2 = any && (/guadalajara\s*2\b/.test(name) || /guadalajara2\b/.test(name));
   const flags = { any, gdl2 };
   _locFlagsCache.set(localidadId, flags);
@@ -62,7 +60,7 @@ function enVentanaLavadoCliente(iso?: string): boolean {
   return h !== null && (h >= 22 || h < 4);
 }
 
-/** Solo aplica ventana si la localidad es "Guadalajara 2" (tolera "Guadalajara2" / más texto). */
+/** Solo aplica ventana si la localidad es "Guadalajara 2". */
 async function esVentanaLavadoGDL2(localidadId: number, clientLocalISO?: string, tx: Tx = prisma) {
   const flags = await _getLocalidadFlags(localidadId, tx);
   return flags.gdl2 && enVentanaLavadoCliente(clientLocalISO);
@@ -81,7 +79,6 @@ async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMov
   return activos > 0;
 }
 
-/** Una máquina que pueda estar bloqueando esa vía (best-effort). */
 async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: Tx = prisma) {
   const bloq = await tx.movimiento.findFirst({
     where: {
@@ -114,6 +111,7 @@ async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   return !libre;
 }
 
+/** Solo valida en operaciones que SÍ deben prevenir inconsistencia (no aplica a “siguiente...” del maquinista). */
 async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = prisma) {
   if (!m || !m.viaDestinoId) return;
   const secciones = await tx.seccionVia.count({ where: { viaId: m.viaDestinoId } });
@@ -132,65 +130,6 @@ async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
   const usuarios = await tx.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
   return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
 }
-
-async function notificarRolesLocalidad(localidadId: number, titulo: string, body: string, data: Record<string,string>) {
-  const usuarios = await prisma.usuario.findMany({
-    where: { localidadId, activo: true, rol: { in: ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR'] as any } },
-    include: { fcmTokens: true },
-  });
-  const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
-  if (!tokens.length) return;
-  await admin.messaging().sendEachForMulticast({ notification: { title: titulo, body }, data, tokens });
-}
-
-/** Notifica que el movimiento está TAPADO y por quién (empresa, loco y vía). No reacomoda nada. */
-async function notificarTapado(r: Ronda, tx: Tx = prisma) {
-  const m = await tx.movimiento.findUnique({
-    where: { id: r.movimientoId },
-    include: {
-      empresa: { select: { nombre: true } },
-      viaDestino: { select: { id: true, nombre: true } },
-    },
-  });
-  if (!m || !m.viaDestinoId) return;
-
-  const key = _keyTapado(r.localidadId, m.id);
-  if (_wasNotified(key)) return;
-
-  const bloq = await movimientoQueBloqueaVia(r.localidadId, m.viaDestinoId, tx);
-  const bloqueadorTxt = bloq
-    ? `mov #${bloq.id} · Loco ${bloq.locomotiveNumber ?? 'N/D'} · Empresa ${bloq.empresa?.nombre ?? 'N/D'}`
-    : 'N/D';
-
-  const title = `Tu movimiento #${m.id} está TAPADO`;
-  const body =
-    `Bloqueado por ${bloqueadorTxt} en vía destino ${m.viaDestino?.nombre ?? 'N/D'}. ` +
-    `En cuanto liberen, procederemos.`;
-
-  const destinatarios: number[] = [];
-  if ((m as any).clienteId) destinatarios.push((m as any).clienteId);
-  if ((m as any).supervisorId) destinatarios.push((m as any).supervisorId);
-  if ((m as any).coordinadorId) destinatarios.push((m as any).coordinadorId);
-
-  const tokens = await tokensDeUsuarios(destinatarios, tx);
-  if (!tokens.length) return;
-
-  await admin.messaging().sendEachForMulticast({
-    notification: { title, body },
-    data: {
-      tipo: 'tapado',
-      movimientoId: String(m.id),
-      localidadId: String(r.localidadId),
-      viaDestino: String(m.viaDestino?.nombre ?? ''),
-      bloqueadorId: bloq ? String(bloq.id) : '',
-      empresaBloqueadora: bloq?.empresa?.nombre ?? '',
-      timestamp: new Date().toISOString(),
-    },
-    tokens
-  });
-  _markNotified(key);
-}
-
 async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
   const keyAll = _keyAllBlocked(localidadId);
   if (_wasNotified(keyAll)) return;
@@ -201,7 +140,7 @@ async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
     orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
   });
 
-  const porEmpresa = new Map<number, number>(); // empresaId -> movimientoId
+  const porEmpresa = new Map<number, number>();
   for (const r of rondas) {
     if (!(await estaBloqueadoPorVias(r, tx))) continue;
     if (!porEmpresa.has(r.movimiento.empresaId)) porEmpresa.set(r.movimiento.empresaId, r.movimiento.id);
@@ -219,13 +158,90 @@ async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
     if (!tokens.length) continue;
 
     await admin.messaging().sendEachForMulticast({
-      notification: { title: '⚠️ Movimientos bloqueados', body: `Empresa ${m.empresa?.nombre ?? 'N/D'}: vía/Secciones ocupadas en destino ${m.viaDestino?.nombre ?? 'N/D'}.` },
+      notification: { title: '⚠️ Movimientos bloqueados', body: `Empresa ${m.empresa?.nombre ?? 'N/D'}: vía/secciones ocupadas en destino ${m.viaDestino?.nombre ?? 'N/D'}.` },
       data: { tipo: 'bloqueo_vias', localidadId: String(localidadId), empresaId: String(empresaId), movimientoId: String(movimientoId), timestamp: new Date().toISOString() },
       tokens
     });
   }
 
   _markNotified(keyAll);
+}
+
+// ================== INFO DE BLOQUEO / NOTIFICACIÓN SIMPLE ==================
+async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
+  const mov = await tx.movimiento.findUnique({
+    where: { id: r.movimientoId },
+    include: {
+      empresa: { select: { nombre: true } },
+      viaDestino: { select: { id: true, nombre: true } }
+    }
+  });
+  if (!mov) return { bloqueado: false };
+
+  let bloqueado = false;
+  let bloqueador: { id: number; locomotiveNumber: string | null; empresa: string | null } | null = null;
+
+  if (mov.viaDestinoId) {
+    const secciones = await tx.seccionVia.count({ where: { viaId: mov.viaDestinoId } });
+    if (secciones === 0) {
+      bloqueado = await viaSimpleBloqueada(mov.localidadId, mov.viaDestinoId, mov.id, tx);
+    } else {
+      const libre = await tx.seccionVia.findFirst({ where: { viaId: mov.viaDestinoId, ocupada: false }, select: { id: true } });
+      bloqueado = !libre;
+    }
+    if (bloqueado) {
+      const bloq = await movimientoQueBloqueaVia(mov.localidadId, mov.viaDestinoId, tx);
+      if (bloq) {
+        bloqueador = { id: bloq.id, locomotiveNumber: bloq.locomotiveNumber ?? null, empresa: bloq.empresa?.nombre ?? null };
+      }
+    }
+  }
+
+  return {
+    bloqueado,
+    viaDestino: mov.viaDestino?.nombre ?? null,
+    bloqueador
+  };
+}
+
+async function notificarTapadoSimple(r: Ronda, det: { viaDestino: string | null, bloqueador: null | { id: number; locomotiveNumber: string | null; empresa: string | null } }, tx: Tx) {
+  const mov = await tx.movimiento.findUnique({
+    where: { id: r.movimientoId },
+    include: { empresa: { select: { nombre: true } } }
+  });
+  if (!mov) return;
+
+  const key = _keyTapado(r.localidadId, mov.id);
+  if (_wasNotified(key)) return;
+
+  const locoTxt = det.bloqueador?.locomotiveNumber ?? 'N/D';
+  const viaTxt  = det.viaDestino ?? 'N/D';
+
+  // Destinatarios básicos (cliente/supervisor/coordinador)
+  const ids: number[] = [];
+  if ((mov as any).clienteId) ids.push((mov as any).clienteId);
+  if ((mov as any).supervisorId) ids.push((mov as any).supervisorId);
+  if ((mov as any).coordinadorId) ids.push((mov as any).coordinadorId);
+
+  const tokens = await tokensDeUsuarios(ids, tx);
+  if (!tokens.length) return;
+
+  const title = `Movimiento #${mov.id} — vía ${viaTxt}`;
+  const body  = `La máquina ${locoTxt} obstruye la vía ${viaTxt}. Si no es cierto, hacer caso omiso de esta notificación.`;
+
+  await admin.messaging().sendEachForMulticast({
+    notification: { title, body },
+    data: {
+      tipo: 'tapado_simple',
+      movimientoId: String(mov.id),
+      localidadId: String(r.localidadId),
+      viaDestino: viaTxt,
+      bloqueadorLoco: String(locoTxt),
+      timestamp: new Date().toISOString(),
+    },
+    tokens
+  });
+  _markNotified(key);
 }
 
 // ================== MODELO ==================
@@ -332,7 +348,6 @@ export class RondaModel {
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    // Traer prioridades/lavado para decidir excepción
     const movs = await tx.movimiento.findMany({
       where: { id: { in: [...new Set(filas.map(f => f.movimientoId))] } },
       select: { id: true, prioridad: true, lavado: true }
@@ -349,8 +364,6 @@ export class RondaModel {
 
     for (const { empresaId, ronda, rows } of map.values()) {
       if (rows.length <= 1) continue;
-
-      // Mantener el primero; los demás se reubican salvo excepción
       for (let i = 1; i < rows.length; i++) {
         const mov = movMap.get(rows[i].movId);
         const excepcion =
@@ -359,7 +372,7 @@ export class RondaModel {
           mov?.prioridad === 'ALTA' &&
           !!mov?.lavado;
 
-        if (excepcion) continue; // permitir repetido en R1 para ALTAS de lavado en ventana GDL2
+        if (excepcion) continue;
 
         const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, ronda + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
@@ -408,7 +421,6 @@ export class RondaModel {
     const enVentana = await esVentanaLavadoGDL2(localidadId, opts?.clientLocalISO, tx);
 
     if (enVentana) {
-      // 1) R1 solo LAVADO (ALTAS y BAJAS de lavado). Lo demás se empuja a R2.
       const filas = await tx.ronda.findMany({
         where: { localidadId, concluido: false },
         include: { movimiento: { select: { prioridad: true, empresaId: true, lavado: true, createdAt: true } } },
@@ -426,9 +438,6 @@ export class RondaModel {
         }
       }
 
-      // 2) Dentro de R1:
-      //    - ALTAS (lavado) por FIFO de fecha (permitiendo varias de la misma empresa)
-      //    - luego BAJAS (lavado) en RR por empresa
       const r1 = await tx.ronda.findMany({
         where: { localidadId, rondaNumero: 1, concluido: false },
         include: { movimiento: { select: { empresaId: true, prioridad: true, createdAt: true } } },
@@ -438,7 +447,6 @@ export class RondaModel {
       const altas = r1
         .filter(x => x.movimiento.prioridad === 'ALTA')
         .sort((a, b) => (+new Date(a.movimiento.createdAt)) - (+new Date(b.movimiento.createdAt)));
-
       const bajas  = r1.filter(x => x.movimiento.prioridad !== 'ALTA');
 
       const rr = (items: typeof bajas) => {
@@ -467,7 +475,6 @@ export class RondaModel {
       return;
     }
 
-    // Fuera de ventana (o no GDL2): R1 = ALTAS FIFO (pueden repetirse por empresa si así llegan)
     const altasFuera = await tx.ronda.findMany({
       where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
       include: { movimiento: { select: { createdAt: true } } },
@@ -509,7 +516,7 @@ export class RondaModel {
     });
   }
 
-  // ---------- INCIDENTES ----------
+  // ---------- INCIDENTES (reacomodo manual/externo; no se disparan aquí) ----------
   static async aplicarIncidente(localidadId: number, movimientoId: number, opts?: { clientLocalISO?: string }) {
     const ronda = await prisma.ronda.findFirst({
       where: { localidadId, movimientoId, concluido: false },
@@ -523,7 +530,6 @@ export class RondaModel {
     }
   }
 
-  /** Reacomodo por incidente según reglas personalizadas */
   static async gestionarIncidente(
     movimientoId: number,
     opts?: { cerradoNoResuelto?: boolean; clientLocalISO?: string }
@@ -540,7 +546,6 @@ export class RondaModel {
 
       const totalAltas = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } } });
 
-      // Caso A: ALTA con varias ALTAS -> al final del grupo de ALTAS en la misma ronda
       if (esAlta && totalAltas >= 2) {
         const grupoAltas = await tx.ronda.findMany({
           where: { localidadId, rondaNumero: r.rondaNumero, concluido: false, movimiento: { prioridad: 'ALTA' } },
@@ -555,7 +560,6 @@ export class RondaModel {
         }
       }
 
-      // Caso B: única ALTA y hay BAJAS -> intercambia primer BAJA de R2 a R1 y ALTA baja a R2:1
       if (esAlta && totalAltas === 1) {
         const hayBajas = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'BAJA' } } });
         if (hayBajas > 0) {
@@ -585,7 +589,6 @@ export class RondaModel {
         }
       }
 
-      // Caso C: solo BAJAS y NO es servicio -> intenta swap dentro de la empresa
       if (!esAlta) {
         const hayAltasLoc = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } } });
         const esServicio = !!(r.movimiento as any).lavado || !!(r.movimiento as any).torno;
@@ -681,43 +684,59 @@ export class RondaModel {
     });
   }
 
-  // ---------- MOTOR: SIGUIENTE INTELIGENTE ----------
+  // ---------- MOTOR: SIGUIENTE (UNO A LA VEZ, SIEMPRE MOSTRAR Y PERMITIR INICIO) ----------
   /**
-   * Regresa el candidato AÚN SI ESTÁ BLOQUEADO.
-   * Si está bloqueado, se notifica al cliente quién lo tapa (empresa, loco y vía) y se marca {bloqueado: true}.
+   * Devuelve SOLO el primero de la cola (aunque esté bloqueado) y notifica:
+   * "La máquina <NÚMERO> obstruye la vía <VÍA>. Si no es cierto, hacer caso omiso..."
    */
-  public static async siguienteInteligente(localidadId: number, opts?: { clientLocalISO?: string }) {
+  static async siguienteParaMaquinista(localidadId: number) {
     return prisma.$transaction(async (tx) => {
-      await this.reordenarAltasSegunReglas(localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
-
-      const lista = await tx.ronda.findMany({
+      // No reordenamos aquí: el maquinista solo quiere el primero
+      const r = await tx.ronda.findFirst({
         where: { localidadId, concluido: false },
         include: {
-          movimiento: { select: { id: true, empresaId: true, prioridad: true, estado: true, lavado: true, viaDestinoId: true, locomotiveNumber: true } }
+          movimiento: {
+            select: {
+              id: true, empresaId: true, prioridad: true, estado: true,
+              viaDestinoId: true, locomotiveNumber: true
+            }
+          }
         },
         orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
       });
-      if (!lista.length) return { vacio: true as const };
 
-      for (const r of lista) {
-        if (_isOnHold(r.movimientoId)) continue;
+      if (!r) return { vacio: true as const };
 
-        const bloqueado = await estaBloqueadoPorVias(r, tx);
-        if (bloqueado) {
-          await notificarTapado(r, tx);
-          await RondaModel.compactarOrdenesRonda(tx, r.localidadId, r.rondaNumero);
-          return { candidato: r, bloqueado: true as const };
-        }
-
-        await RondaModel.compactarOrdenesRonda(tx, r.localidadId, r.rondaNumero);
-        return { candidato: r, bloqueado: false as const };
+      const det = await infoBloqueo(r, tx);
+      if (det.bloqueado) {
+        await notificarTapadoSimple(
+          r,
+          {
+            viaDestino: det.viaDestino ?? null,
+            bloqueador: det.bloqueador ?? null
+          },
+          tx
+        );
       }
 
-      await notificarBloqueos(localidadId, tx);
-      const head = lista[0];
-      if (head) return { candidato: head, bloqueado: await estaBloqueadoPorVias(head, tx) as boolean };
-      return { motivo: 'sin_candidatos' as const };
+      // Siempre puede iniciar (decisión del maquinista)
+      return {
+        rondaId: r.id,
+        localidadId: r.localidadId,
+        movimientoId: r.movimiento.id,
+        empresaId: r.movimiento.empresaId,
+        prioridad: r.movimiento.prioridad,
+        locomotiveNumber: r.movimiento.locomotiveNumber ?? null,
+        viaDestino: det.viaDestino,
+        bloqueado: det.bloqueado,
+        permiteInicio: true
+      };
     });
+  }
+
+  /** Wrapper por compatibilidad: usa la misma lógica de “uno a la vez”. */
+  public static async siguienteInteligente(localidadId: number) {
+    return this.siguienteParaMaquinista(localidadId);
   }
 
   // ---------- FIN SERVICIO (LAVADO / TORNO) ----------
@@ -870,6 +889,7 @@ export class RondaModel {
       ]);
       if (!movA || !movB) throw new Error('Movimiento no encontrado');
 
+      // Mantenemos validación en intercambios para no corromper estado físico de vías
       await assertViasLibres(rondaA.localidadId, movA, tx);
       await assertViasLibres(rondaB.localidadId, movB, tx);
 
@@ -917,6 +937,7 @@ export class RondaModel {
       const movimiento = await prisma.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
       if (!movimiento) throw new Error('Movimiento no encontrado');
 
+      // Validación solo para esta operación
       await assertViasLibres(ronda.localidadId, movimiento);
 
       return await prisma.ronda.update({
