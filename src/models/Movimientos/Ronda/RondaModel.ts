@@ -179,7 +179,7 @@ async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   if (!mov) return { bloqueado: false };
 
   let bloqueado = false;
-  let bloqueador: { id: number; locomotiveNumber: string | null; empresa: string | null } | null = null;
+  let bloqueador: { id: number; locomotiveNumber: number ; empresa: string } | null = null;
 
   if (mov.viaDestinoId) {
     const secciones = await tx.seccionVia.count({ where: { viaId: mov.viaDestinoId } });
