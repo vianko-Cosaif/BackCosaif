@@ -31,40 +31,6 @@ function _isOnHold(movId: number) {
   return true;
 }
 
-// ================== LOCALIDAD / HORA CLIENTE (solo Guadalajara) ==================
-function _normalize(s: string) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-const _locFlagsCache = new Map<number, { gdl: boolean }>();
-
-async function _getLocalidadFlags(localidadId: number, tx: Tx = prisma) {
-  if (_locFlagsCache.has(localidadId)) return _locFlagsCache.get(localidadId)!;
-  const loc = await tx.localidad.findUnique({ where: { id: localidadId }, select: { nombre: true } });
-  const name = _normalize(loc?.nombre ?? '');
-  const gdl = name.includes('guadalajara'); // aplica a "Guadalajara", "guadalajara", etc.
-  const flags = { gdl };
-  _locFlagsCache.set(localidadId, flags);
-  return flags;
-}
-
-/** Hora local del CLIENTE (ISO local del cliente). */
-function horaCliente(iso?: string): number | null {
-  if (!iso || typeof iso !== 'string') return null;
-  const m = iso.match(/T(\d{2}):(\d{2})/);
-  return m ? parseInt(m[1], 10) : null;
-}
-/** Ventana lavado cliente: 22:00–03:59 */
-function enVentanaLavadoCliente(iso?: string): boolean {
-  const h = horaCliente(iso);
-  return h !== null && (h >= 22 || h < 4);
-}
-
-/** Ventana especial SOLO si la localidad es Guadalajara. */
-async function esVentanaLavadoGDL(localidadId: number, clientLocalISO?: string, tx: Tx = prisma) {
-  const flags = await _getLocalidadFlags(localidadId, tx);
-  return flags.gdl && enVentanaLavadoCliente(clientLocalISO);
-}
-
 // ================== BLOQUEOS (VÍAS / SECCIONES) ==================
 async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMovimientoId?: number, tx: Tx = prisma) {
   const activos = await tx.movimiento.count({
@@ -86,7 +52,7 @@ async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: T
       OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
     },
     include: { empresa: { select: { nombre: true } } },
-    orderBy: [{ updatedAt: 'desc' }]
+    orderBy: [{ updatedAt: 'asc' }] // más antiguo primero
   });
   return bloq || null;
 }
@@ -250,15 +216,20 @@ async function notificarTapadoSimple(
   _markNotified(key);
 }
 
+// ================== INCIDENTES ACTIVO? ==================
+async function tieneIncidenteActivo(tx: Tx, movimientoId: number) {
+  const activos = await tx.incidente.count({
+    where: {
+      movimientoId,
+      estado: { in: ['ABIERTO', 'CERRADO'] } // CERRADO pendiente de confirmación
+    }
+  });
+  return activos > 0;
+}
 
 // ================== MODELO ==================
 export class RondaModel {
   // ---------- HELPERS CRUD RONDA ----------
-  private static async hayAltas(localidadId: number, tx: Tx = prisma) {
-    const c = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } } });
-    return c > 0;
-  }
-
   private static async insertarEnPosicion(
     tx: Tx,
     localidadId: number,
@@ -306,7 +277,6 @@ export class RondaModel {
     return tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
   }
 
-  // ----------- 1 slot por empresa / ronda (con excepción en R1 para ALTAS de LAVADO durante ventana GDL) -----------
   private static async primeraRondaLibreParaEmpresa(
     tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
   ): Promise<number> {
@@ -333,95 +303,135 @@ export class RondaModel {
     }
   }
 
-  private static async ultimoSlotEmpresaDesde(
-    tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
-  ): Promise<{ rondaNumero: number; orden: number } | null> {
-    const last = await tx.ronda.findFirst({
-      where: { localidadId, concluido: false, empresaId, rondaNumero: { gte: desdeRonda } },
-      orderBy: [{ rondaNumero: 'desc' }, { orden: 'desc' }],
-      select: { rondaNumero: true, orden: true },
-    });
-    return last ?? null;
-  }
-
-  private static async garantizarUnSlotPorEmpresaPorRonda(
-    tx: Tx,
-    localidadId: number,
-    opts?: { enVentanaGDL?: boolean }
-  ) {
+  /** En BAJAS: máx 1 por empresa por ronda. En ALTAS: sin límite (cola FIFO en R1). */
+  private static async garantizarUnSlotBajasPorEmpresaPorRonda(tx: Tx, localidadId: number, startRound: number) {
+    // Cualquier empresa con >1 BAJA en una misma ronda => empujar excedentes a rondas siguientes.
     const filas = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { id: true, empresaId: true, rondaNumero: true, movimientoId: true },
+      where: { localidadId, concluido: false, rondaNumero: { gte: startRound } },
+      include: { movimiento: { select: { prioridad: true } } },
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    const movs = await tx.movimiento.findMany({
-      where: { id: { in: [...new Set(filas.map(f => f.movimientoId))] } },
-      select: { id: true, prioridad: true, lavado: true }
-    });
-    const movMap = new Map(movs.map(m => [m.id, m]));
-
-    const map = new Map<string, { empresaId: number; ronda: number; rows: { id: number; movId: number }[] }>();
+    const bucket = new Map<string, { id: number; prioridad: 'ALTA'|'BAJA' }[]>();
     for (const f of filas) {
       const key = `${f.rondaNumero}:${f.empresaId}`;
-      const entry = map.get(key) ?? { empresaId: f.empresaId, ronda: f.rondaNumero, rows: [] };
-      entry.rows.push({ id: f.id, movId: f.movimientoId });
-      map.set(key, entry);
+      const arr = bucket.get(key) ?? [];
+      arr.push({ id: f.id, prioridad: f.movimiento.prioridad as 'ALTA'|'BAJA' });
+      bucket.set(key, arr);
     }
 
-    for (const { empresaId, ronda, rows } of map.values()) {
-      if (rows.length <= 1) continue;
-      for (let i = 1; i < rows.length; i++) {
-        const mov = movMap.get(rows[i].movId);
-        const excepcion =
-          !!opts?.enVentanaGDL &&
-          ronda === 1 &&
-          mov?.prioridad === 'ALTA' &&
-          !!mov?.lavado;
+    for (const [key, rows] of bucket) {
+      // En esta función sólo limitamos BAJA
+      const bajas = rows.filter(r => r.prioridad !== 'ALTA');
+      if (bajas.length <= 1) continue;
 
-        if (excepcion) continue;
+      const [rondaNumeroStr, empresaIdStr] = key.split(':');
+      const rondaActual = parseInt(rondaNumeroStr, 10);
+      const empresaId = parseInt(empresaIdStr, 10);
 
-        const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, ronda + 1);
+      // Mantener 1, empujar el resto a rondas sucesivas buscando primer hueco
+      for (let i = 1; i < bajas.length; i++) {
+        const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, rondaActual + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
-        await tx.ronda.update({ where: { id: rows[i].id }, data: { rondaNumero: target, orden: tam + 1 } });
+        await tx.ronda.update({ where: { id: bajas[i].id }, data: { rondaNumero: target, orden: tam + 1 } });
       }
     }
   }
 
-  // --- NUEVO: ALTAS antes que BAJAS en cada ronda (orden estable) ---
-  private static async ordenarPorPrioridadEnCadaRonda(localidadId: number, tx: Tx = prisma) {
+  // ---------- ALTAS: FIFO EN R1, BAJAS: ROBIN-HOOD (1 por empresa por ronda) ----------
+  private static async ordenarAltasR1_FIFO(tx: Tx, localidadId: number) {
+    // Mover TODAS las ALTAS a R1 y ordenarlas por createdAt asc; BAJAS quedan después.
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
-      include: { movimiento: { select: { prioridad: true, createdAt: true } } },
+      include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    const porRonda = new Map<number, typeof filas>();
+    // 1) Llevar ALTAS a R1; BAJAS en R1 se quedan, pero irán detrás
     for (const f of filas) {
-      if (!porRonda.has(f.rondaNumero)) porRonda.set(f.rondaNumero, []);
-      porRonda.get(f.rondaNumero)!.push(f);
+      if (f.movimiento.prioridad === 'ALTA' && f.rondaNumero !== 1) {
+        const tam = await this.tamanoDeRonda(tx, localidadId, 1);
+        await this.moverRonda(tx, f, 1, tam + 1);
+      }
     }
 
-    for (const [ronda, rows] of porRonda) {
-      const altas = rows.filter(r => r.movimiento.prioridad === 'ALTA');
-      const bajas  = rows.filter(r => r.movimiento.prioridad !== 'ALTA');
-      const nuevo = [...altas, ...bajas];
-      for (let i = 0; i < nuevo.length; i++) {
-        const ordenEsperado = i + 1;
-        if (nuevo[i].orden !== ordenEsperado) {
-          await tx.ronda.update({ where: { id: nuevo[i].id }, data: { orden: ordenEsperado } });
-        }
-      }
+    const r1 = await tx.ronda.findMany({
+      where: { localidadId, rondaNumero: 1, concluido: false },
+      include: { movimiento: { select: { prioridad: true, createdAt: true } } },
+      orderBy: [{ orden: 'asc' }],
+    });
+
+    const altas = r1.filter(x => x.movimiento.prioridad === 'ALTA')
+                    .sort((a, b) => (+new Date(a.movimiento.createdAt)) - (+new Date(b.movimiento.createdAt)));
+    const bajas  = r1.filter(x => x.movimiento.prioridad !== 'ALTA');
+
+    const nuevoOrden = [...altas.map(x => x.id), ...bajas.map(x => x.id)];
+    for (let i = 0; i < nuevoOrden.length; i++) {
+      await tx.ronda.update({ where: { id: nuevoOrden[i] }, data: { orden: i + 1 } });
     }
   }
 
-  public static async recomponerRondasLocalidad(
-    localidadId: number,
-    tx: Tx = prisma,
-    opts?: { clientLocalISO?: string }
-  ) {
+  private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
+    // Detectar si hay ALTAS; si sí, BAJAS parten en R2; si no, desde R1
+    const hayAltas = await tx.ronda.count({
+      where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } }
+    });
+    const startRound = hayAltas > 0 ? 2 : 1;
+
+    // Antes que nada, garantizar 1 BAJA por empresa por ronda (empujar excedentes)
+    await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
+
+    // Tomar TODAS las BAJAS (rondas >= startRound) preservando orden relativo actual por empresa
+    const bajas = await tx.ronda.findMany({
+      where: { localidadId, concluido: false, rondaNumero: { gte: startRound }, movimiento: { prioridad: 'BAJA' } },
+      include: { movimiento: { select: { id: true } } },
+      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+    });
+
+    // Agrupar por empresa preservando orden actual
+    const porEmpresa = new Map<number, typeof bajas>();
+    for (const r of bajas) {
+      porEmpresa.set(r.empresaId, [ ...(porEmpresa.get(r.empresaId) ?? []), r ]);
+    }
+    const empresas = [...porEmpresa.keys()];
+
+    // Asignación round-robin: 1 por empresa por ronda
+    let ronda = startRound;
+    while ([...porEmpresa.values()].some(arr => arr.length > 0)) {
+      let orden = 1;
+      for (const e of empresas) {
+        const arr = porEmpresa.get(e)!;
+        if (arr.length) {
+          const item = arr.shift()!;
+          await tx.ronda.update({ where: { id: item.id }, data: { rondaNumero: ronda, orden } });
+          orden++;
+        }
+      }
+      await this.compactarOrdenesRonda(tx, localidadId, ronda);
+      ronda++;
+    }
+
+    // Compactar numeración de rondas al final
+    const grupos = await tx.ronda.findMany({
+      where: { localidadId, concluido: false },
+      select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
+    });
+    let idx = 1;
+    for (const g of grupos) {
+      if (g.rondaNumero !== idx) {
+        await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
+      }
+      await this.compactarOrdenesRonda(tx, localidadId, idx);
+      idx++;
+    }
+  }
+
+  // ---------- RECOMPOSICIÓN GENERAL ----------
+  public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
+    // Limpiar concluidas
     await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
 
+    // Normalizar numeración de rondas
     const grupos = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
       select: { rondaNumero: true },
@@ -437,98 +447,23 @@ export class RondaModel {
       idx++;
     }
 
-    const enVentanaGDL = await esVentanaLavadoGDL(localidadId, opts?.clientLocalISO, tx);
-    await this.garantizarUnSlotPorEmpresaPorRonda(tx, localidadId, { enVentanaGDL });
+    // ALTAS: FIFO en R1 (sin límite por empresa)
+    await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // Prioriza ALTAS dentro de cada ronda (global, estable)
-    await this.ordenarPorPrioridadEnCadaRonda(localidadId, tx);
-
-    const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
-    for (let r = 1; r <= (max._max.rondaNumero ?? 0); r++) {
-      await this.compactarOrdenesRonda(tx, localidadId, r);
-    }
-  }
-
-  // ---------- ORDEN ALTAS / LAVADO (solo Guadalajara + hora cliente) ----------
-  private static async reordenarAltasSegunReglas(
-    localidadId: number,
-    tx: Tx = prisma,
-    opts?: { clientLocalISO?: string }
-  ) {
-    const enVentana = await esVentanaLavadoGDL(localidadId, opts?.clientLocalISO, tx);
-
-    if (enVentana) {
-      const filas = await tx.ronda.findMany({
-        where: { localidadId, concluido: false },
-        include: { movimiento: { select: { prioridad: true, empresaId: true, lavado: true, createdAt: true } } },
-        orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
-      });
-
-      for (const f of filas) {
-        if (f.movimiento.lavado && f.rondaNumero !== 1) {
-          const tamR1 = await this.tamanoDeRonda(tx, localidadId, 1);
-          await this.moverRonda(tx, f, 1, tamR1 + 1);
-        }
-        if (!f.movimiento.lavado && f.rondaNumero === 1) {
-          const tamR2 = await this.tamanoDeRonda(tx, localidadId, 2);
-          await this.moverRonda(tx, f, 2, tamR2 + 1);
-        }
-      }
-
-      const r1 = await tx.ronda.findMany({
-        where: { localidadId, rondaNumero: 1, concluido: false },
-        include: { movimiento: { select: { empresaId: true, prioridad: true, createdAt: true } } },
-        orderBy: [{ orden: 'asc' }],
-      });
-
-      const altas = r1
-        .filter(x => x.movimiento.prioridad === 'ALTA')
-        .sort((a, b) => (+new Date(a.movimiento.createdAt)) - (+new Date(b.movimiento.createdAt)));
-      const bajas  = r1.filter(x => x.movimiento.prioridad !== 'ALTA');
-
-      const rr = (items: typeof bajas) => {
-        const map = new Map<number, typeof bajas>();
-        for (const it of items) map.set(it.movimiento.empresaId, [ ...(map.get(it.movimiento.empresaId) ?? []), it ]);
-        const empresas = [...map.keys()];
-        const salida: number[] = [];
-        let hay = true;
-        while (hay) {
-          hay = false;
-          for (const e of empresas) {
-            const q = map.get(e)!;
-            if (q.length) { salida.push(q.shift()!.id); hay = true; }
-          }
-        }
-        return salida;
-      };
-
-      const nuevoOrdenIds = [...altas.map(x => x.id), ...rr(bajas)];
-      for (let i = 0; i < nuevoOrdenIds.length; i++) {
-        await tx.ronda.update({ where: { id: nuevoOrdenIds[i] }, data: { orden: i + 1 } });
-      }
-
-      await this.compactarOrdenesRonda(tx, localidadId, 1);
-      await this.compactarOrdenesRonda(tx, localidadId, 2);
-      return;
-    }
-
-    const altasFuera = await tx.ronda.findMany({
-      where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
-      include: { movimiento: { select: { createdAt: true } } },
-      orderBy: [{ movimiento: { createdAt: 'asc' } }, { orden: 'asc' }],
-    });
-    for (let i = 0; i < altasFuera.length; i++) {
-      const orden = i + 1;
-      if (altasFuera[i].orden !== orden) {
-        await tx.ronda.update({ where: { id: altasFuera[i].id }, data: { orden } });
-      }
-    }
+    // BAJAS: repartir en robin-hood (1 por empresa por ronda)
+    await this.reequilibrarBajasRobinHood(tx, localidadId);
   }
 
   // ---------- GENERACIÓN / INSERCIÓN ----------
+  /**
+   * ALTAS:
+   *  - Siempre a R1 (cola FIFO). Se permiten múltiples ALTAS por empresa en la misma ronda.
+   * BAJAS:
+   *  - Si hay ALTAS -> desde R2 en adelante.
+   *  - Máx 1 por empresa por ronda (se reparte tipo "robin hood").
+   */
   static async generarRondaParaMovimiento(
-    data: { movimientoId: number; empresaId: number; localidadId: number; prioridad: 'ALTA' | 'BAJA' },
-    opts?: { clientLocalISO?: string }
+    data: { movimientoId: number; empresaId: number; localidadId: number; prioridad: 'ALTA' | 'BAJA' }
   ) {
     await prisma.$transaction(async (tx) => {
       const mov = await tx.movimiento.findUnique({ where: { id: data.movimientoId } });
@@ -536,188 +471,129 @@ export class RondaModel {
       const existe = await tx.ronda.findFirst({ where: { movimientoId: data.movimientoId } });
       if (existe) return;
 
-      const hayAltas = await tx.ronda.count({
-        where: { localidadId: data.localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } }
-      });
+      if (data.prioridad === 'ALTA') {
+        // Insertar al final de R1; luego se ordena FIFO por createdAt
+        const tamR1 = await this.tamanoDeRonda(tx, data.localidadId, 1);
+        await tx.ronda.create({
+          data: { movimientoId: data.movimientoId, empresaId: data.empresaId, localidadId: data.localidadId, rondaNumero: 1, orden: tamR1 + 1 },
+        });
+      } else {
+        const hayAltas = await tx.ronda.count({
+          where: { localidadId: data.localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } }
+        });
+        const desde = hayAltas ? 2 : 1;
+        const targetRonda = await this.primeraRondaLibreParaEmpresa(tx, data.localidadId, data.empresaId, desde);
+        const ord = (await this.tamanoDeRonda(tx, data.localidadId, targetRonda)) + 1;
+        await tx.ronda.create({
+          data: { movimientoId: data.movimientoId, empresaId: data.empresaId, localidadId: data.localidadId, rondaNumero: targetRonda, orden: ord },
+        });
+      }
 
-      const desde = data.prioridad === 'ALTA' ? 1 : (hayAltas ? 2 : 1);
-      const targetRonda = await this.primeraRondaLibreParaEmpresa(tx, data.localidadId, data.empresaId, desde);
-      const ord = (await this.tamanoDeRonda(tx, data.localidadId, targetRonda)) + 1;
-
-      await tx.ronda.create({
-        data: { movimientoId: data.movimientoId, empresaId: data.empresaId, localidadId: data.localidadId, rondaNumero: targetRonda, orden: ord },
-      });
-
-      await this.reordenarAltasSegunReglas(data.localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
-      await this.recomponerRondasLocalidad(data.localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
+      await this.recomponerRondasLocalidad(data.localidadId, tx);
     });
   }
 
-  // ---------- INCIDENTES (reacomodo manual/externo; no se disparan aquí) ----------
-  static async aplicarIncidente(localidadId: number, movimientoId: number, opts?: { clientLocalISO?: string }) {
-    const ronda = await prisma.ronda.findFirst({
-      where: { localidadId, movimientoId, concluido: false },
-      include: { movimiento: true },
-    });
-    if (!ronda) return;
-    if (ronda.movimiento.prioridad === 'ALTA') {
-      await this._incidenteAlta(ronda, opts);
-    } else {
-      await this._incidenteBajaCadenaCompleta(ronda);
-    }
-  }
-
+  // ---------- INCIDENTES (respeta órdenes por empresa + robin-hood en BAJAS) ----------
   static async gestionarIncidente(
     movimientoId: number,
-    opts?: { cerradoNoResuelto?: boolean; clientLocalISO?: string }
+    opts?: { cerradoNoResuelto?: boolean }
   ) {
     await prisma.$transaction(async (tx) => {
       const r = await tx.ronda.findFirst({
         where: { movimientoId, concluido: false },
-        include: { movimiento: { select: { id: true, prioridad: true, empresaId: true, localidadId: true, lavado: true, torno: true } } }
+        include: { movimiento: { select: { id: true, prioridad: true, empresaId: true, localidadId: true } } }
       });
       if (!r) throw new Error(`No hay ronda activa para el movimiento ${movimientoId}`);
 
       const { localidadId, empresaId } = r;
       const esAlta = r.movimiento.prioridad === 'ALTA';
 
-      const totalAltas = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } } });
+      // Si viene de "cerrado no resuelto", aplicar HOLD 10m (solo 1 vez)
+      if (opts?.cerradoNoResuelto && !_hold10mOnce.has(movimientoId)) {
+        _hold10m.set(movimientoId, Date.now() + HOLD10M_MS);
+        _hold10mOnce.add(movimientoId);
+      }
 
-      if (esAlta && totalAltas >= 2) {
-        const grupoAltas = await tx.ronda.findMany({
-          where: { localidadId, rondaNumero: r.rondaNumero, concluido: false, movimiento: { prioridad: 'ALTA' } },
-          orderBy: { orden: 'asc' },
-          select: { id: true }
+      // Si ya tiene incidente activo, no intentes adelantarlo; sólo reordena según regla.
+      const conIncidente = await tieneIncidenteActivo(tx, movimientoId);
+
+      if (esAlta) {
+        const totalAltasR1 = await tx.ronda.count({
+          where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } }
         });
-        if (grupoAltas.length >= 2) {
-          await RondaModel.moverRonda(tx, r, r.rondaNumero, grupoAltas.length);
-          await RondaModel.compactarOrdenesRonda(tx, localidadId, r.rondaNumero);
-          await RondaModel.recomponerRondasLocalidad(localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
-          return;
-        }
-      }
 
-      if (esAlta && totalAltas === 1) {
-        const hayBajas = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'BAJA' } } });
-        if (hayBajas > 0) {
-          const r2p1 = await tx.ronda.findFirst({
-            where: { localidadId, rondaNumero: 2, concluido: false, movimiento: { prioridad: 'BAJA' } },
-            orderBy: { orden: 'asc' }
+        if (totalAltasR1 >= 2) {
+          // Empujar esta ALTA al final de la cola de ALTAS (FIFO)
+          const r1Altas = await tx.ronda.findMany({
+            where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
+            include: { movimiento: { select: { id: true, createdAt: true } } },
+            orderBy: [{ movimiento: { createdAt: 'asc' } }, { orden: 'asc' }]
           });
 
-          await tx.ronda.updateMany({
-            where: { localidadId, rondaNumero: 2, concluido: false, orden: { gte: 1 } },
-            data: { orden: { increment: 1 } }
+          // Poner la ronda de este movimiento al final
+          const ids = r1Altas.map(x => x.id);
+          const self = r1Altas.find(x => x.movimiento.id === movimientoId);
+          if (self) {
+            const nuevo = ids.filter(i => i !== self.id);
+            nuevo.push(self.id);
+            for (let i = 0; i < nuevo.length; i++) {
+              await tx.ronda.update({ where: { id: nuevo[i] }, data: { orden: i + 1 } });
+            }
+          }
+          await this.compactarOrdenesRonda(tx, localidadId, 1);
+        } else {
+          // Sólo una ALTA: si hay BAJAS, intercambiar cabeza con primera BAJA (R2->R1)
+          const hayBajas = await tx.ronda.count({
+            where: { localidadId, concluido: false, movimiento: { prioridad: 'BAJA' } }
           });
-          await RondaModel.moverRonda(tx, r, 2, 1);
-
-          if (r2p1) {
-            await tx.ronda.updateMany({
-              where: { localidadId, rondaNumero: r.rondaNumero, concluido: false, orden: { gte: 1 } },
-              data: { orden: { increment: 1 } }
+          if (hayBajas > 0) {
+            const r2p1 = await tx.ronda.findFirst({
+              where: { localidadId, rondaNumero: 2, concluido: false, movimiento: { prioridad: 'BAJA' } },
+              orderBy: { orden: 'asc' }
             });
-            await tx.ronda.update({ where: { id: r2p1.id }, data: { rondaNumero: r.rondaNumero, orden: 1 } });
-          }
+            if (r2p1) {
+              // mover ALTA actual a R2:1 y BAJA r2p1 a R1:1
+              await tx.ronda.updateMany({
+                where: { localidadId, rondaNumero: 2, concluido: false, orden: { gte: 1 } },
+                data: { orden: { increment: 1 } }
+              });
+              await this.moverRonda(tx, r, 2, 1);
 
-          await RondaModel.compactarOrdenesRonda(tx, localidadId, r.rondaNumero);
-          await RondaModel.compactarOrdenesRonda(tx, localidadId, 2);
-          await RondaModel.recomponerRondasLocalidad(localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
-          return;
-        }
-      }
-
-      if (!esAlta) {
-        const hayAltasLoc = await tx.ronda.count({ where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } } });
-        const esServicio = !!(r.movimiento as any).lavado || !!(r.movimiento as any).torno;
-        if (hayAltasLoc === 0 && !esServicio) {
-          const slots = await tx.ronda.findMany({
-            where: { localidadId, empresaId, concluido: false },
-            include: { movimiento: { select: { id: true } } },
-            orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
-          });
-
-          if (slots.length >= 2) {
-            let idxAlt = -1;
-            for (let i = 1; i < slots.length; i++) {
-              const stub: Ronda = {
-                id: slots[i].id, localidadId, empresaId,
-                movimientoId: slots[i].movimiento.id,
-                rondaNumero: slots[i].rondaNumero, orden: slots[i].orden,
-                concluido: false, createdAt: new Date(), updatedAt: new Date(),
-              } as any;
-              const bloqueado = await estaBloqueadoPorVias(stub, tx);
-              if (!bloqueado) { idxAlt = i; break; }
-            }
-            if (idxAlt >= 0) {
-              const firstId = slots[0].movimiento.id;
-              const altId   = slots[idxAlt].movimiento.id;
-              await tx.ronda.update({ where: { id: slots[0].id },      data: { movimientoId: altId } });
-              await tx.ronda.update({ where: { id: slots[idxAlt].id }, data: { movimientoId: firstId } });
-              return;
+              await tx.ronda.updateMany({
+                where: { localidadId, rondaNumero: 1, concluido: false, orden: { gte: 1 } },
+                data: { orden: { increment: 1 } }
+              });
+              await tx.ronda.update({ where: { id: r2p1.id }, data: { rondaNumero: 1, orden: 1 } });
             }
           }
-
-          if (opts?.cerradoNoResuelto && !_hold10mOnce.has(movimientoId)) {
-            _hold10m.set(movimientoId, Date.now() + HOLD10M_MS);
-            _hold10mOnce.add(movimientoId);
-          }
-          return;
         }
-      }
-    });
-  }
 
-  private static async _incidenteAlta(ronda: Ronda & { movimiento: Movimiento }, opts?: { clientLocalISO?: string }) {
-    await prisma.$transaction(async (tx) => {
-      const { localidadId } = ronda;
-
-      const altasR1 = await tx.ronda.findMany({
-        where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
-        orderBy: { orden: 'asc' },
-      });
-
-      if (altasR1.length === 0) {
-        await tx.ronda.updateMany({ where: { localidadId, concluido: false }, data: { rondaNumero: { increment: 1 } } });
-        const self = await tx.ronda.findUnique({ where: { id: ronda.id } });
-        if (self) await this.moverRonda(tx, self, 1, 1);
-      } else if (ronda.rondaNumero !== 1) {
-        const tam = await this.tamanoDeRonda(tx, localidadId, 1);
-        await this.moverRonda(tx, ronda, 1, tam + 1);
+        // Reordenar: ALTAS FIFO + BAJAS robin-hood
+        await this.recomponerRondasLocalidad(localidadId, tx);
+        return;
       }
 
-      await this.reordenarAltasSegunReglas(localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
-      await this.recomponerRondasLocalidad(localidadId, tx, { clientLocalISO: opts?.clientLocalISO });
-    });
-  }
-
-  private static async _incidenteBajaCadenaCompleta(ronda: Ronda & { movimiento: Movimiento }) {
-    await prisma.$transaction(async (tx) => {
-      const { localidadId, empresaId } = ronda;
-
-      const chain = await tx.ronda.findMany({
-        where: { localidadId, empresaId, concluido: false, rondaNumero: { gte: ronda.rondaNumero } },
+      // === BAJA: rotar dentro de la cola de su empresa y luego redistribuir robin-hood ===
+      // Respeta órdenes por empresa (la incidente pasa al final de su "cola" de BAJAS)
+      const bajasEmpresa = await tx.ronda.findMany({
+        where: { localidadId, empresaId, concluido: false, movimiento: { prioridad: 'BAJA' } },
         orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
       });
-      if (chain.length === 0) return;
 
-      let current = await tx.ronda.findUnique({ where: { id: chain[0].id } });
-      if (!current) return;
-
-      for (let i = 1; i < chain.length; i++) {
-        const target = await tx.ronda.findUnique({ where: { id: chain[i].id } });
-        if (!target) continue;
-        await this.moverRonda(tx, current, target.rondaNumero, target.orden);
-        const pushed = await tx.ronda.findUnique({ where: { id: chain[i].id } });
-        if (!pushed) break;
-        current = pushed;
+      if (bajasEmpresa.length >= 2) {
+        // Intercambiar el movimiento incidente con el último de la lista de su empresa
+        const selfIdx = bajasEmpresa.findIndex(x => x.movimientoId === movimientoId);
+        if (selfIdx >= 0 && selfIdx !== bajasEmpresa.length - 1) {
+          const last = bajasEmpresa[bajasEmpresa.length - 1];
+          const self = bajasEmpresa[selfIdx];
+          // swap movimientoIds manteniendo posiciones
+          await tx.ronda.update({ where: { id: self.id }, data: { movimientoId: last.movimientoId } });
+          await tx.ronda.update({ where: { id: last.id }, data: { movimientoId: self.movimientoId } });
+        }
       }
 
-      const last = chain[chain.length - 1];
-      const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, last.rondaNumero + 1);
-      const tam = await this.tamanoDeRonda(tx, localidadId, target);
-      await this.moverRonda(tx, current, target, tam + 1);
-
-      await this.recomponerRondasLocalidad(localidadId, tx);
+      // Redistribuir BAJAS globalmente en esquema robin-hood
+      await this.reequilibrarBajasRobinHood(tx, localidadId);
     });
   }
 
@@ -725,10 +601,10 @@ export class RondaModel {
   /**
    * Devuelve SOLO el primero de la cola (aunque esté bloqueado) y notifica:
    * "La máquina <NÚMERO> obstruye la vía <VÍA>. Si no es cierto, hacer caso omiso..."
+   * NOTA: LAVADO se muestra normal (sin ocultar). Si está tapado, que levanten incidente.
    */
   static async siguienteParaMaquinista(localidadId: number) {
     return prisma.$transaction(async (tx) => {
-      // No reordenamos aquí: el maquinista solo quiere el primero
       const r = await tx.ronda.findFirst({
         where: { localidadId, concluido: false },
         include: {
@@ -771,7 +647,7 @@ export class RondaModel {
     });
   }
 
-  /** Wrapper por compatibilidad: usa la misma lógica de “uno a la vez”. */
+  /** Wrapper por compatibilidad. */
   public static async siguienteInteligente(localidadId: number) {
     return this.siguienteParaMaquinista(localidadId);
   }
