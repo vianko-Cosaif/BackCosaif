@@ -1,6 +1,6 @@
 // movimiento.controller.ts
 import { RequestHandler } from 'express';
-import { MovimientoModel } from '../../models/Movimientos/MovimientoModel';
+import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 
 /** ---- Helpers de META (no tocamos Vías/Secciones desde aquí) ----
@@ -56,7 +56,7 @@ export class MovimientoController {
 
     try {
       const todos = await MovimientoModel.obtenerMovimientos();
-      const mov = todos.find(m => m.id === id);
+      const mov = todos.find((m: { id: number }) => m.id === id);
       if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       const meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
@@ -137,7 +137,7 @@ export class MovimientoController {
 
     try {
       const movimientos = await MovimientoModel.obtenerMovimientos();
-      const original = movimientos.find(m => m.id === id);
+      const original = movimientos.find((m: { id: number }) => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       if (original.prioridad === prioridad) {
@@ -317,7 +317,7 @@ export class MovimientoController {
       let meta: ReturnType<typeof parseMetaFromInstrucciones> | undefined;
       try {
         const todos = await MovimientoModel.obtenerMovimientos();
-        const mov = todos.find(m => m.id === (info as any)?.movimiento?.id);
+        const mov = todos.find((m: any) => m.id === (info as any)?.movimiento?.id);
         if (mov) meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
       } catch { /* noop */ }
 
@@ -382,7 +382,7 @@ export class MovimientoController {
     try {
       // Obtenemos el movimiento actual para leer origen+meta antes de finalizar
       const todos = await MovimientoModel.obtenerMovimientos();
-      const original = todos.find(m => m.id === id);
+      const original = todos.find((m: any) => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       const meta = parseMetaFromInstrucciones((original as any).instrucciones ?? undefined);
