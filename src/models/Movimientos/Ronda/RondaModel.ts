@@ -31,19 +31,18 @@ function _isOnHold(movId: number) {
   return true;
 }
 
-// ================== LOCALIDAD / HORA CLIENTE (solo Guadalajara 2) ==================
+// ================== LOCALIDAD / HORA CLIENTE (solo Guadalajara) ==================
 function _normalize(s: string) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
-const _locFlagsCache = new Map<number, { any: boolean; gdl2: boolean }>();
+const _locFlagsCache = new Map<number, { gdl: boolean }>();
 
 async function _getLocalidadFlags(localidadId: number, tx: Tx = prisma) {
   if (_locFlagsCache.has(localidadId)) return _locFlagsCache.get(localidadId)!;
   const loc = await tx.localidad.findUnique({ where: { id: localidadId }, select: { nombre: true } });
   const name = _normalize(loc?.nombre ?? '');
-  const any = name.includes('guadalajara');
-  const gdl2 = any && (/guadalajara\s*2\b/.test(name) || /guadalajara2\b/.test(name));
-  const flags = { any, gdl2 };
+  const gdl = name.includes('guadalajara'); // aplica a "Guadalajara", "guadalajara", etc.
+  const flags = { gdl };
   _locFlagsCache.set(localidadId, flags);
   return flags;
 }
@@ -60,10 +59,10 @@ function enVentanaLavadoCliente(iso?: string): boolean {
   return h !== null && (h >= 22 || h < 4);
 }
 
-/** Solo aplica ventana si la localidad es "Guadalajara 2". */
-async function esVentanaLavadoGDL2(localidadId: number, clientLocalISO?: string, tx: Tx = prisma) {
+/** Ventana especial SOLO si la localidad es Guadalajara. */
+async function esVentanaLavadoGDL(localidadId: number, clientLocalISO?: string, tx: Tx = prisma) {
   const flags = await _getLocalidadFlags(localidadId, tx);
-  return flags.gdl2 && enVentanaLavadoCliente(clientLocalISO);
+  return flags.gdl && enVentanaLavadoCliente(clientLocalISO);
 }
 
 // ================== BLOQUEOS (VÍAS / SECCIONES) ==================
@@ -179,7 +178,7 @@ async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   if (!mov) return { bloqueado: false };
 
   let bloqueado = false;
-let bloqueador: { id: number; locomotiveNumber: number | null; empresa: string | null } | null = null;
+  let bloqueador: { id: number; locomotiveNumber: number | null; empresa: string | null } | null = null;
 
   if (mov.viaDestinoId) {
     const secciones = await tx.seccionVia.count({ where: { viaId: mov.viaDestinoId } });
@@ -307,7 +306,7 @@ export class RondaModel {
     return tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
   }
 
-  // ----------- 1 slot por empresa / ronda (con excepción en R1 para ALTAS de LAVADO durante ventana GDL2) -----------
+  // ----------- 1 slot por empresa / ronda (con excepción en R1 para ALTAS de LAVADO durante ventana GDL) -----------
   private static async primeraRondaLibreParaEmpresa(
     tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
   ): Promise<number> {
@@ -348,7 +347,7 @@ export class RondaModel {
   private static async garantizarUnSlotPorEmpresaPorRonda(
     tx: Tx,
     localidadId: number,
-    opts?: { enVentanaGDL2?: boolean }
+    opts?: { enVentanaGDL?: boolean }
   ) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
@@ -375,7 +374,7 @@ export class RondaModel {
       for (let i = 1; i < rows.length; i++) {
         const mov = movMap.get(rows[i].movId);
         const excepcion =
-          !!opts?.enVentanaGDL2 &&
+          !!opts?.enVentanaGDL &&
           ronda === 1 &&
           mov?.prioridad === 'ALTA' &&
           !!mov?.lavado;
@@ -385,6 +384,33 @@ export class RondaModel {
         const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, ronda + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
         await tx.ronda.update({ where: { id: rows[i].id }, data: { rondaNumero: target, orden: tam + 1 } });
+      }
+    }
+  }
+
+  // --- NUEVO: ALTAS antes que BAJAS en cada ronda (orden estable) ---
+  private static async ordenarPorPrioridadEnCadaRonda(localidadId: number, tx: Tx = prisma) {
+    const filas = await tx.ronda.findMany({
+      where: { localidadId, concluido: false },
+      include: { movimiento: { select: { prioridad: true, createdAt: true } } },
+      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+    });
+
+    const porRonda = new Map<number, typeof filas>();
+    for (const f of filas) {
+      if (!porRonda.has(f.rondaNumero)) porRonda.set(f.rondaNumero, []);
+      porRonda.get(f.rondaNumero)!.push(f);
+    }
+
+    for (const [ronda, rows] of porRonda) {
+      const altas = rows.filter(r => r.movimiento.prioridad === 'ALTA');
+      const bajas  = rows.filter(r => r.movimiento.prioridad !== 'ALTA');
+      const nuevo = [...altas, ...bajas];
+      for (let i = 0; i < nuevo.length; i++) {
+        const ordenEsperado = i + 1;
+        if (nuevo[i].orden !== ordenEsperado) {
+          await tx.ronda.update({ where: { id: nuevo[i].id }, data: { orden: ordenEsperado } });
+        }
       }
     }
   }
@@ -411,8 +437,11 @@ export class RondaModel {
       idx++;
     }
 
-    const enVentanaGDL2 = await esVentanaLavadoGDL2(localidadId, opts?.clientLocalISO, tx);
-    await this.garantizarUnSlotPorEmpresaPorRonda(tx, localidadId, { enVentanaGDL2 });
+    const enVentanaGDL = await esVentanaLavadoGDL(localidadId, opts?.clientLocalISO, tx);
+    await this.garantizarUnSlotPorEmpresaPorRonda(tx, localidadId, { enVentanaGDL });
+
+    // Prioriza ALTAS dentro de cada ronda (global, estable)
+    await this.ordenarPorPrioridadEnCadaRonda(localidadId, tx);
 
     const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
     for (let r = 1; r <= (max._max.rondaNumero ?? 0); r++) {
@@ -420,13 +449,13 @@ export class RondaModel {
     }
   }
 
-  // ---------- ORDEN ALTAS / LAVADO (solo GDL2 + hora cliente) ----------
+  // ---------- ORDEN ALTAS / LAVADO (solo Guadalajara + hora cliente) ----------
   private static async reordenarAltasSegunReglas(
     localidadId: number,
     tx: Tx = prisma,
     opts?: { clientLocalISO?: string }
   ) {
-    const enVentana = await esVentanaLavadoGDL2(localidadId, opts?.clientLocalISO, tx);
+    const enVentana = await esVentanaLavadoGDL(localidadId, opts?.clientLocalISO, tx);
 
     if (enVentana) {
       const filas = await tx.ronda.findMany({
