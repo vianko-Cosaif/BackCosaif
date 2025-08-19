@@ -179,7 +179,7 @@ async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   if (!mov) return { bloqueado: false };
 
   let bloqueado = false;
-  let bloqueador: { id: number; locomotiveNumber: number ; empresa: string } | null = null;
+let bloqueador: { id: number; locomotiveNumber: number | null; empresa: string | null } | null = null;
 
   if (mov.viaDestinoId) {
     const secciones = await tx.seccionVia.count({ where: { viaId: mov.viaDestinoId } });
@@ -204,7 +204,14 @@ async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   };
 }
 
-async function notificarTapadoSimple(r: Ronda, det: { viaDestino: string | null, bloqueador: null | { id: number; locomotiveNumber: string | null; empresa: string | null } }, tx: Tx) {
+async function notificarTapadoSimple(
+  r: Ronda,
+  det: {
+    viaDestino: string | null,
+    bloqueador: null | { id: number; locomotiveNumber: number | null; empresa: string | null }
+  },
+  tx: Tx
+) {
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
     include: { empresa: { select: { nombre: true } } }
@@ -243,6 +250,7 @@ async function notificarTapadoSimple(r: Ronda, det: { viaDestino: string | null,
   });
   _markNotified(key);
 }
+
 
 // ================== MODELO ==================
 export class RondaModel {
