@@ -20,6 +20,9 @@ const prisma = new PrismaClient();
 /** Normaliza el enum RESUELTO aunque no exista en tipos locales */
 const RESUELTO = (EstadoIncidente as unknown as Record<string, string>).RESUELTO ?? 'RESUELTO';
 
+/** Máximo de cierres no resueltos antes de cancelar el movimiento */
+const MAX_CIERRES_NO_RESUELTOS = 3;
+
 /**
  * Configuración para el manejo de imágenes
  */
@@ -461,13 +464,54 @@ export class IncidenteModel {
         return { incidenteActualizado: upd, estadoAnterior: actual.estado };
       });
 
-      // Reordenar SOLO si quedó CERRADO (fuera de la transacción)
+      // Reglas post-estado CERRADO (fuera de la transacción)
       if (data.estado === 'CERRADO') {
-        await RondaModel.gestionarIncidente(incidenteActualizado.movimientoId, { cerradoNoResuelto: true });
-        incidenteError.info('Reorden ejecutado por cierre de incidente', {
-          incidenteId: id,
-          movimientoId: incidenteActualizado.movimientoId,
+        const movId = incidenteActualizado.movimientoId;
+
+        // ¿Cuántos cierres tiene este movimiento (incluye éste)?
+        const cierres = await prisma.incidente.count({
+          where: { movimientoId: movId, estado: 'CERRADO' },
         });
+
+        if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
+          // 3er cierre: CANCELAR movimiento y sacarlo de la ronda
+          const mov = await prisma.movimiento.findUnique({
+            where: { id: movId },
+            select: { id: true, localidadId: true },
+          });
+
+          await prisma.$transaction(async (tx) => {
+            await tx.movimiento.update({
+              where: { id: movId },
+              data: {
+                finalizado: true,
+                // estado: 'CANCELADO' as any, // habilitar si existe en tu enum
+                fechaFin: new Date(),
+                incidenteGlobal: false,
+                fechaPausa: null,
+              },
+            });
+            await tx.ronda.deleteMany({ where: { movimientoId: movId } });
+          });
+
+          if (mov?.localidadId) {
+            await RondaModel.recomponerRondasLocalidad(mov.localidadId);
+          }
+
+          incidenteError.warn('Movimiento cancelado por múltiples cierres no resueltos', {
+            incidenteId: id,
+            movimientoId: movId,
+            cierres,
+          });
+        } else {
+          // 1er o 2do cierre: aplicar HOLD y reordenar
+          await RondaModel.gestionarIncidente(movId, { cerradoNoResuelto: true });
+          incidenteError.info('Reorden ejecutado por cierre de incidente', {
+            incidenteId: id,
+            movimientoId: movId,
+            cierres,
+          });
+        }
       }
 
       // Notificar cambio de estado si aplicó
