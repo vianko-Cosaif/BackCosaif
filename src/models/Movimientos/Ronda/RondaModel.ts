@@ -338,93 +338,105 @@ export class RondaModel {
     }
   }
 
-  // ---------- ALTAS: FIFO EN R1, BAJAS: ROBIN-HOOD (1 por empresa por ronda) ----------
-  private static async ordenarAltasR1_FIFO(tx: Tx, localidadId: number) {
-    // Mover TODAS las ALTAS a R1 y ordenarlas por createdAt asc; BAJAS quedan después.
-    const filas = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
-      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
-    });
+ // ALTAS: FIFO en R1 (pero respetando HOLD: ALTAS en hold NO van a R1)
+private static async ordenarAltasR1_FIFO(tx: Tx, localidadId: number) {
+  const filas = await tx.ronda.findMany({
+    where: { localidadId, concluido: false },
+    include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
+    orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+  });
 
-    // 1) Llevar ALTAS a R1; BAJAS en R1 se quedan, pero irán detrás
-    for (const f of filas) {
-      if (f.movimiento.prioridad === 'ALTA' && f.rondaNumero !== 1) {
-        const tam = await this.tamanoDeRonda(tx, localidadId, 1);
-        await this.moverRonda(tx, f, 1, tam + 1);
+  // 1) Llevar ALTAS sin hold a R1; ALTAS en hold, si están en R1, bajarlas a R2
+  for (const f of filas) {
+    if (f.movimiento.prioridad !== 'ALTA') continue;
+
+    if (_isOnHold(f.movimiento.id)) {
+      if (f.rondaNumero === 1) {
+        const tamR2 = await this.tamanoDeRonda(tx, localidadId, 2);
+        await this.moverRonda(tx, f, 2, tamR2 + 1);
       }
+      continue;
     }
 
-    const r1 = await tx.ronda.findMany({
-      where: { localidadId, rondaNumero: 1, concluido: false },
-      include: { movimiento: { select: { prioridad: true, createdAt: true } } },
-      orderBy: [{ orden: 'asc' }],
-    });
-
-    const altas = r1.filter(x => x.movimiento.prioridad === 'ALTA')
-                    .sort((a, b) => (+new Date(a.movimiento.createdAt)) - (+new Date(b.movimiento.createdAt)));
-    const bajas  = r1.filter(x => x.movimiento.prioridad !== 'ALTA');
-
-    const nuevoOrden = [...altas.map(x => x.id), ...bajas.map(x => x.id)];
-    for (let i = 0; i < nuevoOrden.length; i++) {
-      await tx.ronda.update({ where: { id: nuevoOrden[i] }, data: { orden: i + 1 } });
+    if (f.rondaNumero !== 1) {
+      const tamR1 = await this.tamanoDeRonda(tx, localidadId, 1);
+      await this.moverRonda(tx, f, 1, tamR1 + 1);
     }
   }
 
-  private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
-    // Detectar si hay ALTAS; si sí, BAJAS parten en R2; si no, desde R1
-    const hayAltas = await tx.ronda.count({
-      where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } }
-    });
-    const startRound = hayAltas > 0 ? 2 : 1;
+  // 2) Ordenar R1: ALTAS (sin hold) por createdAt y luego el resto
+  const r1 = await tx.ronda.findMany({
+    where: { localidadId, rondaNumero: 1, concluido: false },
+    include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
+    orderBy: [{ orden: 'asc' }],
+  });
 
-    // Antes que nada, garantizar 1 BAJA por empresa por ronda (empujar excedentes)
-    await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
+  const altasOk = r1
+    .filter(x => x.movimiento.prioridad === 'ALTA' && !_isOnHold(x.movimiento.id))
+    .sort((a, b) => +new Date(a.movimiento.createdAt) - +new Date(b.movimiento.createdAt));
 
-    // Tomar TODAS las BAJAS (rondas >= startRound) preservando orden relativo actual por empresa
-    const bajas = await tx.ronda.findMany({
-      where: { localidadId, concluido: false, rondaNumero: { gte: startRound }, movimiento: { prioridad: 'BAJA' } },
-      include: { movimiento: { select: { id: true } } },
-      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
-    });
+  const resto = r1.filter(x => x.movimiento.prioridad !== 'ALTA' || _isOnHold(x.movimiento.id));
 
-    // Agrupar por empresa preservando orden actual
-    const porEmpresa = new Map<number, typeof bajas>();
-    for (const r of bajas) {
-      porEmpresa.set(r.empresaId, [ ...(porEmpresa.get(r.empresaId) ?? []), r ]);
-    }
-    const empresas = [...porEmpresa.keys()];
-
-    // Asignación round-robin: 1 por empresa por ronda
-    let ronda = startRound;
-    while ([...porEmpresa.values()].some(arr => arr.length > 0)) {
-      let orden = 1;
-      for (const e of empresas) {
-        const arr = porEmpresa.get(e)!;
-        if (arr.length) {
-          const item = arr.shift()!;
-          await tx.ronda.update({ where: { id: item.id }, data: { rondaNumero: ronda, orden } });
-          orden++;
-        }
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, ronda);
-      ronda++;
-    }
-
-    // Compactar numeración de rondas al final
-    const grupos = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
-    });
-    let idx = 1;
-    for (const g of grupos) {
-      if (g.rondaNumero !== idx) {
-        await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, idx);
-      idx++;
-    }
+  const nuevoOrden = [...altasOk.map(x => x.id), ...resto.map(x => x.id)];
+  for (let i = 0; i < nuevoOrden.length; i++) {
+    await tx.ronda.update({ where: { id: nuevoOrden[i] }, data: { orden: i + 1 } });
   }
+}
+
+
+ // BAJAS: repartir en robin-hood, empezando en R2 SOLO si hay ALTAS sin hold
+private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
+  // ¿Hay ALTAS activas (sin hold)?
+  const altas = await tx.ronda.findMany({
+    where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
+    select: { movimiento: { select: { id: true } } },
+  });
+  const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
+  const startRound = hayAltasSinHold ? 2 : 1;
+
+  // Garantizar 1 BAJA por empresa por ronda desde startRound
+  await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
+
+  // Tomar BAJAS desde startRound y repartir round-robin
+  const bajas = await tx.ronda.findMany({
+    where: { localidadId, concluido: false, rondaNumero: { gte: startRound }, movimiento: { prioridad: 'BAJA' } },
+    include: { movimiento: { select: { id: true } } },
+    orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+  });
+
+  const porEmpresa = new Map<number, typeof bajas>();
+  for (const r of bajas) porEmpresa.set(r.empresaId, [ ...(porEmpresa.get(r.empresaId) ?? []), r ]);
+  const empresas = [...porEmpresa.keys()];
+
+  let ronda = startRound;
+  while ([...porEmpresa.values()].some(arr => arr.length > 0)) {
+    let orden = 1;
+    for (const e of empresas) {
+      const arr = porEmpresa.get(e)!;
+      if (arr.length) {
+        const item = arr.shift()!;
+        await tx.ronda.update({ where: { id: item.id }, data: { rondaNumero: ronda, orden } });
+        orden++;
+      }
+    }
+    await this.compactarOrdenesRonda(tx, localidadId, ronda);
+    ronda++;
+  }
+
+  // Compactar numeración de rondas
+  const grupos = await tx.ronda.findMany({
+    where: { localidadId, concluido: false },
+    select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
+  });
+  let idx = 1;
+  for (const g of grupos) {
+    if (g.rondaNumero !== idx) {
+      await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
+    }
+    await this.compactarOrdenesRonda(tx, localidadId, idx);
+    idx++;
+  }
+}
 
   // ---------- RECOMPOSICIÓN GENERAL ----------
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
