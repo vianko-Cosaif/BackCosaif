@@ -17,6 +17,9 @@ import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
 
+/** Normaliza el enum RESUELTO aunque no exista en tipos locales */
+const RESUELTO = (EstadoIncidente as unknown as Record<string, string>).RESUELTO ?? 'RESUELTO';
+
 /**
  * Configuración para el manejo de imágenes
  */
@@ -37,13 +40,13 @@ export type EstadoFiltro = 'ABIERTO' | 'CERRADO' | 'RESUELTO' | 'PASADOS';
 function buildWhereByEstado(estado?: EstadoFiltro) {
   if (!estado) return {};
   if (estado === 'PASADOS') {
-    return { estado: { in: [EstadoIncidente.CERRADO, (EstadoIncidente as any).RESUELTO ?? 'RESUELTO'] } };
+    return { estado: { in: [EstadoIncidente.CERRADO, RESUELTO as any] } };
   }
   if (estado === 'ABIERTO' || estado === 'CERRADO') {
     return { estado: EstadoIncidente[estado] };
   }
   if (estado === 'RESUELTO') {
-    return { estado: (EstadoIncidente as any).RESUELTO ?? 'RESUELTO' };
+    return { estado: RESUELTO as any };
   }
   return {};
 }
@@ -122,12 +125,12 @@ export async function listarIncidentesPorCursor({
   limit = 20,
   estado,
 }: {
-  cursor?: { fechaInicio: string; id: number } | null;
+  cursor?: { id: number } | null;
   limit?: number;
   estado?: EstadoFiltro;
 }) {
   const where = buildWhereByEstado(estado);
-  const orderBy = [{ fechaInicio: 'desc' as const }, { id: 'desc' as const }];
+  const orderBy = [{ id: 'desc' as const }];
 
   const result = await prisma.incidente.findMany({
     where,
@@ -142,9 +145,7 @@ export async function listarIncidentesPorCursor({
 
   const hasNext = result.length > limit;
   const data = hasNext ? result.slice(0, limit) : result;
-  const nextCursor = hasNext
-    ? { fechaInicio: data[data.length - 1].fechaInicio.toISOString(), id: data[data.length - 1].id }
-    : null;
+  const nextCursor = hasNext ? { id: data[data.length - 1].id } : null;
 
   return { data, cursor: nextCursor, hasNext, estado: estado ?? null };
 }
@@ -236,12 +237,11 @@ export class IncidenteModel {
     };
   }
 
-  // Dentro de export class IncidenteModel { ... }
   static async verificarPeriodoVerificacion(incidenteId: number) {
     try {
       const incidente = await prisma.incidente.findUnique({
         where: { id: incidenteId },
-        select: { id: true, estado: true, fechaInicio: true }
+        select: { id: true, estado: true, fechaInicio: true },
       });
 
       if (!incidente) {
@@ -249,12 +249,12 @@ export class IncidenteModel {
       }
 
       // Si ya está cerrado o resuelto, no hay verificación activa
-      if (incidente.estado === 'CERRADO' || (incidente.estado as any) === 'RESUELTO') {
+      if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === (RESUELTO as any)) {
         return {
           enPeriodoVerificacion: false,
           enPeriodoBloqueo: false,
           tiempoRestante: 0,
-          mensaje: 'Incidente ya está cerrado o resuelto'
+          mensaje: 'Incidente ya está cerrado o resuelto',
         };
       }
 
@@ -284,7 +284,7 @@ export class IncidenteModel {
         enPeriodoVerificacion,
         enPeriodoBloqueo,
         tiempoRestante: Math.max(0, tiempoRestante),
-        mensaje
+        mensaje,
       };
     } catch (error) {
       incidenteError.error('Error al verificar periodo de verificación', { incidenteId, error });
@@ -404,64 +404,73 @@ export class IncidenteModel {
     data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
   ) {
     try {
-      const incidenteActual = await prisma.incidente.findUnique({
-        where: { id },
-        include: { movimiento: true },
-      });
-      if (!incidenteActual) throw new Error(`No se encontró incidente con id ${id}`);
+      const { incidenteActualizado, estadoAnterior } = await prisma.$transaction(async (tx) => {
+        const actual = await tx.incidente.findUnique({
+          where: { id },
+          include: { movimiento: true },
+        });
+        if (!actual) throw new Error(`No se encontró incidente con id ${id}`);
 
-      const estadoAnterior = incidenteActual.estado;
-      const updateData: any = {};
+        const updateData: any = {};
 
-      if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
+        if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
 
-      if (data.estado !== undefined && data.estado !== estadoAnterior) {
-        updateData.estado = data.estado;
-        updateData.fechaFin = new Date();
-
-        if (data.estado === 'RESUELTO') {
-          // RESUELTO: reactivar movimiento, NO reordenar rondas
-          await prisma.movimiento.update({
-            where: { id: incidenteActual.movimientoId },
-            data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
-          });
-          incidenteError.info('Movimiento reactivado tras resolución de incidente', {
-            incidenteId: id,
-            movimientoId: incidenteActual.movimientoId,
-          });
-        } else if (data.estado === 'CERRADO') {
-          // CERRADO (no resuelto): aquí SÍ reordenamos explícitamente
-          await RondaModel.gestionarIncidente(incidenteActual.movimientoId, { cerradoNoResuelto: true });
-          incidenteError.info('Reorden ejecutado por cierre de incidente', {
-            incidenteId: id,
-            movimientoId: incidenteActual.movimientoId,
-          });
-        }
-      }
-
-      if (data.imagenes?.length) {
-        const anteriores = [incidenteActual.imagen1, incidenteActual.imagen2, incidenteActual.imagen3, incidenteActual.imagen4];
-        for (const ruta of anteriores) {
-          if (!ruta) continue;
-          try {
-            await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
-          } catch (err) {
-            incidenteError.warn('No se pudo eliminar imagen anterior', { ruta, err });
+        // Manejo de imágenes (borra anteriores y guarda nuevas)
+        if (data.imagenes?.length) {
+          const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
+          for (const ruta of anteriores) {
+            if (!ruta) continue;
+            try {
+              await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
+            } catch (err) {
+              incidenteError.warn('No se pudo eliminar imagen anterior', { ruta, err });
+            }
           }
+          const rutas = await IncidenteModel.procesarImagenes(data.imagenes, id);
+          updateData.imagen1 = rutas[0] ?? null;
+          updateData.imagen2 = rutas[1] ?? null;
+          updateData.imagen3 = rutas[2] ?? null;
+          updateData.imagen4 = rutas[3] ?? null;
         }
-        const rutas = await this.procesarImagenes(data.imagenes, id);
-        updateData.imagen1 = rutas[0] ?? null;
-        updateData.imagen2 = rutas[1] ?? null;
-        updateData.imagen3 = rutas[2] ?? null;
-        updateData.imagen4 = rutas[3] ?? null;
-      }
 
-      const incidenteActualizado = await prisma.incidente.update({
-        where: { id },
-        data: updateData,
-        include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
+        // Cambio de estado (solo persistencia aquí)
+        if (data.estado !== undefined && data.estado !== actual.estado) {
+          updateData.estado = data.estado;
+          updateData.fechaFin = new Date();
+
+          if (data.estado === 'RESUELTO') {
+            // RESUELTO: reactivar movimiento, NO reordenar rondas
+            await tx.movimiento.update({
+              where: { id: actual.movimientoId },
+              data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+            });
+            incidenteError.info('Movimiento reactivado tras resolución de incidente', {
+              incidenteId: id,
+              movimientoId: actual.movimientoId,
+            });
+          }
+          // Si es CERRADO, la reordenación se hará después de la transacción
+        }
+
+        const upd = await tx.incidente.update({
+          where: { id },
+          data: updateData,
+          include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
+        });
+
+        return { incidenteActualizado: upd, estadoAnterior: actual.estado };
       });
 
+      // Reordenar SOLO si quedó CERRADO (fuera de la transacción)
+      if (data.estado === 'CERRADO') {
+        await RondaModel.gestionarIncidente(incidenteActualizado.movimientoId, { cerradoNoResuelto: true });
+        incidenteError.info('Reorden ejecutado por cierre de incidente', {
+          incidenteId: id,
+          movimientoId: incidenteActualizado.movimientoId,
+        });
+      }
+
+      // Notificar cambio de estado si aplicó
       if (data.estado && data.estado !== estadoAnterior) {
         await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
       }
@@ -501,7 +510,11 @@ export class IncidenteModel {
         rutasGuardadas.push(path.relative(IMAGEN_CONFIG.carpetaBase, rutaCompleta));
       }
 
-      incidenteError.info('Imágenes procesadas y guardadas', { incidenteId, cantidad: rutasGuardadas.length, carpeta: carpetaDestino });
+      incidenteError.info('Imágenes procesadas y guardadas', {
+        incidenteId,
+        cantidad: rutasGuardadas.length,
+        carpeta: carpetaDestino,
+      });
       return rutasGuardadas;
     } catch (error) {
       incidenteError.error('Error al procesar imágenes', { incidenteId, error });
@@ -545,7 +558,11 @@ export class IncidenteModel {
     }
   }
 
-  private static async moverMovimientoARonda1AlFinal(localidadId: number, empresaId: number, movimientoId: number): Promise<void> {
+  private static async moverMovimientoARonda1AlFinal(
+    localidadId: number,
+    empresaId: number,
+    movimientoId: number
+  ): Promise<void> {
     await prisma.$transaction(async (tx) => {
       const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
       if (rondaActual) {
@@ -854,9 +871,9 @@ export class IncidenteModel {
         incidente.descripcion.length > 50 ? incidente.descripcion.slice(0, 50) + '…' : incidente.descripcion;
 
       const titulo =
-        incidente.estado === ('RESUELTO' as any)
+        incidente.estado === (RESUELTO as any)
           ? '✅ INCIDENTE RESUELTO'
-          : incidente.estado === ('CERRADO' as any)
+          : incidente.estado === (EstadoIncidente.CERRADO as any)
           ? '❌ INCIDENTE CERRADO'
           : '🔄 INCIDENTE ACTUALIZADO';
 
@@ -910,14 +927,14 @@ export class IncidenteModel {
     });
 
     if (!incidente) throw new Error('Incidente no encontrado');
-    if (incidente.estado === 'CERRADO' || (incidente.estado as any) === 'RESUELTO') {
+    if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === (RESUELTO as any)) {
       throw new Error('Incidente ya finalizado');
     }
 
     // marcar como RESUELTO (no reordenar)
     const actualizado = await prisma.incidente.update({
       where: { id },
-      data: { estado: 'RESUELTO' as any, fechaFin: new Date() },
+      data: { estado: RESUELTO as any, fechaFin: new Date() },
       include: { movimiento: true },
     });
 
