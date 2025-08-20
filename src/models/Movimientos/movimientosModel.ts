@@ -183,6 +183,25 @@ export class MovimientoModel {
     await ViaModel.asignarMovimientoASeccion(viaId, seccion, movimientoId, tx);
   }
 
+  /** Liberación best-effort: intenta liberar y jamás bloquea el flujo si falla. */
+  private static async liberarViaSiCorresponde(
+    viaId: number,
+    movimientoId: number,
+    tx: Prisma.TransactionClient
+  ): Promise<void> {
+    try {
+      await ViaModel.liberarMovimientoDeSeccion(viaId, movimientoId, tx);
+    } catch (e: any) {
+      movimientoError.warn('No se pudo liberar vía/sección (se ignora)', {
+        viaId,
+        movimientoId,
+        errName: e?.name,
+        errMsg: e?.message,
+      });
+      // ignorar por completo
+    }
+  }
+
   // ================== Consultas ==================
   static async obtenerMovimientos() {
     try {
@@ -261,7 +280,7 @@ export class MovimientoModel {
         });
 
         if (cancelado.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(cancelado.viaDestino.id, id, tx);
+          await this.liberarViaSiCorresponde(cancelado.viaDestino.id, id, tx);
         }
 
         if (original.ronda) {
@@ -386,7 +405,7 @@ export class MovimientoModel {
         });
 
         if ((nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') && updated.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(updated.viaDestino.id, id, tx);
+          await this.liberarViaSiCorresponde(updated.viaDestino.id, id, tx);
         }
 
         if (movAct.ronda) {
@@ -613,7 +632,9 @@ export class MovimientoModel {
         });
 
         if (data.viaDestinoId && data.viaDestinoId !== actual.viaDestinoId) {
-          if (actual.viaDestinoId) await ViaModel.liberarMovimientoDeSeccion(actual.viaDestinoId, id, tx);
+          if (actual.viaDestinoId) {
+            await this.liberarViaSiCorresponde(actual.viaDestinoId, id, tx);
+          }
           try {
             await this.intentarOcuparViaDestino(data.viaDestinoId, id, data.numeroSeccion ?? null, tx);
           } catch (e: any) {
@@ -710,7 +731,7 @@ export class MovimientoModel {
         if (!mov) throw new Error(`Movimiento ${id} no encontrado`);
 
         if (mov.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(mov.viaDestino.id, id, tx);
+          await this.liberarViaSiCorresponde(mov.viaDestino.id, id, tx);
         }
         if (mov.ronda) {
           await tx.ronda.delete({ where: { id: mov.ronda.id } });
@@ -752,7 +773,6 @@ export class MovimientoModel {
           prioridad: 'ALTA',
         });
       } else if (prioridad === 'BAJA' && movimiento.estado === 'SOLICITADO') {
-        // usar deleteMany por si no hay índice único en movimientoId
         await prisma.ronda.deleteMany({ where: { movimientoId: id } });
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: id,
@@ -1072,7 +1092,7 @@ export class MovimientoModel {
     }
   }
 
-  // ================== FINALIZAR (idempotente + logs útiles) ==================
+  // ================== FINALIZAR (idempotente + best-effort en liberación) ==================
   static async finalizarMovimiento(id: number) {
     try {
       const mov = await prisma.$transaction(async (tx) => {
@@ -1091,9 +1111,9 @@ export class MovimientoModel {
           include: { ronda: true, viaDestino: { select: { id: true } } },
         });
 
-        // Libera vía/ sección si aplica
+        // Libera vía/sección (best-effort, sin bloquear)
         if (res.viaDestino?.id) {
-          await ViaModel.liberarMovimientoDeSeccion(res.viaDestino.id, id, tx);
+          await this.liberarViaSiCorresponde(res.viaDestino.id, id, tx);
         }
 
         // Marca ronda como concluida y recomponer
