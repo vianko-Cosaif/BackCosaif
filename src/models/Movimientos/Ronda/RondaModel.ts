@@ -384,7 +384,7 @@ private static async ordenarAltasR1_FIFO(tx: Tx, localidadId: number) {
 }
 
 
- // BAJAS: repartir en robin-hood, empezando en R2 SOLO si hay ALTAS sin hold
+// BAJAS: repartir en robin-hood, empezando en R2 SOLO si hay ALTAS sin hold
 private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
   // ¿Hay ALTAS activas (sin hold)?
   const altas = await tx.ronda.findMany({
