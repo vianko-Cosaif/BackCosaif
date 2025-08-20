@@ -2,7 +2,7 @@
 /**
  * Modelo de acceso a datos para la entidad Incidente.
  * - Manejo de imágenes con optimización
- * - Reorganización de rondas cuando hay incidentes
+ * - Reorganización de rondas (solo cuando Incidente lo ordena)
  * - Timeouts de verificación/cierre
  */
 
@@ -237,61 +237,60 @@ export class IncidenteModel {
   }
 
   // Dentro de export class IncidenteModel { ... }
+  static async verificarPeriodoVerificacion(incidenteId: number) {
+    try {
+      const incidente = await prisma.incidente.findUnique({
+        where: { id: incidenteId },
+        select: { id: true, estado: true, fechaInicio: true }
+      });
 
-static async verificarPeriodoVerificacion(incidenteId: number) {
-  try {
-    const incidente = await prisma.incidente.findUnique({
-      where: { id: incidenteId },
-      select: { id: true, estado: true, fechaInicio: true }
-    });
+      if (!incidente) {
+        throw new Error(`No se encontró incidente con id ${incidenteId}`);
+      }
 
-    if (!incidente) {
-      throw new Error(`No se encontró incidente con id ${incidenteId}`);
-    }
+      // Si ya está cerrado o resuelto, no hay verificación activa
+      if (incidente.estado === 'CERRADO' || (incidente.estado as any) === 'RESUELTO') {
+        return {
+          enPeriodoVerificacion: false,
+          enPeriodoBloqueo: false,
+          tiempoRestante: 0,
+          mensaje: 'Incidente ya está cerrado o resuelto'
+        };
+      }
 
-    // Si ya está cerrado o resuelto, no hay verificación activa
-    if (incidente.estado === 'CERRADO' || (incidente.estado as any) === 'RESUELTO') {
+      const ahora = new Date();
+      const transcurrido = ahora.getTime() - incidente.fechaInicio.getTime();
+
+      const verif = TIMEOUT_CONFIG.verificacion;
+      const bloque = TIMEOUT_CONFIG.bloqueo;
+
+      const enPeriodoVerificacion = transcurrido <= verif;
+      const enPeriodoBloqueo = transcurrido > verif && transcurrido <= verif + bloque;
+
+      let tiempoRestante = 0;
+      let mensaje = '';
+
+      if (enPeriodoVerificacion) {
+        tiempoRestante = verif - transcurrido;
+        mensaje = 'Periodo de verificación activo';
+      } else if (enPeriodoBloqueo) {
+        tiempoRestante = verif + bloque - transcurrido;
+        mensaje = 'Periodo de bloqueo activo';
+      } else {
+        mensaje = 'Incidente puede ser cerrado';
+      }
+
       return {
-        enPeriodoVerificacion: false,
-        enPeriodoBloqueo: false,
-        tiempoRestante: 0,
-        mensaje: 'Incidente ya está cerrado o resuelto'
+        enPeriodoVerificacion,
+        enPeriodoBloqueo,
+        tiempoRestante: Math.max(0, tiempoRestante),
+        mensaje
       };
+    } catch (error) {
+      incidenteError.error('Error al verificar periodo de verificación', { incidenteId, error });
+      throw new Error('Error al verificar periodo de verificación');
     }
-
-    const ahora = new Date();
-    const transcurrido = ahora.getTime() - incidente.fechaInicio.getTime();
-
-    const verif = TIMEOUT_CONFIG.verificacion;
-    const bloque = TIMEOUT_CONFIG.bloqueo;
-
-    const enPeriodoVerificacion = transcurrido <= verif;
-    const enPeriodoBloqueo = transcurrido > verif && transcurrido <= verif + bloque;
-
-    let tiempoRestante = 0;
-    let mensaje = '';
-
-    if (enPeriodoVerificacion) {
-      tiempoRestante = verif - transcurrido;
-      mensaje = 'Periodo de verificación activo';
-    } else if (enPeriodoBloqueo) {
-      tiempoRestante = verif + bloque - transcurrido;
-      mensaje = 'Periodo de bloqueo activo';
-    } else {
-      mensaje = 'Incidente puede ser cerrado';
-    }
-
-    return {
-      enPeriodoVerificacion,
-      enPeriodoBloqueo,
-      tiempoRestante: Math.max(0, tiempoRestante),
-      mensaje
-    };
-  } catch (error) {
-    incidenteError.error('Error al verificar periodo de verificación', { incidenteId, error });
-    throw new Error('Error al verificar periodo de verificación');
   }
-}
 
   static async obtenerIncidentesPaginados(page = 1, pageSize = 30, estado?: 'ABIERTO' | 'CERRADO') {
     try {
@@ -400,7 +399,10 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
   // Escritura / Update
   // =========================================================
 
-  static async editarIncidente(id: number, data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }) {
+  static async editarIncidente(
+    id: number,
+    data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
+  ) {
     try {
       const incidenteActual = await prisma.incidente.findUnique({
         where: { id },
@@ -418,11 +420,19 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
         updateData.fechaFin = new Date();
 
         if (data.estado === 'RESUELTO') {
+          // RESUELTO: reactivar movimiento, NO reordenar rondas
           await prisma.movimiento.update({
             where: { id: incidenteActual.movimientoId },
             data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
           });
           incidenteError.info('Movimiento reactivado tras resolución de incidente', {
+            incidenteId: id,
+            movimientoId: incidenteActual.movimientoId,
+          });
+        } else if (data.estado === 'CERRADO') {
+          // CERRADO (no resuelto): aquí SÍ reordenamos explícitamente
+          await RondaModel.gestionarIncidente(incidenteActual.movimientoId, { cerradoNoResuelto: true });
+          incidenteError.info('Reorden ejecutado por cierre de incidente', {
             incidenteId: id,
             movimientoId: incidenteActual.movimientoId,
           });
@@ -500,14 +510,13 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
   }
 
   // =========================================================
-  // Reglas de reorganización por incidente
+  // Reglas de reorganización por incidente (invocadas explícitamente)
   // =========================================================
 
   /**
-   * Reorganiza rondas cuando se reporta un incidente en un movimiento.
-   * - ALTA: enviar al final de ronda 1 (si era la única ALTA, al moverla a ronda 2 la compactación hará que BAJA pase a ronda 1).
-   * - BAJA: aplica EFECTO CADENA sólo para esa empresa (empuja su participación a rondas posteriores).
-   *   Luego compacta para que los números de ronda sean 1..N.
+   * Reorganiza rondas cuando se reporta un incidente en un movimiento (invocar explícitamente).
+   * - ALTA: enviar al final de R1.
+   * - BAJA: efecto cadena solo para esa empresa; luego compacta 1..N.
    */
   public static async reorganizarRondasPorIncidente(empresaId: number, localidadId: number, movimientoId: number) {
     try {
@@ -524,14 +533,11 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
       const prioridad = rondaMovimiento.movimiento?.prioridad ?? 'BAJA';
 
       if (prioridad === 'ALTA') {
-        // Mover al final de la ronda 1
         await this.moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId);
       } else {
-        // BAJA → efecto cadena para la misma empresa
         await this.aplicarEfectoCadenaBaja(empresaId, localidadId, rondaMovimiento);
       }
 
-      // Compactar números de ronda para que siempre sean 1..N
       await RondaModel.recomponerRondasLocalidad(localidadId);
     } catch (error) {
       incidenteError.error('Error al reorganizar rondas por incidente', { empresaId, localidadId, movimientoId, error });
@@ -539,14 +545,10 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
     }
   }
 
-  /**
-   * Mueve un movimiento (cualquiera) al final de la ronda 1 en su localidad.
-   */
   private static async moverMovimientoARonda1AlFinal(localidadId: number, empresaId: number, movimientoId: number): Promise<void> {
     await prisma.$transaction(async (tx) => {
       const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
       if (rondaActual) {
-        // quitar de su ronda y compactar origen
         await tx.ronda.delete({ where: { id: rondaActual.id } });
         await tx.ronda.updateMany({
           where: { localidadId, rondaNumero: rondaActual.rondaNumero, orden: { gt: rondaActual.orden } },
@@ -561,21 +563,15 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
     });
   }
 
-  /**
-   * EFECTO CADENA para BAJA:
-   * - Toma las participaciones de la MISMA empresa desde la ronda actual hacia adelante.
-   * - El incidente “empuja” la empresa: la participación actual toma el lugar de su
-   *   siguiente slot; el siguiente toma el lugar del siguiente... y la última se manda
-   *   a la ronda siguiente (al final). Si no existe, se crea al final (nueva ronda).
-   * - Se garantiza que quede 1 participación por empresa por ronda.
-   */
-  private static async aplicarEfectoCadenaBaja(empresaId: number, localidadId: number, rondaMovimiento: Ronda & { movimiento: { prioridad: string } }) {
+  private static async aplicarEfectoCadenaBaja(
+    empresaId: number,
+    localidadId: number,
+    rondaMovimiento: Ronda & { movimiento: { prioridad: string } }
+  ) {
     await prisma.$transaction(async (tx) => {
-      // 1) Cadena de slots de la misma empresa desde la ronda actual en adelante
       const chain = await this.obtenerSlotsEmpresaDesde(tx, localidadId, empresaId, rondaMovimiento.rondaNumero);
       if (chain.length === 0) return;
 
-      // 2) Caso trivial: sólo esta participación → enviarla a ronda siguiente (al final o crear nueva)
       if (chain.length === 1) {
         const nextRound = chain[0].rondaNumero + 1;
         const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
@@ -591,7 +587,6 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
         return;
       }
 
-      // 3) Rotación por "empuje": current -> slot[1], slot[1] -> slot[2], ... último -> nextRound al final (o crear)
       let current = await tx.ronda.findUnique({ where: { id: chain[0].id } });
       if (!current) return;
 
@@ -602,13 +597,11 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
 
         await this.moverRonda(tx, current, targetRow.rondaNumero, targetRow.orden);
 
-        // El “empujado” ahora es el target (mismo id), lo buscamos para continuar
         const pushed = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
         if (!pushed) break;
         current = pushed;
       }
 
-      // 4) Último elemento de la cadena → ronda siguiente
       const last = chain[chain.length - 1];
       const nextRound = last.rondaNumero + 1;
       const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
@@ -661,7 +654,6 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
       if (targetOrden === row.orden) return;
 
       if (targetOrden > row.orden) {
-        // Bajar: los que están entre (row.orden+1 .. targetOrden) decrementan 1
         await tx.ronda.updateMany({
           where: {
             localidadId: row.localidadId,
@@ -672,7 +664,6 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
           data: { orden: { decrement: 1 } },
         });
       } else {
-        // Subir: los que están entre (targetOrden .. row.orden-1) incrementan 1
         await tx.ronda.updateMany({
           where: {
             localidadId: row.localidadId,
@@ -688,19 +679,16 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
       return;
     }
 
-    // Distinta ronda: compactar origen
     await tx.ronda.updateMany({
       where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gt: row.orden } },
       data: { orden: { decrement: 1 } },
     });
 
-    // Abrir hueco en destino
     await tx.ronda.updateMany({
       where: { localidadId: row.localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: targetOrden } },
       data: { orden: { increment: 1 } },
     });
 
-    // Mover
     await tx.ronda.update({ where: { id: row.id }, data: { rondaNumero: targetRonda, orden: targetOrden } });
   }
 
@@ -753,12 +741,7 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
         data: { estado: 'DETENIDO', fechaPausa: new Date(), incidenteGlobal: true },
       });
 
-      // 5) Reorganizar según prioridad
-      if (movimiento.prioridad === 'ALTA') {
-        await this.moverMovimientoARonda1AlFinal(movimiento.localidadId, movimiento.empresaId, data.movimientoId);
-      } else if (movimiento.ronda) {
-        await this.reorganizarRondasPorIncidente(movimiento.empresaId, movimiento.localidadId, data.movimientoId);
-      }
+      // 5) ❌ NO reordenar aquí. La reorg solo ocurre cuando Incidente pasa a CERRADO.
 
       // 6) Notificar
       await NotificadorFCM.notificarNuevoIncidente(incidenteConImagenes);
@@ -914,6 +897,12 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
     return empresas.length === 1 && empresas[0].empresaId === empresaId;
   }
 
+  /**
+   * Continuar movimiento = tratar como RESUELTO:
+   * - Marca incidente RESUELTO
+   * - Reactiva el movimiento
+   * - NO reordena rondas
+   */
   static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
     const incidente = await prisma.incidente.findUnique({
       where: { id },
@@ -921,23 +910,22 @@ static async verificarPeriodoVerificacion(incidenteId: number) {
     });
 
     if (!incidente) throw new Error('Incidente no encontrado');
-    if (incidente.estado === 'CERRADO') throw new Error('Incidente ya cerrado');
+    if (incidente.estado === 'CERRADO' || (incidente.estado as any) === 'RESUELTO') {
+      throw new Error('Incidente ya finalizado');
+    }
 
+    // marcar como RESUELTO (no reordenar)
     const actualizado = await prisma.incidente.update({
       where: { id },
-      data: { estado: 'CERRADO', fechaFin: new Date() },
+      data: { estado: 'RESUELTO' as any, fechaFin: new Date() },
       include: { movimiento: true },
     });
 
-    // Si sólo hay una empresa en las rondas de esa localidad, reorganiza internamente
-    const unica = await this.esUnicaEmpresaEnRondas(incidente.movimiento.empresaId, incidente.movimiento.localidadId);
-    if (unica) {
-      await this.reorganizarRondasPorIncidente(
-        incidente.movimiento.empresaId,
-        incidente.movimiento.localidadId,
-        incidente.movimientoId
-      );
-    }
+    // Reactivar movimiento
+    await prisma.movimiento.update({
+      where: { id: incidente.movimientoId },
+      data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+    });
 
     // Notificación a usuarios activos de la empresa en la localidad
     const usuarios = await prisma.usuario.findMany({
