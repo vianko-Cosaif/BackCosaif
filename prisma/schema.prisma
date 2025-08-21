@@ -8,25 +8,29 @@ datasource db {
 }
 
 model Empresa {
-  id          Int          @id @default(autoincrement())
-  nombre      String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id          Int           @id @default(autoincrement())
+  nombre      String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   movimientos Movimiento[]
   enCola      Ronda[]
   usuarios    Usuario[]
+  servicios   ServicioCola[]    // ← nuevo (solo lectura cómoda)
 }
 
 model Localidad {
-  id          Int          @id @default(autoincrement())
-  nombre      String       @unique
+  id          Int           @id @default(autoincrement())
+  nombre      String        @unique
   estado      String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   movimientos Movimiento[]
   usuarios    Usuario[]
   vias        Via[]
-  rondas      Ronda[]      // ← lado opuesto de Ronda.localidad
+  rondas      Ronda[]           // lado opuesto de Ronda.localidad
+  servicios   ServicioCola[]    // ← nuevo
+
+  @@index([nombre])
 }
 
 model Usuario {
@@ -66,21 +70,21 @@ model FcmToken {
 }
 
 model Via {
-  id                Int            @id @default(autoincrement())
-  numero            Int
-  nombre            String
-  localidadId       Int
-  ocupada           Boolean        @default(false)
-  movimientoId      Int?
-  movimiento        Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
+  id                 Int            @id @default(autoincrement())
+  numero             Int
+  nombre             String
+  localidadId        Int
+  ocupada            Boolean        @default(false)
+  movimientoId       Int?
+  movimiento         Movimiento?    @relation("ViaOcupante", fields: [movimientoId], references: [id], onDelete: SetNull)
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
-  secciones         SeccionVia[]
+  secciones          SeccionVia[]
   movimientosDestino Movimiento[]  @relation("ViaDestinoMovimiento")
   movimientosOrigen  Movimiento[]  @relation("ViaOrigenMovimiento")
-  localidad          Localidad      @relation(fields: [localidadId], references: [id])
+  localidad          Localidad     @relation(fields: [localidadId], references: [id])
 
   @@unique([numero, localidadId])
   @@unique([nombre, localidadId])
@@ -145,6 +149,7 @@ model Movimiento {
   viaDestino       Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
   viaOrigen        Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
   ronda            Ronda?
+  servicio         ServicioCola?     // ← nuevo, vínculo 1–1 opcional
 
   // ← lados opuestos requeridos
   viaOcupante        Via[]         @relation("ViaOcupante")
@@ -201,6 +206,25 @@ model Ronda {
   @@index([localidadId])
 }
 
+model ServicioCola {
+  id           Int            @id @default(autoincrement())
+  localidadId  Int
+  empresaId    Int
+  movimientoId Int            @unique
+  tipo         ServicioTipo
+  estado       ServicioEstado @default(EN_COLA)
+  orden        Int
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  localidad    Localidad      @relation(fields: [localidadId], references: [id], onDelete: Restrict)
+  empresa      Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimiento   Movimiento     @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+
+  @@index([localidadId, tipo, estado, orden])
+  @@index([empresaId, estado])
+}
+
 model Token {
   id        Int      @id @default(autoincrement())
   token     String   @unique @db.VarChar(500)
@@ -215,10 +239,10 @@ model Token {
 }
 
 model Actualizacion {
-  id                Int                  @id @default(autoincrement())
-  nombre            String
-  fechalanzamiento  DateTime
-  estado            EstadoActualizacion  @default(ACTIVA)
+  id               Int                 @id @default(autoincrement())
+  nombre           String
+  fechalanzamiento DateTime
+  estado           EstadoActualizacion @default(ACTIVA)
 
   @@map("actualizacion")
 }
@@ -284,4 +308,16 @@ enum DireccionEmpuje {
 enum TipoMovimiento {
   MD_TRABAJANDO
   REMOLCADA
+}
+
+enum ServicioTipo {
+  LAVADO
+  TORNO
+}
+
+enum ServicioEstado {
+  EN_COLA
+  SIGUIENTE
+  EN_SERVICIO
+  FINALIZADO
 }
