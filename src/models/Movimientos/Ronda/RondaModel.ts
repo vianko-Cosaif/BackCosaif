@@ -3,6 +3,7 @@ import type {Prisma, Ronda, Movimiento} from '@prisma/client';
 
 import { PrismaClient } from '@prisma/client';
 import admin from 'firebase-admin';
+import { movimientoError } from '../movimiento.logger';
 
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
