@@ -49,6 +49,54 @@ export class MovimientoController {
     }
   };
 
+  // NUEVO: GET /movimientos/servicios/pendientes?localidadId=&empresaId=
+  static obtenerServiciosPendientes: RequestHandler = async (req, res) => {
+    const { localidadId, empresaId } = req.query;
+    if (
+      (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
+      (empresaId !== undefined && Number.isNaN(Number(empresaId)))
+    ) {
+      return res.status(400).json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
+    }
+    try {
+      const lista = await MovimientoModel.obtenerServiciosPendientes({
+        localidadId: localidadId !== undefined ? Number(localidadId) : undefined,
+        empresaId: empresaId !== undefined ? Number(empresaId) : undefined,
+      });
+      res.status(200).json(lista);
+    } catch (error) {
+      log.error('Error al obtener servicios pendientes', { error, localidadId, empresaId });
+      res.status(500).json({ message: 'Error al obtener servicios pendientes' });
+    }
+  };
+
+  // NUEVO: PATCH /movimientos/servicios/:id/estado
+  static actualizarEstadoServicio: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    const { estado, operadorId, razon } = req.body as {
+      estado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO';
+      operadorId?: number;
+      razon?: string;
+    };
+
+    const validos = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CANCELADO'];
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (!validos.includes(estado)) {
+      return res.status(400).json({ message: `Estado inválido. Debe ser uno de: ${validos.join(' | ')}` });
+    }
+    if (operadorId !== undefined && typeof operadorId !== 'number') {
+      return res.status(400).json({ message: 'operadorId debe ser numérico si se envía' });
+    }
+
+    try {
+      const mov = await MovimientoModel.actualizarEstadoServicio(id, estado, { operadorId, razon });
+      res.status(200).json({ message: 'Estado de servicio actualizado', movimiento: mov });
+    } catch (error: any) {
+      log.error('Error al actualizar estado de servicio', { error, id, estado });
+      res.status(500).json({ message: error?.message || 'Error al actualizar estado de servicio' });
+    }
+  };
+
   // GET /movimientos/:id  (detalle + meta)
   static obtenerMovimientoPorId: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);

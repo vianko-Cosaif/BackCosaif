@@ -134,6 +134,77 @@ export class MovimientoModel {
     }
   }
 
+  /**
+   * Servicios (lavado/torno) pendientes de iniciar.
+   * Filtra por localidad/empresa opcionalmente. Excluye EN_PROCESO, CONCLUIDO y CANCELADO.
+   */
+  static async obtenerServiciosPendientes(filters: { localidadId?: number; empresaId?: number } = {}) {
+    try {
+      const where: any = {
+        finalizado: false,
+        OR: [{ lavado: true }, { torno: true }],
+        estado: { in: ['SOLICITADO', 'DETENIDO', 'ESPERA'] },
+      };
+      if (filters.localidadId) where.localidadId = filters.localidadId;
+      if (filters.empresaId) where.empresaId = filters.empresaId;
+
+      return await prisma.movimiento.findMany({
+        where,
+        include: {
+          empresa: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          ronda: true,
+        },
+        orderBy: [{ prioridad: 'desc' }, { createdAt: 'asc' }],
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al obtener servicios pendientes', {
+        filters,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al obtener servicios pendientes');
+    }
+  }
+
+  /**
+   * Cambiar estado SOLO de servicios (lavado/torno).
+   * Estados válidos: SOLICITADO | EN_PROCESO | DETENIDO | CANCELADO
+   * Para cerrar se usa `finalizarMovimiento` existente.
+   */
+  static async actualizarEstadoServicio(
+    id: number,
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
+    opciones: { operadorId?: number; razon?: string } = {}
+  ) {
+    try {
+      const mov = await prisma.movimiento.findUnique({
+        where: { id },
+        select: { id: true, lavado: true, torno: true },
+      });
+      if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
+      if (!mov.lavado && !mov.torno) {
+        throw new Error('El movimiento no es un servicio de lavado/torno');
+      }
+
+      // Reusa la lógica central (valida transiciones y reacomoda rondas si aplica)
+      const res = await this.cambiarEstadoMovimiento(id, nuevoEstado, {
+        operadorId: opciones.operadorId,
+        razon: opciones.razon,
+        forzar: false,
+      });
+
+      return res;
+    } catch (error: any) {
+      movimientoError.error('Error al actualizar estado de servicio', {
+        id, nuevoEstado, opciones,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al actualizar estado de servicio');
+    }
+  }
+
   // ------------ Cambios de estado ------------
   static async detenerMovimiento(id: number, razon?: string) {
     try {
