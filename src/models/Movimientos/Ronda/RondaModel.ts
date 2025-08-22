@@ -1,6 +1,5 @@
-
-import type {Prisma, Ronda, Movimiento} from '@prisma/client';
-
+// src/models/Movimientos/Ronda/RondaModel.ts
+import type { Prisma, Ronda, Movimiento } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import admin from 'firebase-admin';
 import { movimientoError } from '../movimiento.logger';
@@ -698,64 +697,74 @@ export class RondaModel {
 
   // ---------- MOTOR: SIGUIENTE (UNO A LA VEZ, SIEMPRE MOSTRAR Y PERMITIR INICIO) ----------
   /**
-   * Devuelve SOLO el primero de la cola (aunque esté bloqueado) y notifica:
-   * "La máquina <NÚMERO> obstruye la vía <VÍA>. Si no es cierto, hacer caso omiso..."
-   * NOTA: LAVADO se muestra normal (sin ocultar). Si está tapado, que levanten incidente.
+   * Reglas para MAQUINISTA:
+   * - LAVADO / TORNO => SOLO visibles si ya están EN_PROCESO (los habilitó coordinación).
+   * - Resto => saltar los que estén EN_PROCESO y dar el siguiente elegible.
+   * Siempre notifica posible obstrucción, pero permite inicio (decisión del maquinista).
    */
-// ---------- MOTOR: SIGUIENTE (UNO A LA VEZ, SALTANDO EN_PROCESO) ----------
-static async siguienteParaMaquinista(localidadId: number) {
-  return prisma.$transaction(async (tx) => {
-    // Busca el primer candidato NO EN_PROCESO (en todas las rondas activas)
-    const r = await tx.ronda.findFirst({
-      where: {
-        localidadId,
-        concluido: false,
-        movimiento: { estado: { not: 'EN_PROCESO' } }, // << clave: saltar los que ya están en proceso
-      },
-      include: {
-        movimiento: {
-          select: {
-            id: true,
-            empresaId: true,
-            prioridad: true,
-            estado: true,
-            viaDestinoId: true,
-            locomotiveNumber: true,
+  static async siguienteParaMaquinista(localidadId: number) {
+    return prisma.$transaction(async (tx) => {
+      // Ventana de candidatos por ronda/orden
+      const candidatos = await tx.ronda.findMany({
+        where: { localidadId, concluido: false },
+        include: {
+          movimiento: {
+            select: {
+              id: true,
+              empresaId: true,
+              prioridad: true,
+              estado: true,
+              viaDestinoId: true,
+              locomotiveNumber: true,
+              lavado: true,
+              torno: true,
+            },
           },
         },
-      },
-      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+        orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+        take: 50,
+      });
+
+      // Elegibilidad
+      const r = candidatos.find((c) => {
+        const m = c.movimiento;
+        const esServicio = !!m.lavado || !!m.torno;
+        if (esServicio) {
+          // Solo cuando coordinación lo puso EN_PROCESO
+          return m.estado === 'EN_PROCESO';
+        }
+        // Para lo demás, saltar los que ya están en proceso
+        return m.estado !== 'EN_PROCESO';
+      });
+
+      if (!r) return { vacio: true as const, motivo: 'no_elegibles' };
+
+      const det = await infoBloqueo(r, tx);
+      if (det.bloqueado) {
+        await notificarTapadoSimple(
+          r,
+          {
+            viaDestino: det.viaDestino ?? null,
+            bloqueador: det.bloqueador ?? null
+          },
+          tx
+        );
+      }
+
+      // Siempre puede iniciar (decisión del maquinista)
+      return {
+        rondaId: r.id,
+        localidadId: r.localidadId,
+        movimientoId: r.movimiento.id,
+        empresaId: r.movimiento.empresaId,
+        prioridad: r.movimiento.prioridad,
+        locomotiveNumber: r.movimiento.locomotiveNumber ?? null,
+        viaDestino: det.viaDestino,
+        bloqueado: det.bloqueado,
+        permiteInicio: true
+      };
     });
-
-    if (!r) return { vacio: true as const };
-
-    const det = await infoBloqueo(r, tx);
-    if (det.bloqueado) {
-      await notificarTapadoSimple(
-        r,
-        {
-          viaDestino: det.viaDestino ?? null,
-          bloqueador: det.bloqueador ?? null,
-        },
-        tx
-      );
-    }
-
-    // Siempre puede iniciar (decisión del maquinista)
-    return {
-      rondaId: r.id,
-      localidadId: r.localidadId,
-      movimientoId: r.movimiento.id,
-      empresaId: r.movimiento.empresaId,
-      prioridad: r.movimiento.prioridad,
-      locomotiveNumber: r.movimiento.locomotiveNumber ?? null,
-      viaDestino: det.viaDestino,
-      bloqueado: det.bloqueado,
-      permiteInicio: true,
-    };
-  });
-}
-
+  }
 
   /** Wrapper por compatibilidad. */
   public static async siguienteInteligente(localidadId: number) {

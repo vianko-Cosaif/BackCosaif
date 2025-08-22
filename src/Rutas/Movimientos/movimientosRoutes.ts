@@ -8,6 +8,10 @@ const router = Router();
 // Protección JWT para todas las rutas
 router.use(passport.authenticate('jwt', { session: false }));
 
+// ------------------ SERVICIOS (lavado/torno) ------------------ //
+router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendientes);
+router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServicio);
+
 // ------------------ MOVIMIENTOS ------------------ //
 router.get('/', MovimientoController.obtenerMovimientos);
 router.get('/all', MovimientoController.obtenerTodosLosMovimientos);
