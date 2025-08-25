@@ -1,4 +1,39 @@
 // src/models/Movimientos/Ronda/RondaModel.ts
+
+/**
+ * @file RondaModel.ts
+ * @author Isaac
+ * @version 1.4.1 2025-08-18
+ *
+ * @overview
+ * Capa de **dominio/modelo** para la gestión de *Rondas* y su relación con
+ * *Movimientos* (cola operativa por localidad). Implementa:
+ * - Reglas de ordenamiento:
+ *    - **ALTAS** → Round 1 (R1) en **FIFO** por `createdAt` (sin límite por empresa),
+ *      con excepción de **HOLD 10m** (se baja temporalmente de R1).
+ *    - **BAJAS** → Reparto **robin-hood**: **máximo 1 por empresa por ronda**,
+ *      distribuidas de forma balanceada desde R2 si hay ALTAS activas.
+ * - Re-composición general de rondas tras inserciones / incidentes / conclusiones.
+ * - Selección del **siguiente** candidato para el maquinista (uno a la vez).
+ * - Validaciones para prevenir inconsistencias físicas (bloqueos de vía/sección).
+ * - Notificaciones FCM (tapado y bloqueos), con *debounce/TTL* para evitar spam.
+ *
+ * @important
+ * - **No** realiza ocupaciones/liberaciones reales de vías/secciones. Solo valida y ordena.
+ * - Llamadas a FCM dentro de transacciones están presentes por simplicidad; para
+ *   entornos de alta carga se recomienda patrón **Outbox** y publicar después del commit.
+ *
+ * @glossary
+ * - **R1 / R2 / ...**: Número de ronda (bloque/grupo) para la cola de ejecución.
+ * - **orden**: Posición dentro de una ronda.
+ * - **HOLD 10m**: Penalización temporal aplicada al movimiento tras incidente
+ *   "cerrado no resuelto". Evita que ALTAS vuelvan a R1 durante 10 minutos.
+ *
+ * @errors
+ * - Lanza `Error` con mensajes claros cuando detecta inconsistencias o recursos ausentes.
+ *   Los controladores capturan y traducen a HTTP 4xx/5xx.
+ */
+
 import type { Prisma, Ronda, Movimiento } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import admin from 'firebase-admin';
@@ -7,23 +42,41 @@ import { movimientoError } from '../movimiento.logger';
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
 
-// ================== BUFFER DE NOTIFICACIONES (UNA SOLA VEZ) ==================
+/* ==========================================================================
+ *                              NOTIFICATION BUFFER
+ *   Evita enviar la misma notificación repetidamente en una ventana de TTL.
+ *   Claves:
+ *     - allblocked:<localidadId>
+ *     - tapado:<localidadId>:<movimientoId>
+ * ========================================================================== */
+
 const TTL_MS = 60 * 60 * 1000; // 1h
 const _notifBuffer = new Map<string, number>(); // key -> expiresAt
+
+/** Marca una clave como notificada hasta `TTL_MS`. */
 function _markNotified(key: string) { _notifBuffer.set(key, Date.now() + TTL_MS); }
+
+/** Indica si ya se notificó y aún no expira el TTL. */
 function _wasNotified(key: string) {
   const exp = _notifBuffer.get(key);
   if (!exp) return false;
   if (Date.now() > exp) { _notifBuffer.delete(key); return false; }
   return true;
 }
+
 function _keyAllBlocked(localidadId: number) { return `allblocked:${localidadId}`; }
 function _keyTapado(localidadId: number, movimientoId: number) { return `tapado:${localidadId}:${movimientoId}`; }
 
-// ================== HOLD 10 MIN (INCIDENTE CERRADO/NO RESUELTO, SOLO 1 VEZ) ==================
+/* ==========================================================================
+ *                              HOLD 10 MINUTOS
+ *   Se aplica a movimientos con incidente "cerrado no resuelto" (solo una vez).
+ * ========================================================================== */
+
 const HOLD10M_MS = 10 * 60 * 1000;
 const _hold10m = new Map<number, number>();     // movimientoId -> expiresAt
 const _hold10mOnce = new Set<number>();         // ya aplicado una vez
+
+/** Indica si un movimiento está en ventana HOLD. */
 function _isOnHold(movId: number) {
   const exp = _hold10m.get(movId);
   if (!exp) return false;
@@ -31,7 +84,17 @@ function _isOnHold(movId: number) {
   return true;
 }
 
-// ================== BLOQUEOS (VÍAS / SECCIONES) ==================
+/* ==========================================================================
+ *                      BLOQUEOS DE VÍAS / SECCIONES (Validaciones)
+ *   Nota: Estas validaciones previenen inconsistencias en operaciones que
+ *   modifican la composición de la ronda (intercambios/replace), pero no
+ *   bloquean la determinación del “siguiente” (decide maquinista).
+ * ========================================================================== */
+
+/**
+ * @summary ¿Hay algún movimiento activo (no finalizado) ocupando la vía?
+ * @throws Nunca. Devuelve booleano.
+ */
 async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMovimientoId?: number, tx: Tx = prisma) {
   const activos = await tx.movimiento.count({
     where: {
@@ -44,6 +107,10 @@ async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMov
   return activos > 0;
 }
 
+/**
+ * @summary Devuelve un movimiento que bloquea la vía (o `null` si no hay).
+ * @throws Nunca.
+ */
 async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: Tx = prisma) {
   const bloq = await tx.movimiento.findFirst({
     where: {
@@ -57,7 +124,10 @@ async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: T
   return bloq || null;
 }
 
-/** ¿El movimiento de la ronda está bloqueado por falta de sección/vía de destino? */
+/**
+ * @summary ¿El movimiento asociado a la ronda está bloqueado por destino?
+ * @description Considera vía simple o con secciones (requiere sección libre).
+ */
 async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
@@ -76,7 +146,13 @@ async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   return !libre;
 }
 
-/** Solo valida en operaciones que SÍ deben prevenir inconsistencia (no aplica a “siguiente...” del maquinista). */
+/**
+ * @summary Asegura que el destino del movimiento tenga capacidad disponible.
+ * @throws Error si la vía/sección de destino está bloqueada/sin hueco.
+ *
+ * @note Esta validación se usa **solo** en operaciones que podrían corromper
+ *       el estado físico si se forzaran (p.ej. intercambios).
+ */
 async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = prisma) {
   if (!m || !m.viaDestinoId) return;
   const secciones = await tx.seccionVia.count({ where: { viaId: m.viaDestinoId } });
@@ -89,12 +165,24 @@ async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = pri
   }
 }
 
-// ================== NOTIFICACIONES ==================
+/* ==========================================================================
+ *                                 NOTIFICACIONES
+ *   Recolecta tokens FCM y envía avisos con TTL para no saturar a usuarios.
+ *   Destinatarios típicos: cliente, supervisor, coordinador.
+ * ========================================================================== */
+
+/** @summary Devuelve tokens FCM activos de una lista de usuarios. */
 async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
   if (!ids.length) return [];
   const usuarios = await tx.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
   return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
 }
+
+/**
+ * @summary Notifica por empresa cuando **no hay capacidad** en vías/sectores destino de varios movimientos.
+ * @description Usa un *buffer global* por localidad para evitar spam (TTL 1h).
+ * @sideEffects Envía FCM (IO externo dentro de transacción; considerar Outbox en el futuro).
+ */
 async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
   const keyAll = _keyAllBlocked(localidadId);
   if (_wasNotified(keyAll)) return;
@@ -132,7 +220,18 @@ async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
   _markNotified(keyAll);
 }
 
-// ================== INFO DE BLOQUEO / NOTIFICACIÓN SIMPLE ==================
+/* ==========================================================================
+ *                  INFO DE BLOQUEO + NOTIFICACIÓN "TAPADO" (simple)
+ * ========================================================================== */
+
+/**
+ * @summary Devuelve detalle de bloqueo para un ítem de ronda.
+ * @returns {
+ *   bloqueado: boolean,
+ *   viaDestino: string | null,
+ *   bloqueador?: { id, locomotiveNumber?, empresa? }
+ * }
+ */
 async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
@@ -169,6 +268,10 @@ async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   };
 }
 
+/**
+ * @summary Notifica “tapado” (obstrucción directa) para un movimiento concreto.
+ * @sideEffects Envía FCM. Protegido con TTL por (localidadId, movimientoId).
+ */
 async function notificarTapadoSimple(
   r: Ronda,
   det: {
@@ -216,7 +319,11 @@ async function notificarTapadoSimple(
   _markNotified(key);
 }
 
-// ================== INCIDENTES ACTIVO? ==================
+/* ==========================================================================
+ *                              INCIDENTES
+ * ========================================================================== */
+
+/** @summary ¿Existe incidente activo o cerrado (pendiente de confirmación) para el movimiento? */
 async function tieneIncidenteActivo(tx: Tx, movimientoId: number) {
   const activos = await tx.incidente.count({
     where: {
@@ -227,9 +334,17 @@ async function tieneIncidenteActivo(tx: Tx, movimientoId: number) {
   return activos > 0;
 }
 
-// ================== MODELO ==================
+/* ==========================================================================
+ *                               RONDA MODEL
+ * ========================================================================== */
+
 export class RondaModel {
-  // ---------- HELPERS CRUD RONDA ----------
+  /* ------------------------------- CRUD Helpers ------------------------------- */
+
+  /**
+   * @summary Inserta una ronda en posición, desplazando elementos desde `orden`.
+   * @internal
+   */
   private static async insertarEnPosicion(
     tx: Tx,
     localidadId: number,
@@ -244,6 +359,10 @@ export class RondaModel {
     return tx.ronda.create({ data: { ...data, localidadId, rondaNumero, orden } as any });
   }
 
+  /**
+   * @summary Mueve una fila de ronda a otra ronda/orden, reindexando el resto.
+   * @internal
+   */
   private static async moverRonda(tx: Tx, row: Ronda, targetRonda: number, targetOrden: number) {
     const sameRound = row.rondaNumero === targetRonda;
     if (sameRound) {
@@ -273,10 +392,15 @@ export class RondaModel {
     await tx.ronda.update({ where: { id: row.id }, data: { rondaNumero: targetRonda, orden: targetOrden } });
   }
 
+  /** @summary Tamaño (no concluidas) de una ronda. */
   private static async tamanoDeRonda(tx: Tx, localidadId: number, rondaNumero: number) {
     return tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
   }
 
+  /**
+   * @summary Primera ronda ≥ `desdeRonda` donde **no** exista ronda de esa empresa.
+   * @description Aplica para **BAJAS** (1 por empresa por ronda).
+   */
   private static async primeraRondaLibreParaEmpresa(
     tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
   ): Promise<number> {
@@ -289,6 +413,7 @@ export class RondaModel {
     return r;
   }
 
+  /** @summary Reindexa `orden` en la ronda para que sea 1..N sin huecos. */
   private static async compactarOrdenesRonda(tx: Tx, localidadId: number, rondaNumero: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, rondaNumero, concluido: false },
@@ -303,9 +428,11 @@ export class RondaModel {
     }
   }
 
-  /** En BAJAS: máx 1 por empresa por ronda. En ALTAS: sin límite (cola FIFO en R1). */
+  /**
+   * @summary Garantiza la regla **BAJA: 1 por empresa por ronda** a partir de `startRound`.
+   * @description Excede → empuja excedentes a rondas siguientes.
+   */
   private static async garantizarUnSlotBajasPorEmpresaPorRonda(tx: Tx, localidadId: number, startRound: number) {
-    // Cualquier empresa con >1 BAJA en una misma ronda => empujar excedentes a rondas siguientes.
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, rondaNumero: { gte: startRound } },
       include: { movimiento: { select: { prioridad: true } } },
@@ -329,7 +456,7 @@ export class RondaModel {
       const rondaActual = parseInt(rondaNumeroStr, 10);
       const empresaId = parseInt(empresaIdStr, 10);
 
-      // Mantener 1, empujar el resto a rondas sucesivas buscando primer hueco
+      // Mantener 1, empujar resto a rondas sucesivas buscando primer hueco
       for (let i = 1; i < bajas.length; i++) {
         const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, rondaActual + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
@@ -338,7 +465,10 @@ export class RondaModel {
     }
   }
 
-  // ALTAS: FIFO en R1 (pero respetando HOLD: ALTAS en hold NO van a R1)
+  /**
+   * @summary ALTAS → FIFO en R1, respetando HOLD 10m (ALTAS en hold bajan a R2).
+   * @description También reordena R1 colocando primero ALTAS sin hold por `createdAt`.
+   */
   private static async ordenarAltasR1_FIFO(tx: Tx, localidadId: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
@@ -346,7 +476,7 @@ export class RondaModel {
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    // 1) Llevar ALTAS sin hold a R1; ALTAS en hold, si están en R1, bajarlas a R2
+    // 1) ALTAS sin hold a R1; ALTAS con hold, si están en R1, bajarlas a R2
     for (const f of filas) {
       if (f.movimiento.prioridad !== 'ALTA') continue;
 
@@ -383,7 +513,10 @@ export class RondaModel {
     }
   }
 
-  // BAJAS: repartir en robin-hood, empezando en R2 SOLO si hay ALTAS sin hold
+  /**
+   * @summary BAJAS → repartir en **robin-hood**, comenzando en R2 si hay ALTAS sin hold.
+   * @description Garantiza 1 BAJA por empresa por ronda y compacta numeraciones.
+   */
   private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
     // ¿Hay ALTAS activas (sin hold)?
     const altas = await tx.ronda.findMany({
@@ -437,7 +570,14 @@ export class RondaModel {
     }
   }
 
-  // ---------- RECOMPOSICIÓN GENERAL ----------
+  /* --------------------------- Recomposición General --------------------------- */
+
+  /**
+   * @summary Recompone todas las rondas de una localidad (normaliza y reordena).
+   * @description
+   * 1) Limpia concluidas. 2) Normaliza numeración de rondas. 3) ALTAS → FIFO en R1.
+   * 4) BAJAS → robin-hood (1 por empresa por ronda).
+   */
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
     // Limpiar concluidas
     await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
@@ -465,11 +605,14 @@ export class RondaModel {
     await this.reequilibrarBajasRobinHood(tx, localidadId);
   }
 
-  // ---------- GENERACIÓN / INSERCIÓN ----------
+  /* ------------------------- Generación / Inserción ------------------------- */
+
   /**
-   * Inserción "solvente":
-   * ALTAS → R1 (opcionalmente forzar posición en R1).
-   * BAJAS → 1 por empresa por ronda, robin-hood + cascada; inicia en R2 si hay ALTAS sin hold.
+   * @summary Inserción "solvente" en la cola de rondas.
+   * @description
+   * - ALTAS → R1 (FIFO). Puede forzarse posición si `preferirR1` y `posicion`.
+   * - BAJAS → 1 por empresa por ronda (robin-hood). Inicia en R2 si hay ALTAS sin hold.
+   * @throws Error si el movimiento no existe o transacción falla.
    */
   static async insertarRondaSolvente(data: {
     movimientoId: number;
@@ -506,7 +649,10 @@ export class RondaModel {
     });
   }
 
-  /** PRIVADO: inserción BAJA con robin-hood + cascada hacia abajo. */
+  /**
+   * @summary Inserta **BAJA** respetando 1/empresa/ronda + reparto robin-hood.
+   * @internal
+   */
   private static async _insertarBajaConRobinHood(
     tx: Tx,
     params: { localidadId: number; empresaId: number; movimientoId: number }
@@ -540,7 +686,7 @@ export class RondaModel {
   }
 
   /**
-   * Wrapper de creación (compatibilidad): usa insertarRondaSolvente.
+   * @summary Compatibilidad: wrapper de creación → usa `insertarRondaSolvente`.
    */
   static async generarRondaParaMovimiento(
     data: { movimientoId: number; empresaId: number; localidadId: number; prioridad: 'ALTA' | 'BAJA' }
@@ -548,7 +694,8 @@ export class RondaModel {
     return this.insertarRondaSolvente(data);
   }
 
-  // ---------- HELPERS INCIDENTES (imágenes) ----------
+  /* ------------------- Helpers de cadena por incidentes ------------------- */
+
   private static async obtenerSlotsEmpresaDesde(
     tx: Tx,
     localidadId: number,
@@ -568,11 +715,16 @@ export class RondaModel {
     });
   }
 
+  /**
+   * @summary Aplica “empuje en cadena” dentro de una empresa tras incidente en BAJA.
+   * @internal
+   * @description Recoloca elementos y puede crear/usar nueva ronda al final.
+   */
   private static async efectoCadenaBajaPorIncidente(tx: Tx, r: Ronda) {
     const chain = await this.obtenerSlotsEmpresaDesde(tx, r.localidadId, r.empresaId, r.rondaNumero);
     if (chain.length === 0) return;
 
-    // Solo una participación: empujar a la ronda siguiente (o crear nueva)
+    // Solo una participación → empujar a la ronda siguiente (o crear nueva)
     if (chain.length === 1) {
       const nextRound = r.rondaNumero + 1;
       const tam = await this.tamanoDeRonda(tx, r.localidadId, nextRound);
@@ -615,7 +767,11 @@ export class RondaModel {
     }
   }
 
-  // ---------- INCIDENTES (respeta imágenes: ALTAS/BAJAS) ----------
+  /**
+   * @summary Gestiona incidente para un movimiento (aplica HOLD y reordena).
+   * @param movimientoId
+   * @param opts.cerradoNoResuelto Si es true, aplica **HOLD 10m** (solo una vez).
+   */
   static async gestionarIncidente(
     movimientoId: number,
     opts?: { cerradoNoResuelto?: boolean }
@@ -630,7 +786,7 @@ export class RondaModel {
       const { localidadId } = r;
       const esAlta = r.movimiento.prioridad === 'ALTA';
 
-      // Si viene de "cerrado no resuelto", aplicar HOLD 10m (solo 1 vez)
+      // HOLD 10m si aplica (una sola vez)
       if (opts?.cerradoNoResuelto && !_hold10mOnce.has(movimientoId)) {
         _hold10m.set(movimientoId, Date.now() + HOLD10M_MS);
         _hold10mOnce.add(movimientoId);
@@ -676,7 +832,7 @@ export class RondaModel {
             });
             await this.moverRonda(tx, r, 2, 1);
 
-            // Abrir hueco en R1:1 y subir la primera BAJA (venga de donde venga)
+            // Abrir hueco en R1:1 y subir la primera BAJA
             await tx.ronda.updateMany({
               where: { localidadId, rondaNumero: 1, concluido: false, orden: { gte: 1 } },
               data: { orden: { increment: 1 } }
@@ -689,18 +845,20 @@ export class RondaModel {
         return;
       }
 
-      // === BAJAS: empuje en cadena por empresa y luego compacta / robin-hood ===
+      // === BAJAS: empuje en cadena + recomposición ===
       await this.efectoCadenaBajaPorIncidente(tx, r);
       await this.recomponerRondasLocalidad(localidadId, tx);
     });
   }
 
-  // ---------- MOTOR: SIGUIENTE (UNO A LA VEZ, SIEMPRE MOSTRAR Y PERMITIR INICIO) ----------
+  /* ---------------------- Motor: “Siguiente” (maquinista) ---------------------- */
+
   /**
-   * Reglas para MAQUINISTA:
-   * - LAVADO / TORNO => SOLO visibles si ya están EN_PROCESO (los habilitó coordinación).
-   * - Resto => saltar los que estén EN_PROCESO y dar el siguiente elegible.
-   * Siempre notifica posible obstrucción, pero permite inicio (decisión del maquinista).
+   * @summary Devuelve el **siguiente** candidato para el maquinista (uno a la vez).
+   * @rules
+   * - Servicios (lavado/torno) → SOLO si `EN_PROCESO` (habilitados por coordinación).
+   * - Resto → excluir los ya `EN_PROCESO`.
+   * - Si hay bloqueo, **se notifica**, pero **se permite iniciar** (decide maquinista).
    */
   static async siguienteParaMaquinista(localidadId: number) {
     return prisma.$transaction(async (tx) => {
@@ -766,12 +924,17 @@ export class RondaModel {
     });
   }
 
-  /** Wrapper por compatibilidad. */
+  /** @summary Alias de compatibilidad. */
   public static async siguienteInteligente(localidadId: number) {
     return this.siguienteParaMaquinista(localidadId);
   }
 
-  // ---------- FIN SERVICIO (LAVADO / TORNO) ----------
+  /* --------------------------- Eventos de servicio --------------------------- */
+
+  /**
+   * @summary Notifica fin de servicio (LAVADO/TORNO) a interesados.
+   * @note Recomienda crear un movimiento para desocupar sección.
+   */
   static async notificarFinServicio(
     movimientoId: number,
     tipo: 'LAVADO' | 'TORNO',
@@ -808,7 +971,12 @@ export class RondaModel {
     });
   }
 
-  // ---------- LIMPIEZA ----------
+  /* ------------------------------ Limpieza global ------------------------------ */
+
+  /**
+   * @summary Limpia rondas concluidas por localidad y recompone.
+   * @internal Útil para tareas programadas de mantenimiento.
+   */
   private static async limpiarYReorganizarRondasConcluidas() {
     const locs = await prisma.ronda.findMany({ select: { localidadId: true }, distinct: ['localidadId'] });
     for (const { localidadId } of locs) {
@@ -819,7 +987,9 @@ export class RondaModel {
     }
   }
 
-  // ---------- QUERIES VARIAS ----------
+  /* ------------------------------- Consultas varias ------------------------------- */
+
+  /** @summary Lista rondas (todas) con empresa y movimiento. */
   static async obtenerRondas() {
     try {
       return await prisma.ronda.findMany({
@@ -832,6 +1002,7 @@ export class RondaModel {
     }
   }
 
+  /** @summary Elimina una ronda por ID. */
   static async eliminarRonda(id: number) {
     try {
       return await prisma.ronda.delete({ where: { id } });
@@ -841,6 +1012,7 @@ export class RondaModel {
     }
   }
 
+  /** @summary Rondas por localidad (con detalles de vías). */
   static async obtenerRondasPorLocalidad(localidadId: number) {
     try {
       return await prisma.ronda.findMany({
@@ -863,6 +1035,7 @@ export class RondaModel {
     }
   }
 
+  /** @summary Rondas por localidad y estado de conclusión. */
   static async obtenerRondasPorLocalidadConEstado(localidadId: number, concluido: boolean) {
     try {
       return await prisma.ronda.findMany({
@@ -884,6 +1057,10 @@ export class RondaModel {
     }
   }
 
+  /**
+   * @summary Devuelve el **primer** elemento de la cola (simple) por localidad.
+   * @deprecated Usar `siguienteParaMaquinista` / `siguienteInteligente`.
+   */
   static async obtenerSiguienteEnRonda(localidadId: number) {
     try {
       return await prisma.ronda.findFirst({
@@ -906,6 +1083,10 @@ export class RondaModel {
     }
   }
 
+  /**
+   * @summary Intercambia **movimientos** entre dos rondas (manteniendo posiciones).
+   * @throws Error si alguna vía destino está bloqueada (validación previa).
+   */
   static async intercambiarMovimientosEntreRondas(rondaAId: number, rondaBId: number): Promise<[Ronda, Ronda]> {
     if (rondaAId === rondaBId) throw new Error("Debe indicar dos rondas distintas para el intercambio");
     return await prisma.$transaction(async tx => {
@@ -921,7 +1102,7 @@ export class RondaModel {
       ]);
       if (!movA || !movB) throw new Error('Movimiento no encontrado');
 
-      // Mantenemos validación en intercambios para no corromper estado físico de vías
+      // Validación para no corromper estado físico de vías
       await assertViasLibres(rondaA.localidadId, movA, tx);
       await assertViasLibres(rondaB.localidadId, movB, tx);
 
@@ -962,6 +1143,10 @@ export class RondaModel {
     });
   }
 
+  /**
+   * @summary Reemplaza el **movimiento** de una ronda por otro movimiento.
+   * @throws Error si la vía/sección de destino del nuevo movimiento no está libre.
+   */
   static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
     try {
       const ronda = await prisma.ronda.findUnique({ where: { id: rondaId } });
@@ -982,6 +1167,7 @@ export class RondaModel {
     }
   }
 
+  /** @summary Devuelve info enriquecida de una ronda (empresa, vías, flags de servicio). */
   static async obtenerInfoPorRonda(id: number) {
     try {
       const info = await prisma.ronda.findUnique({
@@ -1010,6 +1196,9 @@ export class RondaModel {
     }
   }
 
+  /**
+   * @summary Marca una ronda como concluida y recomponen el resto para la localidad.
+   */
   static async marcarRondaComoConcluida(id: number) {
     try {
       const rondaActualizada = await prisma.ronda.update({
