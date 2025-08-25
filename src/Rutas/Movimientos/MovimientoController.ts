@@ -176,7 +176,7 @@ export class MovimientoController {
   // PATCH /movimientos/:id/prioridad
   static cambiarPrioridad: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { prioridad } = req.body;
+    const { prioridad } = req.body as { prioridad: 'ALTA' | 'BAJA' };
 
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID de movimiento inválido' });
     if (!['ALTA', 'BAJA'].includes(prioridad)) {
