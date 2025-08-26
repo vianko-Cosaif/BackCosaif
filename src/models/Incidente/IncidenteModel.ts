@@ -17,6 +17,48 @@ import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
 
+function ensureAdmin() {
+  if (!admin.apps?.length) admin.initializeApp();
+}
+
+function chunk<T>(arr: T[], size = 500): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+async function tokensPorRolesLocalidadEmpresa(localidadId: number, empresaId?: number, roles?: string[]) {
+  const rolesBase = roles?.length ? roles : ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'];
+  const rolesUpper = rolesBase;
+  const rolesLower = rolesBase.map((r) => r.toLowerCase());
+
+  const where: any = {
+    activo: true,
+    localidadId,
+    OR: [{ rol: { in: rolesUpper as any } }, { rol: { in: rolesLower as any } }],
+  };
+  if (empresaId) where.empresaId = empresaId;
+
+  const usuarios = await prisma.usuario.findMany({ where, include: { fcmTokens: true } });
+  return [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+}
+
+async function tokensPorUsuarios(ids: number[]) {
+  if (!ids?.length) return [];
+  const usuarios = await prisma.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
+  return [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+}
+
+async function enviarMulticast(tokens: string[], payload: { notification: { title: string; body: string }, data: Record<string, string> }, logCtx: any) {
+  ensureAdmin();
+  const lotes = chunk(tokens, 500);
+  for (let i = 0; i < lotes.length; i++) {
+    const slice = lotes[i];
+    const res = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
+    incidenteError.info('FCM incidente', { ...logCtx, lote: `${i + 1}/${lotes.length}`, enviados: res.successCount, fallidos: res.failureCount });
+  }
+}
+
 /** Normaliza el enum RESUELTO aunque no exista en tipos locales */
 const RESUELTO = (EstadoIncidente as unknown as Record<string, string>).RESUELTO ?? 'RESUELTO';
 
@@ -805,7 +847,28 @@ export class IncidenteModel {
       // 5) ❌ NO reordenar aquí. La reorg solo ocurre cuando Incidente pasa a CERRADO.
 
       // 6) Notificar
-      await NotificadorFCM.notificarNuevoIncidente(incidenteConImagenes);
+// 6) Notificar a roles operativos de la misma empresa y localidad
+{
+  const mov = incidenteConImagenes.movimiento;
+  const tokens = await tokensPorRolesLocalidadEmpresa(mov.localidadId, mov.empresaId, ['SUPERVISOR','COORDINADOR','OPERADOR','MAQUINISTA','CLIENTE']);
+  if (tokens.length) {
+    const title = '🚨 NUEVO INCIDENTE';
+    const body  = `Mov #${mov.id} • Loco ${mov.locomotiveNumber} • ${mov.empresa?.nombre ?? 'Sin Empresa'}`;
+    const data = {
+      tipo: 'incidente_creado',
+      pantalla: 'Incidente',
+      incidenteId: String(incidenteConImagenes.id),
+      movimientoId: String(mov.id),
+      empresa: String(mov.empresa?.nombre ?? ''),
+      localidadId: String(mov.localidadId),
+      locomotora: String(mov.locomotiveNumber ?? ''),
+      fecha: new Date().toISOString(),
+    };
+    await enviarMulticast(tokens, { notification: { title, body }, data }, { incidenteId: incidenteConImagenes.id, evento: 'creado' });
+  } else {
+    incidenteError.warn('Sin tokens para incidente_creado', { incidenteId: incidenteConImagenes.id, localidadId: mov.localidadId });
+  }
+}
 
       incidenteError.info('Incidente creado y procesado', {
         incidenteId: nuevoIncidente.id,
@@ -888,62 +951,63 @@ export class IncidenteModel {
   // Notificaciones
   // =========================================================
 
-  static async notificarCambioEstado(incidente: Incidente, estadoAnterior: string): Promise<void> {
-    try {
-      const movimiento = await prisma.movimiento.findUnique({
-        where: { id: incidente.movimientoId },
-        include: { empresa: true, localidad: true },
-      });
-      if (!movimiento) return;
+static async notificarCambioEstado(incidente: Incidente, estadoAnterior: string): Promise<void> {
+  try {
+    const mov = await prisma.movimiento.findUnique({
+      where: { id: incidente.movimientoId },
+      include: { empresa: true, localidad: true },
+    });
+    if (!mov) return;
 
-      const ids: number[] = [];
-      if (movimiento.clienteId) ids.push(movimiento.clienteId);
-      if (movimiento.supervisorId) ids.push(movimiento.supervisorId);
-      if (movimiento.coordinadorId) ids.push(movimiento.coordinadorId);
-      if (movimiento.operadorId) ids.push(movimiento.operadorId);
-      if (movimiento.creadoPorId) ids.push(movimiento.creadoPorId);
+    // A) tokens directos involucrados por id
+    const ids: number[] = [];
+    if (mov.clienteId) ids.push(mov.clienteId);
+    if (mov.supervisorId) ids.push(mov.supervisorId);
+    if (mov.coordinadorId) ids.push(mov.coordinadorId);
+    if (mov.operadorId) ids.push(mov.operadorId);
+    if (mov.creadoPorId) ids.push(mov.creadoPorId);
+    const tokensDirectos = await tokensPorUsuarios(ids);
 
-      const usuariosConTokens = await prisma.usuario.findMany({
-        where: { id: { in: ids }, activo: true },
-        include: { fcmTokens: true },
-      });
-      const tokens = usuariosConTokens.flatMap((u) => u.fcmTokens.map((t) => t.token));
-      if (tokens.length === 0) return;
+    // B) tokens por roles operativos en misma empresa y localidad
+    const tokensRoles = await tokensPorRolesLocalidadEmpresa(mov.localidadId, mov.empresaId, ['SUPERVISOR','COORDINADOR','OPERADOR','MAQUINISTA','CLIENTE']);
 
-      const empresaNombre = movimiento.empresa?.nombre ?? 'Sin Empresa';
-      const descripcion =
-        incidente.descripcion.length > 50 ? incidente.descripcion.slice(0, 50) + '…' : incidente.descripcion;
-
-      const titulo =
-        incidente.estado === (RESUELTO as any)
-          ? '✅ INCIDENTE RESUELTO'
-          : incidente.estado === (EstadoIncidente.CERRADO as any)
-          ? '❌ INCIDENTE CERRADO'
-          : '🔄 INCIDENTE ACTUALIZADO';
-
-      const mensaje = {
-        notification: { title: titulo, body: `ID #${incidente.id} • ${empresaNombre} • Loco ${movimiento.locomotiveNumber}` },
-        data: {
-          pantalla: 'Incidente',
-          incidenteId: String(incidente.id),
-          movimientoId: String(incidente.movimientoId),
-          empresa: empresaNombre,
-          locomotora: String(movimiento.locomotiveNumber),
-          estadoAnterior,
-          estadoNuevo: incidente.estado,
-          descripcion,
-          tipo: 'cambio_estado_incidente',
-          fecha: new Date().toISOString(),
-        },
-        tokens,
-      };
-
-      await admin.messaging().sendEachForMulticast(mensaje);
-    } catch (error) {
-      console.error('Error enviando notificación de cambio de estado:', error);
-      throw error;
+    // Merge + dedupe
+    const tokens = [...new Set([...tokensDirectos, ...tokensRoles])];
+    if (!tokens.length) {
+      incidenteError.warn('Sin tokens para cambio_estado_incidente', { incidenteId: incidente.id, movimientoId: mov.id });
+      return;
     }
+
+    const empresaNombre = mov.empresa?.nombre ?? 'Sin Empresa';
+    const loco = mov.locomotiveNumber ?? 'N/D';
+
+    const titulo =
+      incidente.estado === (RESUELTO as any) ? '✅ INCIDENTE RESUELTO'
+      : incidente.estado === (EstadoIncidente.CERRADO as any) ? '❌ INCIDENTE CERRADO'
+      : '🔄 INCIDENTE ACTUALIZADO';
+
+    const body = `Inc #${incidente.id} • ${empresaNombre} • Loco ${loco}`;
+
+    const data = {
+      pantalla: 'Incidente',
+      tipo: 'cambio_estado_incidente',
+      incidenteId: String(incidente.id),
+      movimientoId: String(mov.id),
+      empresa: empresaNombre,
+      localidadId: String(mov.localidadId),
+      locomotora: String(loco),
+      estadoAnterior: String(estadoAnterior ?? ''),
+      estadoNuevo: String(incidente.estado),
+      fecha: new Date().toISOString(),
+    };
+
+    await enviarMulticast(tokens, { notification: { title: titulo, body }, data }, { incidenteId: incidente.id, evento: 'cambio_estado', estadoNuevo: incidente.estado });
+  } catch (error) {
+    incidenteError.error('Error enviando notificación de cambio estado', { incidenteId: incidente.id, error });
+    throw error;
   }
+}
+
 
   // =========================================================
   // Reglas complementarias
@@ -964,61 +1028,95 @@ export class IncidenteModel {
    * - Reactiva el movimiento
    * - NO reordena rondas
    */
-  static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
-    const incidente = await prisma.incidente.findUnique({
-      where: { id },
-      include: { movimiento: { include: { empresa: true, localidad: true } } },
-    });
+ static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
+  // Garantiza firebase-admin inicializado
+  if (!admin.apps?.length) admin.initializeApp();
 
-    if (!incidente) throw new Error('Incidente no encontrado');
-    if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === (RESUELTO as any)) {
-      throw new Error('Incidente ya finalizado');
-    }
+  const incidente = await prisma.incidente.findUnique({
+    where: { id },
+    include: { movimiento: { include: { empresa: true, localidad: true } } },
+  });
 
-    // marcar como RESUELTO (no reordenar)
-    const actualizado = await prisma.incidente.update({
-      where: { id },
-      data: { estado: RESUELTO as any, fechaFin: new Date() },
-      include: { movimiento: true },
-    });
-
-    // Reactivar movimiento
-    await prisma.movimiento.update({
-      where: { id: incidente.movimientoId },
-      data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
-    });
-
-    // Notificación a usuarios activos de la empresa en la localidad
-    const usuarios = await prisma.usuario.findMany({
-      where: {
-        localidadId: incidente.movimiento.localidadId,
-        empresaId: incidente.movimiento.empresaId,
-        activo: true,
-        rol: { in: ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'] },
-      },
-      include: { fcmTokens: true },
-    });
-
-    const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token));
-    if (tokens.length > 0) {
-      const empresa = incidente.movimiento.empresa?.nombre ?? 'Sin Empresa';
-      const loco = incidente.movimiento.locomotiveNumber;
-
-      await admin.messaging().sendEachForMulticast({
-        notification: { title: '✅ INCIDENTE RESUELTO', body: `Incidente resuelto por el cliente: "${comentario}"` },
-        data: {
-          pantalla: 'Incidente',
-          incidenteId: String(actualizado.id),
-          movimientoId: String(incidente.movimientoId),
-          empresa,
-          locomotora: String(loco),
-          tipo: 'incidente_resuelto_cliente',
-          timestamp: new Date().toISOString(),
-        },
-        tokens,
-      });
-    }
-
-    return actualizado;
+  if (!incidente) throw new Error('Incidente no encontrado');
+  if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === (RESUELTO as any)) {
+    throw new Error('Incidente ya finalizado');
   }
+
+  // Marcar como RESUELTO (no reordenar)
+  const actualizado = await prisma.incidente.update({
+    where: { id },
+    data: { estado: RESUELTO as any, fechaFin: new Date() },
+    include: { movimiento: true },
+  });
+
+  // Reactivar movimiento
+  await prisma.movimiento.update({
+    where: { id: incidente.movimientoId },
+    data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+  });
+
+  // Notificación a roles operativos + cliente en misma empresa/localidad
+  const roles = ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'];
+  const rolesLower = roles.map(r => r.toLowerCase());
+  const usuarios = await prisma.usuario.findMany({
+    where: {
+      activo: true,
+      localidadId: incidente.movimiento.localidadId,
+      empresaId: incidente.movimiento.empresaId,
+      OR: [
+        { rol: { in: roles as any } },
+        { rol: { in: rolesLower as any } },
+      ],
+    },
+    include: { fcmTokens: true },
+  });
+
+  // Dedup + limpia tokens
+  const tokens = [...new Set(
+    usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean))
+  )];
+
+  if (tokens.length) {
+    const empresa = incidente.movimiento.empresa?.nombre ?? 'Sin Empresa';
+    const loco = incidente.movimiento.locomotiveNumber ?? 'N/D';
+    const title = '✅ INCIDENTE RESUELTO';
+    const body  = `Resuelto por cliente: "${comentario}"`;
+    const data  = {
+      pantalla: 'Incidente',
+      incidenteId: String(actualizado.id),
+      movimientoId: String(incidente.movimientoId),
+      empresa,
+      locomotora: String(loco),
+      tipo: 'incidente_resuelto_cliente',
+      timestamp: new Date().toISOString(),
+    };
+
+    // Enviar en lotes de 500
+    const chunkSize = 500;
+    const totalLotes = Math.ceil(tokens.length / chunkSize);
+    for (let i = 0; i < tokens.length; i += chunkSize) {
+      const slice = tokens.slice(i, i + chunkSize);
+      const res = await admin.messaging().sendEachForMulticast({
+        notification: { title, body },
+        data,
+        tokens: slice,
+      });
+      try {
+        incidenteError.info('FCM incidente_resuelto_cliente', {
+          incidenteId: actualizado.id,
+          lote: `${i / chunkSize + 1}/${totalLotes}`,
+          enviados: res.successCount,
+          fallidos: res.failureCount,
+        });
+      } catch {}
+    }
+  } else {
+    try {
+      incidenteError.warn('Sin tokens para incidente_resuelto_cliente', { incidenteId: actualizado.id });
+    } catch {}
+  }
+
+  return actualizado;
+}
+
 }

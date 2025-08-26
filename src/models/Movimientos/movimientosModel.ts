@@ -70,6 +70,9 @@ async function tokensDeUsuarios(ids: number[]) {
  * @sideEffects Envía FCM (considerar Outbox en producción).
  */
 async function notificarMovimientoCreado(movId: number) {
+  // Inicializa firebase-admin una sola vez
+  if (!admin.apps?.length) admin.initializeApp();
+
   const m = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -82,16 +85,33 @@ async function notificarMovimientoCreado(movId: number) {
   });
   if (!m) return;
 
+  const rolesUpper = ['SUPERVISOR', 'COORDINADOR', 'MAQUINISTA', 'OPERADOR'];
+  const rolesLower = rolesUpper.map(r => r.toLowerCase());
+
+  // Soporta enum o string; si es enum, el OR con lower no rompe por el cast a any
   const usuarios = await prisma.usuario.findMany({
     where: {
       activo: true,
       localidadId: m.localidadId,
-      rol: { in: ['SUPERVISOR', 'COORDINADOR', 'MAQUINISTA', 'OPERADOR'] as any },
+      OR: [
+        { rol: { in: rolesUpper as any } },
+        { rol: { in: rolesLower as any } },
+      ],
     },
     include: { fcmTokens: true },
   });
-  const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token));
-  if (!tokens.length) return;
+
+  // Limpia y deduplica tokens
+  const tokens = [...new Set(
+    usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean))
+  )];
+
+  if (!tokens.length) {
+    movimientoError.warn('Sin tokens FCM para notificar creación de movimiento', {
+      movId: m.id, localidadId: m.localidadId, rolesEncontrados: usuarios.map(u => u.rol)
+    });
+    return;
+  }
 
   const title = `Nuevo movimiento (${m.prioridad})`;
   const body =
@@ -102,22 +122,32 @@ async function notificarMovimientoCreado(movId: number) {
     `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'} · ` +
     `Comentario: ${m.instrucciones ?? '—'}`;
 
-  await admin.messaging().sendEachForMulticast({
-    notification: { title, body },
-    data: {
-      tipo: 'movimiento_creado',
-      movimientoId: String(m.id),
-      prioridad: String(m.prioridad),
-      creadoPor: String(m.creadoPor?.nombre ?? ''),
-      fecha: new Date(m.createdAt).toISOString(),
-      empresa: String(m.empresa?.nombre ?? ''),
-      localidadId: String(m.localidadId),
-      viaOrigen: String(m.viaOrigen?.nombre ?? ''),
-      viaDestino: String(m.viaDestino?.nombre ?? ''),
-    },
-    tokens,
-  });
+  const data = {
+    tipo: 'movimiento_creado',
+    movimientoId: String(m.id),
+    prioridad: String(m.prioridad),
+    creadoPor: String(m.creadoPor?.nombre ?? ''),
+    fecha: new Date(m.createdAt).toISOString(),
+    empresa: String(m.empresa?.nombre ?? ''),
+    localidadId: String(m.localidadId),
+    viaOrigen: String(m.viaOrigen?.nombre ?? ''),
+    viaDestino: String(m.viaDestino?.nombre ?? ''),
+  };
+
+  // FCM limita a 500 tokens por envío
+  for (let i = 0; i < tokens.length; i += 500) {
+    const slice = tokens.slice(i, i + 500);
+    const res = await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data,
+      tokens: slice,
+    });
+    movimientoError.info('FCM movimiento_creado', {
+      movId: m.id, enviados: res.successCount, fallidos: res.failureCount, lote: `${i}-${i + slice.length - 1}`
+    });
+  }
 }
+
 
 /**
  * @summary Notifica un cambio de prioridad a roles administrativos/líderes.
