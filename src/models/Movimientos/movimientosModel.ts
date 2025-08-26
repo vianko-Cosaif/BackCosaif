@@ -37,7 +37,7 @@
  * - Evitar múltiples `PrismaClient` (ver TODO singleton).
  */
 
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient, Rol } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
@@ -70,7 +70,6 @@ async function tokensDeUsuarios(ids: number[]) {
  * @sideEffects Envía FCM (considerar Outbox en producción).
  */
 async function notificarMovimientoCreado(movId: number) {
-  // Inicializa firebase-admin una sola vez
   if (!admin.apps?.length) admin.initializeApp();
 
   const m = await prisma.movimiento.findUnique({
@@ -85,30 +84,21 @@ async function notificarMovimientoCreado(movId: number) {
   });
   if (!m) return;
 
-  const rolesUpper = ['SUPERVISOR', 'COORDINADOR', 'MAQUINISTA', 'OPERADOR'];
-  const rolesLower = rolesUpper.map(r => r.toLowerCase());
+  const roles: Rol[] = [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.MAQUINISTA, Rol.OPERADOR];
 
-  // Soporta enum o string; si es enum, el OR con lower no rompe por el cast a any
   const usuarios = await prisma.usuario.findMany({
     where: {
       activo: true,
       localidadId: m.localidadId,
-      OR: [
-        { rol: { in: rolesUpper as any } },
-        { rol: { in: rolesLower as any } },
-      ],
+      rol: { in: roles },
     },
     include: { fcmTokens: true },
   });
 
-  // Limpia y deduplica tokens
-  const tokens = [...new Set(
-    usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean))
-  )];
-
+  const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean)))];
   if (!tokens.length) {
     movimientoError.warn('Sin tokens FCM para notificar creación de movimiento', {
-      movId: m.id, localidadId: m.localidadId, rolesEncontrados: usuarios.map(u => u.rol)
+      movId: m.id, localidadId: m.localidadId, rolesEncontrados: usuarios.map(u => u.rol),
     });
     return;
   }
@@ -134,7 +124,6 @@ async function notificarMovimientoCreado(movId: number) {
     viaDestino: String(m.viaDestino?.nombre ?? ''),
   };
 
-  // FCM limita a 500 tokens por envío
   for (let i = 0; i < tokens.length; i += 500) {
     const slice = tokens.slice(i, i + 500);
     const res = await admin.messaging().sendEachForMulticast({
@@ -143,7 +132,7 @@ async function notificarMovimientoCreado(movId: number) {
       tokens: slice,
     });
     movimientoError.info('FCM movimiento_creado', {
-      movId: m.id, enviados: res.successCount, fallidos: res.failureCount, lote: `${i}-${i + slice.length - 1}`
+      movId: m.id, enviados: res.successCount, fallidos: res.failureCount, lote: `${i}-${i + slice.length - 1}`,
     });
   }
 }
