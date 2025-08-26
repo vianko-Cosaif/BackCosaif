@@ -118,7 +118,7 @@ async function notificarMovimientoCreado(movId: number) {
   });
   if (!m) return;
 
-  const roles: Rol[] = [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.CLIENTE];
+  const roles: Rol[] = [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.MAQUINISTA];
   const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
 
   const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean)))];
