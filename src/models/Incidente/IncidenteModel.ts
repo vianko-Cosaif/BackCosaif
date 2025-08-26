@@ -4,6 +4,7 @@
  * - Manejo de imágenes con optimización
  * - Reorganización de rondas (solo cuando Incidente lo ordena)
  * - Timeouts de verificación/cierre
+ * - 🔎 Logs de diagnóstico FCM detallados (por qué notifica / por qué NO)
  */
 
 import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
@@ -16,9 +17,50 @@ import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
 
-function ensureAdmin() {
-  if (!admin.apps?.length) admin.initializeApp();
+/* =========================================================
+ *                FCM: INICIALIZACIÓN + DIAGNÓSTICO
+ * ========================================================= */
+let _fcmInitLogged = false;
+
+function fcmEnvSnapshot() {
+  return {
+    hasDefaultApp: !!admin.apps?.length,
+    projectId:
+      (admin.apps?.[0]?.options as any)?.projectId ??
+      process.env.GCLOUD_PROJECT ??
+      process.env.GCP_PROJECT ??
+      null,
+    credentialsFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || null,
+    hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
+    nodeEnv: process.env.NODE_ENV ?? null,
+  };
 }
+
+function ensureAdmin() {
+  const snapBefore = fcmEnvSnapshot();
+  if (!admin.apps?.length) {
+    try {
+      admin.initializeApp();
+      const snapAfter = fcmEnvSnapshot();
+      incidenteError.info('FCM INIT OK', { before: snapBefore, after: snapAfter });
+    } catch (e: any) {
+      incidenteError.error('FCM INIT FAIL', {
+        before: snapBefore,
+        errorName: e?.name,
+        errorCode: e?.code,
+        errorMessage: e?.message,
+      });
+      return;
+    }
+  } else if (!_fcmInitLogged) {
+    _fcmInitLogged = true;
+    incidenteError.info('FCM READY', snapBefore);
+  }
+}
+
+/* =========================================================
+ *                     HELPERS DE TOKENS
+ * ========================================================= */
 
 function chunk<T>(arr: T[], size = 500): T[][] {
   const out: T[][] = [];
@@ -26,7 +68,11 @@ function chunk<T>(arr: T[], size = 500): T[][] {
   return out;
 }
 
-async function tokensPorRolesLocalidadEmpresa(localidadId: number, empresaId?: number, roles?: string[]) {
+async function tokensPorRolesLocalidadEmpresa(
+  localidadId: number,
+  empresaId?: number,
+  roles?: string[]
+) {
   const rolesBase = roles?.length ? roles : ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'];
   const where: any = {
     activo: true,
@@ -35,44 +81,144 @@ async function tokensPorRolesLocalidadEmpresa(localidadId: number, empresaId?: n
   };
   if (empresaId) where.empresaId = empresaId;
 
-  const usuarios = await prisma.usuario.findMany({ where, include: { fcmTokens: true } });
-  return [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+  const usuarios = await prisma.usuario.findMany({
+    where,
+    include: { fcmTokens: true },
+  });
+
+  const tokens = [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+
+  const tokensPorRol: Record<string, number> = {};
+  for (const u of usuarios) {
+    const rol = String((u as any).rol ?? 'N/D').toUpperCase();
+    const cant = (u.fcmTokens ?? []).filter((t) => !!t.token).length;
+    tokensPorRol[rol] = (tokensPorRol[rol] ?? 0) + cant;
+  }
+
+  incidenteError.info('FCM TOKENS LOOKUP', {
+    localidadId,
+    empresaId: empresaId ?? null,
+    rolesFiltro: rolesBase,
+    usuariosEncontrados: usuarios.length,
+    tokensTotales: tokens.length,
+    tokensPorRol,
+    muestraTokens: tokens.slice(0, 3),
+  });
+
+  return tokens;
 }
 
 async function tokensPorUsuarios(ids: number[]) {
-  if (!ids?.length) return [];
-  const usuarios = await prisma.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
-  return [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+  if (!ids?.length) {
+    incidenteError.warn('FCM TOKENS usuarios: lista de IDs vacía', { ids });
+    return [];
+  }
+  const usuarios = await prisma.usuario.findMany({
+    where: { id: { in: ids }, activo: true },
+    include: { fcmTokens: true },
+  });
+  const tokens = [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+
+  incidenteError.info('FCM TOKENS por usuarios', {
+    ids,
+    usuariosEncontrados: usuarios.length,
+    tokensTotales: tokens.length,
+    muestraTokens: tokens.slice(0, 3),
+  });
+
+  return tokens;
 }
 
-async function enviarMulticast(
-  tokens: string[],
-  payload: { notification: { title: string; body: string }; data: Record<string, string> },
-  logCtx: any
-) {
+/* =========================================================
+ *              ENVÍO FCM CON DIAGNÓSTICO DETALLADO
+ * ========================================================= */
+
+type MulticastPayload = { notification: { title: string; body: string }; data: Record<string, string> };
+
+async function enviarMulticastConDiagnostico(tokens: string[], payload: MulticastPayload, logCtx: any) {
   ensureAdmin();
+
+  if (!admin.apps?.length) {
+    incidenteError.error('FCM SKIP: Admin no inicializó', { ...logCtx, snapshot: fcmEnvSnapshot() });
+    return { attempted: false, success: 0, failure: tokens.length, errors: { 'app/no-default-app': tokens.length } };
+  }
+
+  if (!tokens?.length) {
+    incidenteError.warn('FCM SKIP: Sin tokens', { ...logCtx, tokensCount: 0, payloadPreview: payload.notification });
+    return { attempted: false, success: 0, failure: 0, errors: {} };
+  }
+
+  incidenteError.info('FCM PREPARE SEND', {
+    ...logCtx,
+    tokensCount: tokens.length,
+    tokensSample: tokens.slice(0, 3),
+    payloadPreview: payload.notification,
+    dataKeys: Object.keys(payload.data),
+  });
+
   const lotes = chunk(tokens, 500);
+  let success = 0;
+  let failure = 0;
+  const errors: Record<string, number> = {};
+
   for (let i = 0; i < lotes.length; i++) {
     const slice = lotes[i];
-    const res = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
-    incidenteError.info('FCM incidente', {
-      ...logCtx,
-      lote: `${i + 1}/${lotes.length}`,
-      enviados: res.successCount,
-      fallidos: res.failureCount,
-    });
+    try {
+      const res = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
+      success += res.successCount;
+      failure += res.failureCount;
+
+      if ((res as any).responses?.length) {
+        for (const r of (res as any).responses) {
+          if (!r.success) {
+            const code =
+              (r.error as any)?.errorInfo?.code ||
+              (r.error as any)?.code ||
+              (r.error as any)?.message ||
+              'unknown';
+            errors[code] = (errors[code] ?? 0) + 1;
+          }
+        }
+      }
+
+      incidenteError.info('FCM LOTE ENVIADO', {
+        ...logCtx,
+        lote: `${i + 1}/${lotes.length}`,
+        tokensEnLote: slice.length,
+        enviados: res.successCount,
+        fallidos: res.failureCount,
+        erroresAcumulados: errors,
+      });
+    } catch (err: any) {
+      failure += slice.length;
+      const info = {
+        errorName: err?.name,
+        errorCode: err?.code ?? err?.errorInfo?.code,
+        errorMessage: err?.message,
+      };
+      errors[info.errorCode || 'unknown'] = (errors[info.errorCode || 'unknown'] ?? 0) + slice.length;
+      incidenteError.error('FCM ERROR ENVÍO LOTE', { ...logCtx, lote: `${i + 1}/${lotes.length}`, tokensEnLote: slice.length, ...info });
+    }
   }
+
+  incidenteError.info('FCM RESUMEN', {
+    ...logCtx,
+    tokensTotales: tokens.length,
+    enviados: success,
+    fallidos: failure,
+    erroresPorCodigo: errors,
+  });
+
+  return { attempted: true, success, failure, errors };
 }
 
-/** Normaliza el enum RESUELTO aunque no exista en tipos locales */
-const RESUELTO = (EstadoIncidente as unknown as Record<string, string>).RESUELTO ?? 'RESUELTO';
+/* =========================================================
+ *                    CONSTANTES / CONFIG
+ * ========================================================= */
 
-/** Máximo de cierres no resueltos antes de cancelar el movimiento */
+const RESUELTO = (EstadoIncidente as unknown as Record<string, string>).RESUELTO ?? 'RESUELTO';
 const MAX_CIERRES_NO_RESUELTOS = 3;
 
-/**
- * Configuración para el manejo de imágenes
- */
 const IMAGEN_CONFIG = {
   maxWidth: 1920,
   maxHeight: 1080,
@@ -81,21 +227,12 @@ const IMAGEN_CONFIG = {
   carpetaBase: path.join(process.cwd(), 'uploads', 'incidentes'),
 };
 
-// -------------------------
-// Helpers de filtros/paginado
-// -------------------------
-
 export type EstadoFiltro = 'ABIERTO' | 'CERRADO' | 'RESUELTO' | 'PASADOS';
 
 function buildWhereByEstado(estado?: EstadoFiltro) {
   if (!estado) return {};
-  if (estado === 'PASADOS') {
-    return { estado: { in: [EstadoIncidente.CERRADO, RESUELTO as any] } };
-  }
-  if (estado === 'RESUELTO') {
-    return { estado: RESUELTO as any };
-  }
-  // 'ABIERTO' | 'CERRADO'
+  if (estado === 'PASADOS') return { estado: { in: [EstadoIncidente.CERRADO, RESUELTO as any] } };
+  if (estado === 'RESUELTO') return { estado: RESUELTO as any };
   return { estado: estado as any };
 }
 
@@ -111,6 +248,10 @@ export interface PaginacionIncidentes<T> {
     estadoFiltro: EstadoFiltro | null;
   };
 }
+
+/* =========================================================
+ *                       LECTURA
+ * ========================================================= */
 
 export async function listarIncidentesPaginados({
   page = 1,
@@ -207,9 +348,8 @@ const TIMEOUT_CONFIG = {
 };
 
 export class IncidenteModel {
-  // =========================================================
-  // Lectura
-  // =========================================================
+  /* ======================= LECTURA ======================= */
+
   static async obtenerIncidentes() {
     try {
       return await prisma.incidente.findMany({
@@ -265,9 +405,7 @@ export class IncidenteModel {
       },
     });
 
-    if (!incidente) {
-      throw new Error(`No existe incidente con id ${id}`);
-    }
+    if (!incidente) throw new Error(`No existe incidente con id ${id}`);
 
     const rutasRelativas = [incidente.imagen1, incidente.imagen2, incidente.imagen3, incidente.imagen4].filter(
       Boolean
@@ -292,9 +430,7 @@ export class IncidenteModel {
         select: { id: true, estado: true, fechaInicio: true },
       });
 
-      if (!incidente) {
-        throw new Error(`No se encontró incidente con id ${incidenteId}`);
-      }
+      if (!incidente) throw new Error(`No se encontró incidente con id ${incidenteId}`);
 
       if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === (RESUELTO as any)) {
         return {
@@ -442,9 +578,7 @@ export class IncidenteModel {
     }
   }
 
-  // =========================================================
-  // Escritura / Update
-  // =========================================================
+  /* =================== ESCRITURA / UPDATE =================== */
 
   static async editarIncidente(
     id: number,
@@ -459,10 +593,8 @@ export class IncidenteModel {
         if (!actual) throw new Error(`No se encontró incidente con id ${id}`);
 
         const updateData: any = {};
-
         if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
 
-        // Manejo de imágenes (borra anteriores y guarda nuevas)
         if (data.imagenes?.length) {
           const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
           for (const ruta of anteriores) {
@@ -480,13 +612,11 @@ export class IncidenteModel {
           updateData.imagen4 = rutas[3] ?? null;
         }
 
-        // Cambio de estado (solo persistencia aquí)
         if (data.estado !== undefined && data.estado !== actual.estado) {
           updateData.estado = data.estado as any;
           updateData.fechaFin = new Date();
 
           if (data.estado === 'RESUELTO') {
-            // RESUELTO: reactivar movimiento, NO reordenar rondas
             await tx.movimiento.update({
               where: { id: actual.movimientoId },
               data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
@@ -496,7 +626,6 @@ export class IncidenteModel {
               movimientoId: actual.movimientoId,
             });
           }
-          // Si es CERRADO, la reordenación se hará después de la transacción
         }
 
         const upd = await tx.incidente.update({
@@ -508,17 +637,11 @@ export class IncidenteModel {
         return { incidenteActualizado: upd, estadoAnterior: actual.estado };
       });
 
-      // Reglas post-estado CERRADO (fuera de la transacción)
       if (data.estado === 'CERRADO') {
         const movId = incidenteActualizado.movimientoId;
-
-        // ¿Cuántos cierres tiene este movimiento (incluye éste)?
-        const cierres = await prisma.incidente.count({
-          where: { movimientoId: movId, estado: 'CERRADO' },
-        });
+        const cierres = await prisma.incidente.count({ where: { movimientoId: movId, estado: 'CERRADO' } });
 
         if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
-          // 3er cierre: CANCELAR/Finalizar movimiento y sacarlo de la ronda
           const mov = await prisma.movimiento.findUnique({
             where: { id: movId },
             select: { id: true, localidadId: true },
@@ -527,20 +650,12 @@ export class IncidenteModel {
           await prisma.$transaction(async (tx) => {
             await tx.movimiento.update({
               where: { id: movId },
-              data: {
-                finalizado: true,
-                // estado: 'CANCELADO' as any, // habilitar si existe en tu enum
-                fechaFin: new Date(),
-                incidenteGlobal: false,
-                fechaPausa: null,
-              },
+              data: { finalizado: true, fechaFin: new Date(), incidenteGlobal: false, fechaPausa: null },
             });
             await tx.ronda.deleteMany({ where: { movimientoId: movId } });
           });
 
-          if (mov?.localidadId) {
-            await RondaModel.recomponerRondasLocalidad(mov.localidadId);
-          }
+          if (mov?.localidadId) await RondaModel.recomponerRondasLocalidad(mov.localidadId);
 
           incidenteError.warn('Movimiento cancelado por múltiples cierres no resueltos', {
             incidenteId: id,
@@ -548,7 +663,6 @@ export class IncidenteModel {
             cierres,
           });
         } else {
-          // 1er o 2do cierre: aplicar HOLD y reordenar
           await RondaModel.gestionarIncidente(movId, { cerradoNoResuelto: true });
           incidenteError.info('Reorden ejecutado por cierre de incidente', {
             incidenteId: id,
@@ -558,7 +672,6 @@ export class IncidenteModel {
         }
       }
 
-      // Notificar cambio de estado si aplicó
       if (data.estado && data.estado !== estadoAnterior) {
         await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
       }
@@ -610,15 +723,8 @@ export class IncidenteModel {
     }
   }
 
-  // =========================================================
-  // Reglas de reorganización por incidente (invocadas explícitamente)
-  // =========================================================
+  /* ===== Reglas de reorganización por incidente (explícitas) ===== */
 
-  /**
-   * Reorganiza rondas cuando se reporta un incidente en un movimiento (invocar explícitamente).
-   * - ALTA: enviar al final de R1.
-   * - BAJA: efecto cadena solo para esa empresa; luego compacta 1..N.
-   */
   public static async reorganizarRondasPorIncidente(empresaId: number, localidadId: number, movimientoId: number) {
     try {
       const rondaMovimiento = await prisma.ronda.findFirst({
@@ -646,11 +752,7 @@ export class IncidenteModel {
     }
   }
 
-  private static async moverMovimientoARonda1AlFinal(
-    localidadId: number,
-    empresaId: number,
-    movimientoId: number
-  ): Promise<void> {
+  private static async moverMovimientoARonda1AlFinal(localidadId: number, empresaId: number, movimientoId: number) {
     await prisma.$transaction(async (tx) => {
       const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
       if (rondaActual) {
@@ -683,9 +785,8 @@ export class IncidenteModel {
         const actual = await tx.ronda.findUnique({ where: { id: chain[0].id } });
         if (!actual) return;
 
-        if (tam > 0) {
-          await this.moverRonda(tx, actual, nextRound, tam + 1);
-        } else {
+        if (tam > 0) await this.moverRonda(tx, actual, nextRound, tam + 1);
+        else {
           const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
           await this.moverRonda(tx, actual, (max._max.rondaNumero ?? 0) + 1, 1);
         }
@@ -711,18 +812,13 @@ export class IncidenteModel {
       const nextRound = last.rondaNumero + 1;
       const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
 
-      if (tam > 0) {
-        await this.moverRonda(tx, current, nextRound, tam + 1);
-      } else {
+      if (tam > 0) await this.moverRonda(tx, current, nextRound, tam + 1);
+      else {
         const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
         await this.moverRonda(tx, current, (max._max.rondaNumero ?? 0) + 1, 1);
       }
     });
   }
-
-  // -------------------------
-  // Helpers internos para efecto cadena
-  // -------------------------
 
   private static async obtenerSlotsEmpresaDesde(
     tx: Prisma.TransactionClient,
@@ -742,15 +838,7 @@ export class IncidenteModel {
     return tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
   }
 
-  /**
-   * Mueve una fila de ronda (row) a (targetRonda, targetOrden) manteniendo integridad.
-   */
-  private static async moverRonda(
-    tx: Prisma.TransactionClient,
-    row: Ronda,
-    targetRonda: number,
-    targetOrden: number
-  ) {
+  private static async moverRonda(tx: Prisma.TransactionClient, row: Ronda, targetRonda: number, targetOrden: number) {
     const sameRound = row.rondaNumero === targetRonda;
 
     if (sameRound) {
@@ -758,22 +846,12 @@ export class IncidenteModel {
 
       if (targetOrden > row.orden) {
         await tx.ronda.updateMany({
-          where: {
-            localidadId: row.localidadId,
-            rondaNumero: row.rondaNumero,
-            concluido: false,
-            orden: { gt: row.orden, lte: targetOrden },
-          },
+          where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gt: row.orden, lte: targetOrden } },
           data: { orden: { decrement: 1 } },
         });
       } else {
         await tx.ronda.updateMany({
-          where: {
-            localidadId: row.localidadId,
-            rondaNumero: row.rondaNumero,
-            concluido: false,
-            orden: { gte: targetOrden, lt: row.orden },
-          },
+          where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gte: targetOrden, lt: row.orden } },
           data: { orden: { increment: 1 } },
         });
       }
@@ -795,20 +873,16 @@ export class IncidenteModel {
     await tx.ronda.update({ where: { id: row.id }, data: { rondaNumero: targetRonda, orden: targetOrden } });
   }
 
-  // =========================================================
-  // Crear / Eliminar / Timeouts
-  // =========================================================
+  /* =================== CREAR / ELIMINAR / TIMEOUTS =================== */
 
   static async crearIncidente(data: { descripcion: string; movimientoId: number; usuarioId: number; imagenes?: Buffer[] }) {
     try {
-      // 1) Verificar movimiento
       const movimiento = await prisma.movimiento.findUnique({
         where: { id: data.movimientoId },
         include: { empresa: true, localidad: true, ronda: true },
       });
       if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
 
-      // 2) Crear incidente (ABIERTO)
       const nuevoIncidente = await prisma.incidente.create({
         data: {
           descripcion: data.descripcion,
@@ -818,7 +892,6 @@ export class IncidenteModel {
         },
       });
 
-      // 3) Procesar imágenes
       let rutasImagenes: string[] = [];
       if (data.imagenes?.length) {
         rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
@@ -838,42 +911,36 @@ export class IncidenteModel {
         },
       });
 
-      // 4) Detener el movimiento
       await prisma.movimiento.update({
         where: { id: data.movimientoId },
         data: { estado: 'DETENIDO', fechaPausa: new Date(), incidenteGlobal: true },
       });
 
-      // 5) ❌ NO reordenar aquí. La reorg solo ocurre cuando Incidente pasa a CERRADO.
+      // === NOTIFICAR SIEMPRE, con diagnóstico claro ===
+      const mov = incidenteConImagenes.movimiento;
+      const roles = ['SUPERVISOR', 'COORDINADOR', 'OPERADOR', 'MAQUINISTA', 'CLIENTE'];
+      const tokens = await tokensPorRolesLocalidadEmpresa(mov.localidadId, mov.empresaId, roles);
 
-      // 6) Notificar SIEMPRE a roles operativos de la misma empresa y localidad
-      {
-        const mov = incidenteConImagenes.movimiento;
-        const tokens = await tokensPorRolesLocalidadEmpresa(mov.localidadId, mov.empresaId, [
-          'SUPERVISOR',
-          'COORDINADOR',
-          'OPERADOR',
-          'MAQUINISTA',
-          'CLIENTE',
-        ]);
-        if (tokens.length) {
-          const title = '🚨 NUEVO INCIDENTE';
-          const body = `Mov #${mov.id} • Loco ${mov.locomotiveNumber} • ${mov.empresa?.nombre ?? 'Sin Empresa'}`;
-          const dataFCM = {
-            tipo: 'incidente_creado',
-            pantalla: 'Incidente',
-            incidenteId: String(incidenteConImagenes.id),
-            movimientoId: String(mov.id),
-            empresa: String(mov.empresa?.nombre ?? ''),
-            localidadId: String(mov.localidadId),
-            locomotora: String(mov.locomotiveNumber ?? ''),
-            fecha: new Date().toISOString(),
-          };
-          await enviarMulticast(tokens, { notification: { title, body }, data: dataFCM }, { incidenteId: incidenteConImagenes.id, evento: 'creado' });
-        } else {
-          incidenteError.warn('Sin tokens para incidente_creado', { incidenteId: incidenteConImagenes.id, localidadId: mov.localidadId });
-        }
-      }
+      const title = '🚨 NUEVO INCIDENTE';
+      const body = `Mov #${mov.id} • Loco ${mov.locomotiveNumber} • ${mov.empresa?.nombre ?? 'Sin Empresa'}`;
+      const dataFCM = {
+        tipo: 'incidente_creado',
+        pantalla: 'Incidente',
+        incidenteId: String(incidenteConImagenes.id),
+        movimientoId: String(mov.id),
+        empresa: String(mov.empresa?.nombre ?? ''),
+        localidadId: String(mov.localidadId),
+        locomotora: String(mov.locomotiveNumber ?? ''),
+        fecha: new Date().toISOString(),
+      };
+
+      await enviarMulticastConDiagnostico(tokens, { notification: { title, body }, data: dataFCM }, {
+        evento: 'incidente_creado',
+        incidenteId: incidenteConImagenes.id,
+        localidadId: mov.localidadId,
+        empresaId: mov.empresaId,
+        roles,
+      });
 
       incidenteError.info('Incidente creado y procesado', {
         incidenteId: nuevoIncidente.id,
@@ -952,9 +1019,7 @@ export class IncidenteModel {
     return path.join(IMAGEN_CONFIG.carpetaBase, rutaRelativa);
   }
 
-  // =========================================================
-  // Notificaciones
-  // =========================================================
+  /* ======================== NOTIFICACIONES ======================== */
 
   static async notificarCambioEstado(incidente: Incidente, estadoAnterior: string): Promise<void> {
     try {
@@ -964,7 +1029,13 @@ export class IncidenteModel {
         where: { id: incidente.movimientoId },
         include: { empresa: true, localidad: true },
       });
-      if (!movimiento) return;
+      if (!movimiento) {
+        incidenteError.warn('FCM SKIP cambio de estado: movimiento no encontrado', {
+          incidenteId: incidente.id,
+          movimientoId: incidente.movimientoId,
+        });
+        return;
+      }
 
       const ids: number[] = [];
       if (movimiento.clienteId) ids.push(movimiento.clienteId);
@@ -974,7 +1045,6 @@ export class IncidenteModel {
       if (movimiento.creadoPorId) ids.push(movimiento.creadoPorId);
 
       const tokens = await tokensPorUsuarios(ids);
-      if (tokens.length === 0) return;
 
       const empresaNombre = movimiento.empresa?.nombre ?? 'Sin Empresa';
       const descripcion =
@@ -987,7 +1057,7 @@ export class IncidenteModel {
           ? '❌ INCIDENTE CERRADO'
           : '🔄 INCIDENTE ACTUALIZADO';
 
-      const mensaje = {
+      const payload: MulticastPayload = {
         notification: { title: titulo, body: `ID #${incidente.id} • ${empresaNombre} • Loco ${movimiento.locomotiveNumber}` },
         data: {
           pantalla: 'Incidente',
@@ -1001,19 +1071,28 @@ export class IncidenteModel {
           tipo: 'cambio_estado_incidente',
           fecha: new Date().toISOString(),
         },
-        tokens,
       };
 
-      await admin.messaging().sendEachForMulticast(mensaje);
-    } catch (error) {
-      incidenteError.error('Error enviando notificación de cambio de estado', { incidenteId: incidente.id, error });
+      await enviarMulticastConDiagnostico(tokens, payload, {
+        evento: 'cambio_estado_incidente',
+        incidenteId: incidente.id,
+        movimientoId: incidente.movimientoId,
+        estadoAnterior,
+        estadoNuevo: incidente.estado,
+        idsDestino: ids,
+      });
+    } catch (error: any) {
+      incidenteError.error('Error enviando notificación de cambio de estado', {
+        incidenteId: incidente.id,
+        errorName: error?.name,
+        errorCode: error?.code,
+        errorMessage: error?.message,
+      });
       throw error;
     }
   }
 
-  // =========================================================
-  // Reglas complementarias
-  // =========================================================
+  /* ===================== Reglas complementarias ===================== */
 
   private static async esUnicaEmpresaEnRondas(empresaId: number, localidadId: number): Promise<boolean> {
     const empresas = await prisma.ronda.findMany({
@@ -1024,12 +1103,6 @@ export class IncidenteModel {
     return empresas.length === 1 && empresas[0].empresaId === empresaId;
   }
 
-  /**
-   * Continuar movimiento = tratar como RESUELTO:
-   * - Marca incidente RESUELTO
-   * - Reactiva el movimiento
-   * - NO reordena rondas
-   */
   static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
     ensureAdmin();
 
@@ -1043,20 +1116,17 @@ export class IncidenteModel {
       throw new Error('Incidente ya finalizado');
     }
 
-    // marcar como RESUELTO (no reordenar)
     const actualizado = await prisma.incidente.update({
       where: { id },
       data: { estado: RESUELTO as any, fechaFin: new Date() },
       include: { movimiento: true },
     });
 
-    // Reactivar movimiento
     await prisma.movimiento.update({
       where: { id: incidente.movimientoId },
       data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
     });
 
-    // Notificación a usuarios activos de la empresa en la localidad
     const usuarios = await prisma.usuario.findMany({
       where: {
         localidadId: incidente.movimiento.localidadId,
@@ -1068,24 +1138,29 @@ export class IncidenteModel {
     });
 
     const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token)).filter(Boolean);
-    if (tokens.length > 0) {
-      const empresa = incidente.movimiento.empresa?.nombre ?? 'Sin Empresa';
-      const loco = incidente.movimiento.locomotiveNumber;
 
-      await admin.messaging().sendEachForMulticast({
+    await enviarMulticastConDiagnostico(
+      tokens,
+      {
         notification: { title: '✅ INCIDENTE RESUELTO', body: `Incidente resuelto por el cliente: "${comentario}"` },
         data: {
           pantalla: 'Incidente',
           incidenteId: String(actualizado.id),
           movimientoId: String(incidente.movimientoId),
-          empresa,
-          locomotora: String(loco),
+          empresa: String(incidente.movimiento.empresa?.nombre ?? ''),
+          locomotora: String(incidente.movimiento.locomotiveNumber ?? ''),
           tipo: 'incidente_resuelto_cliente',
           timestamp: new Date().toISOString(),
         },
-        tokens,
-      });
-    }
+      },
+      {
+        evento: 'incidente_resuelto_cliente',
+        incidenteId: actualizado.id,
+        movimientoId: incidente.movimientoId,
+        localidadId: incidente.movimiento.localidadId,
+        empresaId: incidente.movimiento.empresaId,
+      }
+    );
 
     return actualizado;
   }
