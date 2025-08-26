@@ -102,33 +102,45 @@ async function tokensDeUsuarios(ids: number[]) {
   return usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean));
 }
 
-/** Notifica la creación de un movimiento a actores locales: Supervisor, Coordinador, Operador y Cliente. */
+/** Notifica la creación de un movimiento (incluye MAQUINISTA, excluye CLIENTE). */
 async function notificarMovimientoCreado(movId: number) {
   ensureAdmin();
 
   const m = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
-      empresa: { select: { nombre: true } },
-      localidad: { select: { id: true, nombre: true } },
-      viaOrigen: { select: { nombre: true } },
-      viaDestino: { select: { nombre: true } },
-      creadoPor: { select: { nombre: true } },
+      empresa:  { select: { nombre: true } },
+      localidad:{ select: { id: true, nombre: true } },
+      viaOrigen:{ select: { nombre: true } },
+      viaDestino:{ select: { nombre: true } },
+      creadoPor:{ select: { id: true, nombre: true, rol: true } },
     },
   });
   if (!m) return;
 
+  // Roles internos + MAQUINISTA (cliente NO está aquí)
   const roles: Rol[] = [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.MAQUINISTA];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
 
-  const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean)))];
-  const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
-    acc[r] = usuarios.filter(u => u.rol === r).length; return acc;
-  }, {});
+  // Usuarios base por localidad/empresa en los roles definidos
+  let usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
+
+  // Asegura incluir expresamente al maquinista asignado (operadorId) si existe
+  if (m.operadorId) {
+    const op = await prisma.usuario.findMany({
+      where: { id: m.operadorId, activo: true },
+      include: { fcmTokens: true },
+    });
+    usuarios = [...usuarios, ...op];
+  }
+
+  // Tokens únicos
+  const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? [])
+    .map(t => t.token)
+    .filter(Boolean)))];
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_creado', {
-      movId: m.id, localidadId: m.localidadId, roleCounts,
+      movId: m.id, localidadId: m.localidadId, roles,
     });
     return;
   }
@@ -151,14 +163,13 @@ async function notificarMovimientoCreado(movId: number) {
     viaDestino: String(m.viaDestino?.nombre ?? ''),
   };
 
-  await enviarMulticastMovimiento(tokens, { notification: { title, body }, data }, {
-    evento: 'creado',
-    movId: m.id,
-    localidadId: m.localidadId,
-    tokens: tokens.length,
-    roleCounts,
-  });
+  await enviarMulticastMovimiento(
+    tokens,
+    { notification: { title, body }, data },
+    { evento: 'creado', movId: m.id, localidadId: m.localidadId, tokens: tokens.length, roles }
+  );
 }
+
 
 /** Notifica un cambio de prioridad a roles administrativos/líderes. */
 async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
