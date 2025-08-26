@@ -7,8 +7,18 @@ import { movimientoError } from '../movimiento.logger';
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
 
+// ================== CONSTANTES / GUARDAS ==================
+const TTL_MS = 60 * 60 * 1000;      // 1h (anti-spam notifs)
+const HOLD10M_MS = 10 * 60 * 1000;  // 10m (alta cerrada no resuelta)
+const MAX_GUARD_ITERS = 1000;       // anti-loop
+const MAX_SCAN_ROUNDS = 500;        // anti-loop rounds
+
+// ================== FCM INIT ==================
+function ensureAdmin() {
+  if (!admin.apps?.length) admin.initializeApp();
+}
+
 // ================== BUFFER DE NOTIFICACIONES (UNA SOLA VEZ) ==================
-const TTL_MS = 60 * 60 * 1000; // 1h
 const _notifBuffer = new Map<string, number>(); // key -> expiresAt
 function _markNotified(key: string) { _notifBuffer.set(key, Date.now() + TTL_MS); }
 function _wasNotified(key: string) {
@@ -21,7 +31,6 @@ function _keyAllBlocked(localidadId: number) { return `allblocked:${localidadId}
 function _keyTapado(localidadId: number, movimientoId: number) { return `tapado:${localidadId}:${movimientoId}`; }
 
 // ================== HOLD 10 MIN (INCIDENTE CERRADO/NO RESUELTO, SOLO 1 VEZ) ==================
-const HOLD10M_MS = 10 * 60 * 1000;
 const _hold10m = new Map<number, number>();     // movimientoId -> expiresAt
 const _hold10mOnce = new Set<number>();         // ya aplicado una vez
 function _isOnHold(movId: number) {
@@ -38,6 +47,7 @@ async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMov
       localidadId,
       id: { not: excluirMovimientoId ?? 0 },
       finalizado: false,
+      estado: { notIn: ['CANCELADO'] },
       OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
     },
   });
@@ -49,6 +59,7 @@ async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: T
     where: {
       localidadId,
       finalizado: false,
+      estado: { notIn: ['CANCELADO'] },
       OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
     },
     include: { empresa: { select: { nombre: true } } },
@@ -93,15 +104,24 @@ async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = pri
 async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
   if (!ids.length) return [];
   const usuarios = await tx.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
-  return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+  return usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean));
 }
+
 async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
+  ensureAdmin();
   const keyAll = _keyAllBlocked(localidadId);
   if (_wasNotified(keyAll)) return;
 
   const rondas = await tx.ronda.findMany({
     where: { localidadId, concluido: false },
-    include: { movimiento: { select: { id: true, empresaId: true, clienteId: true, supervisorId: true, coordinadorId: true, viaDestinoId: true } } },
+    include: {
+      movimiento: {
+        select: {
+          id: true, empresaId: true, clienteId: true, supervisorId: true, coordinadorId: true, operadorId: true,
+          viaDestinoId: true
+        }
+      }
+    },
     orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
   });
 
@@ -118,7 +138,7 @@ async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
     });
     if (!m) continue;
 
-    const ids = [m.clienteId, m.supervisorId, m.coordinadorId].filter(Boolean) as number[];
+    const ids = [m.clienteId, m.supervisorId, m.coordinadorId, m.operadorId].filter(Boolean) as number[];
     const tokens = await tokensDeUsuarios(ids, tx);
     if (!tokens.length) continue;
 
@@ -177,6 +197,7 @@ async function notificarTapadoSimple(
   },
   tx: Tx
 ) {
+  ensureAdmin();
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
     include: { empresa: { select: { nombre: true } } }
@@ -189,11 +210,12 @@ async function notificarTapadoSimple(
   const locoTxt = det.bloqueador?.locomotiveNumber ?? 'N/D';
   const viaTxt  = det.viaDestino ?? 'N/D';
 
-  // Destinatarios básicos (cliente/supervisor/coordinador)
+  // Destinatarios (incluye maquinista/operador)
   const ids: number[] = [];
   if ((mov as any).clienteId) ids.push((mov as any).clienteId);
   if ((mov as any).supervisorId) ids.push((mov as any).supervisorId);
   if ((mov as any).coordinadorId) ids.push((mov as any).coordinadorId);
+  if ((mov as any).operadorId) ids.push((mov as any).operadorId);
 
   const tokens = await tokensDeUsuarios(ids, tx);
   if (!tokens.length) return;
@@ -245,6 +267,9 @@ export class RondaModel {
   }
 
   private static async moverRonda(tx: Tx, row: Ronda, targetRonda: number, targetOrden: number) {
+    if (targetRonda < 1) targetRonda = 1;
+    if (targetOrden < 1) targetOrden = 1;
+
     const sameRound = row.rondaNumero === targetRonda;
     if (sameRound) {
       if (targetOrden === row.orden) return;
@@ -281,7 +306,7 @@ export class RondaModel {
     tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
   ): Promise<number> {
     let r = Math.max(1, desdeRonda);
-    for (let guard = 0; guard < 200; guard++) {
+    for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
       const c = await tx.ronda.count({ where: { localidadId, rondaNumero: r, concluido: false, empresaId } });
       if (c === 0) return r;
       r++;
@@ -303,9 +328,38 @@ export class RondaModel {
     }
   }
 
+  private static async eliminarRondasHuérfanasYDuplicadas(tx: Tx, localidadId: number) {
+    // Eliminar rondas cuyos movimientos estén cancelados/finalizados
+    await tx.ronda.deleteMany({
+      where: {
+        localidadId,
+        movimiento: { OR: [{ finalizado: true }, { estado: { in: ['CONCLUIDO', 'CANCELADO'] } }] }
+      }
+    });
+
+    // Deduplicar: una ronda por movimiento
+    const filas = await tx.ronda.findMany({
+      where: { localidadId, concluido: false },
+      select: { id: true, movimientoId: true, rondaNumero: true, orden: true },
+      orderBy: [{ movimientoId: 'asc' }, { rondaNumero: 'asc' }, { orden: 'asc' }]
+    });
+
+    let i = 0;
+    while (i < filas.length) {
+      const movId = filas[i].movimientoId;
+      const group = filas.filter(f => f.movimientoId === movId);
+      if (group.length > 1) {
+        // Mantener el más prioritario (menor rondaNumero, luego menor orden); borrar el resto
+        const keep = group[0];
+        const drop = group.slice(1).map(g => g.id);
+        await tx.ronda.deleteMany({ where: { id: { in: drop } } });
+      }
+      i += group.length || 1;
+    }
+  }
+
   /** En BAJAS: máx 1 por empresa por ronda. En ALTAS: sin límite (cola FIFO en R1). */
   private static async garantizarUnSlotBajasPorEmpresaPorRonda(tx: Tx, localidadId: number, startRound: number) {
-    // Cualquier empresa con >1 BAJA en una misma ronda => empujar excedentes a rondas siguientes.
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, rondaNumero: { gte: startRound } },
       include: { movimiento: { select: { prioridad: true } } },
@@ -321,7 +375,6 @@ export class RondaModel {
     }
 
     for (const [key, rows] of bucket) {
-      // En esta función sólo limitamos BAJA
       const bajas = rows.filter(r => r.prioridad !== 'ALTA');
       if (bajas.length <= 1) continue;
 
@@ -329,7 +382,6 @@ export class RondaModel {
       const rondaActual = parseInt(rondaNumeroStr, 10);
       const empresaId = parseInt(empresaIdStr, 10);
 
-      // Mantener 1, empujar el resto a rondas sucesivas buscando primer hueco
       for (let i = 1; i < bajas.length; i++) {
         const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, rondaActual + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
@@ -346,8 +398,9 @@ export class RondaModel {
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    // 1) Llevar ALTAS sin hold a R1; ALTAS en hold, si están en R1, bajarlas a R2
+    let guard = 0;
     for (const f of filas) {
+      if (++guard > MAX_GUARD_ITERS) break;
       if (f.movimiento.prioridad !== 'ALTA') continue;
 
       if (_isOnHold(f.movimiento.id)) {
@@ -385,7 +438,6 @@ export class RondaModel {
 
   // BAJAS: repartir en robin-hood, empezando en R2 SOLO si hay ALTAS sin hold
   private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
-    // ¿Hay ALTAS activas (sin hold)?
     const altas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
       select: { movimiento: { select: { id: true } } },
@@ -408,7 +460,8 @@ export class RondaModel {
     const empresas = [...porEmpresa.keys()];
 
     let ronda = startRound;
-    while ([...porEmpresa.values()].some(arr => arr.length > 0)) {
+    let guard = 0;
+    while ([...porEmpresa.values()].some(arr => arr.length > 0) && guard++ < MAX_GUARD_ITERS) {
       let orden = 1;
       for (const e of empresas) {
         const arr = porEmpresa.get(e)!;
@@ -439,10 +492,15 @@ export class RondaModel {
 
   // ---------- RECOMPOSICIÓN GENERAL ----------
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
-    // Limpiar concluidas
+    await tx.$executeRawUnsafe(''); // noop para que Prisma no optimize away tx en algunos drivers
+
+    // 0) Limpieza agresiva
+    await this.eliminarRondasHuérfanasYDuplicadas(tx, localidadId);
+
+    // 1) Limpiar concluidas explícitas
     await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
 
-    // Normalizar numeración de rondas
+    // 2) Normalizar numeración de rondas
     const grupos = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
       select: { rondaNumero: true },
@@ -458,11 +516,67 @@ export class RondaModel {
       idx++;
     }
 
-    // ALTAS: FIFO en R1 (sin límite por empresa)
+    // 3) ALTAS: FIFO en R1 (sin límite por empresa) respetando HOLD
     await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // BAJAS: repartir en robin-hood (1 por empresa por ronda)
+    // 4) BAJAS: repartir en robin-hood (1 por empresa por ronda)
     await this.reequilibrarBajasRobinHood(tx, localidadId);
+
+    // 5) Notificar bloqueos por empresa si aplica (anti-spam 1h)
+    try { await notificarBloqueos(localidadId, tx); } catch (e: any) {
+      movimientoError.warn('No se pudo notificar bloqueos post-recompose', { localidadId, err: e?.message });
+    }
+  }
+
+  // ---------- REGLA EXTRA: SERVICIO ACTIVADO PRIORITARIO CONTROLADO ----------
+  /**
+   * Política: Cuando un servicio (lavado/torno) queda EN_PROCESO,
+   * lo subimos a R1 justo DESPUÉS del bloque de ALTAS (sin hold),
+   * manteniendo FIFO por `fechaInicio` entre servicios activos.
+   */
+  public static async onServicioActivado(movimientoId: number) {
+    await prisma.$transaction(async (tx) => {
+      const m = await tx.movimiento.findUnique({
+        where: { id: movimientoId },
+        select: { id: true, localidadId: true, empresaId: true, estado: true, lavado: true, torno: true, fechaInicio: true }
+      });
+      if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
+      if (!m.lavado && !m.torno) return; // sólo servicios
+      if (m.estado !== 'EN_PROCESO') return; // sólo cuando están activos
+
+      let r = await tx.ronda.findFirst({ where: { movimientoId }, orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }] });
+      if (!r) {
+        // insertar si no existe
+        const ord = (await this.tamanoDeRonda(tx, m.localidadId, 1)) + 1;
+        r = await tx.ronda.create({
+          data: { movimientoId, empresaId: m.empresaId, localidadId: m.localidadId, rondaNumero: 1, orden: ord }
+        });
+      }
+
+      // Calcular posición: detrás del bloque de ALTAS sin hold
+      const r1 = await tx.ronda.findMany({
+        where: { localidadId: m.localidadId, rondaNumero: 1, concluido: false },
+        include: { movimiento: { select: { id: true, prioridad: true, createdAt: true, fechaInicio: true, lavado: true, torno: true } } },
+        orderBy: [{ orden: 'asc' }],
+      });
+
+      const altasSinHoldIds = r1
+        .filter(x => x.movimiento.prioridad === 'ALTA' && !_isOnHold(x.movimiento.id))
+        .map(x => x.id);
+
+      // Servicios activos en R1 (para ordenar FIFO por fechaInicio)
+      const serviciosActivos = r1
+        .filter(x => (x.movimiento.lavado || x.movimiento.torno))
+        .sort((a, b) => +new Date(a.movimiento.fechaInicio ?? a.movimiento.createdAt) - +new Date(b.movimiento.fechaInicio ?? b.movimiento.createdAt))
+        .map(x => x.id);
+
+      const bloqueAltasLen = altasSinHoldIds.length;
+      const targetOrden = Math.max(1, bloqueAltasLen + 1 + serviciosActivos.indexOf(r.id));
+      await this.moverRonda(tx, r, 1, targetOrden);
+
+      // Recompactar R1
+      await this.compactarOrdenesRonda(tx, m.localidadId, 1);
+    }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
   }
 
   // ---------- GENERACIÓN / INSERCIÓN ----------
@@ -480,8 +594,9 @@ export class RondaModel {
     posicion?: number;
   }) {
     await prisma.$transaction(async (tx) => {
-      const mov = await tx.movimiento.findUnique({ where: { id: data.movimientoId }, select: { id: true } });
+      const mov = await tx.movimiento.findUnique({ where: { id: data.movimientoId }, select: { id: true, estado: true } });
       if (!mov) throw new Error(`Movimiento ${data.movimientoId} no encontrado`);
+      if (mov.estado === 'CANCELADO') return;
 
       const existe = await tx.ronda.findFirst({ where: { movimientoId: data.movimientoId } });
       if (existe) return;
@@ -503,7 +618,7 @@ export class RondaModel {
         movimientoId: data.movimientoId
       });
       await this.recomponerRondasLocalidad(data.localidadId, tx);
-    });
+    }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
   }
 
   /** PRIVADO: inserción BAJA con robin-hood + cascada hacia abajo. */
@@ -513,7 +628,6 @@ export class RondaModel {
   ) {
     const { localidadId, empresaId, movimientoId } = params;
 
-    // Si hay ALTAS activas (sin hold) comenzamos desde R2, si no desde R1
     const altas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
       select: { movimiento: { select: { id: true } } },
@@ -523,7 +637,7 @@ export class RondaModel {
 
     // Buscar primera ronda >= startRound donde esta empresa no tenga BAJA
     let r = startRound;
-    for (let guard = 0; guard < 500; guard++) {
+    for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
       const ya = await tx.ronda.count({
         where: { localidadId, rondaNumero: r, concluido: false, empresaId, movimiento: { prioridad: 'BAJA' } }
       });
@@ -534,7 +648,7 @@ export class RondaModel {
     const ord = (await this.tamanoDeRonda(tx, localidadId, r)) + 1;
     await tx.ronda.create({ data: { movimientoId, empresaId, localidadId, rondaNumero: r, orden: ord } });
 
-    // Acomodar el resto: 1 BAJA por empresa por ronda y repartir robin-hood (incluye cascada)
+    // Acomodar el resto
     await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
     await this.reequilibrarBajasRobinHood(tx, localidadId);
   }
@@ -692,7 +806,7 @@ export class RondaModel {
       // === BAJAS: empuje en cadena por empresa y luego compacta / robin-hood ===
       await this.efectoCadenaBajaPorIncidente(tx, r);
       await this.recomponerRondasLocalidad(localidadId, tx);
-    });
+    }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
   }
 
   // ---------- MOTOR: SIGUIENTE (UNO A LA VEZ, SIEMPRE MOSTRAR Y PERMITIR INICIO) ----------
@@ -701,6 +815,7 @@ export class RondaModel {
    * - LAVADO / TORNO => SOLO visibles si ya están EN_PROCESO (los habilitó coordinación).
    * - Resto => saltar los que estén EN_PROCESO y dar el siguiente elegible.
    * Siempre notifica posible obstrucción, pero permite inicio (decisión del maquinista).
+   * Si no hay elegibles, devuelve el tope de cola con `permiteInicio=false` y motivo.
    */
   static async siguienteParaMaquinista(localidadId: number) {
     return prisma.$transaction(async (tx) => {
@@ -725,43 +840,46 @@ export class RondaModel {
         take: 50,
       });
 
+      if (!candidatos.length) return { vacio: true as const, motivo: 'sin_rondas' };
+
       // Elegibilidad
-      const r = candidatos.find((c) => {
+      const rElegible = candidatos.find((c) => {
         const m = c.movimiento;
         const esServicio = !!m.lavado || !!m.torno;
-        if (esServicio) {
-          // Solo cuando coordinación lo puso EN_PROCESO
-          return m.estado === 'EN_PROCESO';
-        }
-        // Para lo demás, saltar los que ya están en proceso
-        return m.estado !== 'EN_PROCESO';
+        if (esServicio) return m.estado === 'EN_PROCESO';     // servicios solo si coordinación los activó
+        return m.estado !== 'EN_PROCESO';                     // no repetir los ya en proceso
       });
 
-      if (!r) return { vacio: true as const, motivo: 'no_elegibles' };
-
+      const r = rElegible ?? candidatos[0]; // fallback: tope de cola
       const det = await infoBloqueo(r, tx);
       if (det.bloqueado) {
-        await notificarTapadoSimple(
-          r,
-          {
-            viaDestino: det.viaDestino ?? null,
-            bloqueador: det.bloqueador ?? null
-          },
-          tx
-        );
+        try {
+          await notificarTapadoSimple(
+            r,
+            { viaDestino: det.viaDestino ?? null, bloqueador: det.bloqueador ?? null },
+            tx
+          );
+        } catch (e: any) {
+          movimientoError.warn('Error notificar tapado simple', { e: e?.message });
+        }
       }
 
-      // Siempre puede iniciar (decisión del maquinista)
+      // Permitir inicio sólo si no está ya en proceso o si es servicio activo
+      const m = r.movimiento;
+      const esServicio = !!m.lavado || !!m.torno;
+      const permiteInicio = esServicio ? (m.estado === 'EN_PROCESO') : (m.estado !== 'EN_PROCESO');
+
       return {
         rondaId: r.id,
         localidadId: r.localidadId,
-        movimientoId: r.movimiento.id,
-        empresaId: r.movimiento.empresaId,
-        prioridad: r.movimiento.prioridad,
-        locomotiveNumber: r.movimiento.locomotiveNumber ?? null,
+        movimientoId: m.id,
+        empresaId: m.empresaId,
+        prioridad: m.prioridad,
+        locomotiveNumber: m.locomotiveNumber ?? null,
         viaDestino: det.viaDestino,
         bloqueado: det.bloqueado,
-        permiteInicio: true
+        permiteInicio,
+        motivo: rElegible ? 'ok' : (esServicio ? 'servicio_no_activado' : 'todos_en_proceso')
       };
     });
   }
@@ -769,6 +887,7 @@ export class RondaModel {
   /** Wrapper por compatibilidad. */
   public static async siguienteInteligente(localidadId: number) {
     return this.siguienteParaMaquinista(localidadId);
+    // NOTA: si deseas forzar recomposición aquí, llama a recomponerRondasLocalidad(localidadId)
   }
 
   // ---------- FIN SERVICIO (LAVADO / TORNO) ----------
@@ -777,6 +896,7 @@ export class RondaModel {
     tipo: 'LAVADO' | 'TORNO',
     imagenesUrls?: string[]
   ) {
+    ensureAdmin();
     const m = await prisma.movimiento.findUnique({
       where: { id: movimientoId },
       include: {
@@ -786,7 +906,7 @@ export class RondaModel {
     });
     if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
 
-    const ids = [ (m as any).clienteId, (m as any).supervisorId, (m as any).coordinadorId ]
+    const ids = [ (m as any).clienteId, (m as any).supervisorId, (m as any).coordinadorId, (m as any).operadorId ]
       .filter(Boolean) as number[];
     const tokens = await tokensDeUsuarios(ids);
     if (!tokens.length) return;
@@ -814,6 +934,7 @@ export class RondaModel {
     for (const { localidadId } of locs) {
       await prisma.$transaction(async (tx) => {
         await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
+        await this.eliminarRondasHuérfanasYDuplicadas(tx, localidadId);
         await this.recomponerRondasLocalidad(localidadId, tx);
       });
     }
@@ -921,7 +1042,7 @@ export class RondaModel {
       ]);
       if (!movA || !movB) throw new Error('Movimiento no encontrado');
 
-      // Mantenemos validación en intercambios para no corromper estado físico de vías
+      // Validación para no corromper estado físico de vías
       await assertViasLibres(rondaA.localidadId, movA, tx);
       await assertViasLibres(rondaB.localidadId, movB, tx);
 
@@ -959,7 +1080,7 @@ export class RondaModel {
       ]);
 
       return [nuevaRondaA, nuevaRondaB];
-    });
+    }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
   }
 
   static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
@@ -969,7 +1090,6 @@ export class RondaModel {
       const movimiento = await prisma.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
       if (!movimiento) throw new Error('Movimiento no encontrado');
 
-      // Validación solo para esta operación
       await assertViasLibres(ronda.localidadId, movimiento);
 
       return await prisma.ronda.update({
