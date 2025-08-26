@@ -1,15 +1,4 @@
 // src/models/Movimientos/Ronda/RondaModel.ts
-
-/**
- * @file RondaModel.ts
- * @author Isaac
- * @version 1.4.1 2025-08-18
- *
- * @overview
- * Capa de **dominio/modelo** para la gestión de *Rondas* y su relación con
- * *Movimientos* (cola operativa por localidad).
- */
-
 import type { Prisma, Ronda, Movimiento } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import admin from 'firebase-admin';
@@ -18,19 +7,23 @@ import { movimientoError } from '../movimiento.logger';
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
 
-// Asegura admin inicializado para notificaciones
-if (!admin.apps?.length) admin.initializeApp();
+// ================== BUFFER DE NOTIFICACIONES (UNA SOLA VEZ) ==================
+const TTL_MS = 60 * 60 * 1000; // 1h
+const _notifBuffer = new Map<string, number>(); // key -> expiresAt
+function _markNotified(key: string) { _notifBuffer.set(key, Date.now() + TTL_MS); }
+function _wasNotified(key: string) {
+  const exp = _notifBuffer.get(key);
+  if (!exp) return false;
+  if (Date.now() > exp) { _notifBuffer.delete(key); return false; }
+  return true;
+}
+function _keyAllBlocked(localidadId: number) { return `allblocked:${localidadId}`; }
+function _keyTapado(localidadId: number, movimientoId: number) { return `tapado:${localidadId}:${movimientoId}`; }
 
-/* ==========================================================================
- *                              HOLD 10 MINUTOS
- *   Se aplica a movimientos con incidente "cerrado no resuelto" (solo una vez).
- * ========================================================================== */
-
+// ================== HOLD 10 MIN (INCIDENTE CERRADO/NO RESUELTO, SOLO 1 VEZ) ==================
 const HOLD10M_MS = 10 * 60 * 1000;
 const _hold10m = new Map<number, number>();     // movimientoId -> expiresAt
 const _hold10mOnce = new Set<number>();         // ya aplicado una vez
-
-/** Indica si un movimiento está en ventana HOLD. */
 function _isOnHold(movId: number) {
   const exp = _hold10m.get(movId);
   if (!exp) return false;
@@ -38,13 +31,7 @@ function _isOnHold(movId: number) {
   return true;
 }
 
-/* ==========================================================================
- *                      BLOQUEOS DE VÍAS / SECCIONES (Validaciones)
- * ========================================================================== */
-
-/**
- * @summary ¿Hay algún movimiento activo (no finalizado) ocupando la vía?
- */
+// ================== BLOQUEOS (VÍAS / SECCIONES) ==================
 async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMovimientoId?: number, tx: Tx = prisma) {
   const activos = await tx.movimiento.count({
     where: {
@@ -57,9 +44,6 @@ async function viaSimpleBloqueada(localidadId: number, viaId: number, excluirMov
   return activos > 0;
 }
 
-/**
- * @summary Devuelve un movimiento que bloquea la vía (o `null` si no hay).
- */
 async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: Tx = prisma) {
   const bloq = await tx.movimiento.findFirst({
     where: {
@@ -68,14 +52,12 @@ async function movimientoQueBloqueaVia(localidadId: number, viaId: number, tx: T
       OR: [{ viaOrigenId: viaId }, { viaDestinoId: viaId }],
     },
     include: { empresa: { select: { nombre: true } } },
-    orderBy: [{ updatedAt: 'asc' }]
+    orderBy: [{ updatedAt: 'asc' }] // más antiguo primero
   });
   return bloq || null;
 }
 
-/**
- * @summary ¿El movimiento asociado a la ronda está bloqueado por destino?
- */
+/** ¿El movimiento de la ronda está bloqueado por falta de sección/vía de destino? */
 async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
@@ -94,9 +76,7 @@ async function estaBloqueadoPorVias(r: Ronda, tx: Tx = prisma) {
   return !libre;
 }
 
-/**
- * @summary Asegura que el destino del movimiento tenga capacidad disponible.
- */
+/** Solo valida en operaciones que SÍ deben prevenir inconsistencia (no aplica a “siguiente...” del maquinista). */
 async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = prisma) {
   if (!m || !m.viaDestinoId) return;
   const secciones = await tx.seccionVia.count({ where: { viaId: m.viaDestinoId } });
@@ -109,25 +89,16 @@ async function assertViasLibres(localidadId: number, m: Movimiento, tx: Tx = pri
   }
 }
 
-/* ==========================================================================
- *                                 NOTIFICACIONES
- *   Recolecta tokens FCM y envía avisos.
- *   Destinatarios: cliente, supervisor, coordinador.
- *   ⚠️ A petición: SIN TTL/DEBOUNCE → notifica siempre.
- * ========================================================================== */
-
-/** @summary Devuelve tokens FCM activos de una lista de usuarios. */
+// ================== NOTIFICACIONES ==================
 async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
   if (!ids.length) return [];
   const usuarios = await tx.usuario.findMany({ where: { id: { in: ids }, activo: true }, include: { fcmTokens: true } });
-  return usuarios.flatMap(u => u.fcmTokens.map(t => t.token)).filter(Boolean);
+  return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
 }
-
-/**
- * @summary Notifica por empresa cuando **no hay capacidad** en vías/sectores destino.
- * @description SIN TTL: se envía cada vez que se llama.
- */
 async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
+  const keyAll = _keyAllBlocked(localidadId);
+  if (_wasNotified(keyAll)) return;
+
   const rondas = await tx.ronda.findMany({
     where: { localidadId, concluido: false },
     include: { movimiento: { select: { id: true, empresaId: true, clienteId: true, supervisorId: true, coordinadorId: true, viaDestinoId: true } } },
@@ -157,12 +128,11 @@ async function notificarBloqueos(localidadId: number, tx: Tx = prisma) {
       tokens
     });
   }
+
+  _markNotified(keyAll);
 }
 
-/* ==========================================================================
- *                  INFO DE BLOQUEO + NOTIFICACIÓN "TAPADO" (simple)
- * ========================================================================== */
-
+// ================== INFO DE BLOQUEO / NOTIFICACIÓN SIMPLE ==================
 async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   const mov = await tx.movimiento.findUnique({
     where: { id: r.movimientoId },
@@ -199,10 +169,6 @@ async function infoBloqueo(r: Ronda, tx: Tx = prisma) {
   };
 }
 
-/**
- * @summary Notifica “tapado” (obstrucción directa) para un movimiento concreto.
- * @description SIN TTL: se envía cada vez que se detecta bloqueo.
- */
 async function notificarTapadoSimple(
   r: Ronda,
   det: {
@@ -217,9 +183,13 @@ async function notificarTapadoSimple(
   });
   if (!mov) return;
 
+  const key = _keyTapado(r.localidadId, mov.id);
+  if (_wasNotified(key)) return;
+
   const locoTxt = det.bloqueador?.locomotiveNumber ?? 'N/D';
   const viaTxt  = det.viaDestino ?? 'N/D';
 
+  // Destinatarios básicos (cliente/supervisor/coordinador)
   const ids: number[] = [];
   if ((mov as any).clienteId) ids.push((mov as any).clienteId);
   if ((mov as any).supervisorId) ids.push((mov as any).supervisorId);
@@ -243,12 +213,10 @@ async function notificarTapadoSimple(
     },
     tokens
   });
+  _markNotified(key);
 }
 
-/* ==========================================================================
- *                              INCIDENTES
- * ========================================================================== */
-
+// ================== INCIDENTES ACTIVO? ==================
 async function tieneIncidenteActivo(tx: Tx, movimientoId: number) {
   const activos = await tx.incidente.count({
     where: {
@@ -259,13 +227,9 @@ async function tieneIncidenteActivo(tx: Tx, movimientoId: number) {
   return activos > 0;
 }
 
-/* ==========================================================================
- *                               RONDA MODEL
- * ========================================================================== */
-
+// ================== MODELO ==================
 export class RondaModel {
-  /* ------------------------------- CRUD Helpers ------------------------------- */
-
+  // ---------- HELPERS CRUD RONDA ----------
   private static async insertarEnPosicion(
     tx: Tx,
     localidadId: number,
@@ -339,7 +303,9 @@ export class RondaModel {
     }
   }
 
+  /** En BAJAS: máx 1 por empresa por ronda. En ALTAS: sin límite (cola FIFO en R1). */
   private static async garantizarUnSlotBajasPorEmpresaPorRonda(tx: Tx, localidadId: number, startRound: number) {
+    // Cualquier empresa con >1 BAJA en una misma ronda => empujar excedentes a rondas siguientes.
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, rondaNumero: { gte: startRound } },
       include: { movimiento: { select: { prioridad: true } } },
@@ -355,6 +321,7 @@ export class RondaModel {
     }
 
     for (const [key, rows] of bucket) {
+      // En esta función sólo limitamos BAJA
       const bajas = rows.filter(r => r.prioridad !== 'ALTA');
       if (bajas.length <= 1) continue;
 
@@ -362,6 +329,7 @@ export class RondaModel {
       const rondaActual = parseInt(rondaNumeroStr, 10);
       const empresaId = parseInt(empresaIdStr, 10);
 
+      // Mantener 1, empujar el resto a rondas sucesivas buscando primer hueco
       for (let i = 1; i < bajas.length; i++) {
         const target = await this.primeraRondaLibreParaEmpresa(tx, localidadId, empresaId, rondaActual + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
@@ -370,6 +338,7 @@ export class RondaModel {
     }
   }
 
+  // ALTAS: FIFO en R1 (pero respetando HOLD: ALTAS en hold NO van a R1)
   private static async ordenarAltasR1_FIFO(tx: Tx, localidadId: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
@@ -377,6 +346,7 @@ export class RondaModel {
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
+    // 1) Llevar ALTAS sin hold a R1; ALTAS en hold, si están en R1, bajarlas a R2
     for (const f of filas) {
       if (f.movimiento.prioridad !== 'ALTA') continue;
 
@@ -394,6 +364,7 @@ export class RondaModel {
       }
     }
 
+    // 2) Ordenar R1: ALTAS (sin hold) por createdAt y luego el resto
     const r1 = await tx.ronda.findMany({
       where: { localidadId, rondaNumero: 1, concluido: false },
       include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
@@ -412,7 +383,9 @@ export class RondaModel {
     }
   }
 
+  // BAJAS: repartir en robin-hood, empezando en R2 SOLO si hay ALTAS sin hold
   private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
+    // ¿Hay ALTAS activas (sin hold)?
     const altas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
       select: { movimiento: { select: { id: true } } },
@@ -420,8 +393,10 @@ export class RondaModel {
     const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
     const startRound = hayAltasSinHold ? 2 : 1;
 
+    // Garantizar 1 BAJA por empresa por ronda desde startRound
     await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
 
+    // Tomar BAJAS desde startRound y repartir round-robin
     const bajas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, rondaNumero: { gte: startRound }, movimiento: { prioridad: 'BAJA' } },
       include: { movimiento: { select: { id: true } } },
@@ -447,6 +422,7 @@ export class RondaModel {
       ronda++;
     }
 
+    // Compactar numeración de rondas
     const grupos = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
       select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
@@ -461,11 +437,12 @@ export class RondaModel {
     }
   }
 
-  /* --------------------------- Recomposición General --------------------------- */
-
+  // ---------- RECOMPOSICIÓN GENERAL ----------
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
+    // Limpiar concluidas
     await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
 
+    // Normalizar numeración de rondas
     const grupos = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
       select: { rondaNumero: true },
@@ -481,15 +458,19 @@ export class RondaModel {
       idx++;
     }
 
+    // ALTAS: FIFO en R1 (sin límite por empresa)
     await this.ordenarAltasR1_FIFO(tx, localidadId);
-    await this.reequilibrarBajasRobinHood(tx, localidadId);
 
-    // Notificar SIEMPRE bloqueos actuales (por empresa) tras recomposición
-    await notificarBloqueos(localidadId, tx);
+    // BAJAS: repartir en robin-hood (1 por empresa por ronda)
+    await this.reequilibrarBajasRobinHood(tx, localidadId);
   }
 
-  /* ------------------------- Generación / Inserción ------------------------- */
-
+  // ---------- GENERACIÓN / INSERCIÓN ----------
+  /**
+   * Inserción "solvente":
+   * ALTAS → R1 (opcionalmente forzar posición en R1).
+   * BAJAS → 1 por empresa por ronda, robin-hood + cascada; inicia en R2 si hay ALTAS sin hold.
+   */
   static async insertarRondaSolvente(data: {
     movimientoId: number;
     empresaId: number;
@@ -525,12 +506,14 @@ export class RondaModel {
     });
   }
 
+  /** PRIVADO: inserción BAJA con robin-hood + cascada hacia abajo. */
   private static async _insertarBajaConRobinHood(
     tx: Tx,
     params: { localidadId: number; empresaId: number; movimientoId: number }
   ) {
     const { localidadId, empresaId, movimientoId } = params;
 
+    // Si hay ALTAS activas (sin hold) comenzamos desde R2, si no desde R1
     const altas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
       select: { movimiento: { select: { id: true } } },
@@ -538,6 +521,7 @@ export class RondaModel {
     const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
     const startRound = hayAltasSinHold ? 2 : 1;
 
+    // Buscar primera ronda >= startRound donde esta empresa no tenga BAJA
     let r = startRound;
     for (let guard = 0; guard < 500; guard++) {
       const ya = await tx.ronda.count({
@@ -550,18 +534,21 @@ export class RondaModel {
     const ord = (await this.tamanoDeRonda(tx, localidadId, r)) + 1;
     await tx.ronda.create({ data: { movimientoId, empresaId, localidadId, rondaNumero: r, orden: ord } });
 
+    // Acomodar el resto: 1 BAJA por empresa por ronda y repartir robin-hood (incluye cascada)
     await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
     await this.reequilibrarBajasRobinHood(tx, localidadId);
   }
 
+  /**
+   * Wrapper de creación (compatibilidad): usa insertarRondaSolvente.
+   */
   static async generarRondaParaMovimiento(
     data: { movimientoId: number; empresaId: number; localidadId: number; prioridad: 'ALTA' | 'BAJA' }
   ) {
     return this.insertarRondaSolvente(data);
   }
 
-  /* ------------------- Helpers de cadena por incidentes ------------------- */
-
+  // ---------- HELPERS INCIDENTES (imágenes) ----------
   private static async obtenerSlotsEmpresaDesde(
     tx: Tx,
     localidadId: number,
@@ -585,6 +572,7 @@ export class RondaModel {
     const chain = await this.obtenerSlotsEmpresaDesde(tx, r.localidadId, r.empresaId, r.rondaNumero);
     if (chain.length === 0) return;
 
+    // Solo una participación: empujar a la ronda siguiente (o crear nueva)
     if (chain.length === 1) {
       const nextRound = r.rondaNumero + 1;
       const tam = await this.tamanoDeRonda(tx, r.localidadId, nextRound);
@@ -600,6 +588,7 @@ export class RondaModel {
       return;
     }
 
+    // Rotación por empuje dentro de la empresa
     let current = await tx.ronda.findUnique({ where: { id: chain[0].id } });
     if (!current) return;
 
@@ -626,9 +615,7 @@ export class RondaModel {
     }
   }
 
-  /**
-   * @summary Gestiona incidente para un movimiento (aplica HOLD y reordena).
-   */
+  // ---------- INCIDENTES (respeta imágenes: ALTAS/BAJAS) ----------
   static async gestionarIncidente(
     movimientoId: number,
     opts?: { cerradoNoResuelto?: boolean }
@@ -643,17 +630,20 @@ export class RondaModel {
       const { localidadId } = r;
       const esAlta = r.movimiento.prioridad === 'ALTA';
 
+      // Si viene de "cerrado no resuelto", aplicar HOLD 10m (solo 1 vez)
       if (opts?.cerradoNoResuelto && !_hold10mOnce.has(movimientoId)) {
         _hold10m.set(movimientoId, Date.now() + HOLD10M_MS);
         _hold10mOnce.add(movimientoId);
       }
 
       if (esAlta) {
+        // === ALTAS ===
         const totalAltasR1 = await tx.ronda.count({
           where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } }
         });
 
         if (totalAltasR1 >= 2) {
+          // Mover esta ALTA al final del bloque de ALTAS (FIFO)
           const r1Altas = await tx.ronda.findMany({
             where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
             include: { movimiento: { select: { id: true, createdAt: true } } },
@@ -670,18 +660,23 @@ export class RondaModel {
           }
           await this.compactarOrdenesRonda(tx, localidadId, 1);
         } else {
+          // ⚠️ Única ALTA: si hay BAJAS en cualquier ronda, forzar swap:
+          //   - ALTA -> R2:1
+          //   - Primera BAJA (en la ronda más baja) -> R1:1
           const primeraBaja = await tx.ronda.findFirst({
             where: { localidadId, concluido: false, movimiento: { prioridad: 'BAJA' } },
             orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
           });
 
           if (primeraBaja) {
+            // Abrir hueco en R2:1 y bajar la ALTA
             await tx.ronda.updateMany({
               where: { localidadId, rondaNumero: 2, concluido: false, orden: { gte: 1 } },
               data: { orden: { increment: 1 } }
             });
             await this.moverRonda(tx, r, 2, 1);
 
+            // Abrir hueco en R1:1 y subir la primera BAJA (venga de donde venga)
             await tx.ronda.updateMany({
               where: { localidadId, rondaNumero: 1, concluido: false, orden: { gte: 1 } },
               data: { orden: { increment: 1 } }
@@ -694,19 +689,22 @@ export class RondaModel {
         return;
       }
 
+      // === BAJAS: empuje en cadena por empresa y luego compacta / robin-hood ===
       await this.efectoCadenaBajaPorIncidente(tx, r);
       await this.recomponerRondasLocalidad(localidadId, tx);
     });
   }
 
-  /* ---------------------- Motor: “Siguiente” (maquinista) ---------------------- */
-
+  // ---------- MOTOR: SIGUIENTE (UNO A LA VEZ, SIEMPRE MOSTRAR Y PERMITIR INICIO) ----------
   /**
-   * @summary Devuelve el **siguiente** candidato para el maquinista (uno a la vez).
-   * @description Si hay bloqueo, se notifica **siempre**, pero se permite iniciar.
+   * Reglas para MAQUINISTA:
+   * - LAVADO / TORNO => SOLO visibles si ya están EN_PROCESO (los habilitó coordinación).
+   * - Resto => saltar los que estén EN_PROCESO y dar el siguiente elegible.
+   * Siempre notifica posible obstrucción, pero permite inicio (decisión del maquinista).
    */
   static async siguienteParaMaquinista(localidadId: number) {
     return prisma.$transaction(async (tx) => {
+      // Ventana de candidatos por ronda/orden
       const candidatos = await tx.ronda.findMany({
         where: { localidadId, concluido: false },
         include: {
@@ -727,10 +725,15 @@ export class RondaModel {
         take: 50,
       });
 
+      // Elegibilidad
       const r = candidatos.find((c) => {
         const m = c.movimiento;
         const esServicio = !!m.lavado || !!m.torno;
-        if (esServicio) return m.estado === 'EN_PROCESO';
+        if (esServicio) {
+          // Solo cuando coordinación lo puso EN_PROCESO
+          return m.estado === 'EN_PROCESO';
+        }
+        // Para lo demás, saltar los que ya están en proceso
         return m.estado !== 'EN_PROCESO';
       });
 
@@ -748,6 +751,7 @@ export class RondaModel {
         );
       }
 
+      // Siempre puede iniciar (decisión del maquinista)
       return {
         rondaId: r.id,
         localidadId: r.localidadId,
@@ -762,16 +766,12 @@ export class RondaModel {
     });
   }
 
-  /** @summary Alias de compatibilidad. */
+  /** Wrapper por compatibilidad. */
   public static async siguienteInteligente(localidadId: number) {
     return this.siguienteParaMaquinista(localidadId);
   }
 
-  /* --------------------------- Eventos de servicio --------------------------- */
-
-  /**
-   * @summary Notifica fin de servicio (LAVADO/TORNO) a interesados.
-   */
+  // ---------- FIN SERVICIO (LAVADO / TORNO) ----------
   static async notificarFinServicio(
     movimientoId: number,
     tipo: 'LAVADO' | 'TORNO',
@@ -808,8 +808,7 @@ export class RondaModel {
     });
   }
 
-  /* ------------------------------ Limpieza global ------------------------------ */
-
+  // ---------- LIMPIEZA ----------
   private static async limpiarYReorganizarRondasConcluidas() {
     const locs = await prisma.ronda.findMany({ select: { localidadId: true }, distinct: ['localidadId'] });
     for (const { localidadId } of locs) {
@@ -820,8 +819,7 @@ export class RondaModel {
     }
   }
 
-  /* ------------------------------- Consultas varias ------------------------------- */
-
+  // ---------- QUERIES VARIAS ----------
   static async obtenerRondas() {
     try {
       return await prisma.ronda.findMany({
@@ -923,6 +921,7 @@ export class RondaModel {
       ]);
       if (!movA || !movB) throw new Error('Movimiento no encontrado');
 
+      // Mantenemos validación en intercambios para no corromper estado físico de vías
       await assertViasLibres(rondaA.localidadId, movA, tx);
       await assertViasLibres(rondaB.localidadId, movB, tx);
 
@@ -970,6 +969,7 @@ export class RondaModel {
       const movimiento = await prisma.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
       if (!movimiento) throw new Error('Movimiento no encontrado');
 
+      // Validación solo para esta operación
       await assertViasLibres(ronda.localidadId, movimiento);
 
       return await prisma.ronda.update({
