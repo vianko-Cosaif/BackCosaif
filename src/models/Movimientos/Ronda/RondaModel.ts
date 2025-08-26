@@ -216,6 +216,7 @@ async function notificarTapadoSimple(
   if ((mov as any).supervisorId) ids.push((mov as any).supervisorId);
   if ((mov as any).coordinadorId) ids.push((mov as any).coordinadorId);
   if ((mov as any).operadorId) ids.push((mov as any).operadorId);
+  if((mov as any).maquinistaId)ids.push((mov as any).maquinistaId);
 
   const tokens = await tokensDeUsuarios(ids, tx);
   if (!tokens.length) return;
