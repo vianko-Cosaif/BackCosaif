@@ -508,6 +508,36 @@ export class MovimientoModel {
     }
   }
 
+  /** Cambia estado de **servicios** (lavado/torno) usando la lógica central. */
+static async actualizarEstadoServicio(
+  id: number,
+  nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
+  opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+) {
+  try {
+    const mov = await prisma.movimiento.findUnique({
+      where: { id },
+      select: { id: true, lavado: true, torno: true },
+    });
+    if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
+    if (!mov.lavado && !mov.torno) {
+      throw new Error('El movimiento no es un servicio de lavado/torno');
+    }
+
+    return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
+      maquinistaId: getMaquinistaId(opciones),
+      razon: opciones.razon,
+      forzar: false,
+    });
+  } catch (error: any) {
+    movimientoError.error('Error al actualizar estado de servicio', {
+      id, nuevoEstado, opciones,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al actualizar estado de servicio');
+  }
+}
+
   /** Edita un movimiento; puede reinsertar/recomponer rondas. */
   static async editarMovimiento(
     id: number,
