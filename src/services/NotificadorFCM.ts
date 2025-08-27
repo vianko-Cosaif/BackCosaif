@@ -29,7 +29,7 @@ static async notificarNuevoMovimiento(movimiento: any) {
           'OPERADOR',
           'MAQUINISTA',
           'COORDINADOR',
-          'ADMINISTRADOR'      // 👈 añadido
+          'ADMINISTRADOR'      
         ]
       },
       activo: true
