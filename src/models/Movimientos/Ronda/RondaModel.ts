@@ -52,13 +52,13 @@ export class RondaModel {
     return tx.ronda.create({ data: { ...data, localidadId, rondaNumero, orden } as any });
   }
 
-  private static async moverRonda(tx: Tx, row: Ronda, targetRonda: number, targetOrden: number) {
+  private static async moverRonda(tx: Tx, row: Ronda, targetRonda: number, targetOrden: number): Promise<Ronda> {
     if (targetRonda < 1) targetRonda = 1;
     if (targetOrden < 1) targetOrden = 1;
 
     const sameRound = row.rondaNumero === targetRonda;
     if (sameRound) {
-      if (targetOrden === row.orden) return;
+      if (targetOrden === row.orden) return row;
       if (targetOrden > row.orden) {
         await tx.ronda.updateMany({
           where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gt: row.orden, lte: targetOrden } },
@@ -71,7 +71,7 @@ export class RondaModel {
         });
       }
       await tx.ronda.update({ where: { id: row.id }, data: { orden: targetOrden } });
-      return;
+      return (await tx.ronda.findUnique({ where: { id: row.id } }))!;
     }
     await tx.ronda.updateMany({
       where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gt: row.orden } },
@@ -82,6 +82,7 @@ export class RondaModel {
       data: { orden: { increment: 1 } },
     });
     await tx.ronda.update({ where: { id: row.id }, data: { rondaNumero: targetRonda, orden: targetOrden } });
+    return (await tx.ronda.findUnique({ where: { id: row.id } }))!;
   }
 
   private static async tamanoDeRonda(tx: Tx, localidadId: number, rondaNumero: number) {
@@ -216,7 +217,7 @@ export class RondaModel {
     }
   }
 
-  // BAJAS: repartir en robin-hood, desde R2 si hay ALTAS sin hold; si no, desde R1
+  // BAJAS: reequilibrio general (Ya no se usa en recomposición para preservar cascadas)
   private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
     const altas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
@@ -290,8 +291,28 @@ export class RondaModel {
     // 1) ALTAS → R1 (FIFO), ALTAS en HOLD fuera de R1
     await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // 2) BAJAS → R2..n en robin-hood (1 por empresa por ronda); si no hay ALTAS sin hold, arrancan en R1
-    await this.reequilibrarBajasRobinHood(tx, localidadId);
+    // 2) BAJAS: preservar cascadas. Solo asegurar 1 por empresa por ronda y compactar.
+    const altas = await tx.ronda.findMany({
+      where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
+      select: { movimiento: { select: { id: true } } },
+    });
+    const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
+    const startRound = hayAltasSinHold ? 2 : 1;
+
+    await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
+
+    const grupos2 = await tx.ronda.findMany({
+      where: { localidadId, concluido: false },
+      select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
+    });
+    let idx2 = 1;
+    for (const g of grupos2) {
+      if (g.rondaNumero !== idx2) {
+        await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx2 } });
+      }
+      await this.compactarOrdenesRonda(tx, localidadId, idx2);
+      idx2++;
+    }
   }
 
   // ---------- SERVICIO ACTIVADO (LAVADO / TORNO) ----------
@@ -383,7 +404,7 @@ export class RondaModel {
     return this.insertarRondaSolvente(data);
   }
 
-  /** PRIVADO: inserción BAJA con robin-hood + cascada hacia abajo. */
+  /** PRIVADO: inserción BAJA con robin-hood + compactación. */
   private static async _insertarBajaConRobinHood(
     tx: Tx,
     params: { localidadId: number; empresaId: number; movimientoId: number }
@@ -410,7 +431,20 @@ export class RondaModel {
     await tx.ronda.create({ data: { movimientoId, empresaId, localidadId, rondaNumero: r, orden: ord } });
 
     await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
-    await this.reequilibrarBajasRobinHood(tx, localidadId);
+
+    // Compactar/renumerar sin redistribución global
+    const grupos = await tx.ronda.findMany({
+      where: { localidadId, concluido: false },
+      select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
+    });
+    let idx = 1;
+    for (const g of grupos) {
+      if (g.rondaNumero !== idx) {
+        await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
+      }
+      await this.compactarOrdenesRonda(tx, localidadId, idx);
+      idx++;
+    }
   }
 
   // ---------- INCIDENTES (sin lógica de bloqueo de vía) ----------
@@ -450,6 +484,27 @@ export class RondaModel {
         }
         await this.compactarOrdenesRonda(tx, localidadId, 1);
       } else {
+        // Fast-path: única empresa en BAJAS en toda la localidad
+        const empresasBaja = await tx.ronda.findMany({
+          where: { localidadId: r.localidadId, concluido: false, movimiento: { prioridad: 'BAJA' } },
+          select: { empresaId: true }, distinct: ['empresaId']
+        });
+
+        if (empresasBaja.length === 1) {
+          const filas = await tx.ronda.findMany({
+            where: { localidadId: r.localidadId, empresaId: r.empresaId, concluido: false, movimiento: { prioridad: 'BAJA' } },
+            orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }]
+          });
+          for (const row of filas) {
+            const nextRound = row.rondaNumero + 1;
+            const tam = await this.tamanoDeRonda(tx, row.localidadId, nextRound);
+            await this.moverRonda(tx, row as Ronda, nextRound, tam + 1);
+          }
+          await this.recomponerRondasLocalidad(localidadId, tx);
+          return;
+        }
+
+        // Cascada normal: r0→pos(r1), r1→pos(r2)... último→fin de ronda siguiente
         const chain = await tx.ronda.findMany({
           where: {
             localidadId: r.localidadId,
@@ -467,16 +522,16 @@ export class RondaModel {
           const tam = await this.tamanoDeRonda(tx, r.localidadId, nextRound);
           await this.moverRonda(tx, r, nextRound, tam + 1);
         } else {
-          let current = await tx.ronda.findUnique({ where: { id: chain[0].id } });
-          for (let i = 1; i < chain.length && current; i++) {
-            const targetRow = await tx.ronda.findUnique({ where: { id: chain[i].id } });
-            if (targetRow) await this.moverRonda(tx, current, targetRow.rondaNumero, targetRow.orden);
-            current = targetRow ?? null;
+          let current = await tx.ronda.findUnique({ where: { id: chain[0].id } }) as Ronda;
+          for (let i = 1; i < chain.length; i++) {
+            const targetRow = await tx.ronda.findUnique({ where: { id: chain[i].id } }) as Ronda;
+            await this.moverRonda(tx, current, targetRow.rondaNumero, targetRow.orden);
+            current = targetRow;
           }
           const last = chain[chain.length - 1];
           const nextRound = last.rondaNumero + 1;
           const tam = await this.tamanoDeRonda(tx, r.localidadId, nextRound);
-          if (current) await this.moverRonda(tx, current, nextRound, tam + 1);
+          await this.moverRonda(tx, (await tx.ronda.findUnique({ where: { id: last.id } })) as Ronda, nextRound, tam + 1);
         }
       }
 
