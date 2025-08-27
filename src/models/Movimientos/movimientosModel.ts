@@ -15,6 +15,7 @@ import { PrismaClient, Rol } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
+import { NotificadorFCM } from '../../services/NotificadorFCM';
 
 // ----------------------------------------------------------------------------
 // Prisma singleton (evita múltiples conexiones en hot-reload)
@@ -141,93 +142,8 @@ function parseMetaFromInstrucciones(instr?: string) {
 }
 
 // ----------------------------------------------------------------------------
-// Notificaciones FCM (con segmentación correcta para MAQUINISTA)
+// Notificaciones FCM (resto de eventos siguen locales); CREACIÓN DELEGA A NotificadorFCM
 // ----------------------------------------------------------------------------
-
-/** Notifica creación → MAQUINISTA/OPERADOR por LOCALIDAD (sin empresa); staff por empresa. */
-async function notificarMovimientoCreado(movId: number) {
-  ensureAdmin();
-
-  const m = await prisma.movimiento.findUnique({
-    where: { id: movId },
-    include: {
-      empresa: { select: { nombre: true } },
-      localidad: { select: { id: true, nombre: true } },
-      viaOrigen: { select: { nombre: true } },
-      viaDestino: { select: { nombre: true } },
-      creadoPor: { select: { id: true, nombre: true, rol: true } },
-    },
-  });
-  if (!m) return;
-
-  // 1) Operativos (MAQUINISTA/OPERADOR) por localidad (SIN filtro por empresa)
-  const operativos = await prisma.usuario.findMany({
-    where: {
-      activo: true,
-      localidadId: m.localidadId,
-      rol: { in: [Rol.MAQUINISTA, Rol.OPERADOR] },
-    },
-    include: { fcmTokens: true },
-  });
-
-  // 2) Staff por empresa (si la hay): SUPERVISOR/COORDINADOR
-  const staff = await prisma.usuario.findMany({
-    where: {
-      activo: true,
-      localidadId: m.localidadId,
-      ...(m.empresaId ? { empresaId: m.empresaId } : {}),
-      rol: { in: [Rol.SUPERVISOR, Rol.COORDINADOR] },
-    },
-    include: { fcmTokens: true },
-  });
-
-  // 3) Operador asignado explícito (si existe)
-  let asignado: typeof staff = [];
-  if (m.operadorId) {
-    asignado = await prisma.usuario.findMany({
-      where: { id: m.operadorId, activo: true },
-      include: { fcmTokens: true },
-    });
-  }
-
-  const tokens = uniqueTokensFromUsers([...operativos, ...staff, ...asignado]);
-
-  if (!tokens.length) {
-    movimientoError.warn('Sin tokens para movimiento_creado', {
-      movId: m.id,
-      localidadId: m.localidadId,
-      detalle: 'No hay MAQUINISTA/OPERADOR/STAFF con token en la localidad.',
-    });
-    return;
-  }
-
-  const title = `🆕 Movimiento creado (${m.prioridad})`;
-  const body =
-    `Creado por: ${m.creadoPor?.nombre ?? 'N/D'} · ` +
-    `Empresa: ${m.empresa?.nombre ?? 'N/D'} · Loco ${m.locomotiveNumber} · ` +
-    `${m.viaOrigen?.nombre ?? 'N/D'} → ${m.viaDestino?.nombre ?? 'N/D'}`;
-
-  const data = {
-    tipo: 'movimiento_creado',
-    movimientoId: String(m.id),
-    prioridad: String(m.prioridad),
-    creadoPor: String(m.creadoPor?.nombre ?? ''),
-    fecha: new Date(m.createdAt).toISOString(),
-    empresa: String(m.empresa?.nombre ?? ''),
-    localidadId: String(m.localidadId),
-    viaOrigen: String(m.viaOrigen?.nombre ?? ''),
-    viaDestino: String(m.viaDestino?.nombre ?? ''),
-  };
-
-  await enviarMulticastMovimiento(
-    tokens,
-    { notification: { title, body }, data },
-    { evento: 'creado', movId: m.id, localidadId: m.localidadId, tokens: tokens.length }
-  );
-
-  // (Opcional) fallback por tópico:
-  // await admin.messaging().send({ topic: `maquinistas_localidad_${m.localidadId}`, notification: { title, body }, data });
-}
 
 /** Cambio de prioridad → Admin/Coord/Sup (administrativos) */
 async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
@@ -730,7 +646,13 @@ export class MovimientoModel {
         });
       }
 
-      await notificarMovimientoCreado(mv.id);
+      // Delegar notificación de creación (esto incluye MAQUINISTA/OPERADOR por localidad)
+      try {
+        await NotificadorFCM.notificarNuevoMovimiento(mv.id);
+      } catch (e) {
+        movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
+      }
+
       await RondaModel.siguienteInteligente(mv.localidadId);
 
       return await prisma.movimiento.findUnique({
