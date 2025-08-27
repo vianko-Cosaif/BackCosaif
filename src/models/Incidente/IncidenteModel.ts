@@ -3,214 +3,19 @@
  * Modelo de acceso a datos para la entidad Incidente.
  * - Manejo de imágenes con optimización
  * - Reorganización de rondas (solo cuando Incidente lo ordena)
- * - Timeouts de verificación/cierre
- * - 🔎 Logs de diagnóstico FCM detallados (por qué notifica / por qué NO)
+ * - Auto-cierre a los 10 minutos si no se resuelve
+ * - Delegación FCM al NotificadorFCM (single source of truth)
  */
 
 import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
+import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
-import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
-
-/* =========================================================
- *                FCM: INICIALIZACIÓN + DIAGNÓSTICO
- * ========================================================= */
-let _fcmInitLogged = false;
-
-function fcmEnvSnapshot() {
-  return {
-    hasDefaultApp: !!admin.apps?.length,
-    projectId:
-      (admin.apps?.[0]?.options as any)?.projectId ??
-      process.env.GCLOUD_PROJECT ??
-      process.env.GCP_PROJECT ??
-      null,
-    credentialsFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || null,
-    hasFirebaseConfig: !!process.env.FIREBASE_CONFIG,
-    nodeEnv: process.env.NODE_ENV ?? null,
-  };
-}
-
-function ensureAdmin() {
-  const snapBefore = fcmEnvSnapshot();
-  if (!admin.apps?.length) {
-    try {
-      admin.initializeApp();
-      const snapAfter = fcmEnvSnapshot();
-      incidenteError.info('FCM INIT OK', { before: snapBefore, after: snapAfter });
-    } catch (e: any) {
-      incidenteError.error('FCM INIT FAIL', {
-        before: snapBefore,
-        errorName: e?.name,
-        errorCode: e?.code,
-        errorMessage: e?.message,
-      });
-      return;
-    }
-  } else if (!_fcmInitLogged) {
-    _fcmInitLogged = true;
-    incidenteError.info('FCM READY', snapBefore);
-  }
-}
-
-/* =========================================================
- *                     HELPERS DE TOKENS
- * ========================================================= */
-
-function chunk<T>(arr: T[], size = 500): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
-async function tokensPorRolesLocalidadEmpresa(
-  localidadId: number,
-  empresaId?: number,
-  roles?: string[]
-) {
-  const rolesBase = roles?.length ? roles : ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'];
-  const where: any = {
-    activo: true,
-    localidadId,
-    rol: { in: rolesBase as any },
-  };
-  if (empresaId) where.empresaId = empresaId;
-
-  const usuarios = await prisma.usuario.findMany({
-    where,
-    include: { fcmTokens: true },
-  });
-
-  const tokens = [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
-
-  const tokensPorRol: Record<string, number> = {};
-  for (const u of usuarios) {
-    const rol = String((u as any).rol ?? 'N/D').toUpperCase();
-    const cant = (u.fcmTokens ?? []).filter((t) => !!t.token).length;
-    tokensPorRol[rol] = (tokensPorRol[rol] ?? 0) + cant;
-  }
-
-  incidenteError.info('FCM TOKENS LOOKUP', {
-    localidadId,
-    empresaId: empresaId ?? null,
-    rolesFiltro: rolesBase,
-    usuariosEncontrados: usuarios.length,
-    tokensTotales: tokens.length,
-    tokensPorRol,
-    muestraTokens: tokens.slice(0, 3),
-  });
-
-  return tokens;
-}
-
-async function tokensPorUsuarios(ids: number[]) {
-  if (!ids?.length) {
-    incidenteError.warn('FCM TOKENS usuarios: lista de IDs vacía', { ids });
-    return [];
-  }
-  const usuarios = await prisma.usuario.findMany({
-    where: { id: { in: ids }, activo: true },
-    include: { fcmTokens: true },
-  });
-  const tokens = [...new Set(usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
-
-  incidenteError.info('FCM TOKENS por usuarios', {
-    ids,
-    usuariosEncontrados: usuarios.length,
-    tokensTotales: tokens.length,
-    muestraTokens: tokens.slice(0, 3),
-  });
-
-  return tokens;
-}
-
-/* =========================================================
- *              ENVÍO FCM CON DIAGNÓSTICO DETALLADO
- * ========================================================= */
-
-type MulticastPayload = { notification: { title: string; body: string }; data: Record<string, string> };
-
-async function enviarMulticastConDiagnostico(tokens: string[], payload: MulticastPayload, logCtx: any) {
-  ensureAdmin();
-
-  if (!admin.apps?.length) {
-    incidenteError.error('FCM SKIP: Admin no inicializó', { ...logCtx, snapshot: fcmEnvSnapshot() });
-    return { attempted: false, success: 0, failure: tokens.length, errors: { 'app/no-default-app': tokens.length } };
-  }
-
-  if (!tokens?.length) {
-    incidenteError.warn('FCM SKIP: Sin tokens', { ...logCtx, tokensCount: 0, payloadPreview: payload.notification });
-    return { attempted: false, success: 0, failure: 0, errors: {} };
-  }
-
-  incidenteError.info('FCM PREPARE SEND', {
-    ...logCtx,
-    tokensCount: tokens.length,
-    tokensSample: tokens.slice(0, 3),
-    payloadPreview: payload.notification,
-    dataKeys: Object.keys(payload.data),
-  });
-
-  const lotes = chunk(tokens, 500);
-  let success = 0;
-  let failure = 0;
-  const errors: Record<string, number> = {};
-
-  for (let i = 0; i < lotes.length; i++) {
-    const slice = lotes[i];
-    try {
-      const res = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
-      success += res.successCount;
-      failure += res.failureCount;
-
-      if ((res as any).responses?.length) {
-        for (const r of (res as any).responses) {
-          if (!r.success) {
-            const code =
-              (r.error as any)?.errorInfo?.code ||
-              (r.error as any)?.code ||
-              (r.error as any)?.message ||
-              'unknown';
-            errors[code] = (errors[code] ?? 0) + 1;
-          }
-        }
-      }
-
-      incidenteError.info('FCM LOTE ENVIADO', {
-        ...logCtx,
-        lote: `${i + 1}/${lotes.length}`,
-        tokensEnLote: slice.length,
-        enviados: res.successCount,
-        fallidos: res.failureCount,
-        erroresAcumulados: errors,
-      });
-    } catch (err: any) {
-      failure += slice.length;
-      const info = {
-        errorName: err?.name,
-        errorCode: err?.code ?? err?.errorInfo?.code,
-        errorMessage: err?.message,
-      };
-      errors[info.errorCode || 'unknown'] = (errors[info.errorCode || 'unknown'] ?? 0) + slice.length;
-      incidenteError.error('FCM ERROR ENVÍO LOTE', { ...logCtx, lote: `${i + 1}/${lotes.length}`, tokensEnLote: slice.length, ...info });
-    }
-  }
-
-  incidenteError.info('FCM RESUMEN', {
-    ...logCtx,
-    tokensTotales: tokens.length,
-    enviados: success,
-    fallidos: failure,
-    erroresPorCodigo: errors,
-  });
-
-  return { attempted: true, success, failure, errors };
-}
 
 /* =========================================================
  *                    CONSTANTES / CONFIG
@@ -340,12 +145,49 @@ export async function listarIncidentesPorCursor({
 }
 
 /**
- * Configuración de timeouts para incidentes
+ * Auto-cierre en 10 minutos (sin periodo de bloqueo).
  */
 const TIMEOUT_CONFIG = {
-  verificacion: 10 * 60 * 1000, // 10 minutos
-  bloqueo: 5 * 60 * 1000, // 5 minutos
+  verificacion: 10 * 60 * 1000,
+  bloqueo: 0,
 };
+
+/* =========================================================
+ *               CRON INTERNO (AUTO-SWEEP VENCIDOS)
+ * ========================================================= */
+const CRON_INTERVAL_MS = 60_000;
+let _cronStarted = false;
+let _cronRunning = false;
+let _cronTimer: NodeJS.Timeout | null = null;
+let _lastCronRun = 0;
+
+function _ensureCron() {
+  if (_cronStarted) return;
+  _cronStarted = true;
+
+  _cronTimer = setInterval(async () => {
+    if (_cronRunning) return;
+    if (Date.now() - _lastCronRun < CRON_INTERVAL_MS / 2) return;
+
+    _cronRunning = true;
+    try {
+      _lastCronRun = Date.now();
+      await IncidenteModel.cerrarIncidentesVencidos();
+    } catch (e) {
+      incidenteError.error('Cron cerrarIncidentesVencidos falló', { error: String(e) });
+    } finally {
+      _cronRunning = false;
+    }
+  }, CRON_INTERVAL_MS);
+
+  setTimeout(() => {
+    IncidenteModel.cerrarIncidentesVencidos().catch((e) =>
+      incidenteError.warn('Auto-sweep inicial falló', { error: String(e) })
+    );
+  }, 5_000);
+
+  incidenteError.info('Cron interno de incidentes iniciado', { CRON_INTERVAL_MS });
+}
 
 export class IncidenteModel {
   /* ======================= LECTURA ======================= */
@@ -443,12 +285,11 @@ export class IncidenteModel {
 
       const ahora = new Date();
       const transcurrido = ahora.getTime() - incidente.fechaInicio.getTime();
-
       const verif = TIMEOUT_CONFIG.verificacion;
       const bloque = TIMEOUT_CONFIG.bloqueo;
 
       const enPeriodoVerificacion = transcurrido <= verif;
-      const enPeriodoBloqueo = transcurrido > verif && transcurrido <= verif + bloque;
+      const enPeriodoBloqueo = bloque > 0 && transcurrido > verif && transcurrido <= verif + bloque;
 
       let tiempoRestante = 0;
       let mensaje = '';
@@ -637,6 +478,7 @@ export class IncidenteModel {
         return { incidenteActualizado: upd, estadoAnterior: actual.estado };
       });
 
+      // Lógica al cerrar
       if (data.estado === 'CERRADO') {
         const movId = incidenteActualizado.movimientoId;
         const cierres = await prisma.incidente.count({ where: { movimientoId: movId, estado: 'CERRADO' } });
@@ -644,7 +486,7 @@ export class IncidenteModel {
         if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
           const mov = await prisma.movimiento.findUnique({
             where: { id: movId },
-            select: { id: true, localidadId: true },
+            include: { empresa: true, localidad: true },
           });
 
           await prisma.$transaction(async (tx) => {
@@ -656,6 +498,8 @@ export class IncidenteModel {
           });
 
           if (mov?.localidadId) await RondaModel.recomponerRondasLocalidad(mov.localidadId);
+
+          if (mov) await NotificadorFCM.notificarCancelacionMovimiento(mov, 'Reincidencia de incidentes');
 
           incidenteError.warn('Movimiento cancelado por múltiples cierres no resueltos', {
             incidenteId: id,
@@ -672,9 +516,16 @@ export class IncidenteModel {
         }
       }
 
+      // Notificación centralizada de cambio de estado
       if (data.estado && data.estado !== estadoAnterior) {
-        await this.notificarCambioEstado(incidenteActualizado, estadoAnterior);
+        await NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior);
       }
+
+      // Levanta/garantiza cron
+      _ensureCron();
+
+      // Sweep rápido para no dejar vencidos
+      try { await this.cerrarIncidentesVencidos(); } catch {}
 
       incidenteError.info('Incidente actualizado correctamente', {
         incidenteId: id,
@@ -889,13 +740,12 @@ export class IncidenteModel {
           movimientoId: data.movimientoId,
           usuarioId: data.usuarioId,
           estado: 'ABIERTO',
+          fechaInicio: new Date(),
         },
       });
 
       let rutasImagenes: string[] = [];
-      if (data.imagenes?.length) {
-        rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
-      }
+      if (data.imagenes?.length) rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
 
       const incidenteConImagenes = await prisma.incidente.update({
         where: { id: nuevoIncidente.id },
@@ -905,10 +755,6 @@ export class IncidenteModel {
           imagen3: rutasImagenes[2] ?? null,
           imagen4: rutasImagenes[3] ?? null,
         },
-        include: {
-          movimiento: { include: { empresa: true, localidad: true, ronda: true } },
-          usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
-        },
       });
 
       await prisma.movimiento.update({
@@ -916,31 +762,12 @@ export class IncidenteModel {
         data: { estado: 'DETENIDO', fechaPausa: new Date(), incidenteGlobal: true },
       });
 
-      // === NOTIFICAR SIEMPRE, con diagnóstico claro ===
-      const mov = incidenteConImagenes.movimiento;
-      const roles = ['SUPERVISOR', 'COORDINADOR', 'OPERADOR', 'MAQUINISTA', 'CLIENTE'];
-      const tokens = await tokensPorRolesLocalidadEmpresa(mov.localidadId, mov.empresaId, roles);
+      const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
+      if (incPlano) await NotificadorFCM.notificarNuevoIncidente(incPlano);
 
-      const title = '🚨 NUEVO INCIDENTE';
-      const body = `Mov #${mov.id} • Loco ${mov.locomotiveNumber} • ${mov.empresa?.nombre ?? 'Sin Empresa'}`;
-      const dataFCM = {
-        tipo: 'incidente_creado',
-        pantalla: 'Incidente',
-        incidenteId: String(incidenteConImagenes.id),
-        movimientoId: String(mov.id),
-        empresa: String(mov.empresa?.nombre ?? ''),
-        localidadId: String(mov.localidadId),
-        locomotora: String(mov.locomotiveNumber ?? ''),
-        fecha: new Date().toISOString(),
-      };
-
-      await enviarMulticastConDiagnostico(tokens, { notification: { title, body }, data: dataFCM }, {
-        evento: 'incidente_creado',
-        incidenteId: incidenteConImagenes.id,
-        localidadId: mov.localidadId,
-        empresaId: mov.empresaId,
-        roles,
-      });
+      // Levanta/garantiza cron + sweep inmediato
+      _ensureCron();
+      try { await this.cerrarIncidentesVencidos(); } catch {}
 
       incidenteError.info('Incidente creado y procesado', {
         incidenteId: nuevoIncidente.id,
@@ -950,7 +777,13 @@ export class IncidenteModel {
         imagenesGuardadas: rutasImagenes.length,
       });
 
-      return incidenteConImagenes;
+      return await prisma.incidente.findUnique({
+        where: { id: nuevoIncidente.id },
+        include: {
+          movimiento: { include: { empresa: true, localidad: true, ronda: true } },
+          usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+        },
+      });
     } catch (error) {
       incidenteError.error('Error al crear incidente', { data, error });
       throw new Error('Error al crear incidente');
@@ -980,6 +813,9 @@ export class IncidenteModel {
         imagenesEliminadas: imagenes.filter(Boolean).length,
       });
 
+      // Mantén el cron activo
+      _ensureCron();
+
       return incidenteEliminado;
     } catch (error) {
       incidenteError.error('Error al eliminar incidente', { id, error });
@@ -987,24 +823,37 @@ export class IncidenteModel {
     }
   }
 
+  /**
+   * Cierra de golpe todos los incidentes ABIERTO con más de 10 min desde fechaInicio.
+   * Idempotente. Úsalo en un cron (interno) que se garantiza con _ensureCron().
+   */
   static async cerrarIncidentesVencidos() {
     try {
-      const tiempoLimite = new Date(Date.now() - (TIMEOUT_CONFIG.verificacion + TIMEOUT_CONFIG.bloqueo));
+      const tiempoLimite = new Date(Date.now() - TIMEOUT_CONFIG.verificacion);
 
       const incidentesVencidos = await prisma.incidente.findMany({
         where: { estado: 'ABIERTO', fechaInicio: { lte: tiempoLimite } },
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: 1000,
       });
+
+      if (!incidentesVencidos.length) return 0;
 
       let cerrados = 0;
       for (const inc of incidentesVencidos) {
-        await this.editarIncidente(inc.id, { estado: 'CERRADO' });
-        cerrados++;
+        try {
+          await IncidenteModel.editarIncidente(inc.id, { estado: 'CERRADO' });
+          cerrados++;
+        } catch (e) {
+          incidenteError.error('Fallo cerrando incidente vencido', { incidenteId: inc.id, error: String(e) });
+        }
       }
 
       if (cerrados > 0) {
         incidenteError.info('Incidentes cerrados automáticamente por timeout', {
           cantidad: cerrados,
-          tiempoLimite: tiempoLimite.toISOString(),
+          limiteISO: tiempoLimite.toISOString(),
         });
       }
 
@@ -1019,79 +868,6 @@ export class IncidenteModel {
     return path.join(IMAGEN_CONFIG.carpetaBase, rutaRelativa);
   }
 
-  /* ======================== NOTIFICACIONES ======================== */
-
-  static async notificarCambioEstado(incidente: Incidente, estadoAnterior: string): Promise<void> {
-    try {
-      ensureAdmin();
-
-      const movimiento = await prisma.movimiento.findUnique({
-        where: { id: incidente.movimientoId },
-        include: { empresa: true, localidad: true },
-      });
-      if (!movimiento) {
-        incidenteError.warn('FCM SKIP cambio de estado: movimiento no encontrado', {
-          incidenteId: incidente.id,
-          movimientoId: incidente.movimientoId,
-        });
-        return;
-      }
-
-      const ids: number[] = [];
-      if (movimiento.clienteId) ids.push(movimiento.clienteId);
-      if (movimiento.supervisorId) ids.push(movimiento.supervisorId);
-      if (movimiento.coordinadorId) ids.push(movimiento.coordinadorId);
-      if (movimiento.operadorId) ids.push(movimiento.operadorId);
-      if (movimiento.creadoPorId) ids.push(movimiento.creadoPorId);
-
-      const tokens = await tokensPorUsuarios(ids);
-
-      const empresaNombre = movimiento.empresa?.nombre ?? 'Sin Empresa';
-      const descripcion =
-        incidente.descripcion.length > 50 ? incidente.descripcion.slice(0, 50) + '…' : incidente.descripcion;
-
-      const titulo =
-        incidente.estado === (RESUELTO as any)
-          ? '✅ INCIDENTE RESUELTO'
-          : incidente.estado === (EstadoIncidente.CERRADO as any)
-          ? '❌ INCIDENTE CERRADO'
-          : '🔄 INCIDENTE ACTUALIZADO';
-
-      const payload: MulticastPayload = {
-        notification: { title: titulo, body: `ID #${incidente.id} • ${empresaNombre} • Loco ${movimiento.locomotiveNumber}` },
-        data: {
-          pantalla: 'Incidente',
-          incidenteId: String(incidente.id),
-          movimientoId: String(incidente.movimientoId),
-          empresa: empresaNombre,
-          locomotora: String(movimiento.locomotiveNumber),
-          estadoAnterior,
-          estadoNuevo: incidente.estado,
-          descripcion,
-          tipo: 'cambio_estado_incidente',
-          fecha: new Date().toISOString(),
-        },
-      };
-
-      await enviarMulticastConDiagnostico(tokens, payload, {
-        evento: 'cambio_estado_incidente',
-        incidenteId: incidente.id,
-        movimientoId: incidente.movimientoId,
-        estadoAnterior,
-        estadoNuevo: incidente.estado,
-        idsDestino: ids,
-      });
-    } catch (error: any) {
-      incidenteError.error('Error enviando notificación de cambio de estado', {
-        incidenteId: incidente.id,
-        errorName: error?.name,
-        errorCode: error?.code,
-        errorMessage: error?.message,
-      });
-      throw error;
-    }
-  }
-
   /* ===================== Reglas complementarias ===================== */
 
   private static async esUnicaEmpresaEnRondas(empresaId: number, localidadId: number): Promise<boolean> {
@@ -1104,8 +880,6 @@ export class IncidenteModel {
   }
 
   static async continuarMovimiento(id: number, comentario: string): Promise<Incidente> {
-    ensureAdmin();
-
     const incidente = await prisma.incidente.findUnique({
       where: { id },
       include: { movimiento: { include: { empresa: true, localidad: true } } },
@@ -1127,40 +901,11 @@ export class IncidenteModel {
       data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
     });
 
-    const usuarios = await prisma.usuario.findMany({
-      where: {
-        localidadId: incidente.movimiento.localidadId,
-        empresaId: incidente.movimiento.empresaId,
-        activo: true,
-        rol: { in: ['CLIENTE', 'SUPERVISOR', 'OPERADOR', 'COORDINADOR', 'MAQUINISTA'] as any },
-      },
-      include: { fcmTokens: true },
-    });
+    await NotificadorFCM.notificarContinuarMovimiento(actualizado as Incidente, comentario);
 
-    const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token)).filter(Boolean);
-
-    await enviarMulticastConDiagnostico(
-      tokens,
-      {
-        notification: { title: '✅ INCIDENTE RESUELTO', body: `Incidente resuelto por el cliente: "${comentario}"` },
-        data: {
-          pantalla: 'Incidente',
-          incidenteId: String(actualizado.id),
-          movimientoId: String(incidente.movimientoId),
-          empresa: String(incidente.movimiento.empresa?.nombre ?? ''),
-          locomotora: String(incidente.movimiento.locomotiveNumber ?? ''),
-          tipo: 'incidente_resuelto_cliente',
-          timestamp: new Date().toISOString(),
-        },
-      },
-      {
-        evento: 'incidente_resuelto_cliente',
-        incidenteId: actualizado.id,
-        movimientoId: incidente.movimientoId,
-        localidadId: incidente.movimiento.localidadId,
-        empresaId: incidente.movimiento.empresaId,
-      }
-    );
+    // Levanta/garantiza cron + sweep inmediato
+    _ensureCron();
+    try { await this.cerrarIncidentesVencidos(); } catch {}
 
     return actualizado;
   }
