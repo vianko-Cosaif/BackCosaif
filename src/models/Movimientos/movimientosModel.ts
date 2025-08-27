@@ -3,14 +3,12 @@
 /**
  * @file MovimientoModel.ts
  * @author Isaac
- * @version 1.4.2 2025-08-18
+ * @version 1.5.0 2025-08-18
  *
- * @overview
- * Capa **modelo/dominio** para gestionar `Movimiento` y su interacción con la
- * cola operativa de `Ronda` (a través de RondaModel). Aquí viven las reglas
- * de negocio de **estado**, **creación/edición**, **notificaciones FCM** y
- * **recomposición** de rondas. No se realizan ocupaciones/liberaciones físicas
- * de vías/secciones (eso lo hace otra capa/servicio).
+ * Modelo/dominio para gestionar Movimientos + notificaciones FCM bien segmentadas.
+ * - No ocupa/libera vías; solo estados y coordinación con RondaModel.
+ * - Notifica a MAQUINISTA/OPERADOR por LOCALIDAD (sin filtrar por empresa) cuando se crea.
+ * - Staff (SUPERVISOR/COORDINADOR/ADMIN) sí puede filtrarse por empresa.
  */
 
 import { PrismaClient, Rol } from '@prisma/client';
@@ -18,26 +16,47 @@ import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
 
-const prisma = new PrismaClient();
+// ----------------------------------------------------------------------------
+// Prisma singleton (evita múltiples conexiones en hot-reload)
+// ----------------------------------------------------------------------------
+const prisma: PrismaClient =
+  (global as any).__PRISMA__ ?? new PrismaClient();
+if (process.env.NODE_ENV !== 'production') {
+  (global as any).__PRISMA__ = prisma;
+}
 
+// ----------------------------------------------------------------------------
 /** Devuelve el id del maquinista/operador desde alias permitidos. */
 const getMaquinistaId = (o?: { maquinistaId?: number; operadorId?: number }) =>
   o?.maquinistaId ?? o?.operadorId;
 
-/* ==========================================================================
- *                               Helpers FCM / Utils
- * ========================================================================== */
-
+/** Inicializa admin SDK usando credenciales por variable GOOGLE_APPLICATION_CREDENTIALS / ADC. */
 function ensureAdmin() {
-  if (!admin.apps?.length) admin.initializeApp();
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  }
 }
 
+/** Chunk helper para FCM multicast. */
 function chunk<T>(arr: T[], size = 500): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
 
+function uniqueTokensFromUsers(
+  users: Array<{ fcmTokens?: Array<{ token: string | null }> }>
+) {
+  return [
+    ...new Set(
+      users.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean) as string[])
+    ),
+  ];
+}
+
+/** Obtiene usuarios activos por localidad y (opcional) empresa y roles. */
 async function usuariosPorRolesLocalidadEmpresa(
   localidadId: number,
   empresaId?: number,
@@ -53,10 +72,11 @@ async function usuariosPorRolesLocalidadEmpresa(
   return prisma.usuario.findMany({ where, include: { fcmTokens: true } });
 }
 
+/** Envío FCM con logs/seguridad. */
 async function enviarMulticastMovimiento(
   tokens: string[],
-  payload: { notification: { title: string; body: string }, data: Record<string, string> },
-  logCtx: any
+  payload: { notification: { title: string; body: string }; data: Record<string, string> },
+  logCtx: Record<string, any>
 ) {
   ensureAdmin();
 
@@ -88,59 +108,95 @@ async function enviarMulticastMovimiento(
   }
 }
 
-/* ==========================================================================
- *                                 Notificaciones
- * ========================================================================== */
-
-/** Resuelve tokens FCM activos para una lista de usuarios. (reservado) */
+/** (Reservado) Resuelve tokens por IDs. */
 async function tokensDeUsuarios(ids: number[]) {
   if (!ids.length) return [];
   const usuarios = await prisma.usuario.findMany({
     where: { id: { in: ids }, activo: true },
     include: { fcmTokens: true },
   });
-  return usuarios.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean));
+  return uniqueTokensFromUsers(usuarios);
 }
 
-/** Notifica la creación de un movimiento (incluye MAQUINISTA, excluye CLIENTE). */
+// ----------------------------------------------------------------------------
+// META parser para instrucciones (solo lectura info)
+// ----------------------------------------------------------------------------
+const META_RE = /\[META ([^\]]+)\]/i;
+function parseMetaFromInstrucciones(instr?: string) {
+  const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
+  if (!instr) return meta;
+  const m = instr.match(META_RE);
+  if (!m) return meta;
+  const tokens = m[1].split('|').map(s => s.trim().toUpperCase());
+  for (const t of tokens) {
+    if (t === 'LIBERAR') meta.liberar = true;
+    if (t.startsWith('DESTINO:')) {
+      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) meta.destinoId = v;
+    }
+    if (t.startsWith('SECCION:')) {
+      const s = Number(t.split(':')[1]); if (!Number.isNaN(s)) meta.seccion = s;
+    }
+  }
+  return meta;
+}
+
+// ----------------------------------------------------------------------------
+// Notificaciones FCM (con segmentación correcta para MAQUINISTA)
+// ----------------------------------------------------------------------------
+
+/** Notifica creación → MAQUINISTA/OPERADOR por LOCALIDAD (sin empresa); staff por empresa. */
 async function notificarMovimientoCreado(movId: number) {
   ensureAdmin();
 
   const m = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
-      empresa:  { select: { nombre: true } },
-      localidad:{ select: { id: true, nombre: true } },
-      viaOrigen:{ select: { nombre: true } },
-      viaDestino:{ select: { nombre: true } },
-      creadoPor:{ select: { id: true, nombre: true, rol: true } },
+      empresa: { select: { nombre: true } },
+      localidad: { select: { id: true, nombre: true } },
+      viaOrigen: { select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
+      creadoPor: { select: { id: true, nombre: true, rol: true } },
     },
   });
   if (!m) return;
 
-  // Roles internos + MAQUINISTA (cliente NO está aquí)
-  const roles: Rol[] = [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.MAQUINISTA];
+  // 1) Operativos (MAQUINISTA/OPERADOR) por localidad (SIN filtro por empresa)
+  const operativos = await prisma.usuario.findMany({
+    where: {
+      activo: true,
+      localidadId: m.localidadId,
+      rol: { in: [Rol.MAQUINISTA, Rol.OPERADOR] },
+    },
+    include: { fcmTokens: true },
+  });
 
-  // Usuarios base por localidad/empresa en los roles definidos
-  let usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
+  // 2) Staff por empresa (si la hay): SUPERVISOR/COORDINADOR
+  const staff = await prisma.usuario.findMany({
+    where: {
+      activo: true,
+      localidadId: m.localidadId,
+      ...(m.empresaId ? { empresaId: m.empresaId } : {}),
+      rol: { in: [Rol.SUPERVISOR, Rol.COORDINADOR] },
+    },
+    include: { fcmTokens: true },
+  });
 
-  // Asegura incluir expresamente al maquinista asignado (operadorId) si existe
+  // 3) Operador asignado explícito (si existe)
+  let asignado: typeof staff = [];
   if (m.operadorId) {
-    const op = await prisma.usuario.findMany({
+    asignado = await prisma.usuario.findMany({
       where: { id: m.operadorId, activo: true },
       include: { fcmTokens: true },
     });
-    usuarios = [...usuarios, ...op];
   }
 
-  // Tokens únicos
-  const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? [])
-    .map(t => t.token)
-    .filter(Boolean)))];
+  const tokens = uniqueTokensFromUsers([...operativos, ...staff, ...asignado]);
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_creado', {
-      movId: m.id, localidadId: m.localidadId, roles,
+      movId: m.id,
+      localidadId: m.localidadId,
+      detalle: 'No hay MAQUINISTA/OPERADOR/STAFF con token en la localidad.',
     });
     return;
   }
@@ -166,12 +222,14 @@ async function notificarMovimientoCreado(movId: number) {
   await enviarMulticastMovimiento(
     tokens,
     { notification: { title, body }, data },
-    { evento: 'creado', movId: m.id, localidadId: m.localidadId, tokens: tokens.length, roles }
+    { evento: 'creado', movId: m.id, localidadId: m.localidadId, tokens: tokens.length }
   );
+
+  // (Opcional) fallback por tópico:
+  // await admin.messaging().send({ topic: `maquinistas_localidad_${m.localidadId}`, notification: { title, body }, data });
 }
 
-
-/** Notifica un cambio de prioridad a roles administrativos/líderes. */
+/** Cambio de prioridad → Admin/Coord/Sup (administrativos) */
 async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
   ensureAdmin();
 
@@ -192,36 +250,41 @@ async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
       localidadId: m.localidadId,
       activo: true,
       rol: { in: [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.SUPERVISOR] },
+      ...(m.empresaId ? { empresaId: m.empresaId } : {}),
     },
     include: { fcmTokens: true },
   });
 
-  const tokens = [...new Set(admins.flatMap((u) => (u.fcmTokens ?? []).map((t) => t.token).filter(Boolean)))];
+  const tokens = uniqueTokensFromUsers(admins);
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para cambio_prioridad', { movId: m.id, localidadId: m.localidadId });
     return;
   }
 
-  await enviarMulticastMovimiento(tokens, {
-    notification: {
-      title: `Cambio de prioridad → ${nueva}`,
-      body:
-        `Movimiento #${m.id} · Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
-        `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'}`,
+  await enviarMulticastMovimiento(
+    tokens,
+    {
+      notification: {
+        title: `Cambio de prioridad → ${nueva}`,
+        body:
+          `Movimiento #${m.id} · Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
+          `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'}`,
+      },
+      data: {
+        tipo: 'cambio_prioridad',
+        movimientoId: String(m.id),
+        prioridad: nueva,
+        creadoPor: String(m.creadoPor?.nombre ?? ''),
+        fecha: new Date().toISOString(),
+        empresa: String(m.empresa?.nombre ?? ''),
+        localidadId: String(m.localidadId),
+      },
     },
-    data: {
-      tipo: 'cambio_prioridad',
-      movimientoId: String(m.id),
-      prioridad: nueva,
-      creadoPor: String(m.creadoPor?.nombre ?? ''),
-      fecha: new Date().toISOString(),
-      empresa: String(m.empresa?.nombre ?? ''),
-      localidadId: String(m.localidadId),
-    },
-  }, { evento: 'cambio_prioridad', movId: m.id, localidadId: m.localidadId, prioridad: nueva, tokens: tokens.length });
+    { evento: 'cambio_prioridad', movId: m.id, localidadId: m.localidadId, prioridad: nueva, tokens: tokens.length }
+  );
 }
 
-/** Notifica INICIO a Supervisor, Cliente, Coordinador y Operador. */
+/** Inicio → Supervisor/Cliente/Coordinador/Operador */
 async function notificarMovimientoIniciado(movId: number) {
   ensureAdmin();
 
@@ -238,9 +301,11 @@ async function notificarMovimientoIniciado(movId: number) {
 
   const roles: Rol[] = [Rol.SUPERVISOR, Rol.CLIENTE, Rol.COORDINADOR, Rol.OPERADOR];
   const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
-  const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean)))];
+  const tokens = uniqueTokensFromUsers(usuarios);
+
   const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
-    acc[r] = usuarios.filter(u => u.rol === r).length; return acc;
+    acc[r] = usuarios.filter(u => u.rol === r).length;
+    return acc;
   }, {});
 
   if (!tokens.length) {
@@ -265,16 +330,14 @@ async function notificarMovimientoIniciado(movId: number) {
     fecha: new Date().toISOString(),
   };
 
-  await enviarMulticastMovimiento(tokens, { notification: { title, body }, data }, {
-    evento: 'iniciado',
-    movId: m.id,
-    localidadId: m.localidadId,
-    tokens: tokens.length,
-    roleCounts,
-  });
+  await enviarMulticastMovimiento(
+    tokens,
+    { notification: { title, body }, data },
+    { evento: 'iniciado', movId: m.id, localidadId: m.localidadId, tokens: tokens.length, roleCounts }
+  );
 }
 
-/** Notifica FIN a Cliente, Coordinador y Supervisor. */
+/** Fin → Cliente/Coordinador/Supervisor */
 async function notificarMovimientoFinalizado(movId: number) {
   ensureAdmin();
 
@@ -289,9 +352,11 @@ async function notificarMovimientoFinalizado(movId: number) {
 
   const roles: Rol[] = [Rol.CLIENTE, Rol.COORDINADOR, Rol.SUPERVISOR];
   const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
-  const tokens = [...new Set(usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean)))];
+  const tokens = uniqueTokensFromUsers(usuarios);
+
   const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
-    acc[r] = usuarios.filter(u => u.rol === r).length; return acc;
+    acc[r] = usuarios.filter(u => u.rol === r).length;
+    return acc;
   }, {});
 
   if (!tokens.length) {
@@ -312,18 +377,16 @@ async function notificarMovimientoFinalizado(movId: number) {
     fecha: new Date().toISOString(),
   };
 
-  await enviarMulticastMovimiento(tokens, { notification: { title, body }, data }, {
-    evento: 'concluido',
-    movId: m.id,
-    localidadId: m.localidadId,
-    tokens: tokens.length,
-    roleCounts,
-  });
+  await enviarMulticastMovimiento(
+    tokens,
+    { notification: { title, body }, data },
+    { evento: 'concluido', movId: m.id, localidadId: m.localidadId, tokens: tokens.length, roleCounts }
+  );
 }
 
-/* ==========================================================================
- *                                   Modelo
- * ========================================================================== */
+// ----------------------------------------------------------------------------
+// Modelo
+// ----------------------------------------------------------------------------
 
 export class MovimientoModel {
   /* ------------------------------ Consultas base ------------------------------ */
@@ -517,12 +580,11 @@ export class MovimientoModel {
   }
 
   /**
-   * Cambia el estado del movimiento validando la transición.
-   * @param opciones.forzar Si true, omite validación de transición.
+   * Cambia el estado del movimiento validando transición (a menos que forzar=true).
    */
   static async cambiarEstadoMovimiento(
     id: number,
-    nuevoEstado: string,
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
     opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
   ) {
     try {
@@ -595,17 +657,12 @@ export class MovimientoModel {
         localidad: movAct.localidad?.nombre,
       });
 
-      // Notificación según estado
       try {
-        if (nuevoEstado === 'EN_PROCESO') {
-          await notificarMovimientoIniciado(id);
-        } else if (nuevoEstado === 'CONCLUIDO') {
-          await notificarMovimientoFinalizado(id);
-        }
+        if (nuevoEstado === 'EN_PROCESO') await notificarMovimientoIniciado(id);
+        else if (nuevoEstado === 'CONCLUIDO') await notificarMovimientoFinalizado(id);
       } catch (e: any) {
         movimientoError.error('Error notificando cambio de estado', {
-          movimientoId: id, nuevoEstado,
-          errName: e?.name, errMsg: e?.message,
+          movimientoId: id, nuevoEstado, errName: e?.name, errMsg: e?.message,
         });
       }
 
@@ -689,7 +746,7 @@ export class MovimientoModel {
     }
   }
 
-  /** Cambia estado de **servicios** (lavado/torno) usando la lógica central. */
+  /** Cambia estado de servicios (lavado/torno) usando lógica central. */
   static async actualizarEstadoServicio(
     id: number,
     nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
@@ -902,7 +959,7 @@ export class MovimientoModel {
   static async obtenerMovimientosPendientes() {
     try {
       return await prisma.movimiento.findMany({
-        where: { estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO'] } },
+        where: { estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -924,7 +981,7 @@ export class MovimientoModel {
   static async obtenerMovimientosPendientesPorEmpresa(empresaId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: { empresaId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } },
+        where: { empresaId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -993,7 +1050,7 @@ export class MovimientoModel {
   static async obtenerMovimientosPendientesPorLocalidad(localidadId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: { localidadId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } },
+        where: { localidadId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -1117,6 +1174,14 @@ export class MovimientoModel {
       const info = await RondaModel.obtenerInfoPorRonda(rondaId);
       if (!info) throw new Error(`No se encontró la ronda con ID ${rondaId}`);
 
+      // Asegura instrucciones frescas desde la DB del movimiento
+      const movDB = await prisma.movimiento.findUnique({
+        where: { id: info.movimiento.id },
+        select: { instrucciones: true },
+      });
+      const instrucciones = movDB?.instrucciones ?? null;
+      const meta = parseMetaFromInstrucciones(instrucciones ?? undefined);
+
       return {
         rondaId: info.rondaId,
         rondaNumero: info.rondaNumero,
@@ -1129,7 +1194,9 @@ export class MovimientoModel {
           viaDestino: info.movimiento.viaDestino,
           lavado: info.movimiento.lavado,
           torno: info.movimiento.torno,
+          instrucciones, // ← proviene de la DB del movimiento
         },
+        meta, // ← derivado del tag [META ...] en instrucciones (si existe)
       };
     } catch (error: any) {
       movimientoError.error('Error al obtener info de ronda desde MovimientoModel', {
