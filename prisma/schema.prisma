@@ -285,6 +285,8 @@ enum Rol {
   OPERADOR
   MAQUINISTA
   ADMINISTRADOR
+  LAVADO
+  TORNO
 }
 
 enum PosicionCabina {
