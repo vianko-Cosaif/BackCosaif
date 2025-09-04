@@ -277,11 +277,10 @@ model Navaja {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
-
 model IncidenteTorno {
   id           Int             @id @default(autoincrement())
   movimientoId Int
-  tornoId     Int
+  tornoId      Int
   usuarioId    Int
   comentarios  String?
   fotos        String[]        // Postgres text[]
@@ -290,7 +289,7 @@ model IncidenteTorno {
   updatedAt    DateTime        @updatedAt
 
   movimiento   Movimiento      @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
-  tornot       TornoT          @relation(fields: [tornotId], references: [id], onDelete: Cascade)
+  torno        TornoT          @relation(fields: [tornoId], references: [id], onDelete: Cascade)
   usuario      Usuario         @relation(fields: [usuarioId], references: [id])
 
   @@index([movimientoId, status])
