@@ -1,6 +1,5 @@
 # Variables de entorno
-.env
-.env.*
+
 
 # Archivos subidos
 uploads/
