@@ -257,7 +257,7 @@ model Actualizacion {
 model TornoT {
   id           Int            @id @default(autoincrement())
   movimientoId Int
-  status       ServicioEstado @default(EN_COLA)
+  status       ServicioEstado @default(EN_SERVICIO)
   inicio       DateTime?
   fin          DateTime?
   createdAt    DateTime       @default(now())
@@ -407,8 +407,7 @@ enum ServicioTipo {
 }
 
 enum ServicioEstado {
-  EN_COLA
-  SIGUIENTE
+  DETENIDO
   EN_SERVICIO
   FINALIZADO
 }
