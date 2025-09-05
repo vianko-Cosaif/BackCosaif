@@ -1,4 +1,4 @@
-// src/models/RondaModel.ts
+// src/models/Movimientos/Ronda/RondaModel.ts
 import { movimientoError } from "../movimiento.logger";
 import type { Prisma, Ronda } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
