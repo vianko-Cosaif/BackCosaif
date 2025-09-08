@@ -18,6 +18,18 @@ import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
+// helper (ponerlo arriba, junto a otros helpers)
+async function inferirServicioDesdeDestino(movId: number) {
+  const m = await prisma.movimiento.findUnique({
+    where: { id: movId },
+    select: { viaDestino: { select: { nombre: true } } },
+  });
+  const n = (m?.viaDestino?.nombre ?? '').toUpperCase();
+  return {
+    lavado: /\bLAVAD/.test(n), // "Lavado", "Lavadora", etc.
+    torno:  /\bTORN/.test(n),  // "Torno", "Tornillo" (ajusta si es muy laxo)
+  };
+}
 
 // ----------------------------------------------------------------------------
 // Prisma singleton (evita múltiples conexiones en hot-reload)
@@ -605,6 +617,7 @@ export class MovimientoModel {
       throw new Error('Error al reactivar movimiento');
     }
   }
+  
 
   /**
    * Cambia el estado del movimiento validando transición (a menos que forzar=true).
@@ -800,32 +813,43 @@ export class MovimientoModel {
     }
   }
 
-  static async actualizarEstadoServicio(
-    id: number,
-    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO' | 'CONCLUIDO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
-  ) {
-    try {
-      const mov = await prisma.movimiento.findUnique({
-        where: { id },
-        select: { id: true, lavado: true, torno: true },
-      });
-      if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
-      if (!mov.lavado && !mov.torno) throw new Error('El movimiento no es un servicio de lavado/torno');
+// REEMPLAZA por completo actualizarEstadoServicio:
+static async actualizarEstadoServicio(
+  id: number,
+  nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO' | 'CONCLUIDO',
+  opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+) {
+  try {
+    const mov = await prisma.movimiento.findUnique({
+      where: { id },
+      select: { id: true, lavado: true, torno: true },
+    });
+    if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
 
-      return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
-        maquinistaId: getMaquinistaId(opciones),
-        razon: opciones.razon,
-        forzar: false,
-      });
-    } catch (error: any) {
-      movimientoError.error('Error al actualizar estado de servicio', {
-        id, nuevoEstado, opciones,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al actualizar estado de servicio');
+    // Si NO está marcado como servicio, intenta inferirlo por la vía destino y persiste el flag
+    if (!mov.lavado && !mov.torno) {
+      const inf = await inferirServicioDesdeDestino(id);
+      if (!inf.lavado && !inf.torno) {
+        throw new Error('El movimiento no es (ni se infiere) servicio de lavado/torno');
+      }
+      await prisma.movimiento.update({ where: { id }, data: inf });
     }
+
+    // Para servicios permitimos forzar la transición (ej. SOLICITADO → CONCLUIDO)
+    return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
+      maquinistaId: getMaquinistaId(opciones),
+      razon: opciones.razon,
+      forzar: true,
+    });
+  } catch (error: any) {
+    movimientoError.error('Error al actualizar estado de servicio', {
+      id, nuevoEstado, opciones,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al actualizar estado de servicio');
   }
+}
+
 
   /** Edita un movimiento; puede reinsertar/recomponer rondas. */
   static async editarMovimiento(
