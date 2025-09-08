@@ -12,6 +12,8 @@ import IncidenteRoutes from "../Rutas/Incidente/IncidenteRutas";
 import FmcRutas from  "../FMC/fmcRoutes"
 import actualizacionRoutes  from "../Rutas/Actualizacion/ActualizacionRoutes";
 import Secciones from "../Rutas/Via/Secciones/SeccionRoutes";
+import Lavado from "../Rutas/Servicios/LavadoRuta";
+import Torno from "../Rutas/Servicios/TornoRuta";
 dotenv.config();
 
 
@@ -40,10 +42,12 @@ export function iniciarServidor(): void {
     // Middleware para habilitar CORS
     app.use(cors());
 
-    // Autenticaci�n JWT
+    // Autenticación JWT
     app.use(passport.initialize());
 
-    // Registro de rutas por m�dulo
+    // Registro de rutas por módulo
+    app.use("/lavado", Lavado);
+    app.use("/torno", Torno);
     app.use("/usuarios", usuarioRoutes);
     app.use("/empresas", empresaRoutes);
     app.use("/localidades", localidadRoutes);
