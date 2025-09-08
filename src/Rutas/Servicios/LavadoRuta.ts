@@ -1,5 +1,5 @@
 /**
- * @file lavadoT.routes.ts
+ * @file lavadoRuta.ts
  * @description
  * Rutas HTTP para **LavadoT**. TODAS protegidas con JWT.
  *
@@ -22,7 +22,7 @@ router.use(passport.authenticate('jwt', { session: false }));
 // Crear registro LavadoT (opcionalmente con status/fechas)
 router.post('/', LavadoTController.crear);
 
-// Editar registro LavadoT (status, inicio, fin)
+// Editar registro LavadoT (status, inicio, fin)A
 router.put('/:id', LavadoTController.editar);
 
 // Obtener registro LavadoT por id

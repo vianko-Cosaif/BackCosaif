@@ -320,7 +320,7 @@ export class RondaModel {
     await prisma.$transaction(async (tx) => {
       const m = await tx.movimiento.findUnique({
         where: { id: movimientoId },
-        select: { id: true, localidadId: true, empresaId: true, estado: true, lavado: true, torno: true, fechaInicio: true, createdAt: true }
+        select: { id: true, localidadId: true, empresaId: true, estado: true, lavado: true, torno: true, fechaInicio: true, createdAt: true, prioridad: true }
       });
       if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
       if (!m.lavado && !m.torno) return;
@@ -445,6 +445,91 @@ export class RondaModel {
       await this.compactarOrdenesRonda(tx, localidadId, idx);
       idx++;
     }
+  }
+
+  // ---------- ADELANTAR SERVICIO (LAVADO / TORNO) ----------
+  /**
+   * Adelanta un servicio de lavado/torno respetando reglas:
+   * - Si es ALTA → va a R1 (después del bloque de ALTAS; luego se normaliza FIFO).
+   * - Si es BAJA → se mueve a la ronda más temprana posible manteniendo Robin Hood
+   *   (máx. 1 por empresa por ronda, iniciando en R2 si hay ALTAS sin hold; si no, desde R1).
+   */
+  static async adelantarServicio(movimientoId: number) {
+    return prisma.$transaction(async (tx) => {
+      const r = await tx.ronda.findFirst({
+        where: { movimientoId, concluido: false },
+        include: {
+          movimiento: {
+            select: {
+              id: true, prioridad: true, empresaId: true, localidadId: true,
+              lavado: true, torno: true, createdAt: true
+            }
+          }
+        }
+      });
+      if (!r) throw new Error(`No hay ronda activa para el movimiento ${movimientoId}`);
+      const m = r.movimiento;
+      if (!m.lavado && !m.torno) throw new Error('El movimiento no es un servicio de lavado/torno');
+
+      // ALTA → a R1
+      if (m.prioridad === 'ALTA') {
+        const r1 = await tx.ronda.findMany({
+          where: { localidadId: m.localidadId, rondaNumero: 1, concluido: false },
+          include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
+          orderBy: [{ orden: 'asc' }]
+        });
+        const lastAltaIdx = r1.reduce((acc, x, i) =>
+          (x.movimiento.prioridad === 'ALTA' && !_isOnHold(x.movimiento.id)) ? i : acc, -1);
+        const targetOrden = lastAltaIdx >= 0 ? lastAltaIdx + 2 : 1;
+        await this.moverRonda(tx, r as Ronda, 1, targetOrden);
+        // Normaliza bloque ALTAS en FIFO.
+        await this.ordenarAltasR1_FIFO(tx, m.localidadId);
+        await this.compactarOrdenesRonda(tx, m.localidadId, 1);
+        return await tx.ronda.findUnique({ where: { id: r.id } });
+      }
+
+      // BAJA → Robin Hood a la ronda más temprana posible
+      const altas = await tx.ronda.findMany({
+        where: { localidadId: m.localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
+        select: { movimiento: { select: { id: true } } },
+      });
+      const startRound = altas.some(a => !_isOnHold(a.movimiento.id)) ? 2 : 1;
+
+      let target = startRound;
+      // Busca la primera ronda disponible (sin otra BAJA de la misma empresa) antes o igual a la actual
+      while (target < r.rondaNumero) {
+        const ya = await tx.ronda.count({
+          where: {
+            localidadId: m.localidadId, rondaNumero: target, concluido: false,
+            empresaId: m.empresaId, movimiento: { prioridad: 'BAJA' }
+          }
+        });
+        if (ya === 0) break;
+        target++;
+      }
+      if (target >= r.rondaNumero) target = r.rondaNumero; // ya está en la más temprana posible
+
+      const tam = await this.tamanoDeRonda(tx, m.localidadId, target);
+      await this.moverRonda(tx, r as Ronda, target, tam + 1);
+
+      await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, m.localidadId, startRound);
+
+      // Compactar/renumerar rondas contiguas
+      const grupos = await tx.ronda.findMany({
+        where: { localidadId: m.localidadId, concluido: false },
+        select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
+      });
+      let idx = 1;
+      for (const g of grupos) {
+        if (g.rondaNumero !== idx) {
+          await tx.ronda.updateMany({ where: { localidadId: m.localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
+        }
+        await this.compactarOrdenesRonda(tx, m.localidadId, idx);
+        idx++;
+      }
+
+      return await tx.ronda.findUnique({ where: { id: r.id } });
+    }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
   }
 
   // ---------- INCIDENTES (sin lógica de bloqueo de vía) ----------
