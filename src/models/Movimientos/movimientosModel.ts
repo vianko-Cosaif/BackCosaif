@@ -554,153 +554,177 @@ export class MovimientoModel {
     }
   }
 
-  /** Reactiva un movimiento DETENIDO → EN_PROCESO. */
-  static async reactivarMovimiento(id: number, maquinistaId?: number) {
-    try {
-      const fechaActual = new Date();
-      const movimientoActual = await prisma.movimiento.findUnique({
-        where: { id },
-        select: {
-          estado: true,
-          empresa: { select: { nombre: true } },
-          localidad: { select: { nombre: true } },
-        },
-      });
+/** Reactiva un movimiento DETENIDO → EN_PROCESO. */
+static async reactivarMovimiento(id: number, maquinistaId?: number) {
+  try {
+    const fechaActual = new Date();
+    const movimientoActual = await prisma.movimiento.findUnique({
+      where: { id },
+      select: {
+        estado: true,
+        empresa: { select: { nombre: true } },
+        localidad: { select: { nombre: true } },
+      },
+    });
 
-      if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
-      if (movimientoActual.estado !== 'DETENIDO') {
-        throw new Error(`El movimiento debe estar en estado DETENIDO para ser reactivado. Estado actual: ${movimientoActual.estado}`);
+    if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
+    if (movimientoActual.estado !== 'DETENIDO') {
+      throw new Error(`El movimiento debe estar en estado DETENIDO para ser reactivado. Estado actual: ${movimientoActual.estado}`);
+    }
+
+    const movimientoReactivado = await prisma.movimiento.update({
+      where: { id },
+      data: {
+        estado: 'EN_PROCESO',
+        fechaInicio: fechaActual,
+        fechaPausa: null,
+        updatedAt: fechaActual,
+        incidenteGlobal: false,
+        ...(maquinistaId && { operadorId: maquinistaId }),
+      },
+      include: { empresa: true, localidad: true, ronda: true },
+    });
+
+    movimientoError.info('Movimiento reactivado', {
+      movimientoId: id,
+      maquinistaId: maquinistaId ?? 'No especificado',
+      empresa: movimientoActual.empresa?.nombre,
+      localidad: movimientoActual.localidad?.nombre,
+    });
+
+    await notificarMovimientoIniciado(movimientoReactivado.id);
+    if (movimientoReactivado.lavado || movimientoReactivado.torno) {
+      await RondaModel.onServicioActivado(movimientoReactivado.id);
+    }
+    await RondaModel.siguienteInteligente(movimientoReactivado.localidadId);
+    return movimientoReactivado;
+  } catch (error: any) {
+    movimientoError.error('Error al reactivar movimiento', {
+      id, maquinistaId,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al reactivar movimiento');
+  }
+}
+
+
+/**
+ * Cambia el estado del movimiento validando transición (a menos que forzar=true).
+ */
+static async cambiarEstadoMovimiento(
+  id: number,
+  nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
+  opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
+) {
+  try {
+    const { razon, forzar = false } = opciones;
+    const maquinistaId = getMaquinistaId(opciones);
+
+    const movAct = await prisma.movimiento.findUnique({
+      where: { id },
+      include: { empresa: true, localidad: true, ronda: true },
+    });
+    if (!movAct) throw new Error(`No se encontró movimiento con id ${id}`);
+
+    // Flags de servicio
+    const esServicio = !!(movAct.lavado || movAct.torno);
+    const tipoServicio: ('LAVADO' | 'TORNO') | undefined =
+      movAct.lavado ? 'LAVADO' : movAct.torno ? 'TORNO' : undefined;
+
+    if (!forzar) {
+      const transiciones: Record<string, string[]> = {
+        SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
+        EN_PROCESO: ['DETENIDO', 'CONCLUIDO', 'CANCELADO'],
+        DETENIDO: ['EN_PROCESO', 'CANCELADO', 'CONCLUIDO'],
+        CONCLUIDO: [],
+        CANCELADO: [],
+      };
+      const permitidos = transiciones[movAct.estado] ?? [];
+      if (!permitidos.includes(nuevoEstado)) {
+        throw new Error(`Transición inválida: ${movAct.estado} → ${nuevoEstado}. Permitidas: ${permitidos.join(', ')}`);
       }
+    }
 
-      const movimientoReactivado = await prisma.movimiento.update({
-        where: { id },
-        data: {
-          estado: 'EN_PROCESO',
-          fechaInicio: fechaActual,
+    const movUpd = await prisma.$transaction(async (tx) => {
+      const ahora = new Date();
+      const data: any = { estado: nuevoEstado, updatedAt: ahora };
+
+      if (nuevoEstado === 'EN_PROCESO') {
+        Object.assign(data, {
+          fechaInicio: ahora,
           fechaPausa: null,
-          updatedAt: fechaActual,
           incidenteGlobal: false,
           ...(maquinistaId && { operadorId: maquinistaId }),
-        },
-        include: { empresa: true, localidad: true, ronda: true },
-      });
+        });
+      }
+      if (nuevoEstado === 'DETENIDO') Object.assign(data, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
+      if (nuevoEstado === 'CONCLUIDO') Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false });
+      if (nuevoEstado === 'CANCELADO')
+        Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false, ...(razon && { instrucciones: `CANCELADO: ${razon}` }) });
 
-      movimientoError.info('Movimiento reactivado', {
-        movimientoId: id,
-        maquinistaId: maquinistaId ?? 'No especificado',
-        empresa: movimientoActual.empresa?.nombre,
-        localidad: movimientoActual.localidad?.nombre,
-      });
-
-      await notificarMovimientoIniciado(movimientoReactivado.id);
-      await RondaModel.siguienteInteligente(movimientoReactivado.localidadId);
-      return movimientoReactivado;
-    } catch (error: any) {
-      movimientoError.error('Error al reactivar movimiento', {
-        id, maquinistaId,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al reactivar movimiento');
-    }
-  }
-
-  /**
-   * Cambia el estado del movimiento validando transición (a menos que forzar=true).
-   */
-  static async cambiarEstadoMovimiento(
-    id: number,
-    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
-  ) {
-    try {
-      const { razon, forzar = false } = opciones;
-      const maquinistaId = getMaquinistaId(opciones);
-
-      const movAct = await prisma.movimiento.findUnique({
+      const updated = await tx.movimiento.update({
         where: { id },
-        include: { empresa: true, localidad: true, ronda: true },
+        data,
+        include: { ronda: true },
       });
-      if (!movAct) throw new Error(`No se encontró movimiento con id ${id}`);
 
-      if (!forzar) {
-        const transiciones: Record<string, string[]> = {
-          SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
-          EN_PROCESO: ['DETENIDO', 'CONCLUIDO', 'CANCELADO'],
-          DETENIDO: ['EN_PROCESO', 'CANCELADO', 'CONCLUIDO'],
-          CONCLUIDO: [],
-          CANCELADO: [],
-        };
-        const permitidos = transiciones[movAct.estado] ?? [];
-        if (!permitidos.includes(nuevoEstado)) {
-          throw new Error(`Transición inválida: ${movAct.estado} → ${nuevoEstado}. Permitidas: ${permitidos.join(', ')}`);
+      if (movAct.ronda) {
+        if (nuevoEstado === 'CONCLUIDO') {
+          await tx.ronda.update({ where: { id: movAct.ronda.id }, data: { concluido: true } });
+          await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
+        } else if (nuevoEstado === 'CANCELADO') {
+          await tx.ronda.delete({ where: { id: movAct.ronda.id } });
+          await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
         }
       }
 
-      const movUpd = await prisma.$transaction(async (tx) => {
-        const ahora = new Date();
-        const data: any = { estado: nuevoEstado, updatedAt: ahora };
+      return updated;
+    });
 
-        if (nuevoEstado === 'EN_PROCESO') {
-          Object.assign(data, {
-            fechaInicio: ahora,
-            fechaPausa: null,
-            incidenteGlobal: false,
-            ...(maquinistaId && { operadorId: maquinistaId }),
-          });
+    movimientoError.info('Estado de movimiento cambiado', {
+      movimientoId: id,
+      estadoAnterior: movAct.estado,
+      estadoNuevo: nuevoEstado,
+      maquinistaId: maquinistaId ?? 'No especificado',
+      razon: razon ?? 'No especificada',
+      empresa: movAct.empresa?.nombre,
+      localidad: movAct.localidad?.nombre,
+      esServicio,
+      tipoServicio,
+      flags: { lavado: !!movAct.lavado, torno: !!movAct.torno },
+    });
+
+    try {
+      if (nuevoEstado === 'EN_PROCESO') {
+        await notificarMovimientoIniciado(id);
+        if (esServicio) {
+          await RondaModel.onServicioActivado(id);
         }
-        if (nuevoEstado === 'DETENIDO') Object.assign(data, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
-        if (nuevoEstado === 'CONCLUIDO') Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false });
-        if (nuevoEstado === 'CANCELADO')
-          Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false, ...(razon && { instrucciones: `CANCELADO: ${razon}` }) });
-
-        const updated = await tx.movimiento.update({
-          where: { id },
-          data,
-          include: { ronda: true },
-        });
-
-        if (movAct.ronda) {
-          if (nuevoEstado === 'CONCLUIDO') {
-            await tx.ronda.update({ where: { id: movAct.ronda.id }, data: { concluido: true } });
-            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
-          } else if (nuevoEstado === 'CANCELADO') {
-            await tx.ronda.delete({ where: { id: movAct.ronda.id } });
-            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
-          }
+      } else if (nuevoEstado === 'CONCLUIDO') {
+        if (esServicio) {
+          // Si ambos flags están activos, notifica ambos fines.
+          if (movAct.lavado) await RondaModel.notificarFinServicio(id, 'LAVADO');
+          if (movAct.torno) await RondaModel.notificarFinServicio(id, 'TORNO');
         }
-
-        return updated;
-      });
-
-      movimientoError.info('Estado de movimiento cambiado', {
-        movimientoId: id,
-        estadoAnterior: movAct.estado,
-        estadoNuevo: nuevoEstado,
-        maquinistaId: maquinistaId ?? 'No especificado',
-        razon: razon ?? 'No especificada',
-        empresa: movAct.empresa?.nombre,
-        localidad: movAct.localidad?.nombre,
-      });
-
-      try {
-        if (nuevoEstado === 'EN_PROCESO') await notificarMovimientoIniciado(id);
-        else if (nuevoEstado === 'CONCLUIDO') await notificarMovimientoFinalizado(id);
-      } catch (e: any) {
-        movimientoError.error('Error notificando cambio de estado', {
-          movimientoId: id, nuevoEstado, errName: e?.name, errMsg: e?.message,
-        });
+        await notificarMovimientoFinalizado(id);
       }
-
-      await RondaModel.siguienteInteligente(movAct.localidadId);
-      return movUpd;
-    } catch (error: any) {
-      movimientoError.error('Error al cambiar estado de movimiento', {
-        id, nuevoEstado, opciones,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    } catch (e: any) {
+      movimientoError.error('Error notificando cambio de estado', {
+        movimientoId: id, nuevoEstado, errName: e?.name, errMsg: e?.message,
       });
-      throw new Error('Error al cambiar estado de movimiento');
     }
+
+    await RondaModel.siguienteInteligente(movAct.localidadId);
+    return movUpd;
+  } catch (error: any) {
+    movimientoError.error('Error al cambiar estado de movimiento', {
+      id, nuevoEstado, opciones,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al cambiar estado de movimiento');
   }
+}
+
 
   /* --------------------- Crear / Editar (sin tocar vías) --------------------- */
 
@@ -777,35 +801,36 @@ export class MovimientoModel {
     }
   }
 
-  /** Cambia estado de servicios (lavado/torno) usando lógica central. */
-  static async actualizarEstadoServicio(
-    id: number,
-    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
-  ) {
-    try {
-      const mov = await prisma.movimiento.findUnique({
-        where: { id },
-        select: { id: true, lavado: true, torno: true },
-      });
-      if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
-      if (!mov.lavado && !mov.torno) {
-        throw new Error('El movimiento no es un servicio de lavado/torno');
-      }
+  
 
-      return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
-        maquinistaId: getMaquinistaId(opciones),
-        razon: opciones.razon,
-        forzar: false,
-      });
-    } catch (error: any) {
-      movimientoError.error('Error al actualizar estado de servicio', {
-        id, nuevoEstado, opciones,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al actualizar estado de servicio');
-    }
+static async actualizarEstadoServicio(
+  id: number,
+  nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO' | 'CONCLUIDO',
+  opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+) {
+  try {
+    const mov = await prisma.movimiento.findUnique({
+      where: { id },
+      select: { id: true, lavado: true, torno: true },
+    });
+    if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
+    if (!mov.lavado && !mov.torno) throw new Error('El movimiento no es un servicio de lavado/torno');
+
+    return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
+      maquinistaId: getMaquinistaId(opciones),
+      razon: opciones.razon,
+      forzar: false,
+    });
+  } catch (error: any) {
+    movimientoError.error('Error al actualizar estado de servicio', {
+      id, nuevoEstado, opciones,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al actualizar estado de servicio');
   }
+}
+
+  
 
   /** Edita un movimiento; puede reinsertar/recomponer rondas. */
   static async editarMovimiento(
@@ -1391,31 +1416,35 @@ static async obtenerTodosMovimientosPorLocalidad(
 
   /* -------------------------- Acciones rápidas maquinista -------------------------- */
 
-  /** Marca EN_PROCESO e inicia (setea operadorId=maquinistaId). */
-  static async iniciarMovimiento(id: number, maquinistaId: number) {
-    try {
-      const fechaActual = new Date();
-      const mov = await prisma.movimiento.update({
-        where: { id },
-        data: {
-          estado: 'EN_PROCESO',
-          fechaInicio: fechaActual,
-          operadorId: maquinistaId,
-          updatedAt: fechaActual,
-        },
-      });
+/** Marca EN_PROCESO e inicia (setea operadorId=maquinistaId). */
+static async iniciarMovimiento(id: number, maquinistaId: number) {
+  try {
+    const fechaActual = new Date();
+    const mov = await prisma.movimiento.update({
+      where: { id },
+      data: {
+        estado: 'EN_PROCESO',
+        fechaInicio: fechaActual,
+        operadorId: maquinistaId,
+        updatedAt: fechaActual,
+      },
+    });
 
-      await notificarMovimientoIniciado(mov.id);
-      await RondaModel.siguienteInteligente(mov.localidadId);
-      return mov;
-    } catch (error: any) {
-      movimientoError.error('Error al iniciar movimiento', {
-        id, maquinistaId,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al iniciar movimiento');
+    await notificarMovimientoIniciado(mov.id);
+    if (mov.lavado || mov.torno) {
+      await RondaModel.onServicioActivado(mov.id);
     }
+    await RondaModel.siguienteInteligente(mov.localidadId);
+    return mov;
+  } catch (error: any) {
+    movimientoError.error('Error al iniciar movimiento', {
+      id, maquinistaId,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al iniciar movimiento');
   }
+}
+
 
   /** Pausa (DETENIDO). */
   static async pausarMovimiento(id: number) {
@@ -1458,44 +1487,55 @@ static async obtenerTodosMovimientosPorLocalidad(
 
   /* ------------------- Finalizar (no libera/ocupa vías aquí) ------------------- */
 
-  /** Finaliza el movimiento (CONCLUIDO + finalizado) y concluye su ronda. */
-  static async finalizarMovimiento(id: number) {
+/** Finaliza el movimiento (CONCLUIDO + finalizado) y concluye su ronda. */
+static async finalizarMovimiento(id: number) {
+  try {
+    const mov = await prisma.$transaction(async (tx) => {
+      const actual = await tx.movimiento.findUnique({
+        where: { id },
+        include: { ronda: true },
+      });
+      if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
+      if (actual.finalizado) return actual;
+
+      const res = await tx.movimiento.update({
+        where: { id },
+        data: { estado: 'CONCLUIDO', finalizado: true, fechaFin: new Date(), updatedAt: new Date() },
+        include: { ronda: true },
+      });
+
+      if (res.ronda) {
+        await tx.ronda.update({ where: { id: res.ronda.id }, data: { concluido: true, updatedAt: new Date() } });
+        await RondaModel.recomponerRondasLocalidad(res.localidadId, tx);
+      }
+
+      return res;
+    });
+
+    // Notificación de fin de servicio si aplica
     try {
-      const mov = await prisma.$transaction(async (tx) => {
-        const actual = await tx.movimiento.findUnique({
-          where: { id },
-          include: { ronda: true },
-        });
-        if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
-        if (actual.finalizado) return actual;
-
-        const res = await tx.movimiento.update({
-          where: { id },
-          data: { estado: 'CONCLUIDO', finalizado: true, fechaFin: new Date(), updatedAt: new Date() },
-          include: { ronda: true },
-        });
-
-        if (res.ronda) {
-          await tx.ronda.update({ where: { id: res.ronda.id }, data: { concluido: true, updatedAt: new Date() } });
-          await RondaModel.recomponerRondasLocalidad(res.localidadId, tx);
-        }
-
-        return res;
+      if (mov.lavado) await RondaModel.notificarFinServicio(mov.id, 'LAVADO');
+      if (mov.torno) await RondaModel.notificarFinServicio(mov.id, 'TORNO');
+    } catch (e: any) {
+      movimientoError.error('Error notificando fin de servicio', {
+        movimientoId: mov.id, errName: e?.name, errMsg: e?.message,
       });
-
-      await notificarMovimientoFinalizado(mov.id);
-      await RondaModel.siguienteInteligente(mov.localidadId);
-      return mov;
-    } catch (error: any) {
-      movimientoError.error('Error al finalizar movimiento', {
-        id,
-        errName: error?.name,
-        errMsg: error?.message,
-        errStack: error?.stack,
-        prismaCode: error?.code,
-        prismaMeta: error?.meta,
-      });
-      throw new Error('Error al finalizar movimiento');
     }
+
+    await notificarMovimientoFinalizado(mov.id);
+    await RondaModel.siguienteInteligente(mov.localidadId);
+    return mov;
+  } catch (error: any) {
+    movimientoError.error('Error al finalizar movimiento', {
+      id,
+      errName: error?.name,
+      errMsg: error?.message,
+      errStack: error?.stack,
+      prismaCode: error?.code,
+      prismaMeta: error?.meta,
+    });
+    throw new Error('Error al finalizar movimiento');
   }
+}
+
 }

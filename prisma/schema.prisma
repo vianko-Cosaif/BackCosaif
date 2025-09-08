@@ -253,20 +253,24 @@ model Actualizacion {
 
 /* ===== Nuevos ===== */
 
+// TornoT: agregar status e index compuesto
 model TornoT {
-  id           Int        @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
   movimientoId Int
+  status       ServicioEstado @default(EN_SERVICIO)
   inicio       DateTime?
   fin          DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  movimiento   Movimiento @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  movimiento   Movimiento     @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
   incidentes   IncidenteTorno[]
 
   @@index([movimientoId])
   @@index([movimientoId, createdAt])
+  @@index([movimientoId, status])
 }
+
 
 model Navaja {
   id                   Int      @id @default(autoincrement())
@@ -297,6 +301,31 @@ model IncidenteTorno {
   @@index([tornoId, createdAt])
 }
 
+model IncidenteLavado {
+  id          Int             @id @default(autoincrement())
+  lavadoId    Int
+  usuarioId   Int
+  comentarios String?
+  imagenes    String[]
+  status      EstadoIncidente @default(ABIERTO)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  lavado      LavadoT         @relation(fields: [lavadoId], references: [id], onDelete: Cascade)
+  usuario     Usuario         @relation(fields: [usuarioId], references: [id])
+
+  @@index([lavadoId])
+  @@index([lavadoId, createdAt])
+  @@index([lavadoId, status])
+}
+
+/* ===== Enums ===== */
+
+enum EstadoActualizacion {
+  ACTIVA
+  DESACTUALIZADA
+}
+// (Opcional pero consistente con creación “en blanco”): default EN_COLA en LavadoT
 model LavadoT {
   id           Int            @id @default(autoincrement())
   movimientoId Int
@@ -310,29 +339,6 @@ model LavadoT {
   incidentes   IncidenteLavado[]
 
   @@index([movimientoId, status])
-}
-
-model IncidenteLavado {
-  id          Int       @id @default(autoincrement())
-  lavadoId    Int
-  usuarioId   Int
-  comentarios String?
-  imagenes    String[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  lavado      LavadoT   @relation(fields: [lavadoId], references: [id], onDelete: Cascade)
-  usuario     Usuario   @relation(fields: [usuarioId], references: [id])
-
-  @@index([lavadoId])
-  @@index([lavadoId, createdAt])
-}
-
-/* ===== Enums ===== */
-
-enum EstadoActualizacion {
-  ACTIVA
-  DESACTUALIZADA
 }
 
 enum EstadoIncidente {
@@ -401,8 +407,7 @@ enum ServicioTipo {
 }
 
 enum ServicioEstado {
-  EN_COLA
-  SIGUIENTE
+  DETENIDO
   EN_SERVICIO
   FINALIZADO
 }
