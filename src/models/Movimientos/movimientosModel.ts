@@ -634,7 +634,7 @@ export class MovimientoModel {
 
       const movAct = await prisma.movimiento.findUnique({
         where: { id },
-        include: { empresa: true, localidad: true, ronda: true, lavado: true, torno: true },
+include: { empresa: true, localidad: true, ronda: true }
       });
       if (!movAct) throw new Error(`No se encontró movimiento con id ${id}`);
 
