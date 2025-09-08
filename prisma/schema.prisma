@@ -216,7 +216,7 @@ model ServicioCola {
   empresaId    Int
   movimientoId Int            @unique
   tipo         ServicioTipo
-  estado       ServicioEstado @default(EN_COLA)
+  estado       ServicioEstado @default(EN_SERVICIO)
   orden        Int
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
