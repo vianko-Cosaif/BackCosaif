@@ -3,14 +3,14 @@
 /**
  * @file MovimientoModel.ts
  * @author Isaac
- * @version 1.6.1 2025-09-08
+ * @version 1.6.2 2025-09-08
  *
  * Modelo/dominio para gestionar Movimientos + notificaciones FCM bien segmentadas.
  * - No ocupa/libera vías; solo estados y coordinación con RondaModel.
  * - CREACIÓN: MAQUINISTA/OPERADOR por LOCALIDAD (sin filtrar por empresa) → delega a NotificadorFCM.
  * - INICIO: OPERADOR por LOCALIDAD (sin filtrar por empresa) + STAFF/CLIENTE filtrables por empresa.
  * - Staff (SUPERVISOR/COORDINADOR/ADMIN) sí puede filtrarse por empresa.
- * - Al concluir un servicio (lavado/torno) auto-crea el servicio complementario.
+ * - Al concluir un MOVIMIENTO que va a LAVADO/TORNO se ABRE el servicio en LavadoT/TornoT (NO se crea otro movimiento).
  */
 
 import { PrismaClient, Rol } from '@prisma/client';
@@ -18,18 +18,6 @@ import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
-// helper (ponerlo arriba, junto a otros helpers)
-async function inferirServicioDesdeDestino(movId: number) {
-  const m = await prisma.movimiento.findUnique({
-    where: { id: movId },
-    select: { viaDestino: { select: { nombre: true } } },
-  });
-  const n = (m?.viaDestino?.nombre ?? '').toUpperCase();
-  return {
-    lavado: /\bLAVAD/.test(n), // "Lavado", "Lavadora", etc.
-    torno:  /\bTORN/.test(n),  // "Torno", "Tornillo" (ajusta si es muy laxo)
-  };
-}
 
 // ----------------------------------------------------------------------------
 // Prisma singleton (evita múltiples conexiones en hot-reload)
@@ -40,6 +28,19 @@ if (process.env.NODE_ENV !== 'production') {
   (global as any).__PRISMA__ = prisma;
 }
 type Paginado<T> = { items: T[]; hasMore: boolean; nextCursorId?: number };
+
+// Helper: inferir servicio por nombre de vía destino
+async function inferirServicioDesdeDestino(movId: number) {
+  const m = await prisma.movimiento.findUnique({
+    where: { id: movId },
+    select: { viaDestino: { select: { nombre: true } } },
+  });
+  const n = (m?.viaDestino?.nombre ?? '').toUpperCase();
+  return {
+    lavado: /\bLAVAD/.test(n),
+    torno:  /\bTORN/.test(n),
+  };
+}
 
 type MovimientoResumen = {
   id: number;
@@ -596,7 +597,7 @@ export class MovimientoModel {
         data: {
           estado: 'EN_PROCESO',
           fechaInicio: fechaActual,
-          fechaPausa: null, // ✔ limpia pausa al reactivar
+          fechaPausa: null,
           updatedAt: fechaActual,
           incidenteGlobal: false,
           ...(maquinistaId && { operadorId: maquinistaId }),
@@ -633,14 +634,9 @@ export class MovimientoModel {
 
       const movAct = await prisma.movimiento.findUnique({
         where: { id },
-        include: { empresa: true, localidad: true, ronda: true },
+        include: { empresa: true, localidad: true, ronda: true, lavado: true, torno: true },
       });
       if (!movAct) throw new Error(`No se encontró movimiento con id ${id}`);
-
-      // Flags de servicio
-      const esServicio = !!(movAct.lavado || movAct.torno);
-      const tipoServicio: ('LAVADO' | 'TORNO') | undefined =
-        movAct.lavado ? 'LAVADO' : movAct.torno ? 'TORNO' : undefined;
 
       if (!forzar) {
         const transiciones: Record<string, string[]> = {
@@ -700,29 +696,19 @@ export class MovimientoModel {
         razon: razon ?? 'No especificada',
         empresa: movAct.empresa?.nombre,
         localidad: movAct.localidad?.nombre,
-        esServicio,
-        tipoServicio,
-        flags: { lavado: !!movAct.lavado, torno: !!movAct.torno },
+        flags: { lavado: !!(movAct as any).lavado, torno: !!(movAct as any).torno },
       });
 
       try {
         if (nuevoEstado === 'EN_PROCESO') {
           await notificarMovimientoIniciado(id);
-          if (esServicio) {
-            await RondaModel.onServicioActivado(id);
-          }
         } else if (nuevoEstado === 'CONCLUIDO') {
-          if (esServicio) {
-            // Notifica fin de servicio(s)
-            if (movAct.lavado) await RondaModel.notificarFinServicio(id, 'LAVADO');
-            if (movAct.torno) await RondaModel.notificarFinServicio(id, 'TORNO');
-            // Crea automáticamente el servicio complementario
-            await MovimientoModel._crearComplementarioServicioTrasCierre(id);
-          }
+          // ✔ Aquí se activa el servicio (LavadoT/TornoT) en lugar de crear otro movimiento.
+          await MovimientoModel._activarServicioTrasMovimiento(id);
           await notificarMovimientoFinalizado(id);
         }
       } catch (e: any) {
-        movimientoError.error('Error notificando cambio de estado', {
+        movimientoError.error('Error post-cambio de estado', {
           movimientoId: id, nuevoEstado, errName: e?.name, errMsg: e?.message,
         });
       }
@@ -775,7 +761,7 @@ export class MovimientoModel {
 
       movData.prioridad ??= 'BAJA';
       movData.estado ??= 'SOLICITADO';
-      movData.fechaSolicitud ??= new Date(); // ✔ asegura fechaSolicitud
+      movData.fechaSolicitud ??= new Date();
       movData.posicionCabina ??= 'Sin_Solicitar';
       movData.posicionChimenea ??= 'Sin_Solicitar';
       movData.direccionEmpuje ??= 'Sin_Solicitar';
@@ -813,43 +799,26 @@ export class MovimientoModel {
     }
   }
 
-// REEMPLAZA por completo actualizarEstadoServicio:
-static async actualizarEstadoServicio(
-  id: number,
-  nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO' | 'CONCLUIDO',
-  opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
-) {
-  try {
-    const mov = await prisma.movimiento.findUnique({
-      where: { id },
-      select: { id: true, lavado: true, torno: true },
-    });
-    if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
-
-    // Si NO está marcado como servicio, intenta inferirlo por la vía destino y persiste el flag
-    if (!mov.lavado && !mov.torno) {
-      const inf = await inferirServicioDesdeDestino(id);
-      if (!inf.lavado && !inf.torno) {
-        throw new Error('El movimiento no es (ni se infiere) servicio de lavado/torno');
-      }
-      await prisma.movimiento.update({ where: { id }, data: inf });
+  // Mantener compat: forzamos transición aunque no respete máquina de estados (UI legacy)
+  static async actualizarEstadoServicio(
+    id: number,
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO' | 'CONCLUIDO',
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+  ) {
+    try {
+      return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
+        maquinistaId: getMaquinistaId(opciones),
+        razon: opciones.razon,
+        forzar: true,
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al actualizar estado de servicio', {
+        id, nuevoEstado, opciones,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al actualizar estado de servicio');
     }
-
-    // Para servicios permitimos forzar la transición (ej. SOLICITADO → CONCLUIDO)
-    return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
-      maquinistaId: getMaquinistaId(opciones),
-      razon: opciones.razon,
-      forzar: true,
-    });
-  } catch (error: any) {
-    movimientoError.error('Error al actualizar estado de servicio', {
-      id, nuevoEstado, opciones,
-      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-    });
-    throw new Error('Error al actualizar estado de servicio');
   }
-}
-
 
   /** Edita un movimiento; puede reinsertar/recomponer rondas. */
   static async editarMovimiento(
@@ -1290,7 +1259,7 @@ static async actualizarEstadoServicio(
             : undefined,
           incidentes: { total, abiertos, ultimoEstado },
           fechas: {
-            solicitud: fmt(m.fechaSolicitud) ?? '', // ✔ sin assert
+            solicitud: fmt(m.fechaSolicitud) ?? '',
             inicio: fmt(m.fechaInicio),
             pausa: fmt(m.fechaPausa),
             fin: fmt(m.fechaFin),
@@ -1443,7 +1412,7 @@ static async actualizarEstadoServicio(
         data: {
           estado: 'EN_PROCESO',
           fechaInicio: fechaActual,
-          fechaPausa: null, // ✔ limpia pausa si existía
+          fechaPausa: null,
           operadorId: maquinistaId,
           updatedAt: fechaActual,
         },
@@ -1483,7 +1452,7 @@ static async actualizarEstadoServicio(
       const fechaActual = new Date();
       const mov = await prisma.movimiento.update({
         where: { id },
-        data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, fechaPausa: null, updatedAt: fechaActual }, // ✔ limpia pausa
+        data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, fechaPausa: null, updatedAt: fechaActual },
       });
 
       await notificarMovimientoIniciado(mov.id);
@@ -1524,18 +1493,8 @@ static async actualizarEstadoServicio(
         return res;
       });
 
-      // Notificación de fin de servicio + creación del complementario si aplica
-      try {
-        if (mov.lavado) await RondaModel.notificarFinServicio(mov.id, 'LAVADO');
-        if (mov.torno) await RondaModel.notificarFinServicio(mov.id, 'TORNO');
-        if (mov.lavado || mov.torno) {
-          await MovimientoModel._crearComplementarioServicioTrasCierre(mov.id);
-        }
-      } catch (e: any) {
-        movimientoError.error('Error post-fin (servicio/complementario)', {
-          movimientoId: mov.id, errName: e?.name, errMsg: e?.message,
-        });
-      }
+      // ✔ Abrir servicio en LavadoT/TornoT (NO crear nuevo movimiento)
+      await MovimientoModel._activarServicioTrasMovimiento(mov.id);
 
       await notificarMovimientoFinalizado(mov.id);
       await RondaModel.siguienteInteligente(mov.localidadId);
@@ -1553,113 +1512,59 @@ static async actualizarEstadoServicio(
     }
   }
 
-  /* ------------------- AUTO: crear servicio complementario ------------------- */
+  /* ------------------- ACTIVAR servicio (LavadoT/TornoT) ------------------- */
   /**
-   * Si se concluye un servicio de LAVADO, se crea automáticamente uno de TORNO (y viceversa).
-   * - Evita duplicados si ya existe un complementario pendiente para misma loco/empresa/localidad.
-   * - Se crea en estado SOLICITADO, prioridad BAJA, y se inserta en rondas según reglas.
+   * Al concluir el movimiento, si su destino es LAVADO/TORNO:
+   *  - Crea (si no existe) LavadoT/TornoT con status EN_SERVICIO e inicio=now().
+   *  - Informa a RondaModel para que gestione ServicioCola (orden/estado) vía onServicioActivado.
+   *  - Es idempotente (no duplica).
    */
-  private static async _crearComplementarioServicioTrasCierre(movimientoId: number) {
+  private static async _activarServicioTrasMovimiento(movimientoId: number) {
     const mov = await prisma.movimiento.findUnique({
       where: { id: movimientoId },
-      include: {
-        empresa: true,
-        localidad: true,
-      },
+      select: { id: true, empresaId: true, localidadId: true, lavado: true, torno: true },
     });
     if (!mov) return;
 
-    const esLavado = !!mov.lavado && !mov.torno;
-    const esTorno = !!mov.torno && !mov.lavado;
-    if (!esLavado && !esTorno) {
-      // si trae ambos o ninguno, no hay complementario claro
-      return;
+    let destinoLavado = !!mov.lavado;
+    let destinoTorno = !!mov.torno;
+
+    // Si no viene marcado, lo inferimos por la vía destino
+    if (!destinoLavado && !destinoTorno) {
+      const inf = await inferirServicioDesdeDestino(movimientoId);
+      destinoLavado = inf.lavado;
+      destinoTorno = inf.torno;
+      if (destinoLavado || destinoTorno) {
+        await prisma.movimiento.update({
+          where: { id: movimientoId },
+          data: { lavado: destinoLavado, torno: destinoTorno },
+        });
+      }
     }
 
-    // ¿Ya existe complementario pendiente?
-    const yaExiste = await prisma.movimiento.findFirst({
-      where: {
-        localidadId: mov.localidadId,
-        empresaId: mov.empresaId,
-        locomotiveNumber: mov.locomotiveNumber,
-        finalizado: false,
-        estado: { in: ['SOLICITADO', 'ESPERA', 'EN_PROCESO', 'DETENIDO'] },
-        ...(esLavado ? { torno: true } : { lavado: true }),
-      },
-      select: { id: true },
-    });
-    if (yaExiste) {
-      movimientoError.info('Complementario ya existente. No se crea duplicado.', {
-        movimientoId,
-        complementarioDe: esLavado ? 'LAVADO' : 'TORNO',
-        existenteId: yaExiste.id,
-      });
-      return;
+    if (destinoLavado) {
+      const existeL = await prisma.lavadoT.findFirst({ where: { movimientoId } });
+      if (!existeL) {
+        await prisma.lavadoT.create({
+          data: { movimientoId, status: 'EN_SERVICIO', inicio: new Date() },
+        });
+      }
     }
 
-    // quién será el "creadoPor": intenta mantener contexto
-    const creadoPorId =
-      (mov as any).creadoPorId ??
-      (mov as any).coordinadorId ??
-      (mov as any).supervisorId ??
-      (mov as any).operadorId ??
-      (mov as any).clienteId;
-
-    if (!creadoPorId) {
-      movimientoError.warn('No hay creadoPorId para complementario. Abortado.', {
-        movimientoId,
-        complementario: esLavado ? 'TORNO' : 'LAVADO',
-      });
-      return;
+    if (destinoTorno) {
+      const existeT = await prisma.tornoT.findFirst({ where: { movimientoId } });
+      if (!existeT) {
+        await prisma.tornoT.create({
+          data: { movimientoId, status: 'EN_SERVICIO', inicio: new Date() },
+        });
+      }
     }
-
-    // Crear complementario
-    const nuevo = await prisma.movimiento.create({
-      data: {
-        empresaId: mov.empresaId,
-        creadoPorId,
-        localidadId: mov.localidadId,
-        viaOrigenId: mov.viaOrigenId,
-        viaDestinoId: mov.viaDestinoId,
-        locomotiveNumber: mov.locomotiveNumber,
-        prioridad: 'BAJA',
-        tipoMovimiento: mov.tipoMovimiento ?? undefined,
-        estado: 'SOLICITADO',
-        instrucciones: `AUTO: Servicio complementario de ${esLavado ? 'TORNO' : 'LAVADO'} para loco ${mov.locomotiveNumber} (origen mov #${mov.id}).`,
-        clienteId: (mov as any).clienteId ?? undefined,
-        supervisorId: (mov as any).supervisorId ?? undefined,
-        coordinadorId: (mov as any).coordinadorId ?? undefined,
-        operadorId: (mov as any).operadorId ?? undefined,
-        lavado: esTorno, // si cerró TORNO, crear LAVADO
-        torno: esLavado, // si cerró LAVADO, crear TORNO
-        posicionCabina: mov.posicionCabina ?? 'Sin_Solicitar',
-        posicionChimenea: mov.posicionChimenea ?? 'Sin_Solicitar',
-        direccionEmpuje: mov.direccionEmpuje ?? 'Sin_Solicitar',
-      },
-    });
-
-    movimientoError.info('Creado servicio complementario', {
-      origenId: mov.id,
-      nuevoId: nuevo.id,
-      complementario: esLavado ? 'TORNO' : 'LAVADO',
-      empresa: mov.empresa?.nombre,
-      localidadId: mov.localidadId,
-    });
 
     try {
-      // Inserta en rondas según reglas
-      await RondaModel.generarRondaParaMovimiento({
-        movimientoId: nuevo.id,
-        empresaId: nuevo.empresaId,
-        localidadId: nuevo.localidadId,
-        prioridad: 'BAJA',
-      });
-      // Notifica creación
-      await NotificadorFCM.notificarNuevoMovimiento(nuevo.id);
-      await RondaModel.siguienteInteligente(nuevo.localidadId);
+      await RondaModel.onServicioActivado(movimientoId);
     } catch (e: any) {
-      movimientoError.error('Error tras crear complementario (ronda/notificación)', {
-        nuevoId: nuevo.id, errName: e?.name, errMsg: e?.message,
+      movimientoError.error('onServicioActivado falló (se continúa)', {
+        movimientoId, errName: e?.name, errMsg: e?.message,
       });
     }
   }
