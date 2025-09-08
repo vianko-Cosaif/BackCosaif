@@ -3,11 +3,12 @@
 /**
  * @file MovimientoModel.ts
  * @author Isaac
- * @version 1.6.0 2025-09-08
+ * @version 1.6.1 2025-09-08
  *
  * Modelo/dominio para gestionar Movimientos + notificaciones FCM bien segmentadas.
  * - No ocupa/libera vías; solo estados y coordinación con RondaModel.
- * - Notifica a MAQUINISTA/OPERADOR por LOCALIDAD (sin filtrar por empresa) cuando se crea.
+ * - CREACIÓN: MAQUINISTA/OPERADOR por LOCALIDAD (sin filtrar por empresa) → delega a NotificadorFCM.
+ * - INICIO: OPERADOR por LOCALIDAD (sin filtrar por empresa) + STAFF/CLIENTE filtrables por empresa.
  * - Staff (SUPERVISOR/COORDINADOR/ADMIN) sí puede filtrarse por empresa.
  * - Al concluir un servicio (lavado/torno) auto-crea el servicio complementario.
  */
@@ -282,10 +283,6 @@ async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
   });
 
   const tokens = uniqueTokensFromUsers(admins);
-  if (!tokens.length) {
-    movimientoError.warn('Sin tokens para cambio_prioridad', { movId: m.id, localidadId: m.localidadId });
-    return;
-  }
 
   await enviarMulticastMovimiento(
     tokens,
@@ -310,7 +307,7 @@ async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
   );
 }
 
-/** Inicio → Supervisor/Cliente/Coordinador/Operador */
+/** Inicio → Operador (por localidad S/empresa) + Supervisor/Cliente/Coordinador (filtrables por empresa) */
 async function notificarMovimientoIniciado(movId: number) {
   ensureAdmin();
 
@@ -325,14 +322,24 @@ async function notificarMovimientoIniciado(movId: number) {
   });
   if (!m) return;
 
-  const roles: Rol[] = [Rol.SUPERVISOR, Rol.CLIENTE, Rol.COORDINADOR, Rol.OPERADOR];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
-  const tokens = uniqueTokensFromUsers(usuarios);
+  // Operadores por LOCALIDAD sin filtrar por empresa
+  const operadoresLocalidad = await usuariosPorRolesLocalidadEmpresa(m.localidadId, undefined, [Rol.OPERADOR]);
 
-  const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
-    acc[r] = usuarios.filter(u => u.rol === r).length;
-    return acc;
-  }, {});
+  // Staff + cliente (permitido filtrar por empresa)
+  const staffCliente = await usuariosPorRolesLocalidadEmpresa(
+    m.localidadId,
+    m.empresaId,
+    [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.CLIENTE]
+  );
+
+  const tokens = uniqueTokensFromUsers([...operadoresLocalidad, ...staffCliente]);
+
+  const roleCounts = {
+    OPERADOR: operadoresLocalidad.length,
+    SUPERVISOR: staffCliente.filter(u => u.rol === Rol.SUPERVISOR).length,
+    COORDINADOR: staffCliente.filter(u => u.rol === Rol.COORDINADOR).length,
+    CLIENTE: staffCliente.filter(u => u.rol === Rol.CLIENTE).length,
+  };
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_iniciado', {
@@ -363,7 +370,7 @@ async function notificarMovimientoIniciado(movId: number) {
   );
 }
 
-/** Fin → Cliente/Coordinador/Supervisor */
+/** Fin → Cliente/Coordinador/Supervisor (filtrables por empresa) */
 async function notificarMovimientoFinalizado(movId: number) {
   ensureAdmin();
 
@@ -376,14 +383,18 @@ async function notificarMovimientoFinalizado(movId: number) {
   });
   if (!m) return;
 
-  const roles: Rol[] = [Rol.CLIENTE, Rol.COORDINADOR, Rol.SUPERVISOR];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
+  const usuarios = await usuariosPorRolesLocalidadEmpresa(
+    m.localidadId,
+    m.empresaId,
+    [Rol.CLIENTE, Rol.COORDINADOR, Rol.SUPERVISOR]
+  );
   const tokens = uniqueTokensFromUsers(usuarios);
 
-  const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
-    acc[r] = usuarios.filter(u => u.rol === r).length;
-    return acc;
-  }, {});
+  const roleCounts = {
+    CLIENTE: usuarios.filter(u => u.rol === Rol.CLIENTE).length,
+    COORDINADOR: usuarios.filter(u => u.rol === Rol.COORDINADOR).length,
+    SUPERVISOR: usuarios.filter(u => u.rol === Rol.SUPERVISOR).length,
+  };
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_concluido', {
@@ -573,7 +584,7 @@ export class MovimientoModel {
         data: {
           estado: 'EN_PROCESO',
           fechaInicio: fechaActual,
-          fechaPausa: null,
+          fechaPausa: null, // ✔ limpia pausa al reactivar
           updatedAt: fechaActual,
           incidenteGlobal: false,
           ...(maquinistaId && { operadorId: maquinistaId }),
@@ -751,6 +762,7 @@ export class MovimientoModel {
 
       movData.prioridad ??= 'BAJA';
       movData.estado ??= 'SOLICITADO';
+      movData.fechaSolicitud ??= new Date(); // ✔ asegura fechaSolicitud
       movData.posicionCabina ??= 'Sin_Solicitar';
       movData.posicionChimenea ??= 'Sin_Solicitar';
       movData.direccionEmpuje ??= 'Sin_Solicitar';
@@ -1254,7 +1266,7 @@ export class MovimientoModel {
             : undefined,
           incidentes: { total, abiertos, ultimoEstado },
           fechas: {
-            solicitud: fmt(m.fechaSolicitud)!,
+            solicitud: fmt(m.fechaSolicitud) ?? '', // ✔ sin assert
             inicio: fmt(m.fechaInicio),
             pausa: fmt(m.fechaPausa),
             fin: fmt(m.fechaFin),
@@ -1407,6 +1419,7 @@ export class MovimientoModel {
         data: {
           estado: 'EN_PROCESO',
           fechaInicio: fechaActual,
+          fechaPausa: null, // ✔ limpia pausa si existía
           operadorId: maquinistaId,
           updatedAt: fechaActual,
         },
@@ -1446,7 +1459,7 @@ export class MovimientoModel {
       const fechaActual = new Date();
       const mov = await prisma.movimiento.update({
         where: { id },
-        data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, updatedAt: fechaActual },
+        data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, fechaPausa: null, updatedAt: fechaActual }, // ✔ limpia pausa
       });
 
       await notificarMovimientoIniciado(mov.id);
@@ -1582,7 +1595,7 @@ export class MovimientoModel {
         empresaId: mov.empresaId,
         creadoPorId,
         localidadId: mov.localidadId,
-        viaOrigenId: mov.viaOrigenId,     // sin cambiar ruteo; operador lo ajustará si procede
+        viaOrigenId: mov.viaOrigenId,
         viaDestinoId: mov.viaDestinoId,
         locomotiveNumber: mov.locomotiveNumber,
         prioridad: 'BAJA',
