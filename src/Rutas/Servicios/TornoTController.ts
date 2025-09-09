@@ -1,7 +1,7 @@
 // src/controllers/Servicios/TornoTController.ts
 import { Request, Response, RequestHandler } from 'express';
 import { ServicioEstado } from '@prisma/client';
-import { TornoTModel } from '../../models/Servicios/TornoTModel';
+import { TornoTModel } from '../../models/Servicios/TornoTmodel';
 import { tornoTControllerLogger } from './tornoT.controller.logger';
 
 // Helpers
