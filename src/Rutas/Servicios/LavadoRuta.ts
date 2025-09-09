@@ -19,7 +19,7 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
-import { LavadoTController } from '../../controllers/Servicios/LavadoTController';
+import { LavadoTController } from './LavadoTController';
 
 const router = Router();
 
