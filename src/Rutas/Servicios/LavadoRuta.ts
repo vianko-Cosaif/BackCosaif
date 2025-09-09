@@ -1,31 +1,54 @@
+// src/Rutas/Servicios/LavadoRuta.ts
 /**
- * @file lavadoRuta.ts
- * @description
- * Rutas HTTP para **LavadoT**. TODAS protegidas con JWT.
+ * Rutas HTTP para LavadoT (todas con JWT).
  *
- * Sugerido montado: app.use('/servicios/lavado', router)
- * Endpoints resultantes:
- *  - POST   /servicios/lavado           → crear
- *  - PUT    /servicios/lavado/:id       → editar
- *  - GET    /servicios/lavado/:id       → obtener
+ * Montaje sugerido en server:
+ *   app.use('/lavado', router)
+ *
+ * Endpoints:
+ *  - GET    /lavado                      → listar paginado (filtros: ?status=EN_SERVICIO|FINALIZADO|DETENIDO|PENDIENTES&empresaId&localidadId&movimientoId&page&pageSize)
+ *  - GET    /lavado/en-servicio          → listar solo EN_SERVICIO (con filtros opcionales)
+ *  - GET    /lavado/siguientes           → “siguientes para iniciar” (?empresaId&localidadId&limit=2)
+ *  - GET    /lavado/no-en-proceso        → compat: no EN_SERVICIO ni FINALIZADO
+ *  - POST   /lavado                      → crear
+ *  - POST   /lavado/:id/iniciar          → iniciar (opcional { usuarioId, inicio })
+ *  - POST   /lavado/:id/finalizar        → finalizar (opcional { fin })
+ *  - PUT    /lavado/:id                  → editar
+ *  - GET    /lavado/:id                  → obtener por id
  */
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
-import { LavadoTController } from './LavadoTController';
+import { LavadoTController } from '../../controllers/Servicios/LavadoTController';
 
 const router = Router();
 
-// 🔐 Protección JWT para todas las rutas
+// 🔐 JWT para todas
 router.use(passport.authenticate('jwt', { session: false }));
 
-// Crear registro LavadoT (opcionalmente con status/fechas)
+// Listado principal (paginado + filtros)
+router.get('/', LavadoTController.listar);
+
+// Solo EN_SERVICIO
+router.get('/en-servicio', LavadoTController.enServicio);
+
+// Siguientes para iniciar (por defecto 2)
+router.get('/siguientes', LavadoTController.siguientes);
+
+// Compat: no en proceso (ni finalizados)
+router.get('/no-en-proceso', LavadoTController.listarNoEnProceso);
+
+// Crear
 router.post('/', LavadoTController.crear);
 
-// Editar registro LavadoT (status, inicio, fin)A
+// Acciones rápidas
+router.post('/:id/iniciar', LavadoTController.iniciar);
+router.post('/:id/finalizar', LavadoTController.finalizar);
+
+// Editar
 router.put('/:id', LavadoTController.editar);
 
-// Obtener registro LavadoT por id
+// Obtener por id (dejar al final para no colisionar con rutas anteriores)
 router.get('/:id', LavadoTController.obtener);
 
 export default router;
