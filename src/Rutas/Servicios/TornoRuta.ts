@@ -20,7 +20,7 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
-import { TornoTController } from '../../controllers/Servicios/TornoTController';
+import { TornoTController } from './TornoTController';
 
 const router = Router();
 
