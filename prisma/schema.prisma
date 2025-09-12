@@ -20,45 +20,53 @@ model Empresa {
   servicios   ServicioCola[]
 }
 
-
 model Localidad {
-  id          Int           @id @default(autoincrement())
-  nombre      String        @unique
-  estado      String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  movimientos Movimiento[]
-  usuarios    Usuario[]
-  vias        Via[]
-  rondas      Ronda[]
-  servicios   ServicioCola[]
+  id                   Int                   @id @default(autoincrement())
+  nombre               String                @unique
+  estado               String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  movimientos          Movimiento[]
+  usuarios             Usuario[]
+  vias                 Via[]
+  rondas               Ronda[]
+  servicios            ServicioCola[]
+
+  // Back-relations necesarios para evitar errores
+  tornosT              TornoT[]
+  lavadosT             LavadoT[]
+  navajas              Navaja[]
+  incidentesTorno      IncidenteTorno[]
+  incidentesLavado     IncidenteLavado[]
+  seguimientosTorno    SeguimientoTorno[]
+  seguimientosLavado   SeguimientoLavado[]
 
   @@index([nombre])
 }
 
 model Usuario {
-  id               Int               @id @default(autoincrement())
-  nombre           String            @unique
-  email            String            @unique
-  contrasena       String
-  rol              Rol
-  empresaId        Int
-  localidadId      Int
-  fcmTokens        FcmToken[]
-  activo           Boolean           @default(false)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  incidentes       Incidente[]
-  movimientos      Movimiento[]      @relation("UsuarioMovimiento")
-  coordinadorMovs  Movimiento[]      @relation("CoordinadorMovimiento")
-  creados          Movimiento[]      @relation("UsuarioCreador")
-  operadorMovs     Movimiento[]      @relation("OperadorMovimiento")
-  supervisorMovs   Movimiento[]      @relation("SupervisorMovimiento")
-  tokens           Token[]
-  empresa          Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  localidad        Localidad         @relation(fields: [localidadId], references: [id])
-  incidentesTorno  IncidenteTorno[]
-  incidentesLavado IncidenteLavado[]
+  id                  Int               @id @default(autoincrement())
+  nombre              String            @unique
+  email               String            @unique
+  contrasena          String
+  rol                 Rol
+  empresaId           Int
+  localidadId         Int
+  fcmTokens           FcmToken[]
+  activo              Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  incidentes          Incidente[]
+  movimientos         Movimiento[]      @relation("UsuarioMovimiento")
+  coordinadorMovs     Movimiento[]      @relation("CoordinadorMovimiento")
+  creados             Movimiento[]      @relation("UsuarioCreador")
+  operadorMovs        Movimiento[]      @relation("OperadorMovimiento")
+  supervisorMovs      Movimiento[]      @relation("SupervisorMovimiento")
+  tokens              Token[]
+  empresa             Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  localidad           Localidad         @relation(fields: [localidadId], references: [id])
+  incidentesTorno     IncidenteTorno[]
+  incidentesLavado    IncidenteLavado[]
   seguimientosTorno   SeguimientoTorno[]
   seguimientosLavado  SeguimientoLavado[]
 
@@ -67,11 +75,11 @@ model Usuario {
 }
 
 model FcmToken {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique @db.VarChar(500)
-  usuarioId  Int
-  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @db.VarChar(500)
+  usuarioId Int
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   @@index([usuarioId])
 }
@@ -154,12 +162,12 @@ model Movimiento {
   operador         Usuario?          @relation("OperadorMovimiento", fields: [operadorId], references: [id], onDelete: Restrict)
   supervisor       Usuario?          @relation("SupervisorMovimiento", fields: [supervisorId], references: [id], onDelete: Restrict)
   viaDestino       Via?              @relation("ViaDestinoMovimiento", fields: [viaDestinoId], references: [id], onDelete: Restrict)
-  viaOrigen        Via               @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
+  viaOrigen        Via?              @relation("ViaOrigenMovimiento", fields: [viaOrigenId], references: [id])
   ronda            Ronda?
   servicio         ServicioCola?
 
-  viaOcupante        Via[]         @relation("ViaOcupante")
-  seccionesOcupantes SeccionVia[]  @relation("SeccionOcupante")
+  viaOcupante        Via[]        @relation("ViaOcupante")
+  seccionesOcupantes SeccionVia[] @relation("SeccionOcupante")
 
   tornos             TornoT[]
   lavados            LavadoT[]
@@ -366,22 +374,22 @@ model IncidenteLavado {
 /* ============ NUEVAS TABLAS DE SEGUIMIENTO ============ */
 
 model SeguimientoTorno {
-  id            Int               @id @default(autoincrement())
-  incidenteId   Int
-  tornoId       Int
-  localidadId   Int
-  actorId       Int
-  accion        AccionSeguimiento
-  comentario    String?
-  imagenes      String[]          // adjuntos opcionales
-  deStatus      EstadoIncidente?
-  aStatus       EstadoIncidente?
-  createdAt     DateTime          @default(now())
+  id          Int               @id @default(autoincrement())
+  incidenteId Int
+  tornoId     Int
+  localidadId Int
+  actorId     Int
+  accion      AccionSeguimiento
+  comentario  String?
+  imagenes    String[]
+  deStatus    EstadoIncidente?
+  aStatus     EstadoIncidente?
+  createdAt   DateTime          @default(now())
 
-  incidente     IncidenteTorno    @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
-  torno         TornoT            @relation(fields: [tornoId], references: [id], onDelete: Cascade)
-  localidad     Localidad         @relation(fields: [localidadId], references: [id], onDelete: Restrict)
-  actor         Usuario           @relation(fields: [actorId], references: [id])
+  incidente   IncidenteTorno    @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+  torno       TornoT            @relation(fields: [tornoId], references: [id], onDelete: Cascade)
+  localidad   Localidad         @relation(fields: [localidadId], references: [id], onDelete: Restrict)
+  actor       Usuario           @relation(fields: [actorId], references: [id])
 
   @@index([incidenteId, createdAt])
   @@index([localidadId, accion, createdAt])
@@ -389,26 +397,72 @@ model SeguimientoTorno {
 }
 
 model SeguimientoLavado {
-  id            Int               @id @default(autoincrement())
-  incidenteId   Int
-  lavadoId      Int
-  localidadId   Int
-  actorId       Int
-  accion        AccionSeguimiento
-  comentario    String?
-  imagenes      String[]
-  deStatus      EstadoIncidente?
-  aStatus       EstadoIncidente?
-  createdAt     DateTime          @default(now())
+  id          Int               @id @default(autoincrement())
+  incidenteId Int
+  lavadoId    Int
+  localidadId Int
+  actorId     Int
+  accion      AccionSeguimiento
+  comentario  String?
+  imagenes    String[]
+  deStatus    EstadoIncidente?
+  aStatus     EstadoIncidente?
+  createdAt   DateTime          @default(now())
 
-  incidente     IncidenteLavado   @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
-  lavado        LavadoT           @relation(fields: [lavadoId], references: [id], onDelete: Cascade)
-  localidad     Localidad         @relation(fields: [localidadId], references: [id], onDelete: Restrict)
-  actor         Usuario           @relation(fields: [actorId], references: [id])
+  incidente   IncidenteLavado   @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+  lavado      LavadoT           @relation(fields: [lavadoId], references: [id], onDelete: Cascade)
+  localidad   Localidad         @relation(fields: [localidadId], references: [id], onDelete: Restrict)
+  actor       Usuario           @relation(fields: [actorId], references: [id])
 
   @@index([incidenteId, createdAt])
   @@index([localidadId, accion, createdAt])
   @@index([actorId, createdAt])
+}
+
+/* ============ NUEVAS TABLAS DE MEDIDAS ============ */
+
+model MedidasTornoI {
+  id         Int      @id @default(autoincrement())
+  id_TornoT  Int
+  L1         String
+  R1         String
+  L2         String
+  R2         String
+  L3         String
+  R3         String
+  L4         String
+  R4         String
+  L5         String
+  R5         String
+  L6         String
+  R6         String
+  creadoEn   DateTime @default(now())
+
+  torno      TornoT   @relation(fields: [id_TornoT], references: [id], onDelete: Cascade)
+
+  @@index([id_TornoT])
+}
+
+model MedidasTornoF {
+  id         Int      @id @default(autoincrement())
+  id_TornoT  Int
+  L1         String
+  R1         String
+  L2         String
+  R2         String
+  L3         String
+  R3         String
+  L4         String
+  R4         String
+  L5         String
+  R5         String
+  L6         String
+  R6         String
+  creadoEn   DateTime @default(now())
+
+  torno      TornoT   @relation(fields: [id_TornoT], references: [id], onDelete: Cascade)
+
+  @@index([id_TornoT])
 }
 
 /* ================== ENUMS ================== */
