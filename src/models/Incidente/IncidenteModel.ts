@@ -10,7 +10,7 @@
 import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
-import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
+import { NotificadorFCM } from '../../services/NotificadorFCM';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
@@ -498,7 +498,6 @@ export class IncidenteModel {
           });
 
           if (mov?.localidadId) await RondaModel.recomponerRondasLocalidad(mov.localidadId);
-
           if (mov) await NotificadorFCM.notificarCancelacionMovimiento(mov, 'Reincidencia de incidentes');
 
           incidenteError.warn('Movimiento cancelado por múltiples cierres no resueltos', {
@@ -507,7 +506,31 @@ export class IncidenteModel {
             cierres,
           });
         } else {
-          await RondaModel.gestionarIncidente(movId, { cerradoNoResuelto: true });
+          // SOLO aquí aplicamos reorden. ALTA igual, BAJA con “juego de sillas”
+          let localidadIdForRecompose: number | null = null;
+
+          await prisma.$transaction(async (tx) => {
+            const mov = await tx.movimiento.findUnique({
+              where: { id: movId },
+              select: { prioridad: true, empresaId: true, localidadId: true },
+            });
+            if (!mov?.localidadId || !mov.empresaId) return;
+            localidadIdForRecompose = mov.localidadId;
+
+            const slot = await IncidenteModel.obtenerSlotMovimiento(tx, movId);
+            if (!slot) return;
+
+            if ((mov.prioridad ?? 'BAJA') === 'ALTA') {
+              await IncidenteModel.moverMovimientoARonda1AlFinalTx(tx, slot.localidadId, slot.empresaId, movId);
+            } else {
+              await IncidenteModel.aplicarJuegoSillasBajaTx(tx, slot);
+            }
+          });
+
+          if (localidadIdForRecompose) {
+            await RondaModel.recomponerRondasLocalidad(localidadIdForRecompose);
+          }
+
           incidenteError.info('Reorden ejecutado por cierre de incidente', {
             incidenteId: id,
             movimientoId: movId,
@@ -590,11 +613,20 @@ export class IncidenteModel {
 
       const prioridad = rondaMovimiento.movimiento?.prioridad ?? 'BAJA';
 
-      if (prioridad === 'ALTA') {
-        await this.moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId);
-      } else {
-        await this.aplicarEfectoCadenaBaja(empresaId, localidadId, rondaMovimiento);
-      }
+      await prisma.$transaction(async (tx) => {
+        if (prioridad === 'ALTA') {
+          await this.moverMovimientoARonda1AlFinalTx(tx, localidadId, empresaId, movimientoId);
+        } else {
+          const slot = {
+            id: rondaMovimiento.id,
+            localidadId: rondaMovimiento.localidadId,
+            empresaId: rondaMovimiento.empresaId,
+            rondaNumero: rondaMovimiento.rondaNumero,
+            orden: rondaMovimiento.orden,
+          };
+          await this.aplicarJuegoSillasBajaTx(tx, slot);
+        }
+      });
 
       await RondaModel.recomponerRondasLocalidad(localidadId);
     } catch (error) {
@@ -603,84 +635,122 @@ export class IncidenteModel {
     }
   }
 
-  private static async moverMovimientoARonda1AlFinal(localidadId: number, empresaId: number, movimientoId: number) {
-    await prisma.$transaction(async (tx) => {
-      const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
-      if (rondaActual) {
-        await tx.ronda.delete({ where: { id: rondaActual.id } });
-        await tx.ronda.updateMany({
-          where: { localidadId, rondaNumero: rondaActual.rondaNumero, orden: { gt: rondaActual.orden } },
-          data: { orden: { decrement: 1 } },
-        });
-      }
+  // === Helpers BAJA/ALTA ===
 
-      const ultimoOrden = await tx.ronda.count({ where: { localidadId, rondaNumero: 1, concluido: false } });
-      await tx.ronda.create({
-        data: { movimientoId, empresaId, localidadId, rondaNumero: 1, orden: ultimoOrden + 1 },
-      });
-    });
-  }
-
-  private static async aplicarEfectoCadenaBaja(
-    empresaId: number,
-    localidadId: number,
-    rondaMovimiento: Ronda & { movimiento: { prioridad: string } }
+  private static async obtenerSlotMovimiento(
+    tx: Prisma.TransactionClient,
+    movimientoId: number
   ) {
-    await prisma.$transaction(async (tx) => {
-      const chain = await this.obtenerSlotsEmpresaDesde(tx, localidadId, empresaId, rondaMovimiento.rondaNumero);
-      if (chain.length === 0) return;
-
-      if (chain.length === 1) {
-        const nextRound = chain[0].rondaNumero + 1;
-        const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
-        const actual = await tx.ronda.findUnique({ where: { id: chain[0].id } });
-        if (!actual) return;
-
-        if (tam > 0) await this.moverRonda(tx, actual, nextRound, tam + 1);
-        else {
-          const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
-          await this.moverRonda(tx, actual, (max._max.rondaNumero ?? 0) + 1, 1);
-        }
-        return;
-      }
-
-      let current = await tx.ronda.findUnique({ where: { id: chain[0].id } });
-      if (!current) return;
-
-      for (let i = 1; i < chain.length; i++) {
-        const targetMeta = chain[i];
-        const targetRow = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
-        if (!targetRow) continue;
-
-        await this.moverRonda(tx, current, targetRow.rondaNumero, targetRow.orden);
-
-        const pushed = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
-        if (!pushed) break;
-        current = pushed;
-      }
-
-      const last = chain[chain.length - 1];
-      const nextRound = last.rondaNumero + 1;
-      const tam = await this.tamanoDeRonda(tx, localidadId, nextRound);
-
-      if (tam > 0) await this.moverRonda(tx, current, nextRound, tam + 1);
-      else {
-        const max = await tx.ronda.aggregate({ where: { localidadId, concluido: false }, _max: { rondaNumero: true } });
-        await this.moverRonda(tx, current, (max._max.rondaNumero ?? 0) + 1, 1);
-      }
+    return tx.ronda.findFirst({
+      where: { movimientoId, concluido: false },
+      select: { id: true, localidadId: true, empresaId: true, rondaNumero: true, orden: true },
     });
   }
 
-  private static async obtenerSlotsEmpresaDesde(
+  private static async obtenerSlotsEmpresaDespuesDe(
     tx: Prisma.TransactionClient,
     localidadId: number,
     empresaId: number,
-    desdeRonda: number
+    desdeRonda: number,
+    desdeOrden: number
   ) {
     return tx.ronda.findMany({
-      where: { localidadId, empresaId, concluido: false, rondaNumero: { gte: desdeRonda } },
+      where: {
+        localidadId,
+        empresaId,
+        concluido: false,
+        OR: [
+          { rondaNumero: { gt: desdeRonda } },
+          { rondaNumero: desdeRonda, orden: { gt: desdeOrden } },
+        ],
+      },
       select: { id: true, rondaNumero: true, orden: true },
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+    });
+  }
+
+  private static async aplicarJuegoSillasBajaTx(
+    tx: Prisma.TransactionClient,
+    slotIncidente: { id: number; localidadId: number; empresaId: number; rondaNumero: number; orden: number }
+  ) {
+    const chain = await this.obtenerSlotsEmpresaDespuesDe(
+      tx,
+      slotIncidente.localidadId,
+      slotIncidente.empresaId,
+      slotIncidente.rondaNumero,
+      slotIncidente.orden
+    );
+
+    // Sin siguiente slot: mandar a ronda+1 al final o crear nueva
+    if (chain.length === 0) {
+      const currentRow = await tx.ronda.findUnique({ where: { id: slotIncidente.id } });
+      if (!currentRow) return;
+
+      const nextRound = slotIncidente.rondaNumero + 1;
+      const tam = await this.tamanoDeRonda(tx, slotIncidente.localidadId, nextRound);
+
+      if (tam > 0) await this.moverRonda(tx, currentRow, nextRound, tam + 1);
+      else {
+        const max = await tx.ronda.aggregate({
+          where: { localidadId: slotIncidente.localidadId, concluido: false },
+          _max: { rondaNumero: true },
+        });
+        await this.moverRonda(tx, currentRow, (max._max.rondaNumero ?? 0) + 1, 1);
+      }
+      return;
+    }
+
+    // Hay cadena: toma la posición del siguiente y empuja al desplazado
+    let current = await tx.ronda.findUnique({ where: { id: slotIncidente.id } });
+    if (!current) return;
+
+    for (let i = 0; i < chain.length; i++) {
+      const targetMeta = chain[i];
+      const targetRow = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
+      if (!targetRow) continue;
+
+      await this.moverRonda(tx, current, targetRow.rondaNumero, targetRow.orden);
+
+      const pushed = await tx.ronda.findUnique({ where: { id: targetMeta.id } });
+      if (!pushed) return;
+      current = pushed; // el desplazado sigue la cadena
+    }
+
+    // Último desplazado va a ronda siguiente al final o crea nueva
+    const last = chain[chain.length - 1];
+    const tail = await tx.ronda.findUnique({ where: { id: current.id } });
+    if (!tail) return;
+
+    const nextRound = last.rondaNumero + 1;
+    const tam = await this.tamanoDeRonda(tx, slotIncidente.localidadId, nextRound);
+
+    if (tam > 0) await this.moverRonda(tx, tail, nextRound, tam + 1);
+    else {
+      const max = await tx.ronda.aggregate({
+        where: { localidadId: slotIncidente.localidadId, concluido: false },
+        _max: { rondaNumero: true },
+      });
+      await this.moverRonda(tx, tail, (max._max.rondaNumero ?? 0) + 1, 1);
+    }
+  }
+
+  private static async moverMovimientoARonda1AlFinalTx(
+    tx: Prisma.TransactionClient,
+    localidadId: number,
+    empresaId: number,
+    movimientoId: number
+  ) {
+    const rondaActual = await tx.ronda.findFirst({ where: { movimientoId } });
+    if (rondaActual) {
+      await tx.ronda.delete({ where: { id: rondaActual.id } });
+      await tx.ronda.updateMany({
+        where: { localidadId, rondaNumero: rondaActual.rondaNumero, orden: { gt: rondaActual.orden }, concluido: false },
+        data: { orden: { decrement: 1 } },
+      });
+    }
+    const ultimoOrden = await tx.ronda.count({ where: { localidadId, rondaNumero: 1, concluido: false } });
+    await tx.ronda.create({
+      data: { movimientoId, empresaId, localidadId, rondaNumero: 1, orden: ultimoOrden + 1 },
     });
   }
 
@@ -697,12 +767,22 @@ export class IncidenteModel {
 
       if (targetOrden > row.orden) {
         await tx.ronda.updateMany({
-          where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gt: row.orden, lte: targetOrden } },
+          where: {
+            localidadId: row.localidadId,
+            rondaNumero: row.rondaNumero,
+            concluido: false,
+            orden: { gt: row.orden, lte: targetOrden },
+          },
           data: { orden: { decrement: 1 } },
         });
       } else {
         await tx.ronda.updateMany({
-          where: { localidadId: row.localidadId, rondaNumero: row.rondaNumero, concluido: false, orden: { gte: targetOrden, lt: row.orden } },
+          where: {
+            localidadId: row.localidadId,
+            rondaNumero: row.rondaNumero,
+            concluido: false,
+            orden: { gte: targetOrden, lt: row.orden },
+          },
           data: { orden: { increment: 1 } },
         });
       }
@@ -765,7 +845,6 @@ export class IncidenteModel {
       const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
       if (incPlano) await NotificadorFCM.notificarNuevoIncidente(incPlano);
 
-      // Levanta/garantiza cron + sweep inmediato
       _ensureCron();
       try { await this.cerrarIncidentesVencidos(); } catch {}
 
@@ -813,7 +892,6 @@ export class IncidenteModel {
         imagenesEliminadas: imagenes.filter(Boolean).length,
       });
 
-      // Mantén el cron activo
       _ensureCron();
 
       return incidenteEliminado;
@@ -903,7 +981,6 @@ export class IncidenteModel {
 
     await NotificadorFCM.notificarContinuarMovimiento(actualizado as Incidente, comentario);
 
-    // Levanta/garantiza cron + sweep inmediato
     _ensureCron();
     try { await this.cerrarIncidentesVencidos(); } catch {}
 
