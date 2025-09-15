@@ -1,3 +1,4 @@
+// src/models/Servicios/LavadoTModel.ts
 import { PrismaClient, LavadoT, ServicioEstado } from '@prisma/client';
 import { movimientoError } from '../Movimientos/movimiento.logger';
 
@@ -21,20 +22,25 @@ function whereFromOpts(opts?: { empresaId?: number; localidadId?: number; movimi
 }
 
 export class LavadoTModel {
+  /** Crear registro de LavadoT (requiere localidadId del movimiento). */
   static async crear(input: { movimientoId: number; status?: ServicioEstado; inicio?: Date | null; fin?: Date | null; }): Promise<LavadoT> {
     const { movimientoId, status, inicio = null, fin = null } = input;
     try {
-      const mov = await prisma.movimiento.findUnique({ where: { id: movimientoId }, select: { id: true, localidadId: true } });
+      const mov = await prisma.movimiento.findUnique({
+        where: { id: movimientoId },
+        select: { id: true, localidadId: true },
+      });
       if (!mov) throw new Error(`Movimiento ${movimientoId} no existe`);
       if (inicio && fin && fin < inicio) throw new Error('fin no puede ser anterior a inicio');
 
       return await prisma.lavadoT.create({
-  data: {
-    movimientoId,
-    localidadId: mov.localidadId,            // ← agregar
-    status: ServicioEstado.EN_SERVICIO,      // ← usar enum
-    inicio: new Date(),
-  },
+        data: {
+          movimientoId,
+          localidadId: mov.localidadId,
+          status: status ?? ServicioEstado.DETENIDO,
+          inicio,
+          fin,
+        },
       });
     } catch (error: any) {
       movimientoError.error('Error creando LavadoT', { movimientoId, input, errName: error?.name, errMsg: error?.message, prismaCode: error?.code, prismaMeta: error?.meta });
@@ -42,15 +48,19 @@ export class LavadoTModel {
     }
   }
 
+  /** Crear en blanco (status por defecto DETENIDO). */
   static async crearEnBlanco(movimientoId: number, status?: ServicioEstado): Promise<LavadoT> {
     try {
-      const mov = await prisma.movimiento.findUnique({ where: { id: movimientoId }, select: { id: true, localidadId: true } });
+      const mov = await prisma.movimiento.findUnique({
+        where: { id: movimientoId },
+        select: { id: true, localidadId: true },
+      });
       if (!mov) throw new Error(`Movimiento ${movimientoId} no existe`);
       return await prisma.lavadoT.create({
         data: {
           movimientoId,
           localidadId: mov.localidadId,
-          status: status ?? ServicioEstado.DETENIDO,    // sin PENDIENTE
+          status: status ?? ServicioEstado.DETENIDO,
           inicio: null,
           fin: null,
         },
@@ -61,6 +71,7 @@ export class LavadoTModel {
     }
   }
 
+  /** Editar campos. */
   static async editar(id: number, input: { status?: ServicioEstado; inicio?: Date | null; fin?: Date | null }): Promise<LavadoT> {
     try {
       const actual = await prisma.lavadoT.findUnique({ where: { id } });
@@ -70,24 +81,36 @@ export class LavadoTModel {
       const fin = input.fin === undefined ? actual.fin : input.fin;
       if (inicio && fin && fin < inicio) throw new Error('fin no puede ser anterior a inicio');
 
-      return await prisma.lavadoT.update({ where: { id }, data: { status: input.status ?? actual.status, inicio, fin } });
+      return await prisma.lavadoT.update({
+        where: { id },
+        data: {
+          status: input.status ?? actual.status,
+          inicio,
+          fin,
+        },
+      });
     } catch (error: any) {
       movimientoError.error('Error editando LavadoT', { id, input, errName: error?.name, errMsg: error?.message, prismaCode: error?.code, prismaMeta: error?.meta });
       throw new Error('Error al editar registro de lavado');
     }
   }
 
+  /** Iniciar (marca EN_SERVICIO, setea inicio si no existe y opcionalmente asigna operador al movimiento). */
   static async iniciar(id: number, usuarioId?: number, inicio?: Date): Promise<LavadoT> {
     try {
       return await prisma.$transaction(async (tx) => {
         const row = await tx.lavadoT.findUnique({ where: { id }, include: { movimiento: { select: MOV_MIN_SELECT } } });
         if (!row) throw new Error(`LavadoT ${id} no existe`);
-        if (row.status === 'FINALIZADO') throw new Error('No se puede iniciar: ya finalizado');
+        if (row.status === ServicioEstado.FINALIZADO) throw new Error('No se puede iniciar: ya finalizado');
 
         const when = inicio ?? new Date();
         const up = await tx.lavadoT.update({
           where: { id },
-          data: { status: 'EN_SERVICIO', inicio: row.inicio ?? when, fin: row.fin && row.fin < when ? null : row.fin },
+          data: {
+            status: ServicioEstado.EN_SERVICIO,
+            inicio: row.inicio ?? when,
+            fin: row.fin && row.fin < when ? null : row.fin,
+          },
         });
 
         if (usuarioId) {
@@ -101,15 +124,19 @@ export class LavadoTModel {
     }
   }
 
+  /** Finalizar (marca FINALIZADO y setea fin). */
   static async finalizar(id: number, fin?: Date): Promise<LavadoT> {
     try {
       return await prisma.$transaction(async (tx) => {
         const row = await tx.lavadoT.findUnique({ where: { id } });
         if (!row) throw new Error(`LavadoT ${id} no existe`);
-        if (row.status === 'FINALIZADO') return row;
+        if (row.status === ServicioEstado.FINALIZADO) return row;
         const when = fin ?? new Date();
-        const inicio = row.inicio ?? when;
-        return await tx.lavadoT.update({ where: { id }, data: { status: 'FINALIZADO', inicio, fin: when } });
+        const inicio = row.inicio ?? when; // si nunca se marcó inicio, igualarlo a fin
+        return await tx.lavadoT.update({
+          where: { id },
+          data: { status: ServicioEstado.FINALIZADO, inicio, fin: when },
+        });
       });
     } catch (error: any) {
       movimientoError.error('Error finalizando LavadoT', { id, errName: error?.name, errMsg: error?.message });
@@ -117,15 +144,17 @@ export class LavadoTModel {
     }
   }
 
+  /** Asignar operador (usuario) al movimiento dueño del LavadoT. */
   static async asignarOperador(id: number, usuarioId: number): Promise<void> {
     const row = await prisma.lavadoT.findUnique({ where: { id }, select: { movimientoId: true } });
     if (!row) throw new Error(`LavadoT ${id} no existe`);
     await prisma.movimiento.update({ where: { id: row.movimientoId }, data: { operadorId: usuarioId } });
   }
 
+  /** Listar EN_SERVICIO (con filtros). */
   static async listarEnServicio(opts: { empresaId?: number; localidadId?: number; movimientoId?: number } = {}): Promise<LavadoT[]> {
     try {
-      const where = { ...whereFromOpts(opts), status: 'EN_SERVICIO' as ServicioEstado };
+      const where = { ...whereFromOpts(opts), status: ServicioEstado.EN_SERVICIO as ServicioEstado };
       return await prisma.lavadoT.findMany({
         where,
         include: { movimiento: { select: MOV_MIN_SELECT } },
@@ -137,6 +166,7 @@ export class LavadoTModel {
     }
   }
 
+  /** Lista que NO están EN_SERVICIO NI FINALIZADO (pendientes). */
   static async listarNoEnProceso(opts: { empresaId?: number; localidadId?: number; movimientoId?: number } = {}): Promise<LavadoT[]> {
     try {
       const where = {
@@ -154,10 +184,11 @@ export class LavadoTModel {
     }
   }
 
+  /** Paginado con filtros y status opcional. */
   static async listarPaginado(opts: {
     page?: number; pageSize?: number;
     empresaId?: number; localidadId?: number; movimientoId?: number;
-    status?: ServicioEstado | 'PENDIENTES';
+    status?: ServicioEstado | 'PENDIENTES'; // PENDIENTES = !EN_SERVICIO && !FINALIZADO
   } = {}): Promise<Paginado<LavadoT>> {
     const page = Math.max(1, opts.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, opts.pageSize ?? 20));
@@ -179,6 +210,7 @@ export class LavadoTModel {
     return { items, total, page, pageSize, hasMore: page * pageSize < total };
   }
 
+  /** Siguientes para iniciar (máx `limit`, default 2). */
   static async siguientesParaIniciar(opts: { empresaId?: number; localidadId?: number; limit?: number } = {}) {
     const limit = Math.min(10, Math.max(1, opts.limit ?? 2));
     const where = {
@@ -193,6 +225,7 @@ export class LavadoTModel {
     });
   }
 
+  /** Obtener por id. */
   static async obtener(id: number): Promise<LavadoT> {
     try {
       const row = await prisma.lavadoT.findUnique({ where: { id } });
