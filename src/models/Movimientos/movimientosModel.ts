@@ -13,7 +13,7 @@
  * - Al concluir un MOVIMIENTO que va a LAVADO/TORNO se ABRE el servicio en LavadoT/TornoT (NO se crea otro movimiento).
  */
 
-import { PrismaClient, Rol } from '@prisma/client';
+import { PrismaClient, Rol, ServicioEstado } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
