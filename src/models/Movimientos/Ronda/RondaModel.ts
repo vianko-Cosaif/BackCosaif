@@ -7,6 +7,14 @@ import admin from 'firebase-admin';
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
 
+/**
+ * Reglas claras:
+ * - Supervisor/Coordinador: ENCOLAR servicio -> setea lavado/torno = true, posiciona en R1 detrás del bloque de ALTAS sin hold.
+ *   No cambia estado del movimiento.
+ * - Maquinista: INICIAR servicio -> pone estado = 'EN_PROCESO' (+ fechaInicio) y reubica en R1 según servicios activos.
+ * - Motor “siguiente”: elige el primer movimiento con estado !== 'EN_PROCESO'. Para servicios pendientes, permite inicio.
+ */
+
 // ================== HOLD 10 MIN (INCIDENTE CERRADO/NO RESUELTO, SOLO 1 VEZ) ==================
 const HOLD10M_MS = 10 * 60 * 1000;
 const _hold10m = new Map<number, number>();     // movimientoId -> expiresAt
@@ -315,17 +323,72 @@ export class RondaModel {
     }
   }
 
-  // ---------- SERVICIO ACTIVADO (LAVADO / TORNO) ----------
-  public static async onServicioActivado(movimientoId: number) {
+  // ---------- SERVICIO: ENCOLAR (Supervisor/Coordinador) ----------
+  /**
+   * Marca un movimiento como servicio (lavado/torno) y lo posiciona en R1 detrás del bloque de ALTAS sin hold.
+   * No cambia estado del movimiento.
+   */
+  public static async encolarServicio(movimientoId: number, tipo: 'LAVADO'|'TORNO') {
+    await prisma.$transaction(async (tx) => {
+      const m = await tx.movimiento.findUnique({
+        where: { id: movimientoId },
+        select: { id: true, localidadId: true, empresaId: true, estado: true, prioridad: true, lavado: true, torno: true }
+      });
+      if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
+
+      // Set flag de servicio
+      if (tipo === 'LAVADO' && !m.lavado) {
+        await tx.movimiento.update({ where: { id: m.id }, data: { lavado: true } });
+      } else if (tipo === 'TORNO' && !m.torno) {
+        await tx.movimiento.update({ where: { id: m.id }, data: { torno: true } });
+      }
+
+      // Asegurar ronda y ubicar en R1 detrás de ALTAS sin hold
+      let r = await tx.ronda.findFirst({ where: { movimientoId }, orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }] });
+      if (!r) {
+        const ord = (await this.tamanoDeRonda(tx, m.localidadId, 1)) + 1;
+        r = await tx.ronda.create({
+          data: { movimientoId, empresaId: m.empresaId, localidadId: m.localidadId, rondaNumero: 1, orden: ord }
+        });
+      }
+
+      const r1 = await tx.ronda.findMany({
+        where: { localidadId: m.localidadId, rondaNumero: 1, concluido: false },
+        include: { movimiento: { select: { id: true, prioridad: true, createdAt: true } } },
+        orderBy: [{ orden: 'asc' }],
+      });
+      const bloqueAltasLen = r1.filter(x => x.movimiento.prioridad === 'ALTA' && !_isOnHold(x.movimiento.id)).length;
+      const tamR1 = r1.length;
+
+      // Ponerlo después del bloque de ALTAS y manteniendo su lugar relativo
+      const targetOrden = Math.max(1, bloqueAltasLen + 1 + Math.max(0, tamR1 - bloqueAltasLen));
+      await this.moverRonda(tx, r as Ronda, 1, targetOrden);
+      await this.compactarOrdenesRonda(tx, m.localidadId, 1);
+    }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
+  }
+
+  // ---------- SERVICIO: INICIAR (Maquinista) ----------
+  /**
+   * El maquinista inicia el servicio: pone EN_PROCESO y reubica en R1 junto al bloque de servicios.
+   */
+  public static async iniciarServicio(movimientoId: number) {
     await prisma.$transaction(async (tx) => {
       const m = await tx.movimiento.findUnique({
         where: { id: movimientoId },
         select: { id: true, localidadId: true, empresaId: true, estado: true, lavado: true, torno: true, fechaInicio: true, createdAt: true, prioridad: true }
       });
       if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
-      if (!m.lavado && !m.torno) return;
-      if (m.estado !== 'EN_PROCESO') return;
+      if (!m.lavado && !m.torno) throw new Error('El movimiento no está marcado como servicio de lavado/torno');
 
+      // El maquinista lo pone en proceso al iniciar
+      if (m.estado !== 'EN_PROCESO') {
+        await tx.movimiento.update({
+          where: { id: m.id },
+          data: { estado: 'EN_PROCESO', fechaInicio: m.fechaInicio ?? new Date() }
+        });
+      }
+
+      // Asegura slot y sube a R1 detrás del bloque de ALTAS sin hold, agrupado con servicios
       let r = await tx.ronda.findFirst({ where: { movimientoId }, orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }] });
       if (!r) {
         const ord = (await this.tamanoDeRonda(tx, m.localidadId, 1)) + 1;
@@ -352,8 +415,14 @@ export class RondaModel {
       const idxServicio = serviciosActivos.findIndex(x => x.id === r!.id);
       const targetOrden = Math.max(1, bloqueAltasLen + 1 + (idxServicio < 0 ? serviciosActivos.length : idxServicio));
       await this.moverRonda(tx, r!, 1, targetOrden);
+      await this.ordenarAltasR1_FIFO(tx, m.localidadId);
       await this.compactarOrdenesRonda(tx, m.localidadId, 1);
     }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
+  }
+
+  /** Compat: alias para código legado. */
+  public static async onServicioActivado(movimientoId: number) {
+    return this.iniciarServicio(movimientoId);
   }
 
   // ---------- GENERACIÓN / INSERCIÓN ----------
@@ -496,7 +565,6 @@ export class RondaModel {
       const startRound = altas.some(a => !_isOnHold(a.movimiento.id)) ? 2 : 1;
 
       let target = startRound;
-      // Busca la primera ronda disponible (sin otra BAJA de la misma empresa) antes o igual a la actual
       while (target < r.rondaNumero) {
         const ya = await tx.ronda.count({
           where: {
@@ -507,14 +575,13 @@ export class RondaModel {
         if (ya === 0) break;
         target++;
       }
-      if (target >= r.rondaNumero) target = r.rondaNumero; // ya está en la más temprana posible
+      if (target >= r.rondaNumero) target = r.rondaNumero;
 
       const tam = await this.tamanoDeRonda(tx, m.localidadId, target);
       await this.moverRonda(tx, r as Ronda, target, tam + 1);
 
       await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, m.localidadId, startRound);
 
-      // Compactar/renumerar rondas contiguas
       const grupos = await tx.ronda.findMany({
         where: { localidadId: m.localidadId, concluido: false },
         select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
@@ -648,16 +715,12 @@ export class RondaModel {
 
       if (!candidatos.length) return { vacio: true as const, motivo: 'sin_rondas' };
 
-      const rElegible = candidatos.find((c) => {
-        const m = c.movimiento;
-        const esServicio = !!m.lavado || !!m.torno;
-        return esServicio ? (m.estado === 'EN_PROCESO') : (m.estado !== 'EN_PROCESO');
-      });
+      // Política: el maquinista inicia todo lo que no esté en EN_PROCESO
+      const rElegible = candidatos.find(c => c.movimiento.estado !== 'EN_PROCESO');
 
       const r = rElegible ?? candidatos[0];
       const m = r.movimiento;
-      const esServicio = !!m.lavado || !!m.torno;
-      const permiteInicio = esServicio ? (m.estado === 'EN_PROCESO') : (m.estado !== 'EN_PROCESO');
+      const permiteInicio = m.estado !== 'EN_PROCESO';
 
       return {
         rondaId: r.id,
@@ -667,7 +730,7 @@ export class RondaModel {
         prioridad: m.prioridad,
         locomotiveNumber: m.locomotiveNumber ?? null,
         permiteInicio,
-        motivo: rElegible ? 'ok' : (esServicio ? 'servicio_no_activado' : 'todos_en_proceso')
+        motivo: rElegible ? 'ok' : ( (m.lavado || m.torno) ? 'servicio_ya_en_proceso' : 'todos_en_proceso')
       };
     });
   }
