@@ -1519,53 +1519,64 @@ include: { empresa: true, localidad: true, ronda: true }
    *  - Informa a RondaModel para que gestione ServicioCola (orden/estado) vía onServicioActivado.
    *  - Es idempotente (no duplica).
    */
-  private static async _activarServicioTrasMovimiento(movimientoId: number) {
-    const mov = await prisma.movimiento.findUnique({
-      where: { id: movimientoId },
-      select: { id: true, empresaId: true, localidadId: true, lavado: true, torno: true },
-    });
-    if (!mov) return;
+private static async _activarServicioTrasMovimiento(movimientoId: number) {
+  const mov = await prisma.movimiento.findUnique({
+    where: { id: movimientoId },
+    select: { id: true, empresaId: true, localidadId: true, lavado: true, torno: true },
+  });
+  if (!mov) return;
 
-    let destinoLavado = !!mov.lavado;
-    let destinoTorno = !!mov.torno;
+  let destinoLavado = !!mov.lavado;
+  let destinoTorno = !!mov.torno;
 
-    // Si no viene marcado, lo inferimos por la vía destino
-    if (!destinoLavado && !destinoTorno) {
-      const inf = await inferirServicioDesdeDestino(movimientoId);
-      destinoLavado = inf.lavado;
-      destinoTorno = inf.torno;
-      if (destinoLavado || destinoTorno) {
-        await prisma.movimiento.update({
-          where: { id: movimientoId },
-          data: { lavado: destinoLavado, torno: destinoTorno },
-        });
-      }
-    }
-
-    if (destinoLavado) {
-      const existeL = await prisma.lavadoT.findFirst({ where: { movimientoId } });
-      if (!existeL) {
-        await prisma.lavadoT.create({
-          data: { movimientoId, status: 'EN_SERVICIO', inicio: new Date() },
-        });
-      }
-    }
-
-    if (destinoTorno) {
-      const existeT = await prisma.tornoT.findFirst({ where: { movimientoId } });
-      if (!existeT) {
-        await prisma.tornoT.create({
-          data: { movimientoId, status: 'EN_SERVICIO', inicio: new Date() },
-        });
-      }
-    }
-
-    try {
-      await RondaModel.onServicioActivado(movimientoId);
-    } catch (e: any) {
-      movimientoError.error('onServicioActivado falló (se continúa)', {
-        movimientoId, errName: e?.name, errMsg: e?.message,
+  // Si no viene marcado, lo inferimos por la vía destino
+  if (!destinoLavado && !destinoTorno) {
+    const inf = await inferirServicioDesdeDestino(movimientoId);
+    destinoLavado = inf.lavado;
+    destinoTorno = inf.torno;
+    if (destinoLavado || destinoTorno) {
+      await prisma.movimiento.update({
+        where: { id: movimientoId },
+        data: { lavado: destinoLavado, torno: destinoTorno },
       });
     }
   }
+
+  if (destinoLavado) {
+    const existeL = await prisma.lavadoT.findFirst({ where: { movimientoId } });
+    if (!existeL) {
+      await prisma.lavadoT.create({
+        data: {
+          movimientoId,
+          localidadId: mov.localidadId,
+          status: ServicioEstado.EN_SERVICIO,
+          inicio: new Date(),
+        },
+      });
+    }
+  }
+
+  if (destinoTorno) {
+    const existeT = await prisma.tornoT.findFirst({ where: { movimientoId } });
+    if (!existeT) {
+      await prisma.tornoT.create({
+        data: {
+          movimientoId,
+          localidadId: mov.localidadId,
+          status: ServicioEstado.EN_SERVICIO,
+          inicio: new Date(),
+        },
+      });
+    }
+  }
+
+  try {
+    await RondaModel.onServicioActivado(movimientoId);
+  } catch (e: any) {
+    movimientoError.error('onServicioActivado falló (se continúa)', {
+      movimientoId, errName: e?.name, errMsg: e?.message,
+    });
+  }
+}
+
 }
