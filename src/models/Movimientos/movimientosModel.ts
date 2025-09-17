@@ -19,6 +19,14 @@ import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
 
+// --- helpers (arriba, junto a otros helpers) ---
+function assertViasCreate(args: { viaOrigenId?: number|null; viaDestinoId?: number|null }) {
+  const a = !!args.viaOrigenId, b = !!args.viaDestinoId;
+  if ((a ? 1 : 0) + (b ? 1 : 0) !== 1) {
+    throw new Error('Debe indicar exactamente una vía (origen o destino)');
+  }
+}
+
 // ----------------------------------------------------------------------------
 // Prisma singleton (evita múltiples conexiones en hot-reload)
 // ----------------------------------------------------------------------------
@@ -730,74 +738,92 @@ include: { empresa: true, localidad: true, ronda: true }
    * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
    * Notifica creación y recalcula “siguiente”.
    */
-  static async nuevoMovimiento(data: {
-    empresaId: number;
-    creadoPorId: number;
-    localidadId: number;
-    viaOrigenId: number;
-    viaDestinoId?: number;
-    numeroSeccion?: number;
-    locomotiveNumber: number;
-    prioridad?: 'BAJA' | 'ALTA';
-    tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
-    estado?: string;
-    fechaSolicitud?: Date;
-    instrucciones?: string;
-    clienteId?: number;
-    supervisorId?: number;
-    coordinadorId?: number;
-    operadorId?: number;   // compat
-    maquinistaId?: number; // alias externo
-    lavado?: boolean;
-    torno?: boolean;
-    posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
-  }) {
-    try {
-      const movData: any = { ...data };
-      if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
-      delete movData.maquinistaId;
+ // --- reemplaza la firma y cuerpo de nuevoMovimiento ---
+static async nuevoMovimiento(data: {
+  empresaId: number;
+  creadoPorId: number;
+  localidadId: number;
+  viaOrigenId?: number;            // ← ahora opcional
+  viaDestinoId?: number;           // ← XOR con viaOrigenId
+  numeroSeccion?: number;
+  locomotiveNumber: number;
+  prioridad?: 'BAJA' | 'ALTA';
+  tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
+  estado?: string;
+  fechaSolicitud?: Date;
+  instrucciones?: string;
+  clienteId?: number;
+  supervisorId?: number;
+  coordinadorId?: number;
+  operadorId?: number;             // compat
+  maquinistaId?: number;           // alias externo
+  lavado?: boolean;
+  torno?: boolean;
+  posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
+}) {
+  try {
+    // 1) Validación XOR de vías
+    assertViasCreate({ viaOrigenId: data.viaOrigenId, viaDestinoId: data.viaDestinoId });
 
-      movData.prioridad ??= 'BAJA';
-      movData.estado ??= 'SOLICITADO';
-      movData.fechaSolicitud ??= new Date();
-      movData.posicionCabina ??= 'Sin_Solicitar';
-      movData.posicionChimenea ??= 'Sin_Solicitar';
-      movData.direccionEmpuje ??= 'Sin_Solicitar';
-      Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
-
-      const mv = await prisma.movimiento.create({ data: movData });
-
-      if (mv.estado === 'SOLICITADO' || mv.estado === 'ESPERA') {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: mv.id,
-          empresaId: mv.empresaId,
-          localidadId: mv.localidadId,
-          prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
-        });
-      }
-
-      try {
-        await NotificadorFCM.notificarNuevoMovimiento(mv.id);
-      } catch (e) {
-        movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
-      }
-
-      await RondaModel.siguienteInteligente(mv.localidadId);
-
-      return await prisma.movimiento.findUnique({
-        where: { id: mv.id },
-        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
-      });
-    } catch (err: any) {
-      movimientoError.error('Error al crear movimiento', {
-        data,
-        errName: err?.name, errMsg: err?.message, errStack: err?.stack, prismaCode: err?.code, prismaMeta: err?.meta,
-      });
-      throw new Error('Error al crear movimiento');
+    // 2) La vía indicada debe pertenecer a la misma localidad
+    const viaId = data.viaOrigenId ?? data.viaDestinoId!;
+    const via = await prisma.via.findUnique({
+      where: { id: viaId },
+      select: { localidadId: true }
+    });
+    if (!via || via.localidadId !== data.localidadId) {
+      throw new Error('La vía indicada no pertenece a la localidad del movimiento');
     }
+
+    // 3) Normalización
+    const movData: any = { ...data };
+    if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
+    delete movData.maquinistaId;
+
+    movData.prioridad ??= 'BAJA';
+    movData.estado ??= 'SOLICITADO';
+    movData.fechaSolicitud ??= new Date();
+    movData.posicionCabina ??= 'Sin_Solicitar';
+    movData.posicionChimenea ??= 'Sin_Solicitar';
+    movData.direccionEmpuje ??= 'Sin_Solicitar';
+    Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
+
+    // 4) Crear (sin ocupar/liberar vías)
+    const mv = await prisma.movimiento.create({ data: movData });
+
+    // 5) Encolar si queda SOLICITADO/ESPERA
+    if (mv.estado === 'SOLICITADO' || mv.estado === 'ESPERA') {
+      await RondaModel.generarRondaParaMovimiento({
+        movimientoId: mv.id,
+        empresaId: mv.empresaId,
+        localidadId: mv.localidadId,
+        prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+      });
+    }
+
+    // 6) Notificación de creación (delegada) + siguiente
+    try {
+      await NotificadorFCM.notificarNuevoMovimiento(mv.id);
+    } catch (e) {
+      movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
+    }
+    await RondaModel.siguienteInteligente(mv.localidadId);
+
+    return await prisma.movimiento.findUnique({
+      where: { id: mv.id },
+      include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+    });
+  } catch (err: any) {
+    movimientoError.error('Error al crear movimiento', {
+      data,
+      errName: err?.name, errMsg: err?.message, errStack: err?.stack, prismaCode: err?.code, prismaMeta: err?.meta,
+    });
+    throw new Error('Error al crear movimiento');
   }
+}
+
 
   // Mantener compat: forzamos transición aunque no respete máquina de estados (UI legacy)
   static async actualizarEstadoServicio(
