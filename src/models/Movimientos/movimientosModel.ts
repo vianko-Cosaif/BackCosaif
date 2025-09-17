@@ -848,106 +848,123 @@ static async nuevoMovimiento(data: {
 
   /** Edita un movimiento; puede reinsertar/recomponer rondas. */
   static async editarMovimiento(
-    id: number,
-    data: {
-      empresaId?: number;
-      creadoPorId?: number;
-      clienteId?: number;
-      supervisorId?: number;
-      coordinadorId?: number;
-      operadorId?: number;   // compat
-      maquinistaId?: number; // alias externo
-      localidadId?: number;
-      viaOrigenId?: number;
-      viaDestinoId?: number;
-      numeroSeccion?: number;
-      locomotiveNumber?: number;
-      lavado?: boolean;
-      torno?: boolean;
-      prioridad?: 'BAJA' | 'ALTA';
-      tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
-      estado?: string;
-      fechaSolicitud?: Date;
-      fechaInicio?: Date;
-      fechaFin?: Date;
-      fechaPausa?: Date;
-      instrucciones?: string;
-      incidenteGlobal?: boolean;
-      finalizado?: boolean;
-      posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-      posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-      direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
-    }
-  ) {
-    try {
-      const { movUpd, requiereReorg } = await prisma.$transaction(async (tx) => {
-        const actual = await tx.movimiento.findUnique({
-          where: { id },
-          select: { prioridad: true, estado: true, empresaId: true, localidadId: true, ronda: true, creadoPorId: true, clienteId: true },
-        });
-        if (!actual) throw new Error(`No se encontró movimiento con id ${id}`);
-
-        const updateData: any = { ...data };
-
-        if (updateData.maquinistaId && !updateData.operadorId) {
-          updateData.operadorId = updateData.maquinistaId;
-        }
-        delete updateData.maquinistaId;
-
-        updateData.posicionCabina ??= 'Sin_Solicitar';
-        updateData.posicionChimenea ??= 'Sin_Solicitar';
-        updateData.direccionEmpuje ??= 'Sin_Solicitar';
-        Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
-
-        const movUpd = await tx.movimiento.update({
-          where: { id },
-          data: updateData,
-          include: { empresa: true, localidad: true, viaDestino: true },
-        });
-
-        const requiereReorg =
-          (data.prioridad === 'ALTA' && actual.prioridad !== 'ALTA') ||
-          (data.estado === 'SOLICITADO' && actual.estado !== 'SOLICITADO') ||
-          (data.empresaId && data.empresaId !== actual.empresaId) ||
-          (data.localidadId && data.localidadId !== actual.localidadId);
-
-        return { movUpd, requiereReorg };
-      });
-
-      if (requiereReorg) {
-        const cur = await prisma.movimiento.findUnique({
-          where: { id },
-          select: { empresaId: true, localidadId: true, prioridad: true, estado: true, ronda: true },
-        });
-        if (cur) {
-          if (cur.prioridad === 'ALTA' && cur.estado === 'SOLICITADO') {
-            await RondaModel.generarRondaParaMovimiento({
-              movimientoId: id,
-              empresaId: cur.empresaId,
-              localidadId: cur.localidadId,
-              prioridad: 'ALTA',
-            });
-          } else if (!cur.ronda && cur.estado === 'SOLICITADO') {
-            await RondaModel.generarRondaParaMovimiento({
-              movimientoId: id,
-              empresaId: cur.empresaId,
-              localidadId: cur.localidadId,
-              prioridad: (cur.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
-            });
-          }
-        }
-      }
-
-      await RondaModel.siguienteInteligente(movUpd.localidadId);
-      return movUpd;
-    } catch (error: any) {
-      movimientoError.error('Error al editar movimiento', {
-        id, data,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al editar movimiento');
-    }
+  id: number,
+  data: {
+    empresaId?: number;
+    creadoPorId?: number;
+    clienteId?: number;
+    supervisorId?: number;
+    coordinadorId?: number;
+    operadorId?: number;   // compat
+    maquinistaId?: number; // alias externo
+    localidadId?: number;
+    viaOrigenId?: number;
+    viaDestinoId?: number;
+    numeroSeccion?: number;
+    locomotiveNumber?: number;
+    lavado?: boolean;
+    torno?: boolean;
+    prioridad?: 'BAJA' | 'ALTA';
+    tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
+    estado?: string;
+    fechaSolicitud?: Date;
+    fechaInicio?: Date;
+    fechaFin?: Date;
+    fechaPausa?: Date;
+    instrucciones?: string;
+    incidenteGlobal?: boolean;
+    finalizado?: boolean;
+    posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+    posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+    direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
   }
+) {
+  try {
+    const { movUpd, requiereReorg } = await prisma.$transaction(async (tx) => {
+      const actual = await tx.movimiento.findUnique({
+        where: { id },
+        select: {
+          prioridad: true,
+          estado: true,
+          empresaId: true,
+          localidadId: true,
+          ronda: true,
+          creadoPorId: true,
+          clienteId: true,
+        },
+      });
+      if (!actual) throw new Error(`No se encontró movimiento con id ${id}`);
+
+      const updateData: any = { ...data };
+
+      // Normalización de alias
+      if (updateData.maquinistaId && !updateData.operadorId) {
+        updateData.operadorId = updateData.maquinistaId;
+      }
+      delete updateData.maquinistaId;
+
+      // Defaults (mantener consistencia)
+      updateData.posicionCabina ??= 'Sin_Solicitar';
+      updateData.posicionChimenea ??= 'Sin_Solicitar';
+      updateData.direccionEmpuje ??= 'Sin_Solicitar';
+
+      // Remover undefineds
+      Object.keys(updateData).forEach((k) => updateData[k] === undefined && delete updateData[k]);
+
+      const movUpd = await tx.movimiento.update({
+        where: { id },
+        data: updateData,
+        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+      });
+
+      // ¿Reorganizar rondas? (solo aplica para SOLICITADO y NO-servicio)
+      let requiereReorg =
+        (data.prioridad === 'ALTA' && actual.prioridad !== 'ALTA') ||
+        (data.estado === 'SOLICITADO' && actual.estado !== 'SOLICITADO') ||
+        (data.empresaId && data.empresaId !== actual.empresaId) ||
+        (data.localidadId && data.localidadId !== actual.localidadId);
+
+      const esServicioPost = !!movUpd.lavado || !!movUpd.torno;
+      if (esServicioPost) requiereReorg = false; // ⚠️ servicios NO se encolan aquí
+
+      return { movUpd, requiereReorg };
+    });
+
+    if (requiereReorg) {
+      // Solo reencolar si NO es servicio
+      if (movUpd.prioridad === 'ALTA' && movUpd.estado === 'SOLICITADO') {
+        await RondaModel.generarRondaParaMovimiento({
+          movimientoId: movUpd.id,
+          empresaId: movUpd.empresaId,
+          localidadId: movUpd.localidadId,
+          prioridad: 'ALTA',
+        });
+      } else if (!movUpd.ronda && movUpd.estado === 'SOLICITADO') {
+        await RondaModel.generarRondaParaMovimiento({
+          movimientoId: movUpd.id,
+          empresaId: movUpd.empresaId,
+          localidadId: movUpd.localidadId,
+          prioridad: (movUpd.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+        });
+      }
+    }
+
+    await RondaModel.siguienteInteligente(movUpd.localidadId);
+    return movUpd;
+  } catch (error: any) {
+    movimientoError.error('Error al editar movimiento', {
+      id,
+      data,
+      errName: error?.name,
+      errMsg: error?.message,
+      errStack: error?.stack,
+      prismaCode: error?.code,
+      prismaMeta: error?.meta,
+    });
+    throw new Error('Error al editar movimiento');
+  }
+}
+
 
   /* --------------------------------- Otros --------------------------------- */
 
