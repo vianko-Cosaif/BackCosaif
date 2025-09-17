@@ -1596,13 +1596,6 @@ private static async _activarServicioTrasMovimiento(movimientoId: number) {
     }
   }
 
-  try {
-    await RondaModel.onServicioActivado(movimientoId);
-  } catch (e: any) {
-    movimientoError.error('onServicioActivado falló (se continúa)', {
-      movimientoId, errName: e?.name, errMsg: e?.message,
-    });
-  }
 }
 
 }
