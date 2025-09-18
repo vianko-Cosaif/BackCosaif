@@ -200,62 +200,82 @@ export class MovimientoController {
    *   posicionCabina/posicionChimenea/direccionEmpuje='Sin_Solicitar'
    * @returns 201 { message, meta:{destinoSolicitado,seccionSolicitada,liberarOrigen}, movimiento } | 400 | 500
    */
-  static nuevoMovimiento: RequestHandler = async (req, res) => {
-    try {
-      const raw = { ...req.body };
+static nuevoMovimiento: RequestHandler = async (req, res) => {
+  try {
+    const raw: any = { ...req.body };
 
-      // Defaults
-      raw.prioridad ??= 'BAJA';
-      raw.estado ??= 'SOLICITADO';
-      raw.posicionCabina ??= 'Sin_Solicitar';
-      raw.posicionChimenea ??= 'Sin_Solicitar';
-      raw.direccionEmpuje ??= 'Sin_Solicitar';
+    // Defaults
+    raw.prioridad ??= 'BAJA';
+    raw.estado ??= 'SOLICITADO';
+    raw.posicionCabina ??= 'Sin_Solicitar';
+    raw.posicionChimenea ??= 'Sin_Solicitar';
+    raw.direccionEmpuje ??= 'Sin_Solicitar';
 
-      // Validaciones mínimas
-      if (!raw.empresaId || !raw.creadoPorId || !raw.localidadId || !raw.viaOrigenId || !raw.locomotiveNumber) {
-        return res.status(400).json({ message: 'Faltan campos obligatorios.' });
-      }
-      if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
-        return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
-      }
-      if (raw.numeroSeccion != null && Number.isNaN(Number(raw.numeroSeccion))) {
-        return res.status(400).json({ message: 'numeroSeccion debe ser numérico' });
-      }
+    // Coerción numérica segura
+    const empresaId = Number(raw.empresaId);
+    const creadoPorId = Number(raw.creadoPorId);
+    const localidadId = Number(raw.localidadId);
+    const locomotiveNumber = Number(raw.locomotiveNumber);
+    const viaOrigenId = raw.viaOrigenId != null ? Number(raw.viaOrigenId) : undefined;
+    const viaDestinoId = raw.viaDestinoId != null ? Number(raw.viaDestinoId) : undefined;
 
-      // Deducción de intención sin tocar DB de Vías:
-      const liberarOrigenFlag =
-        raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
-
-      const meta = buildMetaTag({
-        viaDestinoId: raw.viaDestinoId,            // se guarda como META (además de en DB si viene)
-        numeroSeccion: raw.numeroSeccion,          // solo META
-        liberarOrigen: liberarOrigenFlag,
-      });
-
-      // Inyectamos META al inicio de instrucciones
-      const data = {
-        ...raw,
-        instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
-      };
-      // ¡OJO! NO borrar viaDestinoId (sí existe en el esquema y queremos persistirlo)
-      delete (data as any).numeroSeccion;
-
-      const movimiento = await MovimientoModel.nuevoMovimiento(data);
-
-      res.status(201).json({
-        message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
-        meta: {
-          destinoSolicitado: raw.viaDestinoId ?? null,
-          seccionSolicitada: raw.numeroSeccion ?? null,
-          liberarOrigen: liberarOrigenFlag,
-        },
-        movimiento,
-      });
-    } catch (error: any) {
-      log.error('Error al crear movimiento', { error, body: req.body });
-      res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
+    // Validaciones mínimas
+    if (!empresaId || !creadoPorId || !localidadId || !locomotiveNumber) {
+      return res.status(400).json({ message: 'Faltan campos obligatorios.' });
     }
-  };
+    const viasCount = (viaOrigenId ? 1 : 0) + (viaDestinoId ? 1 : 0);
+    if (viasCount !== 1) {
+      return res.status(400).json({ message: 'Debe indicar exactamente una vía (origen o destino).' });
+    }
+    if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
+      return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+    }
+    if (raw.numeroSeccion != null && Number.isNaN(Number(raw.numeroSeccion))) {
+      return res.status(400).json({ message: 'numeroSeccion debe ser numérico' });
+    }
+
+    // Normaliza en "raw" los valores ya validados/coercionados
+    raw.empresaId = empresaId;
+    raw.creadoPorId = creadoPorId;
+    raw.localidadId = localidadId;
+    raw.locomotiveNumber = locomotiveNumber;
+    raw.viaOrigenId = viaOrigenId;
+    raw.viaDestinoId = viaDestinoId;
+
+    // META: solo información de intención (el modelo NO ocupa/libera aquí)
+    const liberarOrigenFlag =
+      raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
+
+    const meta = buildMetaTag({
+      viaDestinoId: viaDestinoId,            // si hay destino, se codifica en META
+      numeroSeccion: raw.numeroSeccion,      // solo como META
+      liberarOrigen: liberarOrigenFlag,
+    });
+
+    // Inyecta META al inicio de instrucciones
+    const data = {
+      ...raw,
+      instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
+    };
+    delete (data as any).numeroSeccion; // no se persiste como columna
+
+    const movimiento = await MovimientoModel.nuevoMovimiento(data);
+
+    res.status(201).json({
+      message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
+      meta: {
+        destinoSolicitado: viaDestinoId ?? null,
+        seccionSolicitada: raw.numeroSeccion ?? null,
+        liberarOrigen: liberarOrigenFlag,
+      },
+      movimiento,
+    });
+  } catch (error: any) {
+    log.error('Error al crear movimiento', { error, body: req.body });
+    res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
+  }
+};
+
 
   /**
    * PATCH /movimientos/:id/prioridad
