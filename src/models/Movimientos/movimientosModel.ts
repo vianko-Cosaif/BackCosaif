@@ -738,7 +738,6 @@ include: { empresa: true, localidad: true, ronda: true }
    * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
    * Notifica creación y recalcula “siguiente”.
    */
-// --- reemplaza la firma y cuerpo de nuevoMovimiento ---
 static async nuevoMovimiento(data: {
   empresaId: number;
   creadoPorId: number;

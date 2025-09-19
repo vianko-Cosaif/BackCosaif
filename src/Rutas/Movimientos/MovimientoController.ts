@@ -272,9 +272,9 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
       raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
     const meta = buildMetaTag({
-      viaOrigenId: viaOrigenId ?? null,
-      viaDestinoId: viaDestinoId ?? null,
-      numeroSeccion: numeroSeccion ?? null,
+      viaOrigenId: viaOrigenId,
+      viaDestinoId: viaDestinoId,
+      numeroSeccion: numeroSeccion,
       moverEntreVias: ambasVias,          // hint para lógica diferida
       liberarOrigen: liberarOrigenFlag,
     });
