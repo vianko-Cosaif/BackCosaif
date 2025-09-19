@@ -249,10 +249,10 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
       return res.status(400).json({ message: 'numeroSeccion debe ser numérico.' });
     }
 
-    // Vías: permitir 0 o 1 vía (para servicios que no requieren vía); bloquear 2
-    const viasProvistas = [viaOrigenId, viaDestinoId].filter(v => v !== undefined).length;
-    if (viasProvistas > 1) {
-      return res.status(400).json({ message: 'Indique solo una vía (origen o destino), no ambas.' });
+    // Vías: permitir 0, 1 o 2. Si vienen ambas, no pueden ser iguales.
+    const ambasVias = viaOrigenId !== undefined && viaDestinoId !== undefined;
+    if (ambasVias && viaOrigenId === viaDestinoId) {
+      return res.status(400).json({ message: 'La vía de origen y destino no pueden ser la misma.' });
     }
 
     // ── Normalización ──────────────────────────────────────────────────────────
@@ -272,9 +272,11 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
       raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
     const meta = buildMetaTag({
-      viaDestinoId: viaDestinoId,             // se solicita destino (si vino)
-      numeroSeccion: numeroSeccion,           // se solicita sección (si vino)
-      liberarOrigen: liberarOrigenFlag,       // intención de liberar origen
+      viaOrigenId: viaOrigenId ?? null,
+      viaDestinoId: viaDestinoId ?? null,
+      numeroSeccion: numeroSeccion ?? null,
+      moverEntreVias: ambasVias,          // hint para lógica diferida
+      liberarOrigen: liberarOrigenFlag,
     });
 
     // Inyectar META al inicio de instrucciones
@@ -288,10 +290,12 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     const movimiento = await MovimientoModel.nuevoMovimiento(data);
 
     return res.status(201).json({
-      message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
+      message: 'Movimiento creado. (Ocupación/liberación de vías/secciones se aplicará al concluir).',
       meta: {
+        origenSolicitado: viaOrigenId ?? null,
         destinoSolicitado: viaDestinoId ?? null,
         seccionSolicitada: numeroSeccion ?? null,
+        moverEntreVias: ambasVias,
         liberarOrigen: liberarOrigenFlag,
       },
       movimiento,
