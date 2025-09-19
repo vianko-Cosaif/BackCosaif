@@ -204,75 +204,105 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
   try {
     const raw: any = { ...req.body };
 
-    // Defaults
+    // ── Defaults ───────────────────────────────────────────────────────────────
     raw.prioridad ??= 'BAJA';
     raw.estado ??= 'SOLICITADO';
     raw.posicionCabina ??= 'Sin_Solicitar';
     raw.posicionChimenea ??= 'Sin_Solicitar';
     raw.direccionEmpuje ??= 'Sin_Solicitar';
 
-    // Coerción numérica segura
-    const empresaId = Number(raw.empresaId);
-    const creadoPorId = Number(raw.creadoPorId);
-    const localidadId = Number(raw.localidadId);
-    const locomotiveNumber = Number(raw.locomotiveNumber);
-    const viaOrigenId = raw.viaOrigenId != null ? Number(raw.viaOrigenId) : undefined;
-    const viaDestinoId = raw.viaDestinoId != null ? Number(raw.viaDestinoId) : undefined;
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const toInt = (v: any) => {
+      if (v === '' || v === null || v === undefined) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+    const toBool = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
 
-    // Validaciones mínimas
-    if (!empresaId || !creadoPorId || !localidadId || !locomotiveNumber) {
-      return res.status(400).json({ message: 'Faltan campos obligatorios.' });
+    // ── Coerción segura ────────────────────────────────────────────────────────
+    const empresaId        = toInt(raw.empresaId);
+    const creadoPorId      = toInt(raw.creadoPorId);
+    const localidadId      = toInt(raw.localidadId);
+    const locomotiveNumber = toInt(raw.locomotiveNumber);
+
+    const viaOrigenId  = toInt(raw.viaOrigenId);
+    const viaDestinoId = toInt(raw.viaDestinoId);
+
+    const numeroSeccion = toInt(raw.numeroSeccion);
+    const lavado        = toBool(raw.lavado);
+    const torno         = toBool(raw.torno);
+
+    // ── Validaciones mínimas ───────────────────────────────────────────────────
+    if (!empresaId || !creadoPorId || !localidadId) {
+      return res.status(400).json({ message: 'Faltan campos obligatorios: empresaId/creadoPorId/localidadId.' });
     }
-    const viasCount = (viaOrigenId ? 1 : 0) + (viaDestinoId ? 1 : 0);
-    if (viasCount !== 1) {
-      return res.status(400).json({ message: 'Debe indicar exactamente una vía (origen o destino).' });
+    if (!locomotiveNumber) {
+      return res.status(400).json({ message: 'Falta locomotiveNumber.' });
     }
     if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
-      return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+      return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA).' });
     }
-    if (raw.numeroSeccion != null && Number.isNaN(Number(raw.numeroSeccion))) {
-      return res.status(400).json({ message: 'numeroSeccion debe ser numérico' });
+    if (raw.estado && !['SOLICITADO','EN_PROCESO','CONCLUIDO','DETENIDO'].includes(raw.estado)) {
+      return res.status(400).json({ message: 'estado inválido.' });
+    }
+    if (raw.numeroSeccion != null && numeroSeccion === undefined) {
+      return res.status(400).json({ message: 'numeroSeccion debe ser numérico.' });
     }
 
-    // Normaliza en "raw" los valores ya validados/coercionados
-    raw.empresaId = empresaId;
-    raw.creadoPorId = creadoPorId;
-    raw.localidadId = localidadId;
+    // Vías: permitir 0, 1 o 2. Si vienen ambas, no pueden ser iguales.
+    const ambasVias = viaOrigenId !== undefined && viaDestinoId !== undefined;
+    if (ambasVias && viaOrigenId === viaDestinoId) {
+      return res.status(400).json({ message: 'La vía de origen y destino no pueden ser la misma.' });
+    }
+
+    // ── Normalización ──────────────────────────────────────────────────────────
+    raw.empresaId        = empresaId;
+    raw.creadoPorId      = creadoPorId;
+    raw.localidadId      = localidadId;
     raw.locomotiveNumber = locomotiveNumber;
-    raw.viaOrigenId = viaOrigenId;
+
+    raw.viaOrigenId  = viaOrigenId;
     raw.viaDestinoId = viaDestinoId;
 
-    // META: solo información de intención (el modelo NO ocupa/libera aquí)
+    raw.lavado = lavado;
+    raw.torno  = torno;
+
+    // ── META: intención para acciones diferidas ────────────────────────────────
     const liberarOrigenFlag =
       raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
     const meta = buildMetaTag({
-      viaDestinoId: viaDestinoId,            // si hay destino, se codifica en META
-      numeroSeccion: raw.numeroSeccion,      // solo como META
+      viaOrigenId: viaOrigenId ?? null,
+      viaDestinoId: viaDestinoId ?? null,
+      numeroSeccion: numeroSeccion ?? null,
+      moverEntreVias: ambasVias,          // hint para lógica diferida
       liberarOrigen: liberarOrigenFlag,
     });
 
-    // Inyecta META al inicio de instrucciones
+    // Inyectar META al inicio de instrucciones
     const data = {
       ...raw,
       instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
     };
-    delete (data as any).numeroSeccion; // no se persiste como columna
+    delete (data as any).numeroSeccion; // no se persiste como columna “dura”
 
+    // ── Crear ──────────────────────────────────────────────────────────────────
     const movimiento = await MovimientoModel.nuevoMovimiento(data);
 
-    res.status(201).json({
-      message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
+    return res.status(201).json({
+      message: 'Movimiento creado. (Ocupación/liberación de vías/secciones se aplicará al concluir).',
       meta: {
+        origenSolicitado: viaOrigenId ?? null,
         destinoSolicitado: viaDestinoId ?? null,
-        seccionSolicitada: raw.numeroSeccion ?? null,
+        seccionSolicitada: numeroSeccion ?? null,
+        moverEntreVias: ambasVias,
         liberarOrigen: liberarOrigenFlag,
       },
       movimiento,
     });
   } catch (error: any) {
     log.error('Error al crear movimiento', { error, body: req.body });
-    res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
+    return res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
   }
 };
 
