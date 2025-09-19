@@ -738,13 +738,13 @@ include: { empresa: true, localidad: true, ronda: true }
    * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
    * Notifica creación y recalcula “siguiente”.
    */
- // --- reemplaza la firma y cuerpo de nuevoMovimiento ---
+// --- reemplaza la firma y cuerpo de nuevoMovimiento ---
 static async nuevoMovimiento(data: {
   empresaId: number;
   creadoPorId: number;
   localidadId: number;
-  viaOrigenId?: number;            // ← ahora opcional
-  viaDestinoId?: number;           // ← XOR con viaOrigenId
+  viaOrigenId?: number;            // opcional
+  viaDestinoId?: number;           // opcional (puede venir junto con viaOrigenId)
   numeroSeccion?: number;
   locomotiveNumber: number;
   prioridad?: 'BAJA' | 'ALTA';
@@ -764,17 +764,24 @@ static async nuevoMovimiento(data: {
   direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
 }) {
   try {
-    // 1) Validación XOR de vías
-    assertViasCreate({ viaOrigenId: data.viaOrigenId, viaDestinoId: data.viaDestinoId });
+    // 1) Vías: permitir 0, 1 o 2. Si vienen 2, pueden ser iguales.
+    const origenId  = data.viaOrigenId ?? undefined;
+    const destinoId = data.viaDestinoId ?? undefined;
 
-    // 2) La vía indicada debe pertenecer a la misma localidad
-    const viaId = data.viaOrigenId ?? data.viaDestinoId!;
-    const via = await prisma.via.findUnique({
-      where: { id: viaId },
-      select: { localidadId: true }
-    });
-    if (!via || via.localidadId !== data.localidadId) {
-      throw new Error('La vía indicada no pertenece a la localidad del movimiento');
+    // 2) Cada vía indicada debe pertenecer a la misma localidad del movimiento
+    const idsAValidar = Array.from(new Set([origenId, destinoId].filter(Boolean))) as number[];
+    if (idsAValidar.length) {
+      const vias = await prisma.via.findMany({
+        where: { id: { in: idsAValidar } },
+        select: { id: true, localidadId: true },
+      });
+      if (vias.length !== idsAValidar.length) {
+        throw new Error('Alguna vía indicada no existe.');
+      }
+      const mismatch = vias.find(v => v.localidadId !== data.localidadId);
+      if (mismatch) {
+        throw new Error('La vía indicada no pertenece a la localidad del movimiento.');
+      }
     }
 
     // 3) Normalización
@@ -788,9 +795,11 @@ static async nuevoMovimiento(data: {
     movData.posicionCabina ??= 'Sin_Solicitar';
     movData.posicionChimenea ??= 'Sin_Solicitar';
     movData.direccionEmpuje ??= 'Sin_Solicitar';
+
+    // Limpiar undefined para Prisma
     Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
 
-    // 4) Crear (sin ocupar/liberar vías)
+    // 4) Crear (sin ocupar/liberar vías/section en este paso)
     const mv = await prisma.movimiento.create({ data: movData });
 
     // 5) Encolar si queda SOLICITADO/ESPERA
@@ -803,7 +812,7 @@ static async nuevoMovimiento(data: {
       });
     }
 
-    // 6) Notificación de creación (delegada) + siguiente
+    // 6) Notificación + siguiente
     try {
       await NotificadorFCM.notificarNuevoMovimiento(mv.id);
     } catch (e) {
@@ -813,7 +822,7 @@ static async nuevoMovimiento(data: {
 
     return await prisma.movimiento.findUnique({
       where: { id: mv.id },
-      include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+      include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
     });
   } catch (err: any) {
     movimientoError.error('Error al crear movimiento', {
@@ -823,6 +832,7 @@ static async nuevoMovimiento(data: {
     throw new Error('Error al crear movimiento');
   }
 }
+
 
 
   // Mantener compat: forzamos transición aunque no respete máquina de estados (UI legacy)
