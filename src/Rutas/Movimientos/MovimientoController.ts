@@ -42,14 +42,17 @@ import { movimientoControllerLogger as log } from './movimiento.controller.logge
  * - LIBERAR     → liberar vía origen al concluir
  */
 function buildMetaTag(opts: {
+  viaOrigenId?: number;
   viaDestinoId?: number;
   numeroSeccion?: number;
   liberarOrigen?: boolean;
+   moverEntreVias?: boolean; // hint, no se usa en tag 
 }) {
   const parts: string[] = [];
   if (opts.viaDestinoId) parts.push(`DESTINO:${Number(opts.viaDestinoId)}`);
   if (opts.numeroSeccion != null) parts.push(`SECCION:${Number(opts.numeroSeccion)}`);
   if (opts.liberarOrigen) parts.push('LIBERAR');
+
   return parts.length ? `[META ${parts.join('|')}] ` : '';
 }
 
