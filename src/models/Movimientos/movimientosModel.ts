@@ -734,10 +734,12 @@ include: { empresa: true, localidad: true, ronda: true }
 
   /* --------------------- Crear / Editar (sin tocar vías) --------------------- */
 
-  /**
-   * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
-   * Notifica creación y recalcula “siguiente”.
-   */
+/**
+ * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda
+ * salvo que sea un servicio (lavado/torno) detectado por flags de entrada o vía destino.
+ * No marca lavado/torno; quedará oculto hasta que lo encolen explícitamente.
+ * Notifica creación y recalcula “siguiente”.
+ */
 static async nuevoMovimiento(data: {
   empresaId: number;
   creadoPorId: number;
@@ -756,8 +758,8 @@ static async nuevoMovimiento(data: {
   coordinadorId?: number;
   operadorId?: number;             // compat
   maquinistaId?: number;           // alias externo
-  lavado?: boolean;
-  torno?: boolean;
+  lavado?: boolean;                // ignorado en creación
+  torno?: boolean;                 // ignorado en creación
   posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
   posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
   direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
@@ -783,10 +785,20 @@ static async nuevoMovimiento(data: {
       }
     }
 
-    // 3) Normalización
+    // 3) Detectar intención de servicio por flags de entrada o nombre de vía destino
+    let intencionServicio = !!data.lavado || !!data.torno;
+    if (!intencionServicio && destinoId) {
+      const viaD = await prisma.via.findUnique({ where: { id: destinoId }, select: { nombre: true } });
+      const n = (viaD?.nombre ?? '').toUpperCase();
+      if (/\bLAVAD/.test(n) || /\bTORN/.test(n)) intencionServicio = true;
+    }
+
+    // 4) Normalización (NO marcar lavado/torno en DB en creación)
     const movData: any = { ...data };
     if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
     delete movData.maquinistaId;
+    delete movData.lavado;
+    delete movData.torno;
 
     movData.prioridad ??= 'BAJA';
     movData.estado ??= 'SOLICITADO';
@@ -798,11 +810,11 @@ static async nuevoMovimiento(data: {
     // Limpiar undefined para Prisma
     Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
 
-    // 4) Crear (sin ocupar/liberar vías/section en este paso)
+    // 5) Crear (sin ocupar/liberar vías/section en este paso)
     const mv = await prisma.movimiento.create({ data: movData });
 
-    // 5) Encolar si queda SOLICITADO/ESPERA
-    if (mv.estado === 'SOLICITADO' || mv.estado === 'ESPERA') {
+    // 6) Encolar si queda SOLICITADO/ESPERA y NO es servicio; servicios quedan fuera hasta que se encolen
+    if (!intencionServicio && (mv.estado === 'SOLICITADO' || mv.estado === 'ESPERA')) {
       await RondaModel.generarRondaParaMovimiento({
         movimientoId: mv.id,
         empresaId: mv.empresaId,
@@ -811,7 +823,7 @@ static async nuevoMovimiento(data: {
       });
     }
 
-    // 6) Notificación + siguiente
+    // 7) Notificación + siguiente
     try {
       await NotificadorFCM.notificarNuevoMovimiento(mv.id);
     } catch (e) {
@@ -831,7 +843,6 @@ static async nuevoMovimiento(data: {
     throw new Error('Error al crear movimiento');
   }
 }
-
 
 
   // Mantener compat: forzamos transición aunque no respete máquina de estados (UI legacy)
@@ -1226,7 +1237,6 @@ static async nuevoMovimiento(data: {
 
       const ids = page.map(m => m.id);
 
-      // Tipos auxiliares para que TS no moleste
       type IncRow = { movimientoId: number; _count: { _all: number } };
 
       const [abiertosRows, totalesRows] = await prisma.$transaction([
