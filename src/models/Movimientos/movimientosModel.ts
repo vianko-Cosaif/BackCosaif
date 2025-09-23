@@ -13,7 +13,7 @@
  * - Al concluir un MOVIMIENTO que va a LAVADO/TORNO se ABRE el servicio en LavadoT/TornoT (NO se crea otro movimiento).
  */
 
-import { PrismaClient, Rol, ServicioEstado } from '@prisma/client';
+import { Prisma, PrismaClient, Rol, ServicioEstado } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
@@ -862,116 +862,150 @@ include: { empresa: true, localidad: true, ronda: true }
   }
 
 
-  static async obtenerServiciosNoEncolados(filters: {
-    localidadId: number;
-    empresaId?: number;
-    tipo?: 'LAVADO' | 'TORNO';
-  }) {
-    const { localidadId, empresaId, tipo } = filters;
-    try {
-      const whereBaseLav = {
-        localidadId,
-        status: { in: [ServicioEstado.EN_SERVICIO, ServicioEstado.DETENIDO] },
-        movimiento: {
-          ...(empresaId ? { empresaId } : {}),
-          // sin entrada en ServicioCola
-          servicio: null,
-        },
-      } as const;
 
-      const whereBaseTor = {
-        localidadId,
-        status: { in: [ServicioEstado.EN_SERVICIO, ServicioEstado.DETENIDO] },
-        movimiento: {
-          ...(empresaId ? { empresaId } : {}),
-          servicio: null,
-        },
-      } as const;
+static async obtenerServiciosNoEncolados(filters: {
+  localidadId: number;
+  empresaId?: number;
+  tipo?: 'LAVADO' | 'TORNO';
+}) {
+  const { localidadId, empresaId, tipo } = filters;
+  try {
+    // ✅ filtros tipados (sin readonly) y con relación correcta: servicio { is: null }
+    const whereLav: Prisma.LavadoTWhereInput = {
+      localidadId,
+      status: { in: [ServicioEstado.EN_SERVICIO, ServicioEstado.DETENIDO] },
+      movimiento: {
+        ...(empresaId ? { empresaId } : {}),
+        servicio: { is: null },
+      },
+    };
 
-      const selectMovimiento = {
-        select: {
-          id: true,
-          empresaId: true,
-          localidadId: true,
-          empresa: { select: { nombre: true } },
-          localidad: { select: { nombre: true } },
-          viaOrigen: { select: { id: true, numero: true, nombre: true } },
-          viaDestino: { select: { id: true, numero: true, nombre: true } },
-          prioridad: true,
-          estado: true,
-          fechaSolicitud: true,
-          fechaInicio: true,
-          fechaFin: true,
-        },
-      } as const;
+    const whereTor: Prisma.TornoTWhereInput = {
+      localidadId,
+      status: { in: [ServicioEstado.EN_SERVICIO, ServicioEstado.DETENIDO] },
+      movimiento: {
+        ...(empresaId ? { empresaId } : {}),
+        servicio: { is: null },
+      },
+    };
 
-      const [lavados, tornos] = await prisma.$transaction([
-        tipo === 'TORNO'
-          ? Promise.resolve([] as any[])
-          : prisma.lavadoT.findMany({
-              where: whereBaseLav,
-              include: { movimiento: selectMovimiento },
-              orderBy: { createdAt: 'asc' },
-            }),
-        tipo === 'LAVADO'
-          ? Promise.resolve([] as any[])
-          : prisma.tornoT.findMany({
-              where: whereBaseTor,
-              include: { movimiento: selectMovimiento },
-              orderBy: { createdAt: 'asc' },
-            }),
-      ]);
+    const selectMov = {
+      id: true,
+      empresaId: true,
+      localidadId: true,
+      empresa: { select: { nombre: true } },
+      localidad: { select: { nombre: true } },
+      viaOrigen: { select: { id: true, numero: true, nombre: true } },
+      viaDestino: { select: { id: true, numero: true, nombre: true } },
+      prioridad: true,
+      estado: true,
+      fechaSolicitud: true,
+      fechaInicio: true,
+      fechaFin: true,
+      locomotiveNumber: true,
+    } as const;
 
-      const mapLav = lavados.map((l) => ({
-        tipo: 'LAVADO' as const,
-        servicioId: l.id,
-        movimientoId: l.movimientoId,
-        status: l.status,
-        inicio: l.inicio,
-        fin: l.fin,
-        creadoEn: l.createdAt,
-        empresa: l.movimiento.empresa?.nombre ?? 'N/D',
-        localidad: l.movimiento.localidad?.nombre ?? 'N/D',
-        viaOrigen: l.movimiento.viaOrigen,
-        viaDestino: l.movimiento.viaDestino,
-        prioridad: l.movimiento.prioridad,
-        estadoMovimiento: l.movimiento.estado,
-        fechas: {
-          solicitud: l.movimiento.fechaSolicitud,
-          inicio: l.movimiento.fechaInicio,
-          fin: l.movimiento.fechaFin,
-        },
-      }));
+    // ✅ lecturas en paralelo (sin $transaction de array)
+    const [lavados, tornos] = await Promise.all([
+      tipo === 'TORNO'
+        ? Promise.resolve([])
+        : prisma.lavadoT.findMany({
+            where: whereLav,
+            include: { movimiento: { select: selectMov } },
+            orderBy: { createdAt: 'asc' },
+          }),
+      tipo === 'LAVADO'
+        ? Promise.resolve([])
+        : prisma.tornoT.findMany({
+            where: whereTor,
+            include: { movimiento: { select: selectMov } },
+            orderBy: { createdAt: 'asc' },
+          }),
+    ]);
 
-      const mapTor = tornos.map((t) => ({
-        tipo: 'TORNO' as const,
-        servicioId: t.id,
-        movimientoId: t.movimientoId,
-        status: t.status,
-        inicio: t.inicio,
-        fin: t.fin,
-        creadoEn: t.createdAt,
-        empresa: t.movimiento.empresa?.nombre ?? 'N/D',
-        localidad: t.movimiento.localidad?.nombre ?? 'N/D',
-        viaOrigen: t.movimiento.viaOrigen,
-        viaDestino: t.movimiento.viaDestino,
-        prioridad: t.movimiento.prioridad,
-        estadoMovimiento: t.movimiento.estado,
-        fechas: {
-          solicitud: t.movimiento.fechaSolicitud,
-          inicio: t.movimiento.fechaInicio,
-          fin: t.movimiento.fechaFin,
-        },
-      }));
+    // ✅ mapeos tipados y devolvemos id = movimientoId (lo usa tu RN)
+    const mapLav = (lavados as Array<
+      Prisma.LavadoTGetPayload<{ include: { movimiento: { select: typeof selectMov } } }>
+    >).map((l) => ({
+      id: l.movimientoId,            // ← importante para RN
+      tipo: 'LAVADO' as const,
+      servicioId: l.id,
+      movimientoId: l.movimientoId,
+      status: l.status,
+      inicio: l.inicio,
+      fin: l.fin,
+      creadoEn: l.createdAt,
+      empresa: l.movimiento.empresa?.nombre ?? 'N/D',
+      localidad: l.movimiento.localidad?.nombre ?? 'N/D',
+      viaOrigen: l.movimiento.viaOrigen,
+      viaDestino: l.movimiento.viaDestino,
+      prioridad: l.movimiento.prioridad,
+      estadoMovimiento: l.movimiento.estado,
+      locomotiveNumber: l.movimiento.locomotiveNumber ?? null,
+      lavado: true,
+      torno: false,
+      fechas: {
+        solicitud: l.movimiento.fechaSolicitud,
+        inicio: l.movimiento.fechaInicio,
+        fin: l.movimiento.fechaFin,
+      },
+    }));
 
-      return [...mapLav, ...mapTor];
-    } catch (error: any) {
-      movimientoError.error('Error servicios NO encolados', {
-        filters, errName: error?.name, errMsg: error?.message, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al obtener servicios no encolados');
+    const mapTor = (tornos as Array<
+      Prisma.TornoTGetPayload<{ include: { movimiento: { select: typeof selectMov } } }>
+    >).map((t) => ({
+      id: t.movimientoId,            // ← importante para RN
+      tipo: 'TORNO' as const,
+      servicioId: t.id,
+      movimientoId: t.movimientoId,
+      status: t.status,
+      inicio: t.inicio,
+      fin: t.fin,
+      creadoEn: t.createdAt,
+      empresa: t.movimiento.empresa?.nombre ?? 'N/D',
+      localidad: t.movimiento.localidad?.nombre ?? 'N/D',
+      viaOrigen: t.movimiento.viaOrigen,
+      viaDestino: t.movimiento.viaDestino,
+      prioridad: t.movimiento.prioridad,
+      estadoMovimiento: t.movimiento.estado,
+      locomotiveNumber: t.movimiento.locomotiveNumber ?? null,
+      lavado: false,
+      torno: true,
+      fechas: {
+        solicitud: t.movimiento.fechaSolicitud,
+        inicio: t.movimiento.fechaInicio,
+        fin: t.movimiento.fechaFin,
+      },
+    }));
+
+    const out = [...mapLav, ...mapTor];
+
+    // 📜 LOGS ESPECÍFICOS
+    movimientoError.info('NO-ENCOLADOS', {
+      localidadId,
+      ...(empresaId ? { empresaId } : {}),
+      tipo: tipo ?? 'AMBOS',
+      countLav: mapLav.length,
+      countTor: mapTor.length,
+      total: out.length,
+    });
+
+    if (out.length === 0) {
+      movimientoError.warn('NO-ENCOLADOS vacío', { localidadId, empresaId: empresaId ?? null, tipo: tipo ?? 'AMBOS' });
     }
+
+    return out;
+  } catch (error: any) {
+    movimientoError.error('Error servicios NO encolados', {
+      filters,
+      errName: error?.name,
+      errMsg: error?.message,
+      prismaCode: error?.code,
+      prismaMeta: error?.meta,
+    });
+    throw new Error('Error al obtener servicios no encolados');
   }
+}
 
   // Mantener compat: forzamos transición aunque no respete máquina de estados (UI legacy)
   static async actualizarEstadoServicio(
