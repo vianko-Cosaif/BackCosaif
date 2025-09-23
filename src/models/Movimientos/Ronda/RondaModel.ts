@@ -474,6 +474,37 @@ export class RondaModel {
   public static async onServicioActivado(movimientoId: number) {
     return this.iniciarServicio(movimientoId);
   }
+   static async insertarAlFrenteR1(
+    args: { movimientoId: number; empresaId: number; localidadId: number },
+    tx?: Prisma.TransactionClient
+  ) {
+    const p = tx ?? prisma;
+
+    return await p.$transaction(async (q) => {
+      // 1) por si ya tenía ronda (unicidad movimientoId)
+      await q.ronda.deleteMany({ where: { movimientoId: args.movimientoId } });
+
+      // 2) desplazar todo R1 de esa localidad (orden++)
+      await q.ronda.updateMany({
+        where: { localidadId: args.localidadId, rondaNumero: 1, concluido: false },
+        data: { orden: { increment: 1 } },
+      });
+
+      // 3) crear en orden=1
+      const r = await q.ronda.create({
+        data: {
+          movimientoId: args.movimientoId,
+          empresaId: args.empresaId,
+          localidadId: args.localidadId,
+          rondaNumero: 1,
+          orden: 1,
+          concluido: false,
+        },
+      });
+
+      return r;
+    });
+  }
 
   // ---------- GENERACIÓN / INSERCIÓN ----------
   /**

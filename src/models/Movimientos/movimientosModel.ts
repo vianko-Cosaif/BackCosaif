@@ -821,46 +821,52 @@ include: { empresa: true, localidad: true, ronda: true }
     }
   }
 
-  // ───────────────────── Encolado MANUAL ─────────────────────
-  static async encolarMovimiento(id: number, opciones: { prioridad?: 'ALTA' | 'BAJA' } = {}) {
-    try {
-      const mov = await prisma.movimiento.findUnique({
-        where: { id },
-        include: { ronda: true },
-      });
-      if (!mov) throw new Error(`Movimiento ${id} no encontrado`);
-      if (mov.finalizado || mov.estado === 'CONCLUIDO' || mov.estado === 'CANCELADO') {
-        throw new Error('No se puede encolar un movimiento concluido o cancelado');
+static async encolarMovimiento(
+  id: number,
+  opciones: { prioridad?: 'ALTA' | 'BAJA'; forzarR1Front?: boolean } = {}
+) {
+  try {
+    const mov = await prisma.movimiento.findUnique({
+      where: { id },
+      include: { ronda: true },
+    });
+    if (!mov) throw new Error(`Movimiento ${id} no encontrado`);
+    if (mov.finalizado || mov.estado === 'CONCLUIDO' || mov.estado === 'CANCELADO') {
+      throw new Error('No se puede encolar un movimiento concluido o cancelado');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // limpiar ronda previa si existía
+      if (mov.ronda) {
+        await tx.ronda.delete({ where: { id: mov.ronda.id } });
       }
 
-      // Idempotencia: si ya tenía ronda, reemplazarla
-      await prisma.$transaction(async (tx) => {
-        if (mov.ronda) {
-          await tx.ronda.delete({ where: { id: mov.ronda.id } });
-        }
+      if (opciones.forzarR1Front) {
+        await RondaModel.insertarAlFrenteR1(
+          { movimientoId: mov.id, empresaId: mov.empresaId, localidadId: mov.localidadId },
+          tx
+        );
+      } else {
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: mov.id,
           empresaId: mov.empresaId,
           localidadId: mov.localidadId,
           prioridad: opciones.prioridad ?? (mov.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
         });
-      });
+      }
+    });
 
-      await RondaModel.siguienteInteligente(mov.localidadId);
+    await RondaModel.siguienteInteligente(mov.localidadId);
 
-      return await prisma.movimiento.findUnique({
-        where: { id },
-        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
-      });
-    } catch (error: any) {
-      movimientoError.error('Error al encolar movimiento', {
-        id, opciones,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error(error?.message || 'Error al encolar movimiento');
-    }
+    return await prisma.movimiento.findUnique({
+      where: { id },
+      include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+    });
+  } catch (error:any) {
+    movimientoError.error('Error al encolar movimiento', { id, opciones, errMsg: error?.message });
+    throw new Error(error?.message || 'Error al encolar movimiento');
   }
-
+}
 
 
 static async obtenerServiciosNoEncolados(filters: {
