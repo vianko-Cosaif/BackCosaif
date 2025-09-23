@@ -844,6 +844,37 @@ static async nuevoMovimiento(data: {
   }
 }
 
+// MovimientoModel.ts
+static async obtenerServiciosNoEncolados(filters: {
+  localidadId?: number; empresaId?: number; estricto?: boolean;
+} = {}) {
+  const where: any = {
+    finalizado: false,
+    estado: { in: ['SOLICITADO','DETENIDO','ESPERA'] },
+    ronda: { is: null },                    // ← no encolados
+  };
+
+  // modo “estricto”: solo los marcados como servicio
+  // modo “inferido”: también por nombre de vía destino
+  if (filters.estricto) {
+    where.OR = [{ lavado: true }, { torno: true }];
+  } else {
+    where.OR = [
+      { lavado: true }, { torno: true },
+      { viaDestino: { nombre: { contains: 'LAVAD', mode: 'insensitive' } } },
+      { viaDestino: { nombre: { contains: 'TORN',  mode: 'insensitive' } } },
+    ];
+  }
+
+  if (filters.localidadId) where.localidadId = filters.localidadId;
+  if (filters.empresaId)   where.empresaId   = filters.empresaId;
+
+  return prisma.movimiento.findMany({
+    where,
+    include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true },
+    orderBy: [{ prioridad: 'desc' }, { createdAt: 'asc' }],
+  });
+}
 
   // Mantener compat: forzamos transición aunque no respete máquina de estados (UI legacy)
   static async actualizarEstadoServicio(

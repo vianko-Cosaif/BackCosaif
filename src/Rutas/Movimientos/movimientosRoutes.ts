@@ -75,6 +75,13 @@ router.post('/servicios/:id/encolar', MovimientoController.iniciarServicio);
  */
 router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServicio);
 
+
+
+// movimientos.routes.ts
+router.get('/servicios/no-encolados', MovimientoController.obtenerServiciosNoEncolados);
+
+
+
 // ---------------------------------------------------------------------------
 // 🚂 MOVIMIENTOS (CRUD + consultas)
 // ---------------------------------------------------------------------------

@@ -78,6 +78,7 @@ function parseMetaFromInstrucciones(instr?: string) {
   return meta;
 }
 
+
 export class MovimientoController {
   /**
    * GET /movimientos
@@ -138,6 +139,25 @@ static iniciarServicio: RequestHandler = async (req, res) => {
   }
 };
 
+// MovimientoController.ts
+static obtenerServiciosNoEncolados: RequestHandler = async (req, res) => {
+  const { localidadId, empresaId, estricto } = req.query;
+  if (localidadId && isNaN(Number(localidadId))) return res.status(400).json({ message:'localidadId inválido' });
+  if (empresaId && isNaN(Number(empresaId)))     return res.status(400).json({ message:'empresaId inválido' });
+
+  try {
+    const lista = await MovimientoModel.obtenerServiciosNoEncolados({
+      localidadId: localidadId ? Number(localidadId) : undefined,
+      empresaId:   empresaId   ? Number(empresaId)   : undefined,
+      estricto:    String(estricto).toLowerCase() === 'true',
+    });
+    res.status(200).json(lista);
+  } catch (e:any) {
+    log.error('Error al obtener servicios no encolados', { e, localidadId, empresaId, estricto });
+    res.status(500).json({ message: 'Error al obtener servicios no encolados' });
+  }
+};
+
 
   /**
    * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
@@ -169,6 +189,7 @@ static iniciarServicio: RequestHandler = async (req, res) => {
     }
   };
 
+  
   /**
    * PATCH /movimientos/servicios/:id/estado
    *
