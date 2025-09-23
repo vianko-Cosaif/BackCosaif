@@ -56,7 +56,7 @@ router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendien
  *
  * 200 OK | 400 | 500
  */
-router.post('/servicios/:id/encolar', MovimientoController.iniciarServicio);
+router.post('/servicios/:id/encolar', MovimientoController.encolarServicioAlFrenteR1);
 
 /**
  * PATCH /movimientos/servicios/:id/estado

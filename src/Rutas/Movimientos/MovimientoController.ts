@@ -177,7 +177,23 @@ static encolarMovimiento: RequestHandler = async (req, res) => {
   }
 };
 
+  static encolarServicioAlFrenteR1: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: 'ID inválido' });
 
+    try {
+      const mov = await MovimientoModel.encolarMovimiento(id, { forzarR1Front: true });
+      const next = await RondaModel.siguienteInteligente(mov!.localidadId);
+      res.status(200).json({
+        message: 'Servicio encolado en R1/pos.1 y rondas reacomodadas',
+        movimientoId: id,
+        ronda: mov?.ronda ?? null,
+        siguienteInteligente: next,
+      });
+    } catch (e:any) {
+      res.status(500).json({ message: e?.message || 'Error al encolar servicio al frente' });
+    }
+  };
 
   /**
    * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
