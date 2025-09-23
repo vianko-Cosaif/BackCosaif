@@ -141,22 +141,26 @@ static iniciarServicio: RequestHandler = async (req, res) => {
 
 // MovimientoController.ts
 static obtenerServiciosNoEncolados: RequestHandler = async (req, res) => {
-  const { localidadId, empresaId, estricto } = req.query;
-  if (localidadId && isNaN(Number(localidadId))) return res.status(400).json({ message:'localidadId inválido' });
-  if (empresaId && isNaN(Number(empresaId)))     return res.status(400).json({ message:'empresaId inválido' });
-
+  const localidadId = Number(req.query.localidadId);
+  if (!Number.isInteger(localidadId)) {
+    return res.status(400).json({ message: 'localidadId inválido' });
+  }
   try {
-    const lista = await MovimientoModel.obtenerServiciosNoEncolados({
-      localidadId: localidadId ? Number(localidadId) : undefined,
-      empresaId:   empresaId   ? Number(empresaId)   : undefined,
-      estricto:    String(estricto).toLowerCase() === 'true',
+    // Ajusta este método del modelo según tu esquema:
+    const servicios = await MovimientoModel.obtenerServiciosNoEncolados({ localidadId });
+    log.info('GET /movimientos/servicios/no-encolados OK', {
+      localidadId, count: Array.isArray(servicios) ? servicios.length : 0
     });
-    res.status(200).json(lista);
-  } catch (e:any) {
-    log.error('Error al obtener servicios no encolados', { e, localidadId, empresaId, estricto });
-    res.status(500).json({ message: 'Error al obtener servicios no encolados' });
+    if (!servicios?.length) {
+      log.warn('NO-ENCOLADOS vacío', { localidadId });
+    }
+    return res.status(200).json(servicios ?? []);
+  } catch (error:any) {
+    log.error('Error NO-ENCOLADOS', { error, localidadId });
+    return res.status(500).json({ message: error?.message || 'Error al obtener no-encolados' });
   }
 };
+
 
 
   /**
