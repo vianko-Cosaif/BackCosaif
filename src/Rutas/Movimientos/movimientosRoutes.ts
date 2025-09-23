@@ -75,6 +75,7 @@ router.post('/servicios/:id/encolar', MovimientoController.iniciarServicio);
  */
 router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServicio);
 
+router.post('/:id/encolar', MovimientoController.encolarMovimiento);
 
 
 // movimientos.routes.ts
