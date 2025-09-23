@@ -27,7 +27,7 @@
 import { RequestHandler } from 'express';
 import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
-
+import { RondaModel } from '../../models/Movimientos/Ronda/RondaModel';
 /** ------------------------------------------------------------------------
  * Helpers META
  * Guardamos intención en `instrucciones` con tags para que OTRO servicio
@@ -95,6 +95,49 @@ export class MovimientoController {
       res.status(500).json({ message: 'Error al obtener movimientos' });
     }
   };
+
+
+  /**
+   * GET /movimientos/servicios/pendientes/localidad/:localidadId
+   *
+   * @summary Servicios (lavado/torno) pendientes por localidad. Sin payload.
+   * @returns 200 [Servicio] | 400 | 500
+   */
+  static obtenerServiciosPendientesPorLocalidad: RequestHandler = async (req, res) => {
+    const localidadId = Number(req.params.localidadId);
+    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
+    try {
+      const lista = await MovimientoModel.obtenerServiciosPendientes({ localidadId });
+      res.status(200).json(lista);
+    } catch (error) {
+      log.error('Error al obtener servicios pendientes por localidad', { error, localidadId });
+      res.status(500).json({ message: 'Error al obtener servicios pendientes por localidad' });
+    }
+  };
+
+  /**
+   * POST /movimientos/:id/iniciar-servicio
+   *
+   * @summary Inicia el servicio (reubica en R1 y pone EN_PROCESO si aplica). Sin payload.
+   * @returns 200 { message, movimiento } | 400 | 404 | 500
+   */
+
+static iniciarServicio: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const tipo = (req.query.tipo as 'LAVADO'|'TORNO'|undefined); // opcional: ?tipo=LAVADO|TORNO
+  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+  try {
+    await RondaModel.iniciarServicio(id, tipo); // ← ahora solo encola al frente
+    const todos = await MovimientoModel.obtenerMovimientos();
+    const mov = todos.find((m: any) => m.id === id);
+    if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado tras encolar' });
+    res.status(200).json({ message: 'Servicio encolado al frente de BAJAS (ALTAS intactas)', movimiento: mov });
+  } catch (error: any) {
+    log.error('Error al encolar servicio al frente', { error, id, tipo });
+    res.status(500).json({ message: error?.message || 'Error al encolar servicio' });
+  }
+};
+
 
   /**
    * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
@@ -253,10 +296,8 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
 
     // Vías: permitir 0, 1 o 2. Si vienen ambas, no pueden ser iguales.
-    const ambasVias = viaOrigenId !== undefined && viaDestinoId !== undefined;
-    if (ambasVias && viaOrigenId === viaDestinoId) {
-      return res.status(400).json({ message: 'La vía de origen y destino no pueden ser la misma.' });
-    }
+    const ambasVias = viaOrigenId == undefined && viaDestinoId !== undefined;
+
 
     // ── Normalización ──────────────────────────────────────────────────────────
     raw.empresaId        = empresaId;

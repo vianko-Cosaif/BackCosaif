@@ -987,7 +987,7 @@ static async nuevoMovimiento(data: {
 
 
   /* --------------------------------- Otros --------------------------------- */
-
+  /** Marca lavado/torno y activa servicio asociado (si existe). */
   /** Elimina un movimiento, limpia su ronda y recompone. */
   static async eliminarMovimiento(id: number) {
     try {
