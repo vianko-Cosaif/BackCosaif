@@ -160,6 +160,22 @@ static obtenerServiciosNoEncolados: RequestHandler = async (req, res) => {
     return res.status(500).json({ message: error?.message || 'Error al obtener no-encolados' });
   }
 };
+// MovimientoController.ts (fragmento)
+static encolarMovimiento: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const { prioridad } = req.body as { prioridad?: 'ALTA' | 'BAJA' };
+  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+  if (prioridad && !['ALTA', 'BAJA'].includes(prioridad)) {
+    return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+  }
+  try {
+    const movimiento = await MovimientoModel.encolarMovimiento(id, { prioridad });
+    return res.status(200).json({ message: 'Movimiento encolado', movimiento });
+  } catch (error: any) {
+    log.error('Error al encolar movimiento', { error, id, prioridad });
+    return res.status(500).json({ message: error?.message || 'Error al encolar movimiento' });
+  }
+};
 
 
 
