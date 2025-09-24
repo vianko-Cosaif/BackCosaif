@@ -1,6 +1,6 @@
 // movimiento.controller.ts
 import { RequestHandler } from 'express';
-import { MovimientoModel } from '../../models/Movimientos/movimientosModel'; // <- casing correcto
+import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 
 /** ---- Helpers de META (no tocamos Vías/Secciones desde aquí) ----
@@ -49,6 +49,24 @@ export class MovimientoController {
     }
   };
 
+  // GET /movimientos/:id  (detalle + meta)
+  static obtenerMovimientoPorId: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+
+    try {
+      const todos = await MovimientoModel.obtenerMovimientos();
+      const mov = todos.find((m: { id: number }) => m.id === id);
+      if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado' });
+
+      const meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
+      res.status(200).json({ ...mov, meta });
+    } catch (error) {
+      log.error('Error al obtener movimiento por id', { error, id });
+      res.status(500).json({ message: 'Error al obtener movimiento' });
+    }
+  };
+
   // POST /movimientos  (NO ocupa/libera vías aquí)
   static nuevoMovimiento: RequestHandler = async (req, res) => {
     try {
@@ -77,17 +95,17 @@ export class MovimientoController {
         raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
       const meta = buildMetaTag({
-        viaDestinoId: raw.viaDestinoId,            // lo guardamos como META, no asignamos
-        numeroSeccion: raw.numeroSeccion,          // idem
-        liberarOrigen: liberarOrigenFlag,          // palabra clave "liberar"
+        viaDestinoId: raw.viaDestinoId,            // se guarda como META (además de en DB si viene)
+        numeroSeccion: raw.numeroSeccion,          // solo META
+        liberarOrigen: liberarOrigenFlag,
       });
 
-      // Inyectamos META al inicio de instrucciones y **removemos** campos operativos
+      // Inyectamos META al inicio de instrucciones
       const data = {
         ...raw,
         instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
       };
-      delete (data as any).viaDestinoId;
+      // ¡OJO! NO borrar viaDestinoId (sí existe en el esquema y queremos persistirlo)
       delete (data as any).numeroSeccion;
 
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
@@ -119,7 +137,7 @@ export class MovimientoController {
 
     try {
       const movimientos = await MovimientoModel.obtenerMovimientos();
-      const original = movimientos.find(m => m.id === id);
+      const original = movimientos.find((m: { id: number }) => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       if (original.prioridad === prioridad) {
@@ -129,18 +147,18 @@ export class MovimientoController {
       if (prioridad === 'ALTA') {
         log.info('Cambiando movimiento a ALTA prioridad', {
           id,
-          estadoOriginal: original.estado,
-          localidadId: original.localidadId,
+          estadoOriginal: (original as any).estado,
+          localidadId: (original as any).localidadId,
         });
       }
 
       const movimiento = await MovimientoModel.cambiarPrioridad(id, prioridad);
       const message =
-        prioridad === 'ALTA' && original.estado === 'SOLICITADO'
+        prioridad === 'ALTA' && (original as any).estado === 'SOLICITADO'
           ? 'Prioridad actualizada a ALTA. Se reorganizaron las rondas.'
           : `Prioridad actualizada a ${prioridad}`;
 
-      res.status(200).json({ message, movimiento, prioridadAnterior: original.prioridad, prioridadNueva: prioridad });
+      res.status(200).json({ message, movimiento, prioridadAnterior: (original as any).prioridad, prioridadNueva: prioridad });
     } catch (error) {
       log.error('Error al cambiar prioridad del movimiento', { error, id, prioridad });
       res.status(500).json({ message: 'Error al cambiar prioridad del movimiento' });
@@ -287,14 +305,23 @@ export class MovimientoController {
     }
   };
 
-  // GET /movimientos/ronda/:rondaId/info
+  // GET /movimientos/ronda/:rondaId/info  (+ meta)
   static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     const rondaId = Number(req.params.rondaId);
     if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
 
     try {
       const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
-      res.status(200).json(info);
+
+      // Intentamos enriquecer con META a partir del movimiento original
+      let meta: ReturnType<typeof parseMetaFromInstrucciones> | undefined;
+      try {
+        const todos = await MovimientoModel.obtenerMovimientos();
+        const mov = todos.find((m: any) => m.id === (info as any)?.movimiento?.id);
+        if (mov) meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
+      } catch { /* noop */ }
+
+      res.status(200).json(meta ? { ...info, meta } : info);
     } catch (error) {
       log.error('Error al obtener info de ronda', { error, rondaId });
       res.status(500).json({ message: 'Error al obtener info de ronda' });
@@ -355,17 +382,17 @@ export class MovimientoController {
     try {
       // Obtenemos el movimiento actual para leer origen+meta antes de finalizar
       const todos = await MovimientoModel.obtenerMovimientos();
-      const original = todos.find(m => m.id === id);
+      const original = todos.find((m: any) => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
-      const meta = parseMetaFromInstrucciones(original.instrucciones ?? undefined);
+      const meta = parseMetaFromInstrucciones((original as any).instrucciones ?? undefined);
 
       const movimiento = await MovimientoModel.finalizarMovimiento(id);
 
       // Acciones SUGERIDAS para que otro servicio (no este controller) ejecute
       const accionesSugeridas: any = {};
-      if (meta.liberar && original.viaOrigenId) {
-        accionesSugeridas.liberarOrigen = { viaId: original.viaOrigenId };
+      if (meta.liberar && (original as any).viaOrigenId) {
+        accionesSugeridas.liberarOrigen = { viaId: (original as any).viaOrigenId };
       }
       if (meta.destinoId) {
         accionesSugeridas.ocuparDestino = {

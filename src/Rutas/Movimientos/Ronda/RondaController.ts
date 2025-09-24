@@ -1,12 +1,28 @@
 /**
  * @file RondaController.ts
  * @author Isaac
- * @version 1.3.1 2025-05-16
+ * @version 1.4.0 2025-08-18
  */
 
 import { RequestHandler } from "express";
+import { PrismaClient } from "@prisma/client";
+import admin from "firebase-admin";
 import { RondaModel } from "../../../models/Movimientos/Ronda/RondaModel";
 import { movimientoControllerLogger as logger } from "../movimiento.controller.logger";
+
+const prisma = new PrismaClient();
+
+// ----------------- Helpers notificación mínima (solo cuando está tapado) -----------------
+async function tokensDeUsuarios(ids: number[]) {
+  if (!ids.length) return [];
+  const usuarios = await prisma.usuario.findMany({
+    where: { id: { in: ids }, activo: true },
+    include: { fcmTokens: true }
+  });
+  return usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
+}
+
+// -----------------------------------------------------------------------------------------
 
 export class RondaController {
   // POST /rondas/movimiento/:movimientoId
@@ -168,7 +184,10 @@ export class RondaController {
     }
   };
 
-  // GET /rondas/localidad/:localidadId/siguiente (FIFO puro)
+  // GET /rondas/localidad/:localidadId/siguiente
+  // UNO A LA VEZ para maquinista: siempre devuelve el primero (aunque esté bloqueado).
+  // Si está bloqueado, se envía una notificación: "La máquina <NÚMERO> obstruye la vía <VÍA>.
+  // Si no es cierto, hacer caso omiso."
   static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (isNaN(localidadId)) {
@@ -176,11 +195,65 @@ export class RondaController {
       return;
     }
     try {
-      const siguiente = await RondaModel.obtenerSiguienteEnRonda(localidadId);
-      res.status(200).json(siguiente ?? {});
+      const result: any = await RondaModel.siguienteInteligente(localidadId);
+
+      if (result?.vacio) {
+        res.status(200).json({ vacio: true });
+        return;
+      }
+
+      // Notificación mínima si está bloqueado
+      if (result?.detalleBloqueo?.bloqueado && result?.candidato?.movimiento?.id) {
+        const movId: number = result.candidato.movimiento.id;
+
+        const mov = await prisma.movimiento.findUnique({
+          where: { id: movId },
+          include: {
+            viaDestino: { select: { nombre: true } }
+          }
+        });
+
+        const via = result.detalleBloqueo.viaDestino ?? mov?.viaDestino?.nombre ?? "N/D";
+        const locoBloq = result.detalleBloqueo?.bloqueador?.locomotiveNumber ?? "N/D";
+
+        // Destinatarios (cliente/supervisor/coordinador) si existen
+        const ids: number[] = [];
+        const raw = await prisma.movimiento.findUnique({
+          where: { id: movId },
+          select: { clienteId: true, supervisorId: true, coordinadorId: true }
+        });
+        if (raw?.clienteId) ids.push(raw.clienteId);
+        if (raw?.supervisorId) ids.push(raw.supervisorId);
+        if (raw?.coordinadorId) ids.push(raw.coordinadorId);
+
+        const tokens = await tokensDeUsuarios(ids);
+        if (tokens.length) {
+          try {
+            await admin.messaging().sendEachForMulticast({
+              notification: {
+                title: "Posible obstrucción de vía",
+                body: `La máquina ${locoBloq} obstruye la vía ${via}. Si no es cierto, hacer caso omiso.`
+              },
+              data: {
+                tipo: "tapado",
+                movimientoId: String(movId),
+                localidadId: String(localidadId),
+                viaDestino: String(via || ""),
+                bloqueadorLoco: String(locoBloq || "")
+              },
+              tokens
+            });
+          } catch (e) {
+            logger.warn("Fallo al notificar obstrucción (no bloqueante)", { e, movId, localidadId });
+          }
+        }
+      }
+
+      // Respuesta directa para el maquinista (puede iniciar siempre)
+      res.status(200).json(result);
     } catch (error) {
-      logger.error("Error al obtener el siguiente en la ronda", { error, localidadId });
-      res.status(500).json({ message: "Error al obtener el siguiente en la ronda" });
+      logger.error("Error al obtener el siguiente (maquinista)", { error, localidadId });
+      res.status(500).json({ message: "Error al obtener el siguiente" });
     }
   };
 

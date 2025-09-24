@@ -1,7 +1,7 @@
 /**
  * @file RondaRoutes.ts
  * @author Isaac Serrano
- * @version 1.2.0 2025-05-16
+ * @version 1.2.1 2025-05-16
  *
  * @description
  * Rutas HTTP para **Ronda**, alineadas con el RondaController actual.
@@ -12,8 +12,8 @@
  *  - DELETE  /rondas/:id                                       → Eliminar una ronda
  *  - GET     /rondas/localidad/:localidadId                    → Rondas por localidad
  *  - GET     /rondas/localidad/:localidadId/estado/:concluido  → Rondas por localidad y estado
- *  - GET     /rondas/localidad/:localidadId/siguiente          → Siguiente (FIFO)
- *  - GET     /rondas/localidad/:localidadId/siguiente-inteligente → Siguiente inteligente
+ *  - GET     /rondas/localidad/:localidadId/siguiente          → Siguiente (uno a la vez – maquinista)
+ *  - GET     /rondas/localidad/:localidadId/siguiente-inteligente → Alias del anterior
  *  - PATCH   /rondas/intercambiar-movimientos                  → Intercambiar movimientos entre dos rondas
  *  - PATCH   /rondas/:id/intercambiar-movimiento               → Reemplazar el movimiento de una ronda
  *  - GET     /rondas/:id/info                                  → Info detallada de una ronda
@@ -44,10 +44,10 @@ router.get("/localidad/:localidadId", RondaController.obtenerRondasPorLocalidad)
 // Rondas por localidad y estado
 router.get("/localidad/:localidadId/estado/:concluido", RondaController.obtenerRondasPorLocalidadConEstado);
 
-// Siguiente en ronda (FIFO)
-router.get("/localidad/:localidadId/siguiente", RondaController.obtenerSiguienteEnRonda);
+// Siguiente en ronda (uno a la vez – maquinista)
+router.get("/localidad/:localidadId/siguiente", RondaController.obtenerSiguienteInteligente);
 
-// Siguiente inteligente (salta bloqueados y notifica si aplica)
+// Alias: siguiente inteligente
 router.get("/localidad/:localidadId/siguiente-inteligente", RondaController.obtenerSiguienteInteligente);
 
 // Intercambiar movimientos entre dos rondas
