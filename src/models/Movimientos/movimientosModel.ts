@@ -52,7 +52,7 @@ async function inferirServicioDesdeDestino(movId: number) {
 
 type MovimientoResumen = {
   id: number;
-  locomotora: number;
+  locomotora: string;
   estado: string;
   estatus: string;
   prioridad: string;
