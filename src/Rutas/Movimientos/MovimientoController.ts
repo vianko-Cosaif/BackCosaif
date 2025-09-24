@@ -1,65 +1,24 @@
-/**
- * @file MovimientoController.ts
- * @author Isaac
- * @version 1.4.1 2025-08-18
- *
- * @overview
- * Controlador HTTP para **Movimientos**. Es consumido por `movimientos.routes.ts`.
- *
- * Principios y límites de responsabilidad:
- * - Este controller **no ocupa/libera** vías ni secciones. Solo guarda la **intención operativa**
- *   en `instrucciones` mediante una etiqueta `[META ...]`. La ejecución física ocurre en OTRO servicio.
- * - Aplica validaciones mínimas, devuelve códigos HTTP consistentes y registra errores.
- * - La prioridad **ALTA** puede disparar recomposición de rondas por parte del modelo.
- *
- * Seguridad:
- * - Las rutas deben ir protegidas con JWT en el router (`router.use(passport.authenticate(...))`).
- *
- * Convenciones de error:
- * - 400 Parámetros inválidos, 404 Recurso no encontrado (cuando aplique), 500 Error inesperado.
- *
- * Ejemplos útiles (cURL):
- * - Crear:    `curl -X POST /movimientos -H "Content-Type: application/json" -d '{...}'`
- * - Prioridad:`curl -X PATCH /movimientos/123/prioridad -H "Content-Type: application/json" -d '{"prioridad":"ALTA"}'`
- * - Finalizar:`curl -X PATCH /movimientos/123/finalizar`
- */
-
+// movimiento.controller.ts
 import { RequestHandler } from 'express';
 import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
-import { RondaModel } from '../../models/Movimientos/Ronda/RondaModel';
-/** ------------------------------------------------------------------------
- * Helpers META
- * Guardamos intención en `instrucciones` con tags para que OTRO servicio
- * (o el maquinista) actúe **al CONCLUIR**.
- * Formato: [META DESTINO:123|SECCION:2|LIBERAR]
- * ------------------------------------------------------------------------ */
 
-/**
- * Construye la etiqueta META a inyectar en `instrucciones`.
- * - DESTINO:n   → viaDestinoId
- * - SECCION:n   → número de sección deseada (solo intención, no se persiste como columna)
- * - LIBERAR     → liberar vía origen al concluir
+/** ---- Helpers de META (no tocamos Vías/Secciones desde aquí) ----
+ * Guardamos intención en `instrucciones` con tags para que OTRO servicio
+ * (o el maquinista) actúe al CONCLUIR: [META DESTINO:123|SECCION:2|LIBERAR]
  */
 function buildMetaTag(opts: {
-  viaOrigenId?: number;
   viaDestinoId?: number;
   numeroSeccion?: number;
   liberarOrigen?: boolean;
-   moverEntreVias?: boolean; // hint, no se usa en tag 
 }) {
   const parts: string[] = [];
   if (opts.viaDestinoId) parts.push(`DESTINO:${Number(opts.viaDestinoId)}`);
   if (opts.numeroSeccion != null) parts.push(`SECCION:${Number(opts.numeroSeccion)}`);
   if (opts.liberarOrigen) parts.push('LIBERAR');
-
   return parts.length ? `[META ${parts.join('|')}] ` : '';
 }
 
-/**
- * Extrae la intención operativa desde `instrucciones` si existe.
- * Retorna { destinoId?, seccion?, liberar:boolean }.
- */
 function parseMetaFromInstrucciones(instr?: string) {
   const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
   if (!instr) return meta;
@@ -79,13 +38,7 @@ function parseMetaFromInstrucciones(instr?: string) {
 }
 
 export class MovimientoController {
-  /**
-   * GET /movimientos
-   *
-   * @summary Lista todos los movimientos.
-   * @auth Requiere JWT.
-   * @returns 200 [Movimiento] | 500
-   */
+  // GET /movimientos
   static obtenerMovimientos: RequestHandler = async (_req, res) => {
     try {
       const movimientos = await MovimientoModel.obtenerMovimientos();
@@ -96,59 +49,7 @@ export class MovimientoController {
     }
   };
 
-
-  /**
-   * GET /movimientos/servicios/pendientes/localidad/:localidadId
-   *
-   * @summary Servicios (lavado/torno) pendientes por localidad. Sin payload.
-   * @returns 200 [Servicio] | 400 | 500
-   */
-  static obtenerServiciosPendientesPorLocalidad: RequestHandler = async (req, res) => {
-    const localidadId = Number(req.params.localidadId);
-    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
-    try {
-      const lista = await MovimientoModel.obtenerServiciosPendientes({ localidadId });
-      res.status(200).json(lista);
-    } catch (error) {
-      log.error('Error al obtener servicios pendientes por localidad', { error, localidadId });
-      res.status(500).json({ message: 'Error al obtener servicios pendientes por localidad' });
-    }
-  };
-
-  /**
-   * POST /movimientos/:id/iniciar-servicio
-   *
-   * @summary Inicia el servicio (reubica en R1 y pone EN_PROCESO si aplica). Sin payload.
-   * @returns 200 { message, movimiento } | 400 | 404 | 500
-   */
-
-static iniciarServicio: RequestHandler = async (req, res) => {
-  const id = Number(req.params.id);
-  const tipo = (req.query.tipo as 'LAVADO'|'TORNO'|undefined); // opcional: ?tipo=LAVADO|TORNO
-  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
-  try {
-    await RondaModel.iniciarServicio(id, tipo); // ← ahora solo encola al frente
-    const todos = await MovimientoModel.obtenerMovimientos();
-    const mov = todos.find((m: any) => m.id === id);
-    if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado tras encolar' });
-    res.status(200).json({ message: 'Servicio encolado al frente de BAJAS (ALTAS intactas)', movimiento: mov });
-  } catch (error: any) {
-    log.error('Error al encolar servicio al frente', { error, id, tipo });
-    res.status(500).json({ message: error?.message || 'Error al encolar servicio' });
-  }
-};
-
-
-  /**
-   * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
-   *
-   * @summary Devuelve **servicios** (lavado/torno) pendientes de acción.
-   * @description Filtra opcionalmente por localidad/empresa.
-   * @auth Requiere JWT.
-   * @query {number} [localidadId]
-   * @query {number} [empresaId]
-   * @returns 200 [Servicio] | 400 | 500
-   */
+  // NUEVO: GET /movimientos/servicios/pendientes?localidadId=&empresaId=
   static obtenerServiciosPendientes: RequestHandler = async (req, res) => {
     const { localidadId, empresaId } = req.query;
     if (
@@ -169,16 +70,7 @@ static iniciarServicio: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * PATCH /movimientos/servicios/:id/estado
-   *
-   * @summary Cambia estado de **servicio**: SOLICITADO | EN_PROCESO | DETENIDO | CANCELADO.
-   * @description Los servicios solo serán ofrecidos al maquinista cuando estén **EN_PROCESO**.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @body {{estado:'SOLICITADO'|'EN_PROCESO'|'DETENIDO'|'CANCELADO', operadorId?:number, razon?:string}}
-   * @returns 200 {message, movimiento} | 400 | 500
-   */
+  // NUEVO: PATCH /movimientos/servicios/:id/estado
   static actualizarEstadoServicio: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     const { estado, operadorId, razon } = req.body as {
@@ -205,14 +97,7 @@ static iniciarServicio: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/:id
-   *
-   * @summary Obtiene detalle de un movimiento + `meta` derivado de `instrucciones`.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @returns 200 {...mov, meta} | 400 | 404 | 500
-   */
+  // GET /movimientos/:id  (detalle + meta)
   static obtenerMovimientoPorId: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -230,139 +115,65 @@ static iniciarServicio: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * POST /movimientos
-   *
-   * @summary Crea un movimiento **sin** ejecutar ocupación/liberación de vías/secciones.
-   * @description Inyecta `[META ...]` al inicio de `instrucciones` para que otro servicio actúe al **finalizar**.
-   * @auth Requiere JWT.
-   * @body {
-   *   empresaId:number, creadoPorId:number, localidadId:number,
-   *   viaOrigenId:number, locomotiveNumber:string|number,
-   *   viaDestinoId?:number, numeroSeccion?:number, prioridad?:'ALTA'|'BAJA',
-   *   ...otros campos del modelo
-   * }
-   * @defaults prioridad='BAJA', estado='SOLICITADO',
-   *   posicionCabina/posicionChimenea/direccionEmpuje='Sin_Solicitar'
-   * @returns 201 { message, meta:{destinoSolicitado,seccionSolicitada,liberarOrigen}, movimiento } | 400 | 500
-   */
-static nuevoMovimiento: RequestHandler = async (req, res) => {
-  try {
-    const raw: any = { ...req.body };
+  // POST /movimientos  (NO ocupa/libera vías aquí)
+  static nuevoMovimiento: RequestHandler = async (req, res) => {
+    try {
+      const raw = { ...req.body };
 
-    // ── Defaults ───────────────────────────────────────────────────────────────
-    raw.prioridad ??= 'BAJA';
-    raw.estado ??= 'SOLICITADO';
-    raw.posicionCabina ??= 'Sin_Solicitar';
-    raw.posicionChimenea ??= 'Sin_Solicitar';
-    raw.direccionEmpuje ??= 'Sin_Solicitar';
+      // Defaults
+      raw.prioridad ??= 'BAJA';
+      raw.estado ??= 'SOLICITADO';
+      raw.posicionCabina ??= 'Sin_Solicitar';
+      raw.posicionChimenea ??= 'Sin_Solicitar';
+      raw.direccionEmpuje ??= 'Sin_Solicitar';
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
-    const toInt = (v: any) => {
-      if (v === '' || v === null || v === undefined) return undefined;
-      const n = Number(v);
-      return Number.isFinite(n) ? n : undefined;
-    };
-    const toBool = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+      // Validaciones mínimas
+      if (!raw.empresaId || !raw.creadoPorId || !raw.localidadId || !raw.viaOrigenId || !raw.locomotiveNumber) {
+        return res.status(400).json({ message: 'Faltan campos obligatorios.' });
+      }
+      if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
+        return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+      }
+      if (raw.numeroSeccion != null && Number.isNaN(Number(raw.numeroSeccion))) {
+        return res.status(400).json({ message: 'numeroSeccion debe ser numérico' });
+      }
 
-    // ── Coerción segura ────────────────────────────────────────────────────────
-    const empresaId        = toInt(raw.empresaId);
-    const creadoPorId      = toInt(raw.creadoPorId);
-    const localidadId      = toInt(raw.localidadId);
-    const locomotiveNumber = toInt(raw.locomotiveNumber);
+      // Deducción de intención sin tocar DB de Vías:
+      const liberarOrigenFlag =
+        raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
-    const viaOrigenId  = toInt(raw.viaOrigenId);
-    const viaDestinoId = toInt(raw.viaDestinoId);
-
-    const numeroSeccion = toInt(raw.numeroSeccion);
-    const lavado        = toBool(raw.lavado);
-    const torno         = toBool(raw.torno);
-
-    // ── Validaciones mínimas ───────────────────────────────────────────────────
-    if (!empresaId || !creadoPorId || !localidadId) {
-      return res.status(400).json({ message: 'Faltan campos obligatorios: empresaId/creadoPorId/localidadId.' });
-    }
-    if (!locomotiveNumber) {
-      return res.status(400).json({ message: 'Falta locomotiveNumber.' });
-    }
-    if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
-      return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA).' });
-    }
-    if (raw.estado && !['SOLICITADO','EN_PROCESO','CONCLUIDO','DETENIDO'].includes(raw.estado)) {
-      return res.status(400).json({ message: 'estado inválido.' });
-    }
-    if (raw.numeroSeccion != null && numeroSeccion === undefined) {
-      return res.status(400).json({ message: 'numeroSeccion debe ser numérico.' });
-    }
-
-    // Vías: permitir 0, 1 o 2. Si vienen ambas, no pueden ser iguales.
-    const ambasVias = viaOrigenId !== undefined && viaDestinoId !== undefined;
-    if (ambasVias && viaOrigenId === viaDestinoId) {
-      return res.status(400).json({ message: 'La vía de origen y destino no pueden ser la misma.' });
-    }
-
-    // ── Normalización ──────────────────────────────────────────────────────────
-    raw.empresaId        = empresaId;
-    raw.creadoPorId      = creadoPorId;
-    raw.localidadId      = localidadId;
-    raw.locomotiveNumber = locomotiveNumber;
-
-    raw.viaOrigenId  = viaOrigenId;
-    raw.viaDestinoId = viaDestinoId;
-
-    raw.lavado = lavado;
-    raw.torno  = torno;
-
-    // ── META: intención para acciones diferidas ────────────────────────────────
-    const liberarOrigenFlag =
-      raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
-
-    const meta = buildMetaTag({
-      viaOrigenId: viaOrigenId,
-      viaDestinoId: viaDestinoId,
-      numeroSeccion: numeroSeccion,
-      moverEntreVias: ambasVias,          // hint para lógica diferida
-      liberarOrigen: liberarOrigenFlag,
-    });
-
-    // Inyectar META al inicio de instrucciones
-    const data = {
-      ...raw,
-      instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
-    };
-    delete (data as any).numeroSeccion; // no se persiste como columna “dura”
-
-    // ── Crear ──────────────────────────────────────────────────────────────────
-    const movimiento = await MovimientoModel.nuevoMovimiento(data);
-
-    return res.status(201).json({
-      message: 'Movimiento creado. (Ocupación/liberación de vías/secciones se aplicará al concluir).',
-      meta: {
-        origenSolicitado: viaOrigenId ?? null,
-        destinoSolicitado: viaDestinoId ?? null,
-        seccionSolicitada: numeroSeccion ?? null,
-        moverEntreVias: ambasVias,
+      const meta = buildMetaTag({
+        viaDestinoId: raw.viaDestinoId,            // se guarda como META (además de en DB si viene)
+        numeroSeccion: raw.numeroSeccion,          // solo META
         liberarOrigen: liberarOrigenFlag,
-      },
-      movimiento,
-    });
-  } catch (error: any) {
-    log.error('Error al crear movimiento', { error, body: req.body });
-    return res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
-  }
-};
+      });
 
+      // Inyectamos META al inicio de instrucciones
+      const data = {
+        ...raw,
+        instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
+      };
+      // ¡OJO! NO borrar viaDestinoId (sí existe en el esquema y queremos persistirlo)
+      delete (data as any).numeroSeccion;
 
-  /**
-   * PATCH /movimientos/:id/prioridad
-   *
-   * @summary Cambia la prioridad del movimiento.
-   * @description Si pasa a **ALTA** y el estado era `SOLICITADO`, el modelo puede reordenar rondas.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @body {{prioridad:'ALTA'|'BAJA'}}
-   * @returns 200 { message, movimiento, prioridadAnterior, prioridadNueva } | 400 | 404 | 500
-   */
+      const movimiento = await MovimientoModel.nuevoMovimiento(data);
+
+      res.status(201).json({
+        message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
+        meta: {
+          destinoSolicitado: raw.viaDestinoId ?? null,
+          seccionSolicitada: raw.numeroSeccion ?? null,
+          liberarOrigen: liberarOrigenFlag,
+        },
+        movimiento,
+      });
+    } catch (error: any) {
+      log.error('Error al crear movimiento', { error, body: req.body });
+      res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
+    }
+  };
+
+  // PATCH /movimientos/:id/prioridad
   static cambiarPrioridad: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     const { prioridad } = req.body as { prioridad: 'ALTA' | 'BAJA' };
@@ -402,14 +213,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * DELETE /movimientos/:id
-   *
-   * @summary Elimina un movimiento por ID.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @returns 204 | 400 | 500
-   */
+  // DELETE /movimientos/:id
   static eliminarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -423,13 +227,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/pendientes
-   *
-   * @summary Lista movimientos no concluidos.
-   * @auth Requiere JWT.
-   * @returns 200 [Movimiento] | 500
-   */
+  // GET /movimientos/pendientes
   static obtenerMovimientosPendientes: RequestHandler = async (_req, res) => {
     try {
       const pendientes = await MovimientoModel.obtenerMovimientosPendientes();
@@ -440,14 +238,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId/pendientes
-   *
-   * @summary Lista movimientos pendientes por empresa.
-   * @auth Requiere JWT.
-   * @param {number} req.params.empresaId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/empresa/:empresaId/pendientes
   static obtenerMovimientosPendientesPorEmpresa: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
@@ -461,13 +252,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/all
-   *
-   * @summary Lista todos los movimientos (sin filtros).
-   * @auth Requiere JWT.
-   * @returns 200 [Movimiento] | 500
-   */
+  // GET /movimientos/all
   static obtenerTodosLosMovimientos: RequestHandler = async (_req, res) => {
     try {
       const movimientos = await MovimientoModel.obtenerTodosLosMovimientos();
@@ -478,14 +263,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId
-   *
-   * @summary Lista movimientos por empresa.
-   * @auth Requiere JWT.
-   * @param {number} req.params.empresaId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/empresa/:empresaId
   static obtenerMovimientosPorEmpresa: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
@@ -499,14 +277,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/localidad/:localidadId/pendientes
-   *
-   * @summary Lista movimientos pendientes por localidad.
-   * @auth Requiere JWT.
-   * @param {number} req.params.localidadId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/localidad/:localidadId/pendientes
   static obtenerMovimientosPendientesPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
@@ -520,14 +291,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/localidad/:localidadId/all
-   *
-   * @summary Lista **todos** los movimientos por localidad.
-   * @auth Requiere JWT.
-   * @param {number} req.params.localidadId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/localidad/:localidadId/all
   static obtenerTodosMovimientosPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
@@ -541,15 +305,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/localidad/:localidadId/empresa/:empresaId
-   *
-   * @summary Lista movimientos por localidad y empresa.
-   * @auth Requiere JWT.
-   * @param {number} req.params.localidadId
-   * @param {number} req.params.empresaId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/localidad/:localidadId/empresa/:empresaId
   static obtenerMovimientosPorLocalidadEmpresa: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     const empresaId = Number(req.params.empresaId);
@@ -565,15 +321,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId/localidad/:localidadId
-   *
-   * @summary Lista movimientos por empresa y localidad (orden invertido en la ruta).
-   * @auth Requiere JWT.
-   * @param {number} req.params.empresaId
-   * @param {number} req.params.localidadId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/empresa/:empresaId/localidad/:localidadId
   static obtenerMovimientosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     const localidadId = Number(req.params.localidadId);
@@ -589,15 +337,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/empresa/:empresaId/localidad/:localidadId/pendientes
-   *
-   * @summary Lista movimientos **no concluidos** por empresa y localidad.
-   * @auth Requiere JWT.
-   * @param {number} req.params.empresaId
-   * @param {number} req.params.localidadId
-   * @returns 200 [Movimiento] | 400 | 500
-   */
+  // GET /movimientos/empresa/:empresaId/localidad/:localidadId/pendientes
   static obtenerMovimientosNoConcluidosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     const localidadId = Number(req.params.localidadId);
@@ -613,14 +353,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * GET /movimientos/ronda/:rondaId/info
-   *
-   * @summary Devuelve detalle vinculado a una **ronda** y (si es posible) `meta` del movimiento original.
-   * @auth Requiere JWT.
-   * @param {number} req.params.rondaId
-   * @returns 200 info | { ...info, meta } | 400 | 500
-   */
+  // GET /movimientos/ronda/:rondaId/info  (+ meta)
   static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     const rondaId = Number(req.params.rondaId);
     if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
@@ -643,15 +376,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/iniciar
-   *
-   * @summary Marca un movimiento como iniciado por `operadorId`.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @body {{operadorId:number}}
-   * @returns 200 { message, movimiento } | 400 | 500
-   */
+  // PATCH /movimientos/:id/iniciar
   static iniciarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     const { operadorId } = req.body;
@@ -669,14 +394,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/pausar
-   *
-   * @summary Pausa el movimiento.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @returns 200 { message, movimiento } | 400 | 500
-   */
+  // PATCH /movimientos/:id/pausar
   static pausarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -690,14 +408,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/reanudar
-   *
-   * @summary Reanuda un movimiento pausado.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @returns 200 { message, movimiento } | 400 | 500
-   */
+  // PATCH /movimientos/:id/reanudar
   static reanudarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
@@ -711,20 +422,7 @@ static nuevoMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  /**
-   * PATCH /movimientos/:id/finalizar
-   *
-   * @summary Finaliza el movimiento y devuelve **acciones sugeridas** según META.
-   * @description No ocupa/libera vías aquí; solo sugiere `{ liberarOrigen?, ocuparDestino? }`
-   * para que otro servicio las ejecute.
-   * @auth Requiere JWT.
-   * @param {number} req.params.id
-   * @returns 200 {
-   *   message,
-   *   accionesSugeridas: { liberarOrigen?:{viaId}, ocuparDestino?:{viaId, numeroSeccion} },
-   *   movimiento
-   * } | 400 | 404 | 500
-   */
+  // PATCH /movimientos/:id/finalizar  (NO libera/ocupa aquí; solo sugiere acciones)
   static finalizarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
