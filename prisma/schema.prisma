@@ -133,8 +133,8 @@ model Movimiento {
   localidadId      Int
   viaOrigenId      Int?
   viaDestinoId     Int?
-  locomotiveNumber Int
-  lavado           Boolean?          @default(false)
+locomotiveNumber  String   
+lavado           Boolean?          @default(false)
   torno            Boolean?          @default(false)
   prioridad        Prioridad         @default(BAJA)
   tipoMovimiento   TipoMovimiento?
@@ -266,7 +266,6 @@ model Actualizacion {
 
 /* ================== NUEVOS Y AJUSTES ================== */
 
-// TornoT: +localidadId
 model TornoT {
   id           Int            @id @default(autoincrement())
   movimientoId Int
@@ -281,14 +280,14 @@ model TornoT {
   localidad    Localidad      @relation(fields: [localidadId], references: [id], onDelete: Restrict)
   incidentes   IncidenteTorno[]
   seguimientos SeguimientoTorno[]
-
+  medidasI     MedidasTornoI[] @relation("TornoT_MedidasI")
+  medidasF     MedidasTornoF[] @relation("TornoT_MedidasF")
   @@index([movimientoId])
   @@index([movimientoId, createdAt])
   @@index([movimientoId, status])
   @@index([localidadId, status, createdAt])
 }
 
-// LavadoT: +localidadId
 model LavadoT {
   id           Int            @id @default(autoincrement())
   movimientoId Int
