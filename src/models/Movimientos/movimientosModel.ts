@@ -3,127 +3,261 @@
 /**
  * @file MovimientoModel.ts
  * @author Isaac
- * @version 1.4.1 2025-08-18
+ * @version 1.5.0 2025-08-18
  *
- * @overview
- * Capa **modelo/dominio** para gestionar `Movimiento` y su interacción con la
- * cola operativa de `Ronda` (a través de RondaModel). Aquí viven las reglas
- * de negocio de **estado**, **creación/edición**, **notificaciones FCM** y
- * **recomposición** de rondas. No se realizan ocupaciones/liberaciones físicas
- * de vías/secciones (eso lo hace otra capa/servicio).
- *
- * @keypoints
- * - **Estados y transiciones** (máquina de estados):
- *   SOLICITADO → EN_PROCESO | DETENIDO | CANCELADO
- *   EN_PROCESO → DETENIDO | CONCLUIDO | CANCELADO
- *   DETENIDO   → EN_PROCESO | CONCLUIDO | CANCELADO
- *   CONCLUIDO/CANCELADO → (terminal)
- * - **Rondas**:
- *   - En creación/edición, si el movimiento queda en `SOLICITADO`, se garantiza
- *     su presencia en la cola (`RondaModel.generarRondaParaMovimiento`).
- *   - En cambios de estado CONCLUIDO/CANCELADO se actualiza/elimina la ronda y
- *     se ejecuta recomposición (`RondaModel.recomponerRondasLocalidad`).
- * - **Servicios (lavado/torno)**: se consideran "siguientes" para maquinista
- *   solo cuando están `EN_PROCESO`.
- * - **Notificaciones**: se emiten eventos FCM relevantes (creación, cambio de
- *   prioridad). En cargas altas se recomienda **Outbox** posterior a commit.
- *
- * @errors
- * - Lanza `Error` con mensajes semánticos. Los controladores traducen a HTTP.
- * - Registra con `movimientoError` tanto errores como info relevante.
- *
- * @concurrency
- * - Se usan transacciones Prisma en operaciones que modifican estado+ronda.
- * - Evitar múltiples `PrismaClient` (ver TODO singleton).
+ * Modelo/dominio para gestionar Movimientos + notificaciones FCM bien segmentadas.
+ * - No ocupa/libera vías; solo estados y coordinación con RondaModel.
+ * - Notifica a MAQUINISTA/OPERADOR por LOCALIDAD (sin filtrar por empresa) cuando se crea.
+ * - Staff (SUPERVISOR/COORDINADOR/ADMIN) sí puede filtrarse por empresa.
  */
 
-import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaClient, Rol } from '@prisma/client';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import admin from 'firebase-admin';
+import { NotificadorFCM } from '../../services/NotificadorFCM';
 
-const prisma = new PrismaClient(); // TODO: migrar a singleton/inyección para evitar exceso de conexiones.
+// ----------------------------------------------------------------------------
+// Prisma singleton (evita múltiples conexiones en hot-reload)
+// ----------------------------------------------------------------------------
+const prisma: PrismaClient =
+  (global as any).__PRISMA__ ?? new PrismaClient();
+if (process.env.NODE_ENV !== 'production') {
+  (global as any).__PRISMA__ = prisma;
+}
+type Paginado<T> = { items: T[]; hasMore: boolean; nextCursorId?: number };
 
+type MovimientoResumen = {
+  id: number;
+  locomotora: number;
+  estado: string;
+  estatus: string;
+  prioridad: string;
+  tipo?: string;
+  empresa: string;
+  localidad: string;
+  via: {
+    origen: { numero: number; nombre: string };
+    destino?: { numero: number; nombre: string };
+  };
+  personas: {
+    creadoPor: string;
+    cliente?: string;
+    operador?: string;
+    maquinista?: string; // alias público de operador
+    supervisor?: string;
+    coordinador?: string;
+  };
+  servicio?: { tipo: string; estado: string; orden: number };
+  ronda?: { numero: number; orden: number; concluido: boolean };
+  incidentes: { total: number; abiertos: number; ultimoEstado?: string };
+  fechas: { solicitud: string; inicio?: string; pausa?: string; fin?: string };
+  instrucciones?: string;
+  posiciones: { cabina?: string; chimenea?: string; empuje?: string };
+  flags: { lavado: boolean; torno: boolean; incidenteGlobal: boolean };
+};
+
+// Mapeos a texto
+const MAP_ESTADO: Record<string, string> = {
+  SOLICITADO: "Solicitado",
+  EN_PROCESO: "En proceso",
+  DETENIDO: "Detenido",
+  ESPERA: "En espera",
+  MODIFICADO: "Modificado",
+  CONCLUIDO: "Concluido",
+  CANCELADO: "Cancelado",
+};
+const MAP_PRIORIDAD: Record<string, string> = { ALTA: "Alta", BAJA: "Baja" };
+const MAP_TIPO: Record<string, string> = {
+  MD_TRABAJANDO: "MD trabajando",
+  REMOLCADA: "Remolcada",
+};
+const MAP_SERV_TIPO: Record<string, string> = { LAVADO: "Lavado", TORNO: "Torno" };
+const MAP_SERV_ESTADO: Record<string, string> = {
+  EN_COLA: "En cola",
+  SIGUIENTE: "Siguiente",
+  EN_SERVICIO: "En servicio",
+  FINALIZADO: "Finalizado",
+};
+const MAP_POS: Record<string, string> = {
+  DENTRO: "Dentro",
+  AFUERA: "Afuera",
+  Sin_Solicitar: "Sin solicitar",
+};
+const MAP_EMP: Record<string, string> = {
+  EMPUJAR: "Empujar",
+  JALAR: "Jalar",
+  Sin_Solicitar: "Sin solicitar",
+};
+const MAP_INC: Record<string, string> = {
+  ABIERTO: "Abierto",
+  CERRADO: "Cerrado",
+  RESUELTO: "Resuelto",
+};
+
+// Fecha -> "DD/MM/YYYY HH:mm" TZ America/Mexico_City
+function fmt(d?: Date | null): string | undefined {
+  if (!d) return undefined;
+  const mx = new Date(
+    new Date(d).toLocaleString("en-US", { timeZone: "America/Mexico_City" })
+  );
+  const y = mx.getFullYear();
+  const M = String(mx.getMonth() + 1).padStart(2, "0");
+  const day = String(mx.getDate()).padStart(2, "0");
+  const hh = String(mx.getHours()).padStart(2, "0");
+  const mm = String(mx.getMinutes()).padStart(2, "0");
+  return `${day}/${M}/${y} ${hh}:${mm}`;
+}
+
+// Estatus compuesto según reglas acordadas
+function buildEstatus(m: {
+  estado: string;
+  finalizado: boolean | null;
+  prioridad: "ALTA" | "BAJA";
+  servicio?: { tipo: keyof typeof MAP_SERV_TIPO; estado: keyof typeof MAP_SERV_ESTADO } | null;
+  abiertos: number;
+}): string {
+  let base: string;
+  if (m.estado === "CANCELADO") base = "Cancelado";
+  else if (m.finalizado || m.estado === "CONCLUIDO") base = "Concluido";
+  else if (m.servicio?.estado === "EN_SERVICIO")
+    base = `En servicio de ${MAP_SERV_TIPO[m.servicio.tipo]}`;
+  else if (m.servicio?.estado === "SIGUIENTE") base = "Siguiente en servicio";
+  else if (m.estado === "EN_PROCESO") base = "En proceso";
+  else if (m.estado === "DETENIDO") base = "Detenido";
+  else if (m.estado === "ESPERA") base = "En espera";
+  else base = "Solicitado en cola";
+
+  const sufijos: string[] = [];
+  if (m.abiertos === 1) sufijos.push("con 1 incidente");
+  else if (m.abiertos > 1) sufijos.push(`con ${m.abiertos} incidentes`);
+  if (m.prioridad === "ALTA") sufijos.push("prioridad alta");
+
+  return sufijos.length ? `${base} · ${sufijos.join(" · ")}` : base;
+}
+// ----------------------------------------------------------------------------
 /** Devuelve el id del maquinista/operador desde alias permitidos. */
 const getMaquinistaId = (o?: { maquinistaId?: number; operadorId?: number }) =>
   o?.maquinistaId ?? o?.operadorId;
 
-/* ==========================================================================
- *                                 Notificaciones
- * ========================================================================== */
+/** Inicializa admin SDK usando credenciales por variable GOOGLE_APPLICATION_CREDENTIALS / ADC. */
+function ensureAdmin() {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  }
+}
 
-/**
- * @summary Resuelve tokens FCM activos para una lista de usuarios.
- * @returns string[] tokens
- */
+/** Chunk helper para FCM multicast. */
+function chunk<T>(arr: T[], size = 500): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function uniqueTokensFromUsers(
+  users: Array<{ fcmTokens?: Array<{ token: string | null }> }>
+) {
+  return [
+    ...new Set(
+      users.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean) as string[])
+    ),
+  ];
+}
+
+/** Obtiene usuarios activos por localidad y (opcional) empresa y roles. */
+async function usuariosPorRolesLocalidadEmpresa(
+  localidadId: number,
+  empresaId?: number,
+  roles?: Rol[]
+) {
+  const rolesBase: Rol[] = roles?.length
+    ? roles
+    : [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.CLIENTE];
+
+  const where: any = { activo: true, localidadId, rol: { in: rolesBase } };
+  if (empresaId) where.empresaId = empresaId;
+
+  return prisma.usuario.findMany({ where, include: { fcmTokens: true } });
+}
+
+/** Envío FCM con logs/seguridad. */
+async function enviarMulticastMovimiento(
+  tokens: string[],
+  payload: { notification: { title: string; body: string }; data: Record<string, string> },
+  logCtx: Record<string, any>
+) {
+  ensureAdmin();
+
+  if (!tokens.length) {
+    movimientoError.warn('FCM movimiento: sin tokens', logCtx);
+    return;
+  }
+
+  const lotes = chunk(tokens, 500);
+  for (let i = 0; i < lotes.length; i++) {
+    const slice = lotes[i];
+    try {
+      const res = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
+      movimientoError.info('FCM movimiento', {
+        ...logCtx,
+        lote: `${i + 1}/${lotes.length}`,
+        enviados: res.successCount,
+        fallidos: res.failureCount,
+      });
+    } catch (err: any) {
+      movimientoError.error('FCM movimiento error', {
+        ...logCtx,
+        lote: `${i + 1}/${lotes.length}`,
+        errName: err?.name,
+        errMsg: err?.message,
+        errCode: err?.errorInfo?.code,
+      });
+    }
+  }
+}
+
+/** (Reservado) Resuelve tokens por IDs. */
 async function tokensDeUsuarios(ids: number[]) {
   if (!ids.length) return [];
   const usuarios = await prisma.usuario.findMany({
     where: { id: { in: ids }, activo: true },
     include: { fcmTokens: true },
   });
-  return usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token));
+  return uniqueTokensFromUsers(usuarios);
 }
 
-/**
- * @summary Notifica la creación de un movimiento a actores locales (roles operativos).
- * @sideEffects Envía FCM (considerar Outbox en producción).
- */
-async function notificarMovimientoCreado(movId: number) {
-  const m = await prisma.movimiento.findUnique({
-    where: { id: movId },
-    include: {
-      empresa: { select: { nombre: true } },
-      localidad: { select: { id: true, nombre: true } },
-      viaOrigen: { select: { nombre: true } },
-      viaDestino: { select: { nombre: true } },
-      creadoPor: { select: { nombre: true } },
-    },
-  });
-  if (!m) return;
-
-  const usuarios = await prisma.usuario.findMany({
-    where: {
-      activo: true,
-      localidadId: m.localidadId,
-      rol: { in: ['SUPERVISOR', 'COORDINADOR', 'MAQUINISTA', 'OPERADOR'] as any },
-    },
-    include: { fcmTokens: true },
-  });
-  const tokens = usuarios.flatMap((u) => u.fcmTokens.map((t) => t.token));
-  if (!tokens.length) return;
-
-  const title = `Nuevo movimiento (${m.prioridad})`;
-  const body =
-    `Creado por: ${m.creadoPor?.nombre ?? 'N/D'} · ` +
-    `Fecha: ${new Date(m.createdAt).toLocaleString()} · ` +
-    `Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
-    `Locomotora: ${m.locomotiveNumber} · ` +
-    `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'} · ` +
-    `Comentario: ${m.instrucciones ?? '—'}`;
-
-  await admin.messaging().sendEachForMulticast({
-    notification: { title, body },
-    data: {
-      tipo: 'movimiento_creado',
-      movimientoId: String(m.id),
-      prioridad: String(m.prioridad),
-      creadoPor: String(m.creadoPor?.nombre ?? ''),
-      fecha: new Date(m.createdAt).toISOString(),
-      empresa: String(m.empresa?.nombre ?? ''),
-      localidadId: String(m.localidadId),
-      viaOrigen: String(m.viaOrigen?.nombre ?? ''),
-      viaDestino: String(m.viaDestino?.nombre ?? ''),
-    },
-    tokens,
-  });
+// ----------------------------------------------------------------------------
+// META parser para instrucciones (solo lectura info)
+// ----------------------------------------------------------------------------
+const META_RE = /\[META ([^\]]+)\]/i;
+function parseMetaFromInstrucciones(instr?: string) {
+  const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
+  if (!instr) return meta;
+  const m = instr.match(META_RE);
+  if (!m) return meta;
+  const tokens = m[1].split('|').map(s => s.trim().toUpperCase());
+  for (const t of tokens) {
+    if (t === 'LIBERAR') meta.liberar = true;
+    if (t.startsWith('DESTINO:')) {
+      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) meta.destinoId = v;
+    }
+    if (t.startsWith('SECCION:')) {
+      const s = Number(t.split(':')[1]); if (!Number.isNaN(s)) meta.seccion = s;
+    }
+  }
+  return meta;
 }
 
-/**
- * @summary Notifica un cambio de prioridad a roles administrativos/líderes.
- * @sideEffects Envía FCM.
- */
+// ----------------------------------------------------------------------------
+// Notificaciones FCM (resto de eventos siguen locales); CREACIÓN DELEGA A NotificadorFCM
+// ----------------------------------------------------------------------------
+
+/** Cambio de prioridad → Admin/Coord/Sup (administrativos) */
 async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
+  ensureAdmin();
+
   const m = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -140,44 +274,148 @@ async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
     where: {
       localidadId: m.localidadId,
       activo: true,
-      rol: { in: ['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR'] as any },
+      rol: { in: [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.SUPERVISOR] },
+      ...(m.empresaId ? { empresaId: m.empresaId } : {}),
     },
     include: { fcmTokens: true },
   });
-  const tokens = admins.flatMap((u) => u.fcmTokens.map((t) => t.token));
-  if (!tokens.length) return;
 
-  await admin.messaging().sendEachForMulticast({
-    notification: {
-      title: `Cambio de prioridad → ${nueva}`,
-      body:
-        `Movimiento #${m.id} · Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
-        `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'}`,
-    },
-    data: {
-      tipo: 'cambio_prioridad',
-      movimientoId: String(m.id),
-      prioridad: nueva,
-      creadoPor: String(m.creadoPor?.nombre ?? ''),
-      fecha: new Date().toISOString(),
-      empresa: String(m.empresa?.nombre ?? ''),
-      localidadId: String(m.localidadId),
-    },
+  const tokens = uniqueTokensFromUsers(admins);
+  if (!tokens.length) {
+    movimientoError.warn('Sin tokens para cambio_prioridad', { movId: m.id, localidadId: m.localidadId });
+    return;
+  }
+
+  await enviarMulticastMovimiento(
     tokens,
-  });
+    {
+      notification: {
+        title: `Cambio de prioridad → ${nueva}`,
+        body:
+          `Movimiento #${m.id} · Empresa: ${m.empresa?.nombre ?? 'N/D'} · ` +
+          `Origen: ${m.viaOrigen?.nombre ?? 'N/D'} → Destino: ${m.viaDestino?.nombre ?? 'N/D'}`,
+      },
+      data: {
+        tipo: 'cambio_prioridad',
+        movimientoId: String(m.id),
+        prioridad: nueva,
+        creadoPor: String(m.creadoPor?.nombre ?? ''),
+        fecha: new Date().toISOString(),
+        empresa: String(m.empresa?.nombre ?? ''),
+        localidadId: String(m.localidadId),
+      },
+    },
+    { evento: 'cambio_prioridad', movId: m.id, localidadId: m.localidadId, prioridad: nueva, tokens: tokens.length }
+  );
 }
 
-/* ==========================================================================
- *                                   Modelo
- * ========================================================================== */
+/** Inicio → Supervisor/Cliente/Coordinador/Operador */
+async function notificarMovimientoIniciado(movId: number) {
+  ensureAdmin();
+
+  const m = await prisma.movimiento.findUnique({
+    where: { id: movId },
+    include: {
+      empresa: { select: { nombre: true } },
+      localidad: { select: { id: true, nombre: true } },
+      viaOrigen: { select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
+    },
+  });
+  if (!m) return;
+
+  const roles: Rol[] = [Rol.SUPERVISOR, Rol.CLIENTE, Rol.COORDINADOR, Rol.OPERADOR];
+  const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
+  const tokens = uniqueTokensFromUsers(usuarios);
+
+  const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
+    acc[r] = usuarios.filter(u => u.rol === r).length;
+    return acc;
+  }, {});
+
+  if (!tokens.length) {
+    movimientoError.warn('Sin tokens para movimiento_iniciado', {
+      movId: m.id, localidadId: m.localidadId, roleCounts,
+    });
+    return;
+  }
+
+  const title = '🚦 Movimiento iniciado';
+  const body =
+    `#${m.id} · ${m.empresa?.nombre ?? 'Sin Empresa'} · Loco ${m.locomotiveNumber} · ` +
+    `${m.viaOrigen?.nombre ?? 'N/D'} → ${m.viaDestino?.nombre ?? 'N/D'}`;
+
+  const data = {
+    tipo: 'movimiento_iniciado',
+    movimientoId: String(m.id),
+    empresa: String(m.empresa?.nombre ?? ''),
+    localidadId: String(m.localidadId),
+    viaOrigen: String(m.viaOrigen?.nombre ?? ''),
+    viaDestino: String(m.viaDestino?.nombre ?? ''),
+    fecha: new Date().toISOString(),
+  };
+
+  await enviarMulticastMovimiento(
+    tokens,
+    { notification: { title, body }, data },
+    { evento: 'iniciado', movId: m.id, localidadId: m.localidadId, tokens: tokens.length, roleCounts }
+  );
+}
+
+/** Fin → Cliente/Coordinador/Supervisor */
+async function notificarMovimientoFinalizado(movId: number) {
+  ensureAdmin();
+
+  const m = await prisma.movimiento.findUnique({
+    where: { id: movId },
+    include: {
+      empresa: { select: { nombre: true } },
+      localidad: { select: { id: true, nombre: true } },
+    },
+  });
+  if (!m) return;
+
+  const roles: Rol[] = [Rol.CLIENTE, Rol.COORDINADOR, Rol.SUPERVISOR];
+  const usuarios = await usuariosPorRolesLocalidadEmpresa(m.localidadId, m.empresaId, roles);
+  const tokens = uniqueTokensFromUsers(usuarios);
+
+  const roleCounts = roles.reduce<Record<string, number>>((acc, r) => {
+    acc[r] = usuarios.filter(u => u.rol === r).length;
+    return acc;
+  }, {});
+
+  if (!tokens.length) {
+    movimientoError.warn('Sin tokens para movimiento_concluido', {
+      movId: m.id, localidadId: m.localidadId, roleCounts,
+    });
+    return;
+  }
+
+  const title = '✅ Movimiento concluido';
+  const body = `#${m.id} · ${m.empresa?.nombre ?? 'Sin Empresa'} · Loco ${m.locomotiveNumber}`;
+
+  const data = {
+    tipo: 'movimiento_concluido',
+    movimientoId: String(m.id),
+    empresa: String(m.empresa?.nombre ?? ''),
+    localidadId: String(m.localidadId),
+    fecha: new Date().toISOString(),
+  };
+
+  await enviarMulticastMovimiento(
+    tokens,
+    { notification: { title, body }, data },
+    { evento: 'concluido', movId: m.id, localidadId: m.localidadId, tokens: tokens.length, roleCounts }
+  );
+}
+
+// ----------------------------------------------------------------------------
+// Modelo
+// ----------------------------------------------------------------------------
 
 export class MovimientoModel {
   /* ------------------------------ Consultas base ------------------------------ */
 
-  /**
-   * @summary Lista de movimientos con joins relevantes.
-   * @returns Movimiento[]
-   */
   static async obtenerMovimientos() {
     try {
       return await prisma.movimiento.findMany({
@@ -199,10 +437,7 @@ export class MovimientoModel {
     }
   }
 
-  /**
-   * @summary Servicios (lavado/torno) pendientes de iniciar.
-   * @description Excluye EN_PROCESO, CONCLUIDO, CANCELADO. Filtro opcional por localidad/empresa.
-   */
+  /** Servicios (lavado/torno) pendientes de iniciar. */
   static async obtenerServiciosPendientes(filters: { localidadId?: number; empresaId?: number } = {}) {
     try {
       const where: any = {
@@ -233,47 +468,9 @@ export class MovimientoModel {
     }
   }
 
-  /**
-   * @summary Cambia estado de **servicios** (lavado/torno) usando la lógica central de estados.
-   * @param id Movimiento id.
-   * @param nuevoEstado 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO'
-   * @param opciones { maquinistaId?/operadorId?, razon? }
-   */
-  static async actualizarEstadoServicio(
-    id: number,
-    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
-  ) {
-    try {
-      const mov = await prisma.movimiento.findUnique({
-        where: { id },
-        select: { id: true, lavado: true, torno: true },
-      });
-      if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
-      if (!mov.lavado && !mov.torno) {
-        throw new Error('El movimiento no es un servicio de lavado/torno');
-      }
-
-      return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
-        maquinistaId: getMaquinistaId(opciones),
-        razon: opciones.razon,
-        forzar: false,
-      });
-    } catch (error: any) {
-      movimientoError.error('Error al actualizar estado de servicio', {
-        id, nuevoEstado, opciones,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al actualizar estado de servicio');
-    }
-  }
-
   /* --------------------------- Cambios de estado CRUD --------------------------- */
 
-  /**
-   * @summary Detiene un movimiento (cambia a DETENIDO y marca `fechaPausa`).
-   * @sideEffects Recomposición de siguiente inteligente.
-   */
+  /** Detiene un movimiento (DETENIDO). */
   static async detenerMovimiento(id: number, razon?: string) {
     try {
       const fechaActual = new Date();
@@ -306,9 +503,7 @@ export class MovimientoModel {
     }
   }
 
-  /**
-   * @summary Cancela y finaliza un movimiento; elimina su ronda y recompone.
-   */
+  /** Cancela y finaliza un movimiento; elimina su ronda y recompone. */
   static async cancelarMovimiento(id: number, razonCancelacion: string, usuarioId?: number) {
     try {
       const movimientoCancelado = await prisma.$transaction(async (tx) => {
@@ -359,10 +554,7 @@ export class MovimientoModel {
     }
   }
 
-  /**
-   * @summary Reactiva un movimiento DETENIDO → EN_PROCESO.
-   * @throws Error si no está en DETENIDO.
-   */
+  /** Reactiva un movimiento DETENIDO → EN_PROCESO. */
   static async reactivarMovimiento(id: number, maquinistaId?: number) {
     try {
       const fechaActual = new Date();
@@ -400,6 +592,7 @@ export class MovimientoModel {
         localidad: movimientoActual.localidad?.nombre,
       });
 
+      await notificarMovimientoIniciado(movimientoReactivado.id);
       await RondaModel.siguienteInteligente(movimientoReactivado.localidadId);
       return movimientoReactivado;
     } catch (error: any) {
@@ -412,13 +605,11 @@ export class MovimientoModel {
   }
 
   /**
-   * @summary Cambia el estado del movimiento validando la transición.
-   * @param opciones.forzar Si true, omite validación de transición.
-   * @sideEffects Actualiza/elimina ronda y recompone si CONCLUIDO/CANCELADO.
+   * Cambia el estado del movimiento validando transición (a menos que forzar=true).
    */
   static async cambiarEstadoMovimiento(
     id: number,
-    nuevoEstado: string,
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
     opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
   ) {
     try {
@@ -491,6 +682,15 @@ export class MovimientoModel {
         localidad: movAct.localidad?.nombre,
       });
 
+      try {
+        if (nuevoEstado === 'EN_PROCESO') await notificarMovimientoIniciado(id);
+        else if (nuevoEstado === 'CONCLUIDO') await notificarMovimientoFinalizado(id);
+      } catch (e: any) {
+        movimientoError.error('Error notificando cambio de estado', {
+          movimientoId: id, nuevoEstado, errName: e?.name, errMsg: e?.message,
+        });
+      }
+
       await RondaModel.siguienteInteligente(movAct.localidadId);
       return movUpd;
     } catch (error: any) {
@@ -505,8 +705,8 @@ export class MovimientoModel {
   /* --------------------- Crear / Editar (sin tocar vías) --------------------- */
 
   /**
-   * @summary Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
-   * @sideEffects Notifica creación y recálculo de “siguiente”.
+   * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
+   * Notifica creación y recalcula “siguiente”.
    */
   static async nuevoMovimiento(data: {
     empresaId: number;
@@ -524,7 +724,7 @@ export class MovimientoModel {
     clienteId?: number;
     supervisorId?: number;
     coordinadorId?: number;
-    operadorId?: number;  // compat
+    operadorId?: number;   // compat
     maquinistaId?: number; // alias externo
     lavado?: boolean;
     torno?: boolean;
@@ -534,7 +734,6 @@ export class MovimientoModel {
   }) {
     try {
       const movData: any = { ...data };
-      // alias -> operadorId
       if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
       delete movData.maquinistaId;
 
@@ -547,7 +746,6 @@ export class MovimientoModel {
 
       const mv = await prisma.movimiento.create({ data: movData });
 
-      // Si está SOLICITADO/ESPERA => generar ronda (sin ocupar vía)
       if (mv.estado === 'SOLICITADO' || mv.estado === 'ESPERA') {
         await RondaModel.generarRondaParaMovimiento({
           movimientoId: mv.id,
@@ -557,7 +755,13 @@ export class MovimientoModel {
         });
       }
 
-      await notificarMovimientoCreado(mv.id);
+      // Delegar notificación de creación (esto incluye MAQUINISTA/OPERADOR por localidad)
+      try {
+        await NotificadorFCM.notificarNuevoMovimiento(mv.id);
+      } catch (e) {
+        movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
+      }
+
       await RondaModel.siguienteInteligente(mv.localidadId);
 
       return await prisma.movimiento.findUnique({
@@ -573,9 +777,37 @@ export class MovimientoModel {
     }
   }
 
-  /**
-   * @summary Edita un movimiento; si cambia prioridad/estado/empresa/localidad puede reinsertar/recomponer rondas.
-   */
+  /** Cambia estado de servicios (lavado/torno) usando lógica central. */
+  static async actualizarEstadoServicio(
+    id: number,
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+  ) {
+    try {
+      const mov = await prisma.movimiento.findUnique({
+        where: { id },
+        select: { id: true, lavado: true, torno: true },
+      });
+      if (!mov) throw new Error(`No se encontró movimiento con id ${id}`);
+      if (!mov.lavado && !mov.torno) {
+        throw new Error('El movimiento no es un servicio de lavado/torno');
+      }
+
+      return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
+        maquinistaId: getMaquinistaId(opciones),
+        razon: opciones.razon,
+        forzar: false,
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al actualizar estado de servicio', {
+        id, nuevoEstado, opciones,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al actualizar estado de servicio');
+    }
+  }
+
+  /** Edita un movimiento; puede reinsertar/recomponer rondas. */
   static async editarMovimiento(
     id: number,
     data: {
@@ -618,7 +850,6 @@ export class MovimientoModel {
 
         const updateData: any = { ...data };
 
-        // alias -> operadorId
         if (updateData.maquinistaId && !updateData.operadorId) {
           updateData.operadorId = updateData.maquinistaId;
         }
@@ -681,9 +912,7 @@ export class MovimientoModel {
 
   /* --------------------------------- Otros --------------------------------- */
 
-  /**
-   * @summary Elimina un movimiento, limpia su ronda y recomponen.
-   */
+  /** Elimina un movimiento, limpia su ronda y recompone. */
   static async eliminarMovimiento(id: number) {
     try {
       const res = await prisma.$transaction(async (tx) => {
@@ -709,8 +938,8 @@ export class MovimientoModel {
   }
 
   /**
-   * @summary Cambia prioridad (ALTA/BAJA). Readecua ronda cuando está SOLICITADO.
-   * @sideEffects Notifica cambio de prioridad y recalcula “siguiente”.
+   * Cambia prioridad (ALTA/BAJA). Readecua ronda cuando está SOLICITADO.
+   * Notifica cambio de prioridad y recalcula “siguiente”.
    */
   static async cambiarPrioridad(id: number, prioridad: 'ALTA' | 'BAJA') {
     try {
@@ -758,11 +987,10 @@ export class MovimientoModel {
 
   /* --------------------- Consultas por filtros de negocio --------------------- */
 
-  /** @summary Movimientos con estado pendiente (incluye CONCLUIDO para visibilidad histórica reciente). */
   static async obtenerMovimientosPendientes() {
     try {
       return await prisma.movimiento.findMany({
-        where: { estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO'] } },
+        where: { estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -781,11 +1009,10 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Pendientes por empresa (sin concluidos). */
   static async obtenerMovimientosPendientesPorEmpresa(empresaId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: { empresaId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } },
+        where: { empresaId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -805,7 +1032,6 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Todos los movimientos (orden ascendente por creación). */
   static async obtenerTodosLosMovimientos() {
     try {
       return await prisma.movimiento.findMany({
@@ -828,7 +1054,6 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Movimientos por empresa. */
   static async obtenerMovimientosPorEmpresa(empresaId: number) {
     try {
       return await prisma.movimiento.findMany({
@@ -853,11 +1078,10 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Pendientes por localidad. */
   static async obtenerMovimientosPendientesPorLocalidad(localidadId: number) {
     try {
       return await prisma.movimiento.findMany({
-        where: { localidadId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } },
+        where: { localidadId, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
@@ -878,32 +1102,182 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Todos por localidad. */
-  static async obtenerTodosMovimientosPorLocalidad(localidadId: number) {
-    try {
-      return await prisma.movimiento.findMany({
-        where: { localidadId },
-        include: {
-          empresa: true,
-          creadoPor: true,
-          localidad: true,
-          viaOrigen: true,
-          viaDestino: true,
-          incidentes: true,
-          ronda: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-    } catch (error: any) {
-      movimientoError.error('Error al obtener todos los movimientos por localidad', {
-        localidadId,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al obtener todos los movimientos por localidad');
-    }
-  }
+static async obtenerTodosMovimientosPorLocalidad(
+  localidadId: number,
+  opts: { take?: number; cursorId?: number } = {}
+): Promise<Paginado<MovimientoResumen>> {
+  const take = Math.min(Math.max(opts.take ?? 50, 1), 200); // 1..200
 
-  /** @summary Movimientos por localidad + empresa. */
+  try {
+    // Página con cursor (id) y orden estable
+    const movs = await prisma.movimiento.findMany({
+      where: { localidadId },
+      orderBy: [
+        { prioridad: 'desc' },
+        { createdAt: 'desc' },
+        { id: 'desc' }, // único para cursor estable
+      ],
+      cursor: opts.cursorId ? { id: opts.cursorId } : undefined,
+      skip: opts.cursorId ? 1 : 0,
+      take: take + 1, // 1 extra para detectar hasMore
+      select: {
+        id: true,
+        locomotiveNumber: true,
+        estado: true,
+        prioridad: true,
+        tipoMovimiento: true,
+        finalizado: true,
+        instrucciones: true,
+        lavado: true,
+        torno: true,
+        incidenteGlobal: true,
+        posicionCabina: true,
+        posicionChimenea: true,
+        direccionEmpuje: true,
+        fechaSolicitud: true,
+        fechaInicio: true,
+        fechaPausa: true,
+        fechaFin: true,
+        empresa: { select: { nombre: true } },
+        localidad: { select: { nombre: true } },
+        viaOrigen: { select: { numero: true, nombre: true } },
+        viaDestino: { select: { numero: true, nombre: true } },
+        creadoPor: { select: { nombre: true } },
+        cliente: { select: { nombre: true } },
+        operador: { select: { nombre: true } },
+        supervisor: { select: { nombre: true } },
+        coordinador: { select: { nombre: true } },
+        ronda: { select: { rondaNumero: true, orden: true, concluido: true } },
+        servicio: { select: { tipo: true, estado: true, orden: true } },
+        incidentes: { select: { estado: true }, orderBy: { fechaInicio: 'desc' }, take: 1 }, // último
+      },
+    });
+
+    if (movs.length === 0) return { items: [], hasMore: false };
+
+    const hasMore = movs.length > take;
+    const page = hasMore ? movs.slice(0, take) : movs;
+    const nextCursorId = hasMore ? page[page.length - 1].id : undefined;
+
+    const ids = page.map(m => m.id);
+
+    // Tipos auxiliares para que TS no moleste
+    type IncRow = { movimientoId: number; _count: { _all: number } };
+
+    const [abiertosRows, totalesRows] = await prisma.$transaction([
+      prisma.incidente.groupBy({
+        by: ['movimientoId'],
+        where: { movimientoId: { in: ids }, estado: 'ABIERTO' },
+        _count: { _all: true },
+      }),
+      prisma.incidente.groupBy({
+        by: ['movimientoId'],
+        where: { movimientoId: { in: ids } },
+        _count: { _all: true },
+      }),
+    ]) as [IncRow[], IncRow[]];
+
+    const mapAbiertos = new Map<number, number>();
+    for (const r of abiertosRows) mapAbiertos.set(r.movimientoId, r._count._all);
+
+    const mapTotales = new Map<number, number>();
+    for (const r of totalesRows) mapTotales.set(r.movimientoId, r._count._all);
+
+    const items: MovimientoResumen[] = page.map((m) => {
+      const total = mapTotales.get(m.id) ?? 0;
+      const abiertos = mapAbiertos.get(m.id) ?? 0;
+
+      const ultimoEstado = m.incidentes[0]?.estado
+        ? (MAP_INC[m.incidentes[0].estado] ?? m.incidentes[0].estado)
+        : undefined;
+
+      const servicio = m.servicio
+        ? {
+            tipo: MAP_SERV_TIPO[m.servicio.tipo] ?? m.servicio.tipo,
+            estado: MAP_SERV_ESTADO[m.servicio.estado] ?? m.servicio.estado,
+            orden: m.servicio.orden,
+          }
+        : undefined;
+
+      const instrucciones =
+        m.instrucciones && m.instrucciones.length > 140
+          ? `${m.instrucciones.slice(0, 140)}…`
+          : (m.instrucciones ?? undefined);
+
+      return {
+        id: m.id,
+        locomotora: m.locomotiveNumber,
+        estado: MAP_ESTADO[m.estado] ?? m.estado,
+        estatus: buildEstatus({
+          estado: m.estado,
+          finalizado: m.finalizado ?? false,
+          prioridad: m.prioridad as 'ALTA' | 'BAJA',
+          servicio: m.servicio ? { tipo: m.servicio.tipo, estado: m.servicio.estado } : null,
+          abiertos,
+        }),
+        prioridad: MAP_PRIORIDAD[m.prioridad] ?? m.prioridad,
+        tipo: m.tipoMovimiento ? (MAP_TIPO[m.tipoMovimiento] ?? m.tipoMovimiento) : undefined,
+        empresa: m.empresa?.nombre ?? 'N/D',
+        localidad: m.localidad?.nombre ?? 'N/D',
+        via: {
+          origen: {
+            numero: m.viaOrigen?.numero ?? 0,
+            nombre: m.viaOrigen?.nombre ?? 'N/D',
+          },
+          destino: m.viaDestino
+            ? { numero: m.viaDestino.numero, nombre: m.viaDestino.nombre }
+            : undefined,
+        },
+        personas: {
+          creadoPor: m.creadoPor?.nombre ?? 'N/D',
+          cliente: m.cliente?.nombre ?? undefined,
+          operador: m.operador?.nombre ?? undefined,
+          maquinista: m.operador?.nombre ?? undefined, // alias
+          supervisor: m.supervisor?.nombre ?? undefined,
+          coordinador: m.coordinador?.nombre ?? undefined,
+        },
+        servicio,
+        ronda: m.ronda
+          ? {
+              numero: m.ronda.rondaNumero,
+              orden: m.ronda.orden,
+              concluido: m.ronda.concluido ?? false,
+            }
+          : undefined,
+        incidentes: { total, abiertos, ultimoEstado },
+        fechas: {
+          solicitud: fmt(m.fechaSolicitud)!,
+          inicio: fmt(m.fechaInicio),
+          pausa: fmt(m.fechaPausa),
+          fin: fmt(m.fechaFin),
+        },
+        instrucciones,
+        posiciones: {
+          cabina: m.posicionCabina ? (MAP_POS[m.posicionCabina] ?? m.posicionCabina) : undefined,
+          chimenea: m.posicionChimenea ? (MAP_POS[m.posicionChimenea] ?? m.posicionChimenea) : undefined,
+          empuje: m.direccionEmpuje ? (MAP_EMP[m.direccionEmpuje] ?? m.direccionEmpuje) : undefined,
+        },
+        flags: { lavado: !!m.lavado, torno: !!m.torno, incidenteGlobal: !!m.incidenteGlobal },
+      };
+    });
+
+    return { items, hasMore, nextCursorId };
+  } catch (error: any) {
+    movimientoError.error('Error al obtener movimientos por localidad (paginado)', {
+      localidadId,
+      cursorId: opts.cursorId,
+      take,
+      errName: error?.name,
+      errMsg: error?.message,
+      errStack: error?.stack,
+      prismaCode: error?.code,
+      prismaMeta: error?.meta,
+    });
+    throw new Error('Error al obtener todos los movimientos por localidad');
+  }
+}
+
+
   static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaId: number) {
     try {
       return await prisma.movimiento.findMany({
@@ -928,7 +1302,6 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Movimientos por empresa + localidad (orden de ruta inverso). */
   static async obtenerMovimientosPorEmpresaYLocalidad(empresaId: number, localidadId: number) {
     try {
       return await prisma.movimiento.findMany({
@@ -953,7 +1326,6 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary No concluidos por empresa+localidad. */
   static async obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId: number, localidadId: number) {
     try {
       return await prisma.movimiento.findMany({
@@ -980,14 +1352,18 @@ export class MovimientoModel {
 
   /* -------------------------- Info compuesta por ronda -------------------------- */
 
-  /**
-   * @summary Proyección de información de una ronda desde el modelo de movimientos.
-   * @returns Estructura simplificada: empresa + vías + flags de servicio.
-   */
   static async obtenerInfoPorRonda(rondaId: number) {
     try {
       const info = await RondaModel.obtenerInfoPorRonda(rondaId);
       if (!info) throw new Error(`No se encontró la ronda con ID ${rondaId}`);
+
+      // Asegura instrucciones frescas desde la DB del movimiento
+      const movDB = await prisma.movimiento.findUnique({
+        where: { id: info.movimiento.id },
+        select: { instrucciones: true },
+      });
+      const instrucciones = movDB?.instrucciones ?? null;
+      const meta = parseMetaFromInstrucciones(instrucciones ?? undefined);
 
       return {
         rondaId: info.rondaId,
@@ -1001,7 +1377,9 @@ export class MovimientoModel {
           viaDestino: info.movimiento.viaDestino,
           lavado: info.movimiento.lavado,
           torno: info.movimiento.torno,
+          instrucciones, // ← proviene de la DB del movimiento
         },
+        meta, // ← derivado del tag [META ...] en instrucciones (si existe)
       };
     } catch (error: any) {
       movimientoError.error('Error al obtener info de ronda desde MovimientoModel', {
@@ -1013,7 +1391,7 @@ export class MovimientoModel {
 
   /* -------------------------- Acciones rápidas maquinista -------------------------- */
 
-  /** @summary Marca EN_PROCESO e inicia (setea operadorId=maquinistaId). */
+  /** Marca EN_PROCESO e inicia (setea operadorId=maquinistaId). */
   static async iniciarMovimiento(id: number, maquinistaId: number) {
     try {
       const fechaActual = new Date();
@@ -1022,11 +1400,12 @@ export class MovimientoModel {
         data: {
           estado: 'EN_PROCESO',
           fechaInicio: fechaActual,
-          operadorId: maquinistaId, // guardamos en operadorId
+          operadorId: maquinistaId,
           updatedAt: fechaActual,
         },
       });
 
+      await notificarMovimientoIniciado(mov.id);
       await RondaModel.siguienteInteligente(mov.localidadId);
       return mov;
     } catch (error: any) {
@@ -1038,7 +1417,7 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Pausa (DETENIDO). */
+  /** Pausa (DETENIDO). */
   static async pausarMovimiento(id: number) {
     try {
       const fechaActual = new Date();
@@ -1057,7 +1436,7 @@ export class MovimientoModel {
     }
   }
 
-  /** @summary Reanuda (EN_PROCESO). */
+  /** Reanuda (EN_PROCESO). */
   static async reanudarMovimiento(id: number) {
     try {
       const fechaActual = new Date();
@@ -1066,6 +1445,7 @@ export class MovimientoModel {
         data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, updatedAt: fechaActual },
       });
 
+      await notificarMovimientoIniciado(mov.id);
       await RondaModel.siguienteInteligente(mov.localidadId);
       return mov;
     } catch (error: any) {
@@ -1078,10 +1458,7 @@ export class MovimientoModel {
 
   /* ------------------- Finalizar (no libera/ocupa vías aquí) ------------------- */
 
-  /**
-   * @summary Finaliza el movimiento (CONCLUIDO + finalizado) y concluye su ronda.
-   * @note No realiza liberación/ocupación física; se delega a otra capa/servicio.
-   */
+  /** Finaliza el movimiento (CONCLUIDO + finalizado) y concluye su ronda. */
   static async finalizarMovimiento(id: number) {
     try {
       const mov = await prisma.$transaction(async (tx) => {
@@ -1106,6 +1483,7 @@ export class MovimientoModel {
         return res;
       });
 
+      await notificarMovimientoFinalizado(mov.id);
       await RondaModel.siguienteInteligente(mov.localidadId);
       return mov;
     } catch (error: any) {
