@@ -25,116 +25,7 @@ const prisma: PrismaClient =
 if (process.env.NODE_ENV !== 'production') {
   (global as any).__PRISMA__ = prisma;
 }
-type Paginado<T> = { items: T[]; hasMore: boolean; nextCursorId?: number };
 
-type MovimientoResumen = {
-  id: number;
-  locomotora: number;
-  estado: string;
-  estatus: string;
-  prioridad: string;
-  tipo?: string;
-  empresa: string;
-  localidad: string;
-  via: {
-    origen: { numero: number; nombre: string };
-    destino?: { numero: number; nombre: string };
-  };
-  personas: {
-    creadoPor: string;
-    cliente?: string;
-    operador?: string;
-    maquinista?: string; // alias público de operador
-    supervisor?: string;
-    coordinador?: string;
-  };
-  servicio?: { tipo: string; estado: string; orden: number };
-  ronda?: { numero: number; orden: number; concluido: boolean };
-  incidentes: { total: number; abiertos: number; ultimoEstado?: string };
-  fechas: { solicitud: string; inicio?: string; pausa?: string; fin?: string };
-  instrucciones?: string;
-  posiciones: { cabina?: string; chimenea?: string; empuje?: string };
-  flags: { lavado: boolean; torno: boolean; incidenteGlobal: boolean };
-};
-
-// Mapeos a texto
-const MAP_ESTADO: Record<string, string> = {
-  SOLICITADO: "Solicitado",
-  EN_PROCESO: "En proceso",
-  DETENIDO: "Detenido",
-  ESPERA: "En espera",
-  MODIFICADO: "Modificado",
-  CONCLUIDO: "Concluido",
-  CANCELADO: "Cancelado",
-};
-const MAP_PRIORIDAD: Record<string, string> = { ALTA: "Alta", BAJA: "Baja" };
-const MAP_TIPO: Record<string, string> = {
-  MD_TRABAJANDO: "MD trabajando",
-  REMOLCADA: "Remolcada",
-};
-const MAP_SERV_TIPO: Record<string, string> = { LAVADO: "Lavado", TORNO: "Torno" };
-const MAP_SERV_ESTADO: Record<string, string> = {
-  EN_COLA: "En cola",
-  SIGUIENTE: "Siguiente",
-  EN_SERVICIO: "En servicio",
-  FINALIZADO: "Finalizado",
-};
-const MAP_POS: Record<string, string> = {
-  DENTRO: "Dentro",
-  AFUERA: "Afuera",
-  Sin_Solicitar: "Sin solicitar",
-};
-const MAP_EMP: Record<string, string> = {
-  EMPUJAR: "Empujar",
-  JALAR: "Jalar",
-  Sin_Solicitar: "Sin solicitar",
-};
-const MAP_INC: Record<string, string> = {
-  ABIERTO: "Abierto",
-  CERRADO: "Cerrado",
-  RESUELTO: "Resuelto",
-};
-
-// Fecha -> "DD/MM/YYYY HH:mm" TZ America/Mexico_City
-function fmt(d?: Date | null): string | undefined {
-  if (!d) return undefined;
-  const mx = new Date(
-    new Date(d).toLocaleString("en-US", { timeZone: "America/Mexico_City" })
-  );
-  const y = mx.getFullYear();
-  const M = String(mx.getMonth() + 1).padStart(2, "0");
-  const day = String(mx.getDate()).padStart(2, "0");
-  const hh = String(mx.getHours()).padStart(2, "0");
-  const mm = String(mx.getMinutes()).padStart(2, "0");
-  return `${day}/${M}/${y} ${hh}:${mm}`;
-}
-
-// Estatus compuesto según reglas acordadas
-function buildEstatus(m: {
-  estado: string;
-  finalizado: boolean | null;
-  prioridad: "ALTA" | "BAJA";
-  servicio?: { tipo: keyof typeof MAP_SERV_TIPO; estado: keyof typeof MAP_SERV_ESTADO } | null;
-  abiertos: number;
-}): string {
-  let base: string;
-  if (m.estado === "CANCELADO") base = "Cancelado";
-  else if (m.finalizado || m.estado === "CONCLUIDO") base = "Concluido";
-  else if (m.servicio?.estado === "EN_SERVICIO")
-    base = `En servicio de ${MAP_SERV_TIPO[m.servicio.tipo]}`;
-  else if (m.servicio?.estado === "SIGUIENTE") base = "Siguiente en servicio";
-  else if (m.estado === "EN_PROCESO") base = "En proceso";
-  else if (m.estado === "DETENIDO") base = "Detenido";
-  else if (m.estado === "ESPERA") base = "En espera";
-  else base = "Solicitado en cola";
-
-  const sufijos: string[] = [];
-  if (m.abiertos === 1) sufijos.push("con 1 incidente");
-  else if (m.abiertos > 1) sufijos.push(`con ${m.abiertos} incidentes`);
-  if (m.prioridad === "ALTA") sufijos.push("prioridad alta");
-
-  return sufijos.length ? `${base} · ${sufijos.join(" · ")}` : base;
-}
 // ----------------------------------------------------------------------------
 /** Devuelve el id del maquinista/operador desde alias permitidos. */
 const getMaquinistaId = (o?: { maquinistaId?: number; operadorId?: number }) =>
@@ -1102,181 +993,29 @@ export class MovimientoModel {
     }
   }
 
-static async obtenerTodosMovimientosPorLocalidad(
-  localidadId: number,
-  opts: { take?: number; cursorId?: number } = {}
-): Promise<Paginado<MovimientoResumen>> {
-  const take = Math.min(Math.max(opts.take ?? 50, 1), 200); // 1..200
-
-  try {
-    // Página con cursor (id) y orden estable
-    const movs = await prisma.movimiento.findMany({
-      where: { localidadId },
-      orderBy: [
-        { prioridad: 'desc' },
-        { createdAt: 'desc' },
-        { id: 'desc' }, // único para cursor estable
-      ],
-      cursor: opts.cursorId ? { id: opts.cursorId } : undefined,
-      skip: opts.cursorId ? 1 : 0,
-      take: take + 1, // 1 extra para detectar hasMore
-      select: {
-        id: true,
-        locomotiveNumber: true,
-        estado: true,
-        prioridad: true,
-        tipoMovimiento: true,
-        finalizado: true,
-        instrucciones: true,
-        lavado: true,
-        torno: true,
-        incidenteGlobal: true,
-        posicionCabina: true,
-        posicionChimenea: true,
-        direccionEmpuje: true,
-        fechaSolicitud: true,
-        fechaInicio: true,
-        fechaPausa: true,
-        fechaFin: true,
-        empresa: { select: { nombre: true } },
-        localidad: { select: { nombre: true } },
-        viaOrigen: { select: { numero: true, nombre: true } },
-        viaDestino: { select: { numero: true, nombre: true } },
-        creadoPor: { select: { nombre: true } },
-        cliente: { select: { nombre: true } },
-        operador: { select: { nombre: true } },
-        supervisor: { select: { nombre: true } },
-        coordinador: { select: { nombre: true } },
-        ronda: { select: { rondaNumero: true, orden: true, concluido: true } },
-        servicio: { select: { tipo: true, estado: true, orden: true } },
-        incidentes: { select: { estado: true }, orderBy: { fechaInicio: 'desc' }, take: 1 }, // último
-      },
-    });
-
-    if (movs.length === 0) return { items: [], hasMore: false };
-
-    const hasMore = movs.length > take;
-    const page = hasMore ? movs.slice(0, take) : movs;
-    const nextCursorId = hasMore ? page[page.length - 1].id : undefined;
-
-    const ids = page.map(m => m.id);
-
-    // Tipos auxiliares para que TS no moleste
-    type IncRow = { movimientoId: number; _count: { _all: number } };
-
-    const [abiertosRows, totalesRows] = await prisma.$transaction([
-      prisma.incidente.groupBy({
-        by: ['movimientoId'],
-        where: { movimientoId: { in: ids }, estado: 'ABIERTO' },
-        _count: { _all: true },
-      }),
-      prisma.incidente.groupBy({
-        by: ['movimientoId'],
-        where: { movimientoId: { in: ids } },
-        _count: { _all: true },
-      }),
-    ]) as [IncRow[], IncRow[]];
-
-    const mapAbiertos = new Map<number, number>();
-    for (const r of abiertosRows) mapAbiertos.set(r.movimientoId, r._count._all);
-
-    const mapTotales = new Map<number, number>();
-    for (const r of totalesRows) mapTotales.set(r.movimientoId, r._count._all);
-
-    const items: MovimientoResumen[] = page.map((m) => {
-      const total = mapTotales.get(m.id) ?? 0;
-      const abiertos = mapAbiertos.get(m.id) ?? 0;
-
-      const ultimoEstado = m.incidentes[0]?.estado
-        ? (MAP_INC[m.incidentes[0].estado] ?? m.incidentes[0].estado)
-        : undefined;
-
-      const servicio = m.servicio
-        ? {
-            tipo: MAP_SERV_TIPO[m.servicio.tipo] ?? m.servicio.tipo,
-            estado: MAP_SERV_ESTADO[m.servicio.estado] ?? m.servicio.estado,
-            orden: m.servicio.orden,
-          }
-        : undefined;
-
-      const instrucciones =
-        m.instrucciones && m.instrucciones.length > 140
-          ? `${m.instrucciones.slice(0, 140)}…`
-          : (m.instrucciones ?? undefined);
-
-      return {
-        id: m.id,
-        locomotora: m.locomotiveNumber,
-        estado: MAP_ESTADO[m.estado] ?? m.estado,
-        estatus: buildEstatus({
-          estado: m.estado,
-          finalizado: m.finalizado ?? false,
-          prioridad: m.prioridad as 'ALTA' | 'BAJA',
-          servicio: m.servicio ? { tipo: m.servicio.tipo, estado: m.servicio.estado } : null,
-          abiertos,
-        }),
-        prioridad: MAP_PRIORIDAD[m.prioridad] ?? m.prioridad,
-        tipo: m.tipoMovimiento ? (MAP_TIPO[m.tipoMovimiento] ?? m.tipoMovimiento) : undefined,
-        empresa: m.empresa?.nombre ?? 'N/D',
-        localidad: m.localidad?.nombre ?? 'N/D',
-        via: {
-          origen: {
-            numero: m.viaOrigen?.numero ?? 0,
-            nombre: m.viaOrigen?.nombre ?? 'N/D',
-          },
-          destino: m.viaDestino
-            ? { numero: m.viaDestino.numero, nombre: m.viaDestino.nombre }
-            : undefined,
+  static async obtenerTodosMovimientosPorLocalidad(localidadId: number) {
+    try {
+      return await prisma.movimiento.findMany({
+        where: { localidadId },
+        include: {
+          empresa: true,
+          creadoPor: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          incidentes: true,
+          ronda: true,
         },
-        personas: {
-          creadoPor: m.creadoPor?.nombre ?? 'N/D',
-          cliente: m.cliente?.nombre ?? undefined,
-          operador: m.operador?.nombre ?? undefined,
-          maquinista: m.operador?.nombre ?? undefined, // alias
-          supervisor: m.supervisor?.nombre ?? undefined,
-          coordinador: m.coordinador?.nombre ?? undefined,
-        },
-        servicio,
-        ronda: m.ronda
-          ? {
-              numero: m.ronda.rondaNumero,
-              orden: m.ronda.orden,
-              concluido: m.ronda.concluido ?? false,
-            }
-          : undefined,
-        incidentes: { total, abiertos, ultimoEstado },
-        fechas: {
-          solicitud: fmt(m.fechaSolicitud)!,
-          inicio: fmt(m.fechaInicio),
-          pausa: fmt(m.fechaPausa),
-          fin: fmt(m.fechaFin),
-        },
-        instrucciones,
-        posiciones: {
-          cabina: m.posicionCabina ? (MAP_POS[m.posicionCabina] ?? m.posicionCabina) : undefined,
-          chimenea: m.posicionChimenea ? (MAP_POS[m.posicionChimenea] ?? m.posicionChimenea) : undefined,
-          empuje: m.direccionEmpuje ? (MAP_EMP[m.direccionEmpuje] ?? m.direccionEmpuje) : undefined,
-        },
-        flags: { lavado: !!m.lavado, torno: !!m.torno, incidenteGlobal: !!m.incidenteGlobal },
-      };
-    });
-
-    return { items, hasMore, nextCursorId };
-  } catch (error: any) {
-    movimientoError.error('Error al obtener movimientos por localidad (paginado)', {
-      localidadId,
-      cursorId: opts.cursorId,
-      take,
-      errName: error?.name,
-      errMsg: error?.message,
-      errStack: error?.stack,
-      prismaCode: error?.code,
-      prismaMeta: error?.meta,
-    });
-    throw new Error('Error al obtener todos los movimientos por localidad');
+        orderBy: { createdAt: 'desc' },
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al obtener todos los movimientos por localidad', {
+        localidadId,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al obtener todos los movimientos por localidad');
+    }
   }
-}
-
 
   static async obtenerMovimientosPorLocalidadEmpresa(localidadId: number, empresaId: number) {
     try {
