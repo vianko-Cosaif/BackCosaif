@@ -18,6 +18,8 @@ const IncidenteRutas_1 = __importDefault(require("../Rutas/Incidente/IncidenteRu
 const fmcRoutes_1 = __importDefault(require("../FMC/fmcRoutes"));
 const ActualizacionRoutes_1 = __importDefault(require("../Rutas/Actualizacion/ActualizacionRoutes"));
 const SeccionRoutes_1 = __importDefault(require("../Rutas/Via/Secciones/SeccionRoutes"));
+const LavadoRuta_1 = __importDefault(require("../Rutas/Servicios/LavadoRuta"));
+const TornoRuta_1 = __importDefault(require("../Rutas/Servicios/TornoRuta"));
 dotenv_1.default.config();
 const PORT = process.env.PORT;
 /**
@@ -40,9 +42,11 @@ function iniciarServidor() {
         app.use(express_1.default.json());
         // Middleware para habilitar CORS
         app.use((0, cors_1.default)());
-        // Autenticaci�n JWT
+        // Autenticación JWT
         app.use(passport_1.default.initialize());
-        // Registro de rutas por m�dulo
+        // Registro de rutas por módulo
+        app.use("/lavado", LavadoRuta_1.default);
+        app.use("/torno", TornoRuta_1.default);
         app.use("/usuarios", UsuarioRoutes_1.default);
         app.use("/empresas", EmpresaRoutes_1.default);
         app.use("/localidades", LocalidadRutas_1.default);
@@ -52,7 +56,7 @@ function iniciarServidor() {
         app.use("/fcm", fmcRoutes_1.default);
         app.use("/incidentes", IncidenteRutas_1.default);
         app.use("/actualizaciones", ActualizacionRoutes_1.default);
-        app.use("(/secciones", SeccionRoutes_1.default);
+        app.use("/secciones", SeccionRoutes_1.default);
         // Inicia el servidor Express
         app.listen(PORT, () => {
             console.log(`Servidor corriendo en puerto ${PORT}`);

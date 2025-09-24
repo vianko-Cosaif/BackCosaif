@@ -177,23 +177,33 @@ static encolarMovimiento: RequestHandler = async (req, res) => {
   }
 };
 
-  static encolarServicioAlFrenteR1: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    if (Number.isNaN(id)) return res.status(400).json({ message: 'ID inválido' });
+// MovimientoController.ts
+static encolarServicioAlFrenteR1: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const tipo = req.query.tipo as ('LAVADO'|'TORNO'|undefined);
+  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
-    try {
-      const mov = await MovimientoModel.encolarMovimiento(id, { forzarR1Front: true });
-      const next = await RondaModel.siguienteInteligente(mov!.localidadId);
-      res.status(200).json({
-        message: 'Servicio encolado en R1/pos.1 y rondas reacomodadas',
-        movimientoId: id,
-        ronda: mov?.ronda ?? null,
-        siguienteInteligente: next,
-      });
-    } catch (e:any) {
-      res.status(500).json({ message: e?.message || 'Error al encolar servicio al frente' });
-    }
-  };
+  try {
+    // ✅ esto marca lavado/torno si faltan + asegura R1 detrás de ALTAS + reordena BAJAS
+    await RondaModel.encolarServicioPrimero(id, tipo);
+
+    // devolvemos el movimiento (para front) y el "siguiente" sugerido
+    const todos = await MovimientoModel.obtenerMovimientos();
+    const mov = todos.find((m: any) => m.id === id);
+    if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado tras encolar' });
+
+    const next = await RondaModel.siguienteInteligente(mov.localidadId);
+
+    return res.status(200).json({
+      message: 'Servicio encolado en R1 (después de ALTAS). Rondas reacomodadas.',
+      movimiento: mov,
+      siguienteInteligente: next,
+    });
+  } catch (e: any) {
+    log.error('Error al encolar servicio al frente', { error: e, id, tipo });
+    return res.status(500).json({ message: e?.message || 'Error al encolar servicio' });
+  }
+};
 
   /**
    * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
@@ -303,109 +313,114 @@ static encolarMovimiento: RequestHandler = async (req, res) => {
    *   posicionCabina/posicionChimenea/direccionEmpuje='Sin_Solicitar'
    * @returns 201 { message, meta:{destinoSolicitado,seccionSolicitada,liberarOrigen}, movimiento } | 400 | 500
    */
-static nuevoMovimiento: RequestHandler = async (req, res) => {
-  try {
-    const raw: any = { ...req.body };
+ static nuevoMovimiento: RequestHandler = async (req, res) => {
+    try {
+      const raw: any = { ...req.body };
 
-    // ── Defaults ───────────────────────────────────────────────────────────────
-    raw.prioridad ??= 'BAJA';
-    raw.estado ??= 'SOLICITADO';
-    raw.posicionCabina ??= 'Sin_Solicitar';
-    raw.posicionChimenea ??= 'Sin_Solicitar';
-    raw.direccionEmpuje ??= 'Sin_Solicitar';
+      // Defaults
+      raw.prioridad ??= 'BAJA';
+      raw.estado ??= 'SOLICITADO';
+      raw.posicionCabina ??= 'Sin_Solicitar';
+      raw.posicionChimenea ??= 'Sin_Solicitar';
+      raw.direccionEmpuje ??= 'Sin_Solicitar';
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
-    const toInt = (v: any) => {
-      if (v === '' || v === null || v === undefined) return undefined;
-      const n = Number(v);
-      return Number.isFinite(n) ? n : undefined;
-    };
-    const toBool = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+      // Helpers locales
+      const toInt = (v: any) => {
+        if (v === '' || v === null || v === undefined) return undefined;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : undefined;
+      };
+      const toBool = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+      const normalizeLocomotiveNumber = (v: any): string | undefined => {
+        if (v === '' || v === null || v === undefined) return undefined;
+        const s = String(v).trim();
+        if (!/^\d{1,4}$/.test(s)) return undefined;
+        return s.padStart(4, '0'); // "1" -> "0001"
+      };
 
-    // ── Coerción segura ────────────────────────────────────────────────────────
-    const empresaId        = toInt(raw.empresaId);
-    const creadoPorId      = toInt(raw.creadoPorId);
-    const localidadId      = toInt(raw.localidadId);
-    const locomotiveNumber = toInt(raw.locomotiveNumber);
+      // Coerción
+      const empresaId        = toInt(raw.empresaId);
+      const creadoPorId      = toInt(raw.creadoPorId);
+      const localidadId      = toInt(raw.localidadId);
+      const locomotiveNumber = normalizeLocomotiveNumber(raw.locomotiveNumber);
 
-    const viaOrigenId  = toInt(raw.viaOrigenId);
-    const viaDestinoId = toInt(raw.viaDestinoId);
+      const viaOrigenId  = toInt(raw.viaOrigenId);
+      const viaDestinoId = toInt(raw.viaDestinoId);
 
-    const numeroSeccion = toInt(raw.numeroSeccion);
-    const lavado        = toBool(raw.lavado);
-    const torno         = toBool(raw.torno);
+      const numeroSeccion = toInt(raw.numeroSeccion);
+      const lavado        = toBool(raw.lavado);
+      const torno         = toBool(raw.torno);
 
-    // ── Validaciones mínimas ───────────────────────────────────────────────────
-    if (!empresaId || !creadoPorId || !localidadId) {
-      return res.status(400).json({ message: 'Faltan campos obligatorios: empresaId/creadoPorId/localidadId.' });
-    }
-    if (!locomotiveNumber) {
-      return res.status(400).json({ message: 'Falta locomotiveNumber.' });
-    }
-    if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
-      return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA).' });
-    }
-    if (raw.estado && !['SOLICITADO','EN_PROCESO','CONCLUIDO','DETENIDO'].includes(raw.estado)) {
-      return res.status(400).json({ message: 'estado inválido.' });
-    }
-    if (raw.numeroSeccion != null && numeroSeccion === undefined) {
-      return res.status(400).json({ message: 'numeroSeccion debe ser numérico.' });
-    }
+      // Validaciones
+      if (!empresaId || !creadoPorId || !localidadId) {
+        return res.status(400).json({ message: 'Faltan campos obligatorios: empresaId/creadoPorId/localidadId.' });
+      }
+      if (!locomotiveNumber) {
+        return res.status(400).json({ message: 'locomotiveNumber inválido. Use 1–4 dígitos, ej. 0001.' });
+      }
+      if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
+        return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA).' });
+      }
+      if (raw.estado && !['SOLICITADO','EN_PROCESO','CONCLUIDO','DETENIDO'].includes(raw.estado)) {
+        return res.status(400).json({ message: 'estado inválido.' });
+      }
+      if (raw.numeroSeccion != null && numeroSeccion === undefined) {
+        return res.status(400).json({ message: 'numeroSeccion debe ser numérico.' });
+      }
+      if (viaOrigenId !== undefined && viaDestinoId !== undefined && viaOrigenId === viaDestinoId) {
+        return res.status(400).json({ message: 'viaOrigenId y viaDestinoId no pueden ser iguales.' });
+      }
+      const ambasVias = viaOrigenId !== undefined && viaDestinoId !== undefined;
 
-    // Vías: permitir 0, 1 o 2. Si vienen ambas, no pueden ser iguales.
-    const ambasVias = viaOrigenId == undefined && viaDestinoId !== undefined;
+      // Normalización
+      raw.empresaId        = empresaId;
+      raw.creadoPorId      = creadoPorId;
+      raw.localidadId      = localidadId;
+      raw.locomotiveNumber = locomotiveNumber; // string "0001"
 
+      raw.viaOrigenId  = viaOrigenId;
+      raw.viaDestinoId = viaDestinoId;
 
-    // ── Normalización ──────────────────────────────────────────────────────────
-    raw.empresaId        = empresaId;
-    raw.creadoPorId      = creadoPorId;
-    raw.localidadId      = localidadId;
-    raw.locomotiveNumber = locomotiveNumber;
+      raw.lavado = lavado;
+      raw.torno  = torno;
 
-    raw.viaOrigenId  = viaOrigenId;
-    raw.viaDestinoId = viaDestinoId;
+      // META
+      const liberarOrigenFlag =
+        raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
-    raw.lavado = lavado;
-    raw.torno  = torno;
-
-    // ── META: intención para acciones diferidas ────────────────────────────────
-    const liberarOrigenFlag =
-      raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
-
-    const meta = buildMetaTag({
-      viaOrigenId: viaOrigenId,
-      viaDestinoId: viaDestinoId,
-      numeroSeccion: numeroSeccion,
-      moverEntreVias: ambasVias,          // hint para lógica diferida
-      liberarOrigen: liberarOrigenFlag,
-    });
-
-    // Inyectar META al inicio de instrucciones
-    const data = {
-      ...raw,
-      instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
-    };
-    delete (data as any).numeroSeccion; // no se persiste como columna “dura”
-
-    // ── Crear ──────────────────────────────────────────────────────────────────
-    const movimiento = await MovimientoModel.nuevoMovimiento(data);
-
-    return res.status(201).json({
-      message: 'Movimiento creado. (Ocupación/liberación de vías/secciones se aplicará al concluir).',
-      meta: {
-        origenSolicitado: viaOrigenId ?? null,
-        destinoSolicitado: viaDestinoId ?? null,
-        seccionSolicitada: numeroSeccion ?? null,
+      const meta = buildMetaTag({
+        viaOrigenId,
+        viaDestinoId,
+        numeroSeccion,
         moverEntreVias: ambasVias,
         liberarOrigen: liberarOrigenFlag,
-      },
-      movimiento,
-    });
-  } catch (error: any) {
-    log.error('Error al crear movimiento', { error, body: req.body });
-    return res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
-  }
-};
+      });
+
+      const data = {
+        ...raw,
+        instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
+      };
+      delete (data as any).numeroSeccion;
+
+      // Crear
+      const movimiento = await MovimientoModel.nuevoMovimiento(data);
+
+      return res.status(201).json({
+        message: 'Movimiento creado. (Ocupación/liberación de vías/secciones se aplicará al concluir).',
+        meta: {
+          origenSolicitado: viaOrigenId ?? null,
+          destinoSolicitado: viaDestinoId ?? null,
+          seccionSolicitada: numeroSeccion ?? null,
+          moverEntreVias: ambasVias,
+          liberarOrigen: liberarOrigenFlag,
+        },
+        movimiento,
+      });
+    } catch (error: any) {
+      log.error('Error al crear movimiento', { error, body: req.body });
+      return res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
+    }
+  };
 
 
   /**
