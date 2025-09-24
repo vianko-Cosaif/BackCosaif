@@ -56,7 +56,7 @@ router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendien
  *
  * 200 OK | 400 | 500
  */
-router.post('/servicios/:id/encolar', MovimientoController.encolarServicioAlFrenteR1);
+router.post('/servicios/:id/encolar', MovimientoController.iniciarServicio);
 
 /**
  * PATCH /movimientos/servicios/:id/estado
@@ -74,14 +74,6 @@ router.post('/servicios/:id/encolar', MovimientoController.encolarServicioAlFren
  * 200 OK | 400 | 500
  */
 router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServicio);
-
-router.post('/:id/encolar', MovimientoController.encolarMovimiento);
-
-
-// movimientos.routes.ts
-router.get('/servicios/no-encolados', MovimientoController.obtenerServiciosNoEncolados);
-
-
 
 // ---------------------------------------------------------------------------
 // 🚂 MOVIMIENTOS (CRUD + consultas)
