@@ -1,6 +1,6 @@
 // movimiento.controller.ts
 import { RequestHandler } from 'express';
-import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
+import { MovimientoModel } from '../../models/Movimientos/movimientosModel'; // <- casing correcto
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 
 /** ---- Helpers de META (no tocamos Vías/Secciones desde aquí) ----
@@ -49,72 +49,6 @@ export class MovimientoController {
     }
   };
 
-  // NUEVO: GET /movimientos/servicios/pendientes?localidadId=&empresaId=
-  static obtenerServiciosPendientes: RequestHandler = async (req, res) => {
-    const { localidadId, empresaId } = req.query;
-    if (
-      (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
-      (empresaId !== undefined && Number.isNaN(Number(empresaId)))
-    ) {
-      return res.status(400).json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
-    }
-    try {
-      const lista = await MovimientoModel.obtenerServiciosPendientes({
-        localidadId: localidadId !== undefined ? Number(localidadId) : undefined,
-        empresaId: empresaId !== undefined ? Number(empresaId) : undefined,
-      });
-      res.status(200).json(lista);
-    } catch (error) {
-      log.error('Error al obtener servicios pendientes', { error, localidadId, empresaId });
-      res.status(500).json({ message: 'Error al obtener servicios pendientes' });
-    }
-  };
-
-  // NUEVO: PATCH /movimientos/servicios/:id/estado
-  static actualizarEstadoServicio: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    const { estado, operadorId, razon } = req.body as {
-      estado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO';
-      operadorId?: number;
-      razon?: string;
-    };
-
-    const validos = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CANCELADO'];
-    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
-    if (!validos.includes(estado)) {
-      return res.status(400).json({ message: `Estado inválido. Debe ser uno de: ${validos.join(' | ')}` });
-    }
-    if (operadorId !== undefined && typeof operadorId !== 'number') {
-      return res.status(400).json({ message: 'operadorId debe ser numérico si se envía' });
-    }
-
-    try {
-      const mov = await MovimientoModel.actualizarEstadoServicio(id, estado, { operadorId, razon });
-      res.status(200).json({ message: 'Estado de servicio actualizado', movimiento: mov });
-    } catch (error: any) {
-      log.error('Error al actualizar estado de servicio', { error, id, estado });
-      res.status(500).json({ message: error?.message || 'Error al actualizar estado de servicio' });
-    }
-  };
-
-  // GET /movimientos/:id  (detalle + meta)
-  static obtenerMovimientoPorId: RequestHandler = async (req, res) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
-
-    try {
-      const todos = await MovimientoModel.obtenerMovimientos();
-      const mov = todos.find((m: { id: number }) => m.id === id);
-      if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado' });
-
-      const meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
-      res.status(200).json({ ...mov, meta });
-    } catch (error) {
-      log.error('Error al obtener movimiento por id', { error, id });
-      res.status(500).json({ message: 'Error al obtener movimiento' });
-    }
-  };
-
   // POST /movimientos  (NO ocupa/libera vías aquí)
   static nuevoMovimiento: RequestHandler = async (req, res) => {
     try {
@@ -143,17 +77,17 @@ export class MovimientoController {
         raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
       const meta = buildMetaTag({
-        viaDestinoId: raw.viaDestinoId,            // se guarda como META (además de en DB si viene)
-        numeroSeccion: raw.numeroSeccion,          // solo META
-        liberarOrigen: liberarOrigenFlag,
+        viaDestinoId: raw.viaDestinoId,            // lo guardamos como META, no asignamos
+        numeroSeccion: raw.numeroSeccion,          // idem
+        liberarOrigen: liberarOrigenFlag,          // palabra clave "liberar"
       });
 
-      // Inyectamos META al inicio de instrucciones
+      // Inyectamos META al inicio de instrucciones y **removemos** campos operativos
       const data = {
         ...raw,
         instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
       };
-      // ¡OJO! NO borrar viaDestinoId (sí existe en el esquema y queremos persistirlo)
+      delete (data as any).viaDestinoId;
       delete (data as any).numeroSeccion;
 
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
@@ -176,7 +110,7 @@ export class MovimientoController {
   // PATCH /movimientos/:id/prioridad
   static cambiarPrioridad: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { prioridad } = req.body as { prioridad: 'ALTA' | 'BAJA' };
+    const { prioridad } = req.body;
 
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID de movimiento inválido' });
     if (!['ALTA', 'BAJA'].includes(prioridad)) {
@@ -185,7 +119,7 @@ export class MovimientoController {
 
     try {
       const movimientos = await MovimientoModel.obtenerMovimientos();
-      const original = movimientos.find((m: { id: number }) => m.id === id);
+      const original = movimientos.find(m => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       if (original.prioridad === prioridad) {
@@ -195,18 +129,18 @@ export class MovimientoController {
       if (prioridad === 'ALTA') {
         log.info('Cambiando movimiento a ALTA prioridad', {
           id,
-          estadoOriginal: (original as any).estado,
-          localidadId: (original as any).localidadId,
+          estadoOriginal: original.estado,
+          localidadId: original.localidadId,
         });
       }
 
       const movimiento = await MovimientoModel.cambiarPrioridad(id, prioridad);
       const message =
-        prioridad === 'ALTA' && (original as any).estado === 'SOLICITADO'
+        prioridad === 'ALTA' && original.estado === 'SOLICITADO'
           ? 'Prioridad actualizada a ALTA. Se reorganizaron las rondas.'
           : `Prioridad actualizada a ${prioridad}`;
 
-      res.status(200).json({ message, movimiento, prioridadAnterior: (original as any).prioridad, prioridadNueva: prioridad });
+      res.status(200).json({ message, movimiento, prioridadAnterior: original.prioridad, prioridadNueva: prioridad });
     } catch (error) {
       log.error('Error al cambiar prioridad del movimiento', { error, id, prioridad });
       res.status(500).json({ message: 'Error al cambiar prioridad del movimiento' });
@@ -353,23 +287,14 @@ export class MovimientoController {
     }
   };
 
-  // GET /movimientos/ronda/:rondaId/info  (+ meta)
+  // GET /movimientos/ronda/:rondaId/info
   static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     const rondaId = Number(req.params.rondaId);
     if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
 
     try {
       const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
-
-      // Intentamos enriquecer con META a partir del movimiento original
-      let meta: ReturnType<typeof parseMetaFromInstrucciones> | undefined;
-      try {
-        const todos = await MovimientoModel.obtenerMovimientos();
-        const mov = todos.find((m: any) => m.id === (info as any)?.movimiento?.id);
-        if (mov) meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
-      } catch { /* noop */ }
-
-      res.status(200).json(meta ? { ...info, meta } : info);
+      res.status(200).json(info);
     } catch (error) {
       log.error('Error al obtener info de ronda', { error, rondaId });
       res.status(500).json({ message: 'Error al obtener info de ronda' });
@@ -430,17 +355,17 @@ export class MovimientoController {
     try {
       // Obtenemos el movimiento actual para leer origen+meta antes de finalizar
       const todos = await MovimientoModel.obtenerMovimientos();
-      const original = todos.find((m: any) => m.id === id);
+      const original = todos.find(m => m.id === id);
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
-      const meta = parseMetaFromInstrucciones((original as any).instrucciones ?? undefined);
+      const meta = parseMetaFromInstrucciones(original.instrucciones ?? undefined);
 
       const movimiento = await MovimientoModel.finalizarMovimiento(id);
 
       // Acciones SUGERIDAS para que otro servicio (no este controller) ejecute
       const accionesSugeridas: any = {};
-      if (meta.liberar && (original as any).viaOrigenId) {
-        accionesSugeridas.liberarOrigen = { viaId: (original as any).viaOrigenId };
+      if (meta.liberar && original.viaOrigenId) {
+        accionesSugeridas.liberarOrigen = { viaId: original.viaOrigenId };
       }
       if (meta.destinoId) {
         accionesSugeridas.ocuparDestino = {
