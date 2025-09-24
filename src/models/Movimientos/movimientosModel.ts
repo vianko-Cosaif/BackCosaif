@@ -1772,7 +1772,19 @@ private static async _activarServicioTrasMovimiento(movimientoId: number) {
     }
   }
 
-
+  if (destinoLavado) {
+    const existeL = await prisma.lavadoT.findFirst({ where: { movimientoId } });
+    if (!existeL) {
+      await prisma.lavadoT.create({
+        data: {
+          movimientoId,
+          localidadId: mov.localidadId,
+          status: ServicioEstado.EN_SERVICIO,
+          inicio: new Date(),
+        },
+      });
+    }
+  }
 
   if (destinoTorno) {
     const existeT = await prisma.tornoT.findFirst({ where: { movimientoId } });
