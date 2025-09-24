@@ -27,6 +27,17 @@ function assertViasCreate(args: { viaOrigenId?: number|null; viaDestinoId?: numb
   }
 }
 
+// normLoco → INT estricto a DB. Acepta string/number, limpia y convierte.
+function normLoco(v: unknown): number {
+  if (v === null || v === undefined) throw new Error('locomotiveNumber requerido');
+  const digits = String(v).trim().replace(/\D+/g, '');
+  if (!digits) throw new Error('locomotiveNumber inválido');
+  const n = Number(digits);
+  if (!Number.isFinite(n) || n < 0) throw new Error('locomotiveNumber inválido');
+  // opcional: límites
+  if (n > Number.MAX_SAFE_INTEGER) throw new Error('locomotiveNumber fuera de rango');
+  return n;
+}
 // ----------------------------------------------------------------------------
 // Prisma singleton (evita múltiples conexiones en hot-reload)
 // ----------------------------------------------------------------------------
@@ -742,84 +753,87 @@ include: { empresa: true, localidad: true, ronda: true }
  */
 
 
-  // ───────────────────── Crear SIN encolar ─────────────────────
-  static async nuevoMovimiento(data: {
-    empresaId: number;
-    creadoPorId: number;
-    localidadId: number;
-    viaOrigenId?: number;
-    viaDestinoId?: number;
-    numeroSeccion?: number;
-    locomotiveNumber: number;
-    prioridad?: 'BAJA' | 'ALTA';
-    tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
-    estado?: string;
-    fechaSolicitud?: Date;
-    instrucciones?: string;
-    clienteId?: number;
-    supervisorId?: number;
-    coordinadorId?: number;
-    operadorId?: number;   // compat
-    maquinistaId?: number; // alias externo
-    lavado?: boolean;      // ignorado en creación
-    torno?: boolean;       // ignorado en creación
-    posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
-  }) {
-    try {
-      // 1) Validar que vías pertenezcan a la misma localidad
-      const origenId  = data.viaOrigenId ?? undefined;
-      const destinoId = data.viaDestinoId ?? undefined;
-      const idsAValidar = Array.from(new Set([origenId, destinoId].filter(Boolean))) as number[];
-      if (idsAValidar.length) {
-        const vias = await prisma.via.findMany({
-          where: { id: { in: idsAValidar } },
-          select: { id: true, localidadId: true },
-        });
-        if (vias.length !== idsAValidar.length) throw new Error('Alguna vía indicada no existe.');
-        const mismatch = vias.find(v => v.localidadId !== data.localidadId);
-        if (mismatch) throw new Error('La vía indicada no pertenece a la localidad del movimiento.');
-      }
-
-      // 2) Normalizar y NO marcar servicio en creación
-      const movData: any = { ...data };
-      if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
-      delete movData.maquinistaId;
-      delete movData.lavado;
-      delete movData.torno;
-
-      movData.prioridad ??= 'BAJA';
-      movData.estado ??= 'SOLICITADO';
-      movData.fechaSolicitud ??= new Date();
-      movData.posicionCabina ??= 'Sin_Solicitar';
-      movData.posicionChimenea ??= 'Sin_Solicitar';
-      movData.direccionEmpuje ??= 'Sin_Solicitar';
-
-      Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
-
-      // 3) Crear (sin ocupar/liberar y SIN encolar)
-      const mv = await prisma.movimiento.create({ data: movData });
-
-      // 4) Notificar creación. No recalcula “siguiente” porque no se encoló.
-      try {
-        await NotificadorFCM.notificarNuevoMovimiento(mv.id);
-      } catch (e) {
-        movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
-      }
-
-      return await prisma.movimiento.findUnique({
-        where: { id: mv.id },
-        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+static async nuevoMovimiento(data: {
+  empresaId: number;
+  creadoPorId: number;
+  localidadId: number;
+  viaOrigenId?: number;
+  viaDestinoId?: number;
+  numeroSeccion?: number;
+  locomotiveNumber: string | number; // entrada flexible
+  prioridad?: 'BAJA' | 'ALTA';
+  tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
+  estado?: string;
+  fechaSolicitud?: Date;
+  instrucciones?: string;
+  clienteId?: number;
+  supervisorId?: number;
+  coordinadorId?: number;
+  operadorId?: number;   // compat
+  maquinistaId?: number; // alias externo
+  lavado?: boolean;      // ignorado en creación
+  torno?: boolean;       // ignorado en creación
+  posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
+}) {
+  try {
+    // 1) Validar que vías pertenezcan a la misma localidad
+    const origenId  = data.viaOrigenId ?? undefined;
+    const destinoId = data.viaDestinoId ?? undefined;
+    const idsAValidar = Array.from(new Set([origenId, destinoId].filter(Boolean))) as number[];
+    if (idsAValidar.length) {
+      const vias = await prisma.via.findMany({
+        where: { id: { in: idsAValidar } },
+        select: { id: true, localidadId: true },
       });
-    } catch (err: any) {
-      movimientoError.error('Error al crear movimiento', {
-        data,
-        errName: err?.name, errMsg: err?.message, errStack: err?.stack, prismaCode: err?.code, prismaMeta: err?.meta,
-      });
-      throw new Error('Error al crear movimiento');
+      if (vias.length !== idsAValidar.length) throw new Error('Alguna vía indicada no existe.');
+      const mismatch = vias.find(v => v.localidadId !== data.localidadId);
+      if (mismatch) throw new Error('La vía indicada no pertenece a la localidad del movimiento.');
     }
+
+    // 2) Normalizar y NO marcar servicio en creación
+    const movData: any = { ...data };
+
+    // normLoco → Int para Prisma
+    movData.locomotiveNumber = normLoco(data.locomotiveNumber);
+
+    if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
+    delete movData.maquinistaId;
+    delete movData.lavado;
+    delete movData.torno;
+
+    movData.prioridad ??= 'BAJA';
+    movData.estado ??= 'SOLICITADO';
+    movData.fechaSolicitud ??= new Date();
+    movData.posicionCabina ??= 'Sin_Solicitar';
+    movData.posicionChimenea ??= 'Sin_Solicitar';
+    movData.direccionEmpuje ??= 'Sin_Solicitar';
+
+    Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
+
+    // 3) Crear (sin ocupar/liberar y SIN encolar)
+    const mv = await prisma.movimiento.create({ data: movData });
+
+    // 4) Notificar creación. No recalcula “siguiente” porque no se encoló.
+    try {
+      await NotificadorFCM.notificarNuevoMovimiento(mv.id);
+    } catch (e) {
+      movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
+    }
+
+    return await prisma.movimiento.findUnique({
+      where: { id: mv.id },
+      include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+    });
+  } catch (err: any) {
+    movimientoError.error('Error al crear movimiento', {
+      data: { ...data, locomotiveNumber: String(data.locomotiveNumber) },
+      errName: err?.name, errMsg: err?.message, errStack: err?.stack, prismaCode: err?.code, prismaMeta: err?.meta,
+    });
+    throw new Error('Error al crear movimiento');
   }
+}
 
 static async encolarMovimiento(
   id: number,
