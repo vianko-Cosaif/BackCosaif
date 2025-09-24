@@ -52,7 +52,7 @@ async function inferirServicioDesdeDestino(movId: number) {
 
 type MovimientoResumen = {
   id: number;
-  locomotora: string;
+  locomotora: number;
   estado: string;
   estatus: string;
   prioridad: string;
@@ -1696,6 +1696,9 @@ static async obtenerServiciosNoEncolados(filters: {
     }
   }
 
+
+/** Finaliza el movimiento (CONCLUIDO + finalizado), cierra su ronda
+ *  y, si el destino es LAVADO/TORNO, abre el servicio y lo ENCOLA en R1. */
 /** Finaliza el movimiento (CONCLUIDO + finalizado), cierra su ronda
  *  y, si el destino es LAVADO/TORNO, abre el servicio y lo ENCOLA en R1. */
 static async finalizarMovimiento(id: number) {

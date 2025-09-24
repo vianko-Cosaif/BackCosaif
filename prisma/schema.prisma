@@ -133,7 +133,7 @@ model Movimiento {
   localidadId      Int
   viaOrigenId      Int?
   viaDestinoId     Int?
-locomotiveNumber  String   
+locomotiveNumber  Int   
 lavado           Boolean?          @default(false)
   torno            Boolean?          @default(false)
   prioridad        Prioridad         @default(BAJA)
