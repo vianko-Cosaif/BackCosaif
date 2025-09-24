@@ -8,8 +8,8 @@ const prisma = new PrismaClient();
 // Error especializado para adjuntar info del bloqueador
 export class ViaOcupadaPorOtroError extends ConflictError {
   bloqueadorId: number;
-  locomotiveNumber?: String | null;
-  constructor(message: string, info: { bloqueadorId: number; locomotiveNumber?: String | null }) {
+  locomotiveNumber?: number | null;
+  constructor(message: string, info: { bloqueadorId: number; locomotiveNumber?: number | null }) {
     super(message);
     this.bloqueadorId = info.bloqueadorId;
     this.locomotiveNumber = info.locomotiveNumber ?? null;
