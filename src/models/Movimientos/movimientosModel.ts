@@ -1696,51 +1696,78 @@ static async obtenerServiciosNoEncolados(filters: {
     }
   }
 
-  /* ------------------- Finalizar (no libera/ocupa vías aquí) ------------------- */
+/** Finaliza el movimiento (CONCLUIDO + finalizado), cierra su ronda
+ *  y, si el destino es LAVADO/TORNO, abre el servicio y lo ENCOLA en R1. */
+static async finalizarMovimiento(id: number) {
+  try {
+    const mov = await prisma.$transaction(async (tx) => {
+      const actual = await tx.movimiento.findUnique({
+        where: { id },
+        include: { ronda: true },
+      });
+      if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
+      if (actual.finalizado) return actual;
 
-  /** Finaliza el movimiento (CONCLUIDO + finalizado) y concluye su ronda. */
-  static async finalizarMovimiento(id: number) {
+      const res = await tx.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'CONCLUIDO',
+          finalizado: true,
+          fechaFin: new Date(),
+          updatedAt: new Date(),
+        },
+        include: { ronda: true },
+      });
+
+      if (res.ronda) {
+        await tx.ronda.update({
+          where: { id: res.ronda.id },
+          data: { concluido: true, updatedAt: new Date() },
+        });
+        await RondaModel.recomponerRondasLocalidad(res.localidadId, tx);
+      }
+
+      return res;
+    });
+
+    // 1) Abrir servicio en LavadoT/TornoT (idempotente; marca flags si aplica)
+    await MovimientoModel._activarServicioTrasMovimiento(mov.id);
+
+    // 2) Si quedó marcado como servicio, ENCOLAR al frente de R1 (después del bloque ALTAS)
     try {
-      const mov = await prisma.$transaction(async (tx) => {
-        const actual = await tx.movimiento.findUnique({
-          where: { id },
-          include: { ronda: true },
-        });
-        if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
-        if (actual.finalizado) return actual;
-
-        const res = await tx.movimiento.update({
-          where: { id },
-          data: { estado: 'CONCLUIDO', finalizado: true, fechaFin: new Date(), updatedAt: new Date() },
-          include: { ronda: true },
-        });
-
-        if (res.ronda) {
-          await tx.ronda.update({ where: { id: res.ronda.id }, data: { concluido: true, updatedAt: new Date() } });
-          await RondaModel.recomponerRondasLocalidad(res.localidadId, tx);
-        }
-
-        return res;
+      const m2 = await prisma.movimiento.findUnique({
+        where: { id: mov.id },
+        select: { lavado: true, torno: true },
       });
-
-      // ✔ Abrir servicio en LavadoT/TornoT (NO crear nuevo movimiento)
-      await MovimientoModel._activarServicioTrasMovimiento(mov.id);
-
-      await notificarMovimientoFinalizado(mov.id);
-      await RondaModel.siguienteInteligente(mov.localidadId);
-      return mov;
-    } catch (error: any) {
-      movimientoError.error('Error al finalizar movimiento', {
-        id,
-        errName: error?.name,
-        errMsg: error?.message,
-        errStack: error?.stack,
-        prismaCode: error?.code,
-        prismaMeta: error?.meta,
+      if (m2?.lavado || m2?.torno) {
+        await RondaModel.onServicioActivado(mov.id); // alias de iniciarServicio → encolaServicioPrimero
+      }
+    } catch (e: any) {
+      movimientoError.warn('Finalizar: no se pudo encolar servicio tras activar', {
+        movimientoId: mov.id,
+        errName: e?.name,
+        errMsg: e?.message,
       });
-      throw new Error('Error al finalizar movimiento');
     }
+
+    // 3) Notificar y avanzar motor
+    await notificarMovimientoFinalizado(mov.id);
+    await RondaModel.siguienteInteligente(mov.localidadId);
+
+    return mov;
+  } catch (error: any) {
+    movimientoError.error('Error al finalizar movimiento', {
+      id,
+      errName: error?.name,
+      errMsg: error?.message,
+      errStack: error?.stack,
+      prismaCode: error?.code,
+      prismaMeta: error?.meta,
+    });
+    throw new Error('Error al finalizar movimiento');
   }
+}
+
 
   /* ------------------- ACTIVAR servicio (LavadoT/TornoT) ------------------- */
   /**

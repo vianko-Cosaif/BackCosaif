@@ -1,18 +1,5 @@
 "use strict";
-/**
- * @file RondaController.ts
- * @author Isaac
- * @version 1.2.0 2025-05-16
- *
- * @description
- * Controlador HTTP para la entidad **Ronda**. Expone los endpoints REST
- * necesarios para gestionar generación, consulta y eliminación de rondas
- * ferroviarias, incluyendo datos completos del movimiento y nombres de vías.
- *
- * Ahora incluye soporte para el sistema de prioridades:
- * - ALTA: Reorganiza todas las rondas existentes
- * - BAJA: Mantiene el principio de una empresa por ronda
- */
+// src/controllers/Movimientos/RondaController.ts
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RondaController = void 0;
@@ -22,49 +9,29 @@ class RondaController {
 }
 exports.RondaController = RondaController;
 _a = RondaController;
-// POST /rondas/generar
-RondaController.generarRondaInteligente = async (_req, res) => {
-    try {
-        const rondas = await RondaModel_1.RondaModel.generarRondaInteligente();
-        res.status(201).json({
-            message: "Rondas generadas exitosamente",
-            rondas,
-            count: rondas.length
-        });
-    }
-    catch (error) {
-        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al generar ronda inteligente", { error });
-        res.status(500).json({ message: "Error al generar ronda inteligente" });
-    }
-};
-// POST /rondas/reorganizar
-RondaController.reorganizarRondas = async (_req, res) => {
-    try {
-        await RondaModel_1.RondaModel.eliminarTodasLasRondas();
-        const rondas = await RondaModel_1.RondaModel.generarRondaInteligente();
-        res.status(200).json({
-            message: "Rondas reorganizadas exitosamente",
-            rondas,
-            count: rondas.length
-        });
-    }
-    catch (error) {
-        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al reorganizar rondas", { error });
-        res.status(500).json({ message: "Error al reorganizar rondas" });
-    }
-};
-// DELETE /rondas
-RondaController.eliminarTodasLasRondas = async (_req, res) => {
-    try {
-        await RondaModel_1.RondaModel.eliminarTodasLasRondas();
-        res.sendStatus(204);
-    }
-    catch (error) {
-        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al eliminar todas las rondas", { error });
-        res.status(500).json({ message: "Error al eliminar todas las rondas" });
-    }
-};
-// POST /rondas/movimiento/:movimientoId
+/**
+ * POST /rondas/movimiento/:movimientoId
+ *
+ * @summary Crea una ronda para un movimiento dado.
+ * @description
+ * Inserta el movimiento en la estructura de rondas según reglas de negocio:
+ * - ALTAS → preferencia por R1 (FIFO), con reordenamientos automáticos.
+ * - BAJAS → balanceo tipo “robin-hood” (máx. 1 por empresa por ronda).
+ * El modelo puede **recomponer** rondas tras la inserción.
+ *
+ * @auth Requiere JWT.
+ *
+ * @param {number} req.params.movimientoId - ID del movimiento (numérico).
+ * @body {number} empresaId - Empresa dueña del movimiento.
+ * @body {number} localidadId - Localidad donde se insertará.
+ * @body {"ALTA"|"BAJA"} [prioridad="BAJA"] - Prioridad inicial.
+ *
+ * @returns 201 { message, movimientoId, empresaId, localidadId, prioridad, siguienteInteligente }
+ * @returns 400 Parámetros inválidos
+ * @returns 500 Error del servidor
+ *
+ * @notes Idempotente: si ya existe una ronda activa para el movimiento, el modelo evita duplicar.
+ */
 RondaController.generarRondaParaMovimiento = async (req, res) => {
     const movimientoId = Number(req.params.movimientoId);
     const { empresaId, localidadId, prioridad } = req.body;
@@ -72,31 +39,29 @@ RondaController.generarRondaParaMovimiento = async (req, res) => {
         res.status(400).json({ message: "Parámetros inválidos" });
         return;
     }
-    // Validar el parámetro de prioridad si viene
-    if (prioridad !== undefined && prioridad !== 'ALTA' && prioridad !== 'BAJA') {
+    if (prioridad !== undefined && prioridad !== "ALTA" && prioridad !== "BAJA") {
         res.status(400).json({ message: "Valor de prioridad inválido. Debe ser 'ALTA' o 'BAJA'" });
         return;
     }
     try {
-        // Asignar valor por defecto a prioridad si no viene
-        const prioridadFinal = prioridad || 'BAJA';
+        const prioridadFinal = prioridad || "BAJA";
         await RondaModel_1.RondaModel.generarRondaParaMovimiento({
             movimientoId,
             empresaId,
             localidadId,
             prioridad: prioridadFinal
         });
-        // Mensaje específico según prioridad
-        let message = "Ronda creada exitosamente";
-        if (prioridadFinal === 'ALTA') {
-            message = "Ronda de ALTA prioridad creada. Se reorganizaron todas las rondas";
-        }
+        // Se expone el “siguiente” post-inserción para que el cliente pueda refrescar UI.
+        const next = await RondaModel_1.RondaModel.siguienteInteligente(localidadId);
         res.status(201).json({
-            message,
+            message: prioridadFinal === "ALTA"
+                ? "Ronda de ALTA prioridad creada. Se reorganizaron las rondas."
+                : "Ronda creada exitosamente.",
             movimientoId,
             empresaId,
             localidadId,
-            prioridad: prioridadFinal
+            prioridad: prioridadFinal,
+            siguienteInteligente: next
         });
     }
     catch (error) {
@@ -104,7 +69,14 @@ RondaController.generarRondaParaMovimiento = async (req, res) => {
         res.status(500).json({ message: "Error al generar ronda para movimiento" });
     }
 };
-// GET /rondas
+/**
+ * GET /rondas
+ *
+ * @summary Lista todas las rondas (todas las localidades).
+ * @auth Requiere JWT.
+ * @returns 200 Rondas con empresa y movimiento embebidos.
+ * @returns 500 Error del servidor.
+ */
 RondaController.obtenerRondas = async (_req, res) => {
     try {
         const rondas = await RondaModel_1.RondaModel.obtenerRondas();
@@ -115,7 +87,17 @@ RondaController.obtenerRondas = async (_req, res) => {
         res.status(500).json({ message: "Error al obtener rondas" });
     }
 };
-// DELETE /rondas/:id
+/**
+ * DELETE /rondas/:id
+ *
+ * @summary Elimina una ronda por ID.
+ * @description El modelo puede recomponer rondas tras la eliminación.
+ * @auth Requiere JWT.
+ * @param {number} req.params.id - ID de la ronda.
+ * @returns 204 Sin contenido
+ * @returns 400 ID inválido
+ * @returns 500 Error del servidor
+ */
 RondaController.eliminarRonda = async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -123,7 +105,9 @@ RondaController.eliminarRonda = async (req, res) => {
         return;
     }
     try {
-        await RondaModel_1.RondaModel.eliminarRonda(id);
+        const eliminada = await RondaModel_1.RondaModel.eliminarRonda(id);
+        // Recalcula “siguiente” en la(s) localidad(es) afectada(s)
+        await RondaModel_1.RondaModel.siguienteInteligente(eliminada.localidadId);
         res.sendStatus(204);
     }
     catch (error) {
@@ -131,7 +115,16 @@ RondaController.eliminarRonda = async (req, res) => {
         res.status(500).json({ message: "Error al eliminar ronda" });
     }
 };
-// GET /rondas/localidad/:localidadId
+/**
+ * GET /rondas/localidad/:localidadId
+ *
+ * @summary Lista rondas para una localidad.
+ * @auth Requiere JWT.
+ * @param {number} req.params.localidadId - Localidad.
+ * @returns 200 Rondas ordenadas por rondaNumero/orden
+ * @returns 400 ID inválido
+ * @returns 500 Error del servidor
+ */
 RondaController.obtenerRondasPorLocalidad = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (isNaN(localidadId)) {
@@ -147,7 +140,17 @@ RondaController.obtenerRondasPorLocalidad = async (req, res) => {
         res.status(500).json({ message: "Error al obtener rondas por localidad" });
     }
 };
-// GET /rondas/localidad/:localidadId/estado/:concluido
+/**
+ * GET /rondas/localidad/:localidadId/estado/:concluido
+ *
+ * @summary Lista rondas por localidad y estado de conclusión.
+ * @auth Requiere JWT.
+ * @param {number} req.params.localidadId
+ * @param {"true"|"false"} req.params.concluido
+ * @returns 200 Rondas filtradas
+ * @returns 400 Parámetros inválidos
+ * @returns 500 Error del servidor
+ */
 RondaController.obtenerRondasPorLocalidadConEstado = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     const concluidoParam = req.params.concluido?.toLowerCase();
@@ -161,15 +164,26 @@ RondaController.obtenerRondasPorLocalidadConEstado = async (req, res) => {
         res.status(200).json(rondas);
     }
     catch (error) {
-        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al obtener rondas por localidad y estado", {
-            error,
-            localidadId,
-            concluido,
-        });
+        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al obtener rondas por localidad y estado", { error, localidadId, concluido });
         res.status(500).json({ message: "Error al obtener rondas por localidad y estado" });
     }
 };
-// PATCH /rondas/intercambiar-movimientos
+/**
+ * PATCH /rondas/intercambiar-movimientos
+ *
+ * @summary Intercambia los movimientos entre dos rondas.
+ * @description
+ * Mantiene orden/ronda de cada slot; solo intercambia `movimientoId` de A<->B.
+ * El modelo valida consistencia (vías/secciones) y puede recomponer post-operación.
+ *
+ * @auth Requiere JWT.
+ * @body {number} rondaAId
+ * @body {number} rondaBId
+ *
+ * @returns 200 { message, rondas:[rondaA, rondaB] }
+ * @returns 400 Parámetros inválidos
+ * @returns 500 Error del servidor (mensaje del modelo si aplica)
+ */
 RondaController.intercambiarMovimientosEntreRondas = async (req, res) => {
     const { rondaAId, rondaBId } = req.body;
     if (isNaN(Number(rondaAId)) || isNaN(Number(rondaBId))) {
@@ -177,10 +191,12 @@ RondaController.intercambiarMovimientosEntreRondas = async (req, res) => {
         return;
     }
     try {
-        const rondasActualizadas = await RondaModel_1.RondaModel.intercambiarMovimientosEntreRondas(Number(rondaAId), Number(rondaBId));
+        const [ra, rb] = await RondaModel_1.RondaModel.intercambiarMovimientosEntreRondas(Number(rondaAId), Number(rondaBId));
+        const locs = Array.from(new Set([ra.localidadId, rb.localidadId]));
+        await Promise.all(locs.map(id => RondaModel_1.RondaModel.siguienteInteligente(id)));
         res.status(200).json({
             message: "Movimientos de rondas intercambiados exitosamente",
-            rondas: rondasActualizadas
+            rondas: [ra, rb]
         });
     }
     catch (error) {
@@ -188,7 +204,18 @@ RondaController.intercambiarMovimientosEntreRondas = async (req, res) => {
         res.status(500).json({ message: error.message || "Error al intercambiar movimientos entre rondas" });
     }
 };
-// PATCH /rondas/:id/intercambiar-movimiento
+/**
+ * PATCH /rondas/:id/intercambiar-movimiento
+ *
+ * @summary Reemplaza el `movimientoId` de una ronda por otro movimiento.
+ * @description El modelo valida consistencia (vías/secciones) y puede recomponer.
+ * @auth Requiere JWT.
+ * @param {number} req.params.id - Ronda objetivo.
+ * @body {number} nuevoMovimientoId - Movimiento a insertar en la ronda.
+ * @returns 200 { message, ronda }
+ * @returns 400 Parámetros inválidos
+ * @returns 500 Error del servidor (mensaje del modelo si aplica)
+ */
 RondaController.intercambiarMovimientoEnRonda = async (req, res) => {
     const rondaId = Number(req.params.id);
     const { nuevoMovimientoId } = req.body;
@@ -197,10 +224,11 @@ RondaController.intercambiarMovimientoEnRonda = async (req, res) => {
         return;
     }
     try {
-        const rondaActualizada = await RondaModel_1.RondaModel.intercambiarMovimientoEnRonda(rondaId, Number(nuevoMovimientoId));
+        const ronda = await RondaModel_1.RondaModel.intercambiarMovimientoEnRonda(rondaId, Number(nuevoMovimientoId));
+        await RondaModel_1.RondaModel.siguienteInteligente(ronda.localidadId);
         res.status(200).json({
             message: "Movimiento de ronda intercambiado exitosamente",
-            ronda: rondaActualizada
+            ronda
         });
     }
     catch (error) {
@@ -208,7 +236,22 @@ RondaController.intercambiarMovimientoEnRonda = async (req, res) => {
         res.status(500).json({ message: error.message || "Error al intercambiar movimiento en ronda" });
     }
 };
-// GET /rondas/localidad/:localidadId/siguiente
+/**
+ * GET /rondas/localidad/:localidadId/siguiente
+ *
+ * @summary Devuelve el siguiente candidato para el maquinista.
+ * @description
+ * El modelo filtra según reglas:
+ * - Servicios (lavado/torno) solo visibles si están `EN_PROCESO`.
+ * - Otros: salta los que ya están `EN_PROCESO`.
+ * También puede **notificar** bloqueo (“tapado”) si detecta obstrucción.
+ *
+ * @auth Requiere JWT.
+ * @param {number} req.params.localidadId
+ * @returns 200 { vacio?:true, motivo? } | { rondaId, movimientoId, empresaId, prioridad, locomotiveNumber?, viaDestino?, bloqueado, permiteInicio:true }
+ * @returns 400 ID inválido
+ * @returns 500 Error del servidor
+ */
 RondaController.obtenerSiguienteEnRonda = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (isNaN(localidadId)) {
@@ -216,15 +259,50 @@ RondaController.obtenerSiguienteEnRonda = async (req, res) => {
         return;
     }
     try {
-        const siguiente = await RondaModel_1.RondaModel.obtenerSiguienteEnRonda(localidadId);
-        res.status(200).json(siguiente ?? {});
+        const result = await RondaModel_1.RondaModel.siguienteInteligente(localidadId);
+        res.status(200).json(result);
     }
     catch (error) {
-        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al obtener el siguiente en la ronda", { error, localidadId });
-        res.status(500).json({ message: "Error al obtener el siguiente en la ronda" });
+        movimiento_controller_logger_1.movimientoControllerLogger.error("Error al obtener el siguiente (maquinista)", { error, localidadId });
+        res.status(500).json({ message: "Error al obtener el siguiente" });
     }
 };
-// GET /rondas/:id/info
+/**
+ * GET /rondas/localidad/:localidadId/siguiente-inteligente
+ *
+ * @summary Alias de `obtenerSiguienteEnRonda`.
+ * @auth Requiere JWT.
+ * @param {number} req.params.localidadId
+ * @returns 200 Ver `obtenerSiguienteEnRonda`
+ * @returns 400 ID inválido
+ * @returns 500 Error del servidor
+ */
+RondaController.obtenerSiguienteInteligente = async (req, res) => {
+    const localidadId = Number(req.params.localidadId);
+    if (isNaN(localidadId)) {
+        res.status(400).json({ message: "ID de localidad inválido" });
+        return;
+    }
+    try {
+        const result = await RondaModel_1.RondaModel.siguienteInteligente(localidadId);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        movimiento_controller_logger_1.movimientoControllerLogger.error("Error en siguiente inteligente", { error, localidadId });
+        res.status(500).json({ message: "Error al calcular siguiente inteligente" });
+    }
+};
+/**
+ * GET /rondas/:id/info
+ *
+ * @summary Devuelve información detallada de una ronda.
+ * @description Incluye datos de empresa y movimiento (vías, flags de servicio, prioridad).
+ * @auth Requiere JWT.
+ * @param {number} req.params.id - ID de la ronda.
+ * @returns 200 { rondaId, rondaNumero, orden, concluido, empresa, movimiento:{...} }
+ * @returns 400 ID inválido
+ * @returns 500 Error del servidor
+ */
 RondaController.obtenerInfoRonda = async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -240,7 +318,17 @@ RondaController.obtenerInfoRonda = async (req, res) => {
         res.status(500).json({ message: "Error al obtener información de ronda" });
     }
 };
-// PATCH /rondas/:id/concluir
+/**
+ * PATCH /rondas/:id/concluir
+ *
+ * @summary Marca una ronda como concluida.
+ * @description El modelo limpia y **recompone** la estructura tras concluir.
+ * @auth Requiere JWT.
+ * @param {number} req.params.id - Ronda a concluir.
+ * @returns 200 { message, ronda, siguienteInteligente }
+ * @returns 400 ID inválido
+ * @returns 500 Error del servidor
+ */
 RondaController.marcarRondaComoConcluida = async (req, res) => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
@@ -249,9 +337,11 @@ RondaController.marcarRondaComoConcluida = async (req, res) => {
     }
     try {
         const ronda = await RondaModel_1.RondaModel.marcarRondaComoConcluida(id);
+        const next = await RondaModel_1.RondaModel.siguienteInteligente(ronda.localidadId);
         res.status(200).json({
             message: "Ronda marcada como concluida",
-            ronda
+            ronda,
+            siguienteInteligente: next
         });
     }
     catch (error) {
