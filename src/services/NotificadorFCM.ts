@@ -19,28 +19,61 @@ export class NotificadorFCM {
   /* ------------------------------------------------------------------ */
 /* 1. Nuevo Movimiento                                                */
 /* ------------------------------------------------------------------ */
+// en NotificadorFCM.ts
 static async notificarNuevoMovimiento(movimiento: any) {
-  const usuarios = await prisma.usuario.findMany({
-    where: {
-      localidadId: movimiento.localidadId,
-      rol: {
-        in: [
-          'SUPERVISOR',
-          'OPERADOR',
-          'MAQUINISTA',
-          'COORDINADOR',
-          'ADMINISTRADOR'      // 👈 añadido
-        ]
+  try {
+    // Asegura tener todos los textos (empresa/vías) aunque el caller mande un objeto parcial
+    const mov = await prisma.movimiento.findUnique({
+      where: { id: movimiento.id ?? movimiento },
+      include: {
+        empresa:   { select: { nombre: true } },
+        localidad: { select: { id: true, nombre: true } },
+        viaOrigen: { select: { nombre: true } },
+        viaDestino:{ select: { nombre: true } },
       },
-      activo: true
-    },
-    include: { fcmTokens: true }
-  });
+    });
+    if (!mov) return;
 
-  const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
-  if (tokens.length === 0) return;
+    // Operativos por LOCALIDAD (incluye MAQUINISTA) + staff interno
+    const usuarios = await prisma.usuario.findMany({
+      where: {
+        activo: true,
+        localidadId: mov.localidadId,
+        rol: {
+          in: ['MAQUINISTA','OPERADOR','SUPERVISOR','COORDINADOR','ADMINISTRADOR']
+        },
+      },
+      include: { fcmTokens: true },
+    });
 
-  /* … resto del código sin cambios … */
+    const tokens = [...new Set(
+      usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean) as string[])
+    )];
+    if (!tokens.length) return;
+
+    if (!admin.apps.length) admin.initializeApp();
+
+    const title = `🆕 Movimiento creado (${mov.prioridad})`;
+    const body  = `Loco ${mov.locomotiveNumber} · ${mov.viaOrigen?.nombre ?? 'N/D'} → ${mov.viaDestino?.nombre ?? 'N/D'} · ${mov.empresa?.nombre ?? 'N/D'}`;
+
+    await admin.messaging().sendEachForMulticast({
+      notification: { title, body },
+      data: {
+        tipo: 'nuevo_movimiento',
+        movimientoId: String(mov.id),
+        prioridad: String(mov.prioridad ?? ''),
+        empresa: String(mov.empresa?.nombre ?? ''),
+        localidadId: String(mov.localidadId),
+        viaOrigen: String(mov.viaOrigen?.nombre ?? ''),
+        viaDestino: String(mov.viaDestino?.nombre ?? ''),
+        locomotora: String(mov.locomotiveNumber),
+        timestamp: new Date().toISOString(),
+      },
+      tokens,
+    });
+  } catch (e) {
+    console.error('Error notificarNuevoMovimiento:', e);
+  }
 }
 
 
