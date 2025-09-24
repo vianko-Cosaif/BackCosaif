@@ -283,7 +283,6 @@ model TornoT {
   medidasI     MedidasTornoI[]   @relation("TornoT_MedidasI")
   medidasF     MedidasTornoF[]   @relation("TornoT_MedidasF")
   @@index([movimientoId])
-  @@index([movimientoId])
   @@index([movimientoId, createdAt])
   @@index([movimientoId, status])
   @@index([localidadId, status, createdAt])
