@@ -280,8 +280,9 @@ model TornoT {
   localidad    Localidad      @relation(fields: [localidadId], references: [id], onDelete: Restrict)
   incidentes   IncidenteTorno[]
   seguimientos SeguimientoTorno[]
-  medidasI     MedidasTornoI[] @relation("TornoT_MedidasI")
-  medidasF     MedidasTornoF[] @relation("TornoT_MedidasF")
+  medidasI     MedidasTornoI[]   @relation("TornoT_MedidasI")
+  medidasF     MedidasTornoF[]   @relation("TornoT_MedidasF")
+  @@index([movimientoId])
   @@index([movimientoId])
   @@index([movimientoId, createdAt])
   @@index([movimientoId, status])
@@ -437,7 +438,8 @@ model MedidasTornoI {
   R6         String
   creadoEn   DateTime @default(now())
 
-  torno      TornoT   @relation(fields: [id_TornoT], references: [id], onDelete: Cascade)
+  // lado hijo → relación nombrada
+  torno      TornoT   @relation("TornoT_MedidasI", fields: [id_TornoT], references: [id], onDelete: Cascade)
 
   @@index([id_TornoT])
 }
@@ -459,10 +461,12 @@ model MedidasTornoF {
   R6         String
   creadoEn   DateTime @default(now())
 
-  torno      TornoT   @relation(fields: [id_TornoT], references: [id], onDelete: Cascade)
+  // lado hijo → relación nombrada
+  torno      TornoT   @relation("TornoT_MedidasF", fields: [id_TornoT], references: [id], onDelete: Cascade)
 
   @@index([id_TornoT])
 }
+
 
 /* ================== ENUMS ================== */
 
