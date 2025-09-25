@@ -192,8 +192,9 @@ export class MovimientoController {
    * @auth Requiere JWT.
    * @body {
    *   empresaId:number, creadoPorId:number, localidadId:number,
-   *   viaOrigenId:number, locomotiveNumber:string|number,
-   *   viaDestinoId?:number, numeroSeccion?:number, prioridad?:'ALTA'|'BAJA',
+   *   viaOrigenId?:number, viaDestinoId?:number,  // ← al menos uno
+   *   locomotiveNumber:string|number,
+   *   numeroSeccion?:number, prioridad?:'ALTA'|'BAJA',
    *   ...otros campos del modelo
    * }
    * @defaults prioridad='BAJA', estado='SOLICITADO',
@@ -212,8 +213,19 @@ export class MovimientoController {
       raw.direccionEmpuje ??= 'Sin_Solicitar';
 
       // Validaciones mínimas
-      if (!raw.empresaId || !raw.creadoPorId || !raw.localidadId || !raw.viaOrigenId || !raw.locomotiveNumber) {
+      if (!raw.empresaId || !raw.creadoPorId || !raw.localidadId || !raw.locomotiveNumber) {
         return res.status(400).json({ message: 'Faltan campos obligatorios.' });
+      }
+      const tieneOrigen = raw.viaOrigenId !== undefined && raw.viaOrigenId !== null;
+      const tieneDestino = raw.viaDestinoId !== undefined && raw.viaDestinoId !== null;
+      if (!tieneOrigen && !tieneDestino) {
+        return res.status(400).json({ message: 'Debe enviar viaOrigenId o viaDestinoId (al menos uno).' });
+      }
+      if (tieneOrigen && Number.isNaN(Number(raw.viaOrigenId))) {
+        return res.status(400).json({ message: 'viaOrigenId debe ser numérico' });
+      }
+      if (tieneDestino && Number.isNaN(Number(raw.viaDestinoId))) {
+        return res.status(400).json({ message: 'viaDestinoId debe ser numérico' });
       }
       if (raw.prioridad && !['ALTA', 'BAJA'].includes(raw.prioridad)) {
         return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
@@ -256,6 +268,60 @@ export class MovimientoController {
       res.status(500).json({ message: 'Error al crear movimiento', details: error?.message });
     }
   };
+
+
+  /**
+ * GET /movimientos/servicios/espera?localidadId=&empresaId=
+ *
+ * @summary Lista SOLO servicios (lavado/torno) en **ESPERA**, FIFO por creación.
+ * @auth Requiere JWT.
+ * @query {number} [localidadId]
+ * @query {number} [empresaId]
+ * @returns 200 [Movimiento] | 400 | 500
+ */
+static listarServiciosEnEsperaFIFO: RequestHandler = async (req, res) => {
+  const { localidadId, empresaId } = req.query;
+  if (
+    (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
+    (empresaId !== undefined && Number.isNaN(Number(empresaId)))
+  ) {
+    return res.status(400).json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
+  }
+  try {
+    const lista = await MovimientoModel.listarServiciosEnEsperaFIFO({
+      localidadId: localidadId !== undefined ? Number(localidadId) : undefined,
+      empresaId: empresaId !== undefined ? Number(empresaId) : undefined,
+    });
+    res.status(200).json(lista);
+  } catch (error) {
+    log.error('Error al listar servicios en ESPERA (FIFO)', { error, localidadId, empresaId });
+    res.status(500).json({ message: 'Error al listar servicios en espera' });
+  }
+};
+
+/**
+ * PATCH /movimientos/servicios/:id/solicitar
+ *
+ * @summary Cambia un servicio (lavado/torno) de **ESPERA → SOLICITADO** y lo encola al frente de **R1** (posición 1), sin importar prioridad.
+ * @auth Requiere JWT.
+ * @param {number} req.params.id
+ * @returns 200 { message, movimiento } | 400 | 500
+ */
+static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+
+  try {
+    const movimiento = await MovimientoModel.solicitarServicioYEncolarFrenteR1(id);
+    res.status(200).json({
+      message: 'Servicio solicitado y encolado al frente de R1',
+      movimiento,
+    });
+  } catch (error: any) {
+    log.error('Error al solicitar y encolar servicio al frente de R1', { error, id });
+    res.status(400).json({ message: error?.message || 'Error al solicitar y encolar servicio' });
+  }
+};
 
   /**
    * PATCH /movimientos/:id/prioridad

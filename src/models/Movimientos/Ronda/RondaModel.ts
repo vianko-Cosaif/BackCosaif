@@ -539,6 +539,84 @@ export class RondaModel {
     }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
   }
 
+
+
+
+  /** 
+ * Cambia el movimiento a SOLICITADO y lo ENCOLA al FRENTE de R1 (orden=1),
+ * sin importar si es ALTA o BAJA. Desplaza el resto y compacta.
+ * No llama a recomposición para no perder el puesto 1.
+ */
+static async solicitarYEncolarFrenteR1(movimientoId: number) {
+  const res = await prisma.$transaction(async (tx) => {
+    const m = await tx.movimiento.findUnique({
+      where: { id: movimientoId },
+      select: { id: true, empresaId: true, localidadId: true, estado: true, finalizado: true },
+    });
+    if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
+    if (m.finalizado || m.estado === 'CANCELADO' || m.estado === 'CONCLUIDO') {
+      throw new Error(`Movimiento ${movimientoId} no puede encolarse (estado=${m.estado}, finalizado=${m.finalizado})`);
+    }
+
+    // 1) Forzar estado = SOLICITADO (marca/actualiza fechaSolicitud si no existe)
+    await tx.movimiento.update({
+      where: { id: movimientoId },
+      data: {
+        estado: 'SOLICITADO',
+        fechaSolicitud: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // 2) Empujar todos en R1 hacia abajo
+    await tx.ronda.updateMany({
+      where: { localidadId: m.localidadId, rondaNumero: 1, concluido: false },
+      data: { orden: { increment: 1 } },
+    });
+
+    // 3) Mover/crear la ronda del movimiento en R1:1
+    const rExistente = await tx.ronda.findFirst({
+      where: { movimientoId },
+      select: { id: true, rondaNumero: true },
+    });
+
+    if (rExistente) {
+      const oldRound = rExistente.rondaNumero;
+      await tx.ronda.update({
+        where: { id: rExistente.id },
+        data: { rondaNumero: 1, orden: 1, updatedAt: new Date() },
+      });
+      if (oldRound !== 1) {
+        await this.compactarOrdenesRonda(tx, m.localidadId, oldRound);
+      }
+    } else {
+      await tx.ronda.create({
+        data: {
+          movimientoId,
+          empresaId: m.empresaId,
+          localidadId: m.localidadId,
+          rondaNumero: 1,
+          orden: 1,
+        },
+      });
+    }
+
+    await this.compactarOrdenesRonda(tx, m.localidadId, 1);
+
+    return await tx.ronda.findFirst({
+      where: { movimientoId },
+      include: {
+        movimiento: { select: { id: true, prioridad: true, estado: true, lavado: true, torno: true } },
+      },
+    });
+  }, { /* @ts-ignore */ isolationLevel: 'Serializable' });
+
+  // Opcional: recalcular sugerencia de siguiente (no afecta el puesto 1 recién forzado)
+  try { await this.siguienteInteligente(res!.localidadId); } catch { /* noop */ }
+
+  return res;
+}
+
   // ---------- MOTOR: SIGUIENTE (SIN BLOQUEOS) ----------
   static async siguienteParaMaquinista(localidadId: number) {
     return prisma.$transaction(async (tx) => {
