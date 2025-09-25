@@ -595,78 +595,104 @@ export class MovimientoModel {
 
   /* --------------------- Crear / Editar (sin tocar vías) --------------------- */
 
-  /**
-   * Crea un movimiento (no ocupa/libera vías). Si queda en SOLICITADO/ESPERA, crea su ronda.
-   * Notifica creación y recalcula “siguiente”.
-   */
-  static async nuevoMovimiento(data: {
-    empresaId: number;
-    creadoPorId: number;
-    localidadId: number;
-    viaOrigenId: number;
-    viaDestinoId?: number;
-    numeroSeccion?: number;
-    locomotiveNumber: number;
-    prioridad?: 'BAJA' | 'ALTA';
-    tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
-    estado?: string;
-    fechaSolicitud?: Date;
-    instrucciones?: string;
-    clienteId?: number;
-    supervisorId?: number;
-    coordinadorId?: number;
-    operadorId?: number;   // compat
-    maquinistaId?: number; // alias externo
-    lavado?: boolean;
-    torno?: boolean;
-    posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
-    direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
-  }) {
-    try {
-      const movData: any = { ...data };
-      if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
-      delete movData.maquinistaId;
 
-      movData.prioridad ??= 'BAJA';
-      movData.estado ??= 'SOLICITADO';
-      movData.posicionCabina ??= 'Sin_Solicitar';
-      movData.posicionChimenea ??= 'Sin_Solicitar';
-      movData.direccionEmpuje ??= 'Sin_Solicitar';
-      Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
+/**
+ * Crea un movimiento (sin ocupar/liberar vías).
+ * - Para servicios (lavado/torno): estado = ESPERA y NO se encola.
+ * - Para no servicios: si queda en SOLICITADO, se encola.
+ * - Debe venir al menos viaOrigenId **o** viaDestinoId.
+ */
+static async nuevoMovimiento(data: {
+  empresaId: number;
+  creadoPorId: number;
+  localidadId: number;
+  viaOrigenId?: number;         // ← ahora opcional
+  viaDestinoId?: number;        // ← opcional (ya lo era)
+  numeroSeccion?: number;
+  locomotiveNumber: number;
+  prioridad?: 'BAJA' | 'ALTA';
+  tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
+  estado?: string;
+  fechaSolicitud?: Date;
+  instrucciones?: string;
+  clienteId?: number;
+  supervisorId?: number;
+  coordinadorId?: number;
+  operadorId?: number;   // compat
+  maquinistaId?: number; // alias externo
+  lavado?: boolean;
+  torno?: boolean;
+  posicionCabina?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  posicionChimenea?: 'Sin_Solicitar' | 'DENTRO' | 'AFUERA';
+  direccionEmpuje?: 'Sin_Solicitar' | 'EMPUJAR' | 'JALAR';
+}) {
+  try {
+    const movData: any = { ...data };
+    const esServicio = !!(movData.lavado || movData.torno);
 
-      const mv = await prisma.movimiento.create({ data: movData });
+    // alias maquinista → operador
+    if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
+    delete movData.maquinistaId;
 
-      if (mv.estado === 'SOLICITADO' || mv.estado === 'ESPERA') {
-        await RondaModel.generarRondaParaMovimiento({
-          movimientoId: mv.id,
-          empresaId: mv.empresaId,
-          localidadId: mv.localidadId,
-          prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
-        });
-      }
-
-      // Delegar notificación de creación (esto incluye MAQUINISTA/OPERADOR por localidad)
-      try {
-        await NotificadorFCM.notificarNuevoMovimiento(mv.id);
-      } catch (e) {
-        movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
-      }
-
-      await RondaModel.siguienteInteligente(mv.localidadId);
-
-      return await prisma.movimiento.findUnique({
-        where: { id: mv.id },
-        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
-      });
-    } catch (err: any) {
-      movimientoError.error('Error al crear movimiento', {
-        data,
-        errName: err?.name, errMsg: err?.message, errStack: err?.stack, prismaCode: err?.code, prismaMeta: err?.meta,
-      });
-      throw new Error('Error al crear movimiento');
+    // Validación: al menos uno de origen/destino
+    const tieneOrigen = typeof movData.viaOrigenId === 'number' && !Number.isNaN(movData.viaOrigenId);
+    const tieneDestino = typeof movData.viaDestinoId === 'number' && !Number.isNaN(movData.viaDestinoId);
+    if (!tieneOrigen && !tieneDestino) {
+      throw new Error('Debe especificar viaOrigenId o viaDestinoId');
     }
+
+    // Defaults
+    movData.prioridad ??= 'BAJA';
+    movData.estado ??= 'SOLICITADO';
+    movData.posicionCabina ??= 'Sin_Solicitar';
+    movData.posicionChimenea ??= 'Sin_Solicitar';
+    movData.direccionEmpuje ??= 'Sin_Solicitar';
+
+    // Regla: servicio arranca en ESPERA y NO se encola
+    if (esServicio) movData.estado = 'ESPERA';
+
+    // Limpiar undefined
+    Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
+
+    const mv = await prisma.movimiento.create({ data: movData });
+
+    // Encolar solo si NO es servicio y quedó SOLICITADO
+    if (!esServicio && mv.estado === 'SOLICITADO') {
+      await RondaModel.generarRondaParaMovimiento({
+        movimientoId: mv.id,
+        empresaId: mv.empresaId,
+        localidadId: mv.localidadId,
+        prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+      });
+    } else {
+      movimientoError.info('Movimiento a servicio creado sin encolar', {
+        movId: mv.id, localidadId: mv.localidadId, empresaId: mv.empresaId,
+        lavado: !!mv.lavado, torno: !!mv.torno, estado: mv.estado
+      });
+    }
+
+    // Notificación de creación
+    try {
+      await NotificadorFCM.notificarNuevoMovimiento(mv.id);
+    } catch (e) {
+      movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
+    }
+
+    await RondaModel.siguienteInteligente(mv.localidadId);
+
+    return await prisma.movimiento.findUnique({
+      where: { id: mv.id },
+      include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+    });
+  } catch (err: any) {
+    movimientoError.error('Error al crear movimiento', {
+      data,
+      errName: err?.name, errMsg: err?.message, errStack: err?.stack, prismaCode: err?.code, prismaMeta: err?.meta,
+    });
+    throw new Error('Error al crear movimiento');
   }
+}
+
 
   /** Cambia estado de servicios (lavado/torno) usando lógica central. */
   static async actualizarEstadoServicio(
@@ -801,6 +827,70 @@ export class MovimientoModel {
     }
   }
 
+
+  /** SOLO servicios (lavado/torno) en ESPERA, FIFO por fecha de creación (primero creado → primero listado). */
+static async listarServiciosEnEsperaFIFO(filters: { localidadId?: number; empresaId?: number } = {}) {
+  try {
+    const where: any = {
+      finalizado: false,
+      estado: 'ESPERA',
+      OR: [{ lavado: true }, { torno: true }],
+    };
+    if (filters.localidadId) where.localidadId = filters.localidadId;
+    if (filters.empresaId) where.empresaId = filters.empresaId;
+
+    return await prisma.movimiento.findMany({
+      where,
+      include: {
+        empresa: true,
+        localidad: true,
+        viaOrigen: true,
+        viaDestino: true,
+        ronda: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  } catch (error: any) {
+    movimientoError.error('Error al listar servicios en ESPERA (FIFO)', {
+      filters,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al listar servicios en espera');
+  }
+}
+
+/**
+ * Pasa un servicio (lavado/torno) de ESPERA → SOLICITADO y lo ENCOLA al **frente de R1**
+ * sin importar prioridad (ALTA/BAJA).
+ */
+static async solicitarServicioYEncolarFrenteR1(id: number) {
+  try {
+    const m0 = await prisma.movimiento.findUnique({
+      where: { id },
+      select: { id: true, localidadId: true, empresaId: true, estado: true, lavado: true, torno: true },
+    });
+    if (!m0) throw new Error(`No se encontró movimiento con id ${id}`);
+    if (!m0.lavado && !m0.torno) throw new Error('El movimiento no es un servicio de lavado/torno');
+
+    // Hace el cambio a SOLICITADO y lo pone en posición 1 de R1 (transacción dentro del RondaModel)
+    await RondaModel.solicitarYEncolarFrenteR1(id);
+
+    // Recalcular “siguiente” para la localidad
+    await RondaModel.siguienteInteligente(m0.localidadId);
+
+    return await prisma.movimiento.findUnique({
+      where: { id },
+      include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+    });
+  } catch (error: any) {
+    movimientoError.error('Error al solicitar y encolar servicio al frente de R1', {
+      id,
+      errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+    });
+    throw new Error('Error al solicitar y encolar servicio');
+  }
+}
+
   /* --------------------------------- Otros --------------------------------- */
 
   /** Elimina un movimiento, limpia su ronda y recompone. */
@@ -881,7 +971,7 @@ export class MovimientoModel {
   static async obtenerMovimientosPendientes() {
     try {
       return await prisma.movimiento.findMany({
-        where: { estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
+        where: { estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: {
           empresa: true,
           creadoPor: true,
