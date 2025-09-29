@@ -770,6 +770,7 @@ static async solicitarYEncolarFrenteR1(movimientoId: number) {
           movimiento: {
             select: {
               id: true, locomotiveNumber: true, createdAt: true, estado: true, lavado: true, torno: true, prioridad: true,
+              instrucciones: true,
               viaOrigen: { select: { nombre: true } }, viaDestino: { select: { nombre: true } },
             },
           },
