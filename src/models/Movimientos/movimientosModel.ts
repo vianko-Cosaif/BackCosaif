@@ -598,16 +598,16 @@ export class MovimientoModel {
 
 /**
  * Crea un movimiento (sin ocupar/liberar vías).
- * - Para servicios (lavado/torno): estado = ESPERA y NO se encola.
- * - Para no servicios: si queda en SOLICITADO, se encola.
- * - Debe venir al menos viaOrigenId **o** viaDestinoId.
+ * - Siempre encola en Ronda, sea servicio o no.
+ * - Lavado/torno se tratan igual que cualquier movimiento (sin forzar ESPERA).
+ * - Requiere al menos viaOrigenId **o** viaDestinoId.
  */
 static async nuevoMovimiento(data: {
   empresaId: number;
   creadoPorId: number;
   localidadId: number;
-  viaOrigenId?: number;         // ← ahora opcional
-  viaDestinoId?: number;        // ← opcional (ya lo era)
+  viaOrigenId?: number;
+  viaDestinoId?: number;
   numeroSeccion?: number;
   locomotiveNumber: number;
   prioridad?: 'BAJA' | 'ALTA';
@@ -628,7 +628,6 @@ static async nuevoMovimiento(data: {
 }) {
   try {
     const movData: any = { ...data };
-    const esServicio = !!(movData.lavado || movData.torno);
 
     // alias maquinista → operador
     if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
@@ -648,28 +647,18 @@ static async nuevoMovimiento(data: {
     movData.posicionChimenea ??= 'Sin_Solicitar';
     movData.direccionEmpuje ??= 'Sin_Solicitar';
 
-    // Regla: servicio arranca en ESPERA y NO se encola
-    if (esServicio) movData.estado = 'ESPERA';
-
     // Limpiar undefined
     Object.keys(movData).forEach((k) => movData[k] === undefined && delete movData[k]);
 
     const mv = await prisma.movimiento.create({ data: movData });
 
-    // Encolar solo si NO es servicio y quedó SOLICITADO
-    if (!esServicio && mv.estado === 'SOLICITADO') {
-      await RondaModel.generarRondaParaMovimiento({
-        movimientoId: mv.id,
-        empresaId: mv.empresaId,
-        localidadId: mv.localidadId,
-        prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
-      });
-    } else {
-      movimientoError.info('Movimiento a servicio creado sin encolar', {
-        movId: mv.id, localidadId: mv.localidadId, empresaId: mv.empresaId,
-        lavado: !!mv.lavado, torno: !!mv.torno, estado: mv.estado
-      });
-    }
+    // Encolar SIEMPRE en Ronda (servicio o no)
+    await RondaModel.generarRondaParaMovimiento({
+      movimientoId: mv.id,
+      empresaId: mv.empresaId,
+      localidadId: mv.localidadId,
+      prioridad: (mv.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+    });
 
     // Notificación de creación
     try {
@@ -678,6 +667,7 @@ static async nuevoMovimiento(data: {
       movimientoError.error('Error delegando notificarNuevoMovimiento', { movId: mv.id, err: (e as any)?.message });
     }
 
+    // Recalcular siguiente en ronda
     await RondaModel.siguienteInteligente(mv.localidadId);
 
     return await prisma.movimiento.findUnique({
@@ -692,6 +682,7 @@ static async nuevoMovimiento(data: {
     throw new Error('Error al crear movimiento');
   }
 }
+
 
 
   /** Cambia estado de servicios (lavado/torno) usando lógica central. */
@@ -1182,8 +1173,10 @@ static async solicitarServicioYEncolarFrenteR1(id: number) {
   /* -------------------------- Info compuesta por ronda -------------------------- */
 
   static async obtenerInfoPorRonda(rondaId: number) {
+    
     try {
       const info = await RondaModel.obtenerInfoPorRonda(rondaId);
+      
       if (!info) throw new Error(`No se encontró la ronda con ID ${rondaId}`);
 
       // Asegura instrucciones frescas desde la DB del movimiento
@@ -1191,7 +1184,7 @@ static async solicitarServicioYEncolarFrenteR1(id: number) {
         where: { id: info.movimiento.id },
         select: { instrucciones: true },
       });
-      const instrucciones = movDB?.instrucciones ?? null;
+      const instrucciones = movDB?.instrucciones;
       const meta = parseMetaFromInstrucciones(instrucciones ?? undefined);
 
       return {
