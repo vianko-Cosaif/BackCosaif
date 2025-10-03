@@ -108,7 +108,7 @@ router.get('/empresa/:empresaId/pendientes', MovimientoController.obtenerMovimie
 
 
 
-router.get('/movimientos/servicios/espera', MovimientoController.listarServiciosEnEsperaFIFO);
+router.get('/movimientos/servicios/espera', MovimientoController.listarServiciosPendientesFIFO);
 router.patch('/movimientos/servicios/:id/solicitar', MovimientoController.solicitarServicioYEncolarFrenteR1);
 
 /**
