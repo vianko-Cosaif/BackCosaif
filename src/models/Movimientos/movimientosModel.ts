@@ -819,13 +819,13 @@ static async nuevoMovimiento(data: {
   }
 
 
-  /** SOLO servicios (lavado/torno) en ESPERA, FIFO por fecha de creación (primero creado → primero listado). */
-static async listarServiciosEnEsperaFIFO(filters: { localidadId?: number; empresaId?: number } = {}) {
+/** SOLO servicios (lavado/torno) en SOLICITADO o DETENIDO. FIFO por fecha de creación. */
+static async listarServiciosPendientesFIFO(filters: { localidadId?: number; empresaId?: number } = {}) {
   try {
     const where: any = {
       finalizado: false,
-      estado: 'ESPERA',
       OR: [{ lavado: true }, { torno: true }],
+      estado: { in: ['SOLICITADO', 'DETENIDO'] },
     };
     if (filters.localidadId) where.localidadId = filters.localidadId;
     if (filters.empresaId) where.empresaId = filters.empresaId;
@@ -839,16 +839,17 @@ static async listarServiciosEnEsperaFIFO(filters: { localidadId?: number; empres
         viaDestino: true,
         ronda: true,
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
   } catch (error: any) {
-    movimientoError.error('Error al listar servicios en ESPERA (FIFO)', {
+    movimientoError.error('Error al listar servicios pendientes (FIFO)', {
       filters,
       errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
     });
-    throw new Error('Error al listar servicios en espera');
+    throw new Error('Error al listar servicios pendientes');
   }
 }
+
 
 /**
  * Pasa un servicio (lavado/torno) de ESPERA → SOLICITADO y lo ENCOLA al **frente de R1**
