@@ -270,16 +270,16 @@ export class MovimientoController {
   };
 
 
-  /**
- * GET /movimientos/servicios/espera?localidadId=&empresaId=
+/**
+ * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
  *
- * @summary Lista SOLO servicios (lavado/torno) en **ESPERA**, FIFO por creación.
+ * @summary Lista SOLO servicios (lavado/torno) en **SOLICITADO** o **DETENIDO**, FIFO por creación.
  * @auth Requiere JWT.
  * @query {number} [localidadId]
  * @query {number} [empresaId]
  * @returns 200 [Movimiento] | 400 | 500
  */
-static listarServiciosEnEsperaFIFO: RequestHandler = async (req, res) => {
+static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
   const { localidadId, empresaId } = req.query;
   if (
     (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
@@ -288,14 +288,14 @@ static listarServiciosEnEsperaFIFO: RequestHandler = async (req, res) => {
     return res.status(400).json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
   }
   try {
-    const lista = await MovimientoModel.listarServiciosEnEsperaFIFO({
+    const lista = await MovimientoModel.listarServiciosPendientesFIFO({
       localidadId: localidadId !== undefined ? Number(localidadId) : undefined,
       empresaId: empresaId !== undefined ? Number(empresaId) : undefined,
     });
-    res.status(200).json(lista);
+    return res.status(200).json(lista);
   } catch (error) {
-    log.error('Error al listar servicios en ESPERA (FIFO)', { error, localidadId, empresaId });
-    res.status(500).json({ message: 'Error al listar servicios en espera' });
+    log.error('Error al listar servicios pendientes (FIFO)', { error, localidadId, empresaId });
+    return res.status(500).json({ message: 'Error al listar servicios pendientes' });
   }
 };
 
