@@ -19,44 +19,52 @@ export class NotificadorFCM {
   /* ------------------------------------------------------------------ */
 /* 1. Nuevo Movimiento                                                */
 /* ------------------------------------------------------------------ */
-// en NotificadorFCM.ts
-static async notificarNuevoMovimiento(movimiento: any) {
+// NotificadorFCM.notificarNuevoMovimiento
+static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Promise<void> {
   try {
-    // Asegura tener todos los textos (empresa/vías) aunque el caller mande un objeto parcial
     const mov = await prisma.movimiento.findUnique({
-      where: { id: movimiento.id ?? movimiento },
-      include: {
+      where: { id: (movimiento as any).id ?? movimiento },
+      select: {
+        id: true,
+        prioridad: true,
+        locomotiveNumber: true,
+        localidadId: true,
+        operadorId: true, // <- NECESARIO
         empresa:   { select: { nombre: true } },
-        localidad: { select: { id: true, nombre: true } },
         viaOrigen: { select: { nombre: true } },
         viaDestino:{ select: { nombre: true } },
       },
     });
     if (!mov) return;
 
-    // Operativos por LOCALIDAD (incluye MAQUINISTA) + staff interno
+    // Incluye por localidad + SIEMPRE al operador asignado
     const usuarios = await prisma.usuario.findMany({
       where: {
         activo: true,
-        localidadId: mov.localidadId,
-        rol: {
-          in: ['MAQUINISTA','OPERADOR','SUPERVISOR','COORDINADOR','ADMINISTRADOR']
-        },
+        OR: [
+          {
+            localidadId: mov.localidadId,
+            rol: { in: ['MAQUINISTA','OPERADOR','SUPERVISOR','COORDINADOR','ADMINISTRADOR'] },
+          },
+          // operador asignado aunque esté en otra localidad
+          ...(mov.operadorId ? [{ id: mov.operadorId }] : []),
+        ],
       },
-      include: { fcmTokens: true },
+      select: { id: true, rol: true, localidadId: true, fcmTokens: { select: { token: true } } },
     });
 
-    const tokens = [...new Set(
-      usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean) as string[])
-    )];
-    if (!tokens.length) return;
+    const tokens = [...new Set(usuarios.flatMap(u => u.fcmTokens.map(t => t.token).filter(Boolean)))];
+    if (!tokens.length) {
+      console.warn('FCM: sin tokens', { movId: mov.id, usuarios: usuarios.map(u => u.id) });
+      return;
+    }
 
     if (!admin.apps.length) admin.initializeApp();
 
     const title = `🆕 Movimiento creado (${mov.prioridad})`;
     const body  = `Loco ${mov.locomotiveNumber} · ${mov.viaOrigen?.nombre ?? 'N/D'} → ${mov.viaDestino?.nombre ?? 'N/D'} · ${mov.empresa?.nombre ?? 'N/D'}`;
 
-    await admin.messaging().sendEachForMulticast({
+    const resp = await admin.messaging().sendEachForMulticast({
       notification: { title, body },
       data: {
         tipo: 'nuevo_movimiento',
@@ -71,6 +79,22 @@ static async notificarNuevoMovimiento(movimiento: any) {
       },
       tokens,
     });
+
+    // Limpieza y diagnóstico
+    const failed = resp.responses
+      .map((r, i) => ({ ok: r.success, token: tokens[i], code: r.error?.code }))
+      .filter(x => !x.ok);
+
+    if (failed.length) {
+      console.warn('FCM: fallos por token', { movId: mov.id, failed });
+      const toDelete = failed
+        .filter(f => f.code === 'messaging/registration-token-not-registered' || f.code === 'messaging/invalid-registration-token')
+        .map(f => f.token);
+      if (toDelete.length) {
+        await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
+        console.info('FCM: tokens inválidos eliminados', { count: toDelete.length });
+      }
+    }
   } catch (e) {
     console.error('Error notificarNuevoMovimiento:', e);
   }
