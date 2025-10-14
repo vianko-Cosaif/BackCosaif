@@ -40,6 +40,45 @@ function ensureAdmin() {
   }
 }
 
+const ESTADOS_EDITABLES = new Set(['SOLICITADO','DETENIDO','ESPERA','MODIFICADO']);
+const EDITABLE_KEYS = new Set([
+  'instrucciones',
+  'locomotiveNumber',
+  'viaOrigenId',
+  'viaDestinoId',
+  'tipoMovimiento',
+  'posicionCabina',
+  'posicionChimenea',
+  'direccionEmpuje',
+]);
+type EditableMovimientoInput = Partial<Record<
+  | 'instrucciones'
+  | 'locomotiveNumber'
+  | 'viaOrigenId'
+  | 'viaDestinoId'
+  | 'tipoMovimiento'
+  | 'posicionCabina'
+  | 'posicionChimenea'
+  | 'direccionEmpuje',
+  string | number
+>>;
+
+function pickEditable(data: Record<string, any>) {
+  const out: Record<string, any> = {};
+  for (const k of Object.keys(data || {})) {
+    if (EDITABLE_KEYS.has(k) && data[k] !== undefined) out[k] = data[k];
+  }
+  return out;
+}
+
+function diff(oldObj: any, newObj: any) {
+  const d: Record<string, { old: any; new: any }> = {};
+  for (const k of Object.keys(newObj)) {
+    // solo reporta cambios reales
+    if (oldObj[k] !== newObj[k]) d[k] = { old: oldObj[k] ?? null, new: newObj[k] };
+  }
+  return d;
+}
 /** Chunk helper para FCM multicast. */
 function chunk<T>(arr: T[], size = 500): T[][] {
   const out: T[][] = [];
@@ -444,6 +483,133 @@ export class MovimientoModel {
       throw new Error('Error al cancelar movimiento');
     }
   }
+
+    /** INFO para editor: valores actuales + meta derivada + flags de edición */
+  static async obtenerInfoEdicion(id: number) {
+    const m = await prisma.movimiento.findUnique({
+      where: { id },
+      include: {
+        empresa: { select: { id: true, nombre: true } },
+        localidad: { select: { id: true, nombre: true } },
+        viaOrigen: { select: { id: true, nombre: true, localidadId: true } },
+        viaDestino: { select: { id: true, nombre: true, localidadId: true } },
+      },
+    });
+    if (!m) throw new Error(`Movimiento ${id} no encontrado`);
+
+    const meta = parseMetaFromInstrucciones(m.instrucciones ?? undefined);
+    const editable = !m.finalizado && ESTADOS_EDITABLES.has(m.estado as any);
+
+    return {
+      editable,
+      restricciones: {
+        motivo: editable ? null : 'Finalizado o en estado no editable',
+        estadosPermitidos: Array.from(ESTADOS_EDITABLES),
+        mismaLocalidadParaVias: true,
+      },
+      movimiento: {
+        id: m.id,
+        empresa: m.empresa,
+        localidad: m.localidad,
+        estado: m.estado,
+        finalizado: m.finalizado,
+        instrucciones: m.instrucciones,
+        locomotiveNumber: m.locomotiveNumber,
+        viaOrigen: m.viaOrigen,
+        viaDestino: m.viaDestino,
+        tipoMovimiento: m.tipoMovimiento,
+        posicionCabina: m.posicionCabina,
+        posicionChimenea: m.posicionChimenea,
+        direccionEmpuje: m.direccionEmpuje,
+        meta,
+      },
+      editableKeys: Array.from(EDITABLE_KEYS),
+    };
+  }
+
+  /** GUARDAR cambios del editor con whitelist + validaciones + log + reorden de ronda si aplica */
+  static async guardarEdicion(id: number, payload: EditableMovimientoInput, actorId: number) {
+    const updateData = pickEditable(payload);
+
+    // bloquea payload vacío o llaves no permitidas
+    if (!Object.keys(updateData).length) throw new Error('Sin cambios o campos no editables');
+
+    const actual = await prisma.movimiento.findUnique({
+      where: { id },
+      include: { localidad: true, viaOrigen: true, viaDestino: true, empresa: true, ronda: true },
+    });
+    if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
+    if (actual.finalizado || !ESTADOS_EDITABLES.has(actual.estado as any)) {
+      throw new Error(`Movimiento no editable en estado ${actual.estado}`);
+    }
+
+    // validar localidad consistente al cambiar vías
+    const localidadId = actual.localidadId;
+    if (updateData.viaOrigenId) {
+      const v = await prisma.via.findUnique({ where: { id: Number(updateData.viaOrigenId) } });
+      if (!v || v.localidadId !== localidadId) throw new Error('viaOrigenId inválida para la localidad del movimiento');
+    }
+    if (updateData.viaDestinoId) {
+      const v = await prisma.via.findUnique({ where: { id: Number(updateData.viaDestinoId) } });
+      if (!v || v.localidadId !== localidadId) throw new Error('viaDestinoId inválida para la localidad del movimiento');
+    }
+
+    // limpia undefined explícitos
+    Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
+
+    // no tocar prioridad/estado/empresa/localidad en este endpoint
+    ['prioridad','estado','empresaId','localidadId','lavado','torno','finalizado'].forEach(k => delete (updateData as any)[k]);
+
+    const cambios = diff(actual, updateData);
+    if (!Object.keys(cambios).length) return actual; // nada que hacer
+
+    const actualizado = await prisma.$transaction(async (tx) => {
+      const upd = await tx.movimiento.update({
+        where: { id },
+        data: { ...updateData, updatedAt: new Date() },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+
+      // Log opcional si existe la tabla MovimientoEditLog
+      try {
+        // @ts-ignore: puede no existir según tu schema actual
+        await (tx as any).movimientoEditLog?.create({
+          data: {
+            movimientoId: id,
+            actorId,
+            cambios: cambios as any,
+            motivo: 'edicion_general',
+          },
+        });
+      } catch (e) {
+      
+      }
+
+      return upd;
+    });
+
+    // Reglas de ronda mínimas: si estaba SOLICITADO y no tenía ronda, genera
+    if (actualizado.estado === 'SOLICITADO' && !actualizado.ronda) {
+      await RondaModel.generarRondaParaMovimiento({
+        movimientoId: actualizado.id,
+        empresaId: actualizado.empresaId,
+        localidadId: actualizado.localidadId,
+        prioridad: (actualizado.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+      });
+    }
+
+    await RondaModel.siguienteInteligente(actualizado.localidadId);
+
+    movimientoError.info('Movimiento editado', {
+      movimientoId: id,
+      actorId,
+      cambios: Object.keys(cambios),
+      localidadId,
+    });
+
+    return actualizado;
+  }
+
 
   /** Reactiva un movimiento DETENIDO → EN_PROCESO. */
   static async reactivarMovimiento(id: number, maquinistaId?: number) {

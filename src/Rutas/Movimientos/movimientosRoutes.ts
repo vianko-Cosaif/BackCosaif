@@ -229,6 +229,11 @@ router.post('/', MovimientoController.nuevoMovimiento);
  */
 router.patch('/:id/prioridad', MovimientoController.cambiarPrioridad);
 
+
+
+router.get('/:id/edicion', MovimientoController.obtenerInfoEdicion);
+router.patch('/:id/edicion', MovimientoController.guardarEdicion);
+
 /**
  * DELETE /movimientos/:id
  * Elimina un movimiento.
