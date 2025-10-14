@@ -299,6 +299,36 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
   }
 };
 
+
+ static async obtenerInfoEdicion(req: import('express').Request, res: import('express').Response) {
+    try {
+      const id = Number(req.params.id);
+      if (Number.isNaN(id)) return res.status(400).json({ error: 'id inválido' });
+      const info = await MovimientoModel.obtenerInfoEdicion(id);
+      return res.json(info);
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message ?? 'Error interno' });
+    }
+  }
+
+  static async guardarEdicion(req: import('express').Request, res: import('express').Response) {
+    try {
+      const id = Number(req.params.id);
+      if (Number.isNaN(id)) return res.status(400).json({ error: 'id inválido' });
+
+      // passport jwt debe inyectar req.user
+      const actorId = Number((req as any).user?.id);
+      if (!actorId) return res.status(401).json({ error: 'No autenticado' });
+
+      const actualizado = await MovimientoModel.guardarEdicion(id, req.body, actorId);
+      return res.json(actualizado);
+    } catch (e: any) {
+      const msg = e?.message ?? 'Error interno';
+      const code = /no encontrado|inválid|editable/.test(msg) ? 400 : 500;
+      return res.status(code).json({ error: msg });
+    }
+  }
+
 /**
  * PATCH /movimientos/servicios/:id/solicitar
  *
