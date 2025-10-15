@@ -69,6 +69,7 @@ model Usuario {
   incidentesLavado    IncidenteLavado[]
   seguimientosTorno   SeguimientoTorno[]
   seguimientosLavado  SeguimientoLavado[]
+  ips  IpUsuario[]
 
   @@index([empresaId, activo])
   @@index([localidadId, rol])
@@ -242,18 +243,52 @@ model ServicioCola {
   @@index([empresaId, estado])
 }
 
-model Token {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique @db.VarChar(500)
-  jti       String   @unique
-  tipo      String   @default("auth")
-  usuarioId Int
-  creadoEn  DateTime @default(now())
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@index([usuarioId, tipo])
-  @@index([jti])
+
+enum TokenTipo {
+  ACCESS
 }
+
+model Token {
+  jti        String     @id @db.Uuid              // JWT ID
+  usuarioId  Int
+  tipo       TokenTipo  @default(ACCESS)        
+  scope      String?    @db.VarChar(256)          
+  ip         String?    @db.Inet                  // requiere PostgreSQL
+  ua         String?    @db.VarChar(512)
+  deviceId   String?    @db.VarChar(128)          
+  platform   String?    @db.VarChar(32)           
+  issuedAt   DateTime   @default(now())
+  expiresAt  DateTime                             
+  revokedAt  DateTime?
+  reason     String?    @db.VarChar(64)           
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, revokedAt])              
+  @@index([expiresAt])                            
+  @@unique([usuarioId, deviceId], map: "uniq_user_device") // opcional: 1 sesión por dispositivo
+}
+enum DeviceType {
+  WEB
+  ANDROID
+  IOS
+  DESKTOP
+  OTHER
+}
+
+model IpUsuario {
+  usuarioId       Int
+  ip              String      @db.Inet
+  tipoDispositivo DeviceType
+
+  usuario         Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, ip, tipoDispositivo]) // evita duplicados por usuario+ip+dispositivo
+}
+
 
 model Actualizacion {
   id               Int                 @id @default(autoincrement())
