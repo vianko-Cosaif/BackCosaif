@@ -1,10 +1,23 @@
-// src/models/UsuarioModel.ts
 import { PrismaClient, Rol } from '@prisma/client';
 import argon2 from 'argon2';
 import { logger } from '../../utils/logger';
 
 const prisma = new PrismaClient();
 const normalizeEmail = (e: string) => e.trim().toLowerCase();
+
+function logPrismaError(ctx: string, error: any, extra: Record<string, any> = {}) {
+  const payload = {
+    ctx,
+    name: error?.name,
+    code: error?.code,
+    clientVersion: error?.clientVersion,
+    meta: error?.meta,
+    message: error?.message,
+    stack: error?.stack,
+    ...extra,
+  };
+  logger.error(`PRISMA_ERROR:${ctx}`, payload);
+}
 
 export class UsuarioModel {
   /** Lista usuarios sin exponer contraseñas. */
@@ -21,27 +34,19 @@ export class UsuarioModel {
           activo: true,
           empresa: { select: { id: true, nombre: true } },
           localidad: { select: { id: true, nombre: true, estado: true } },
-          // Sesiones (Token de 8h)
           tokens: {
             select: {
-              jti: true,
-              deviceId: true,
-              ip: true,
-              issuedAt: true,
-              expiresAt: true,
-              revokedAt: true,
-              reason: true,
+              jti: true, deviceId: true, ip: true, issuedAt: true,
+              expiresAt: true, revokedAt: true, reason: true,
             },
           },
-          // Push (FCM/OneSignal)
           fcmTokens: { select: { id: true, token: true, createdAt: true } },
-          // IPs registradas
           ips: { select: { ip: true, tipoDispositivo: true } },
         },
         orderBy: { id: 'asc' },
       });
     } catch (error) {
-      logger.error('Error al obtener usuarios', error);
+      logPrismaError('obtenerUsuarios', error);
       throw new Error('Error de base de datos');
     }
   }
@@ -57,24 +62,29 @@ export class UsuarioModel {
   ) {
     try {
       if (!nombre || !email || !contrasena || !rol || !empresaId || !localidadId) {
+        logger.warn('crearUsuario: datos incompletos', { nombre, email, rol, empresaId, localidadId });
         throw new Error('Datos incompletos');
       }
       if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
       if (!Object.values(Rol).includes(rol)) throw new Error('Rol no válido');
 
       const empresa = await prisma.empresa.findUnique({ where: { id: empresaId } });
-      if (!empresa) throw new Error('Empresa no válida');
+      if (!empresa) {
+        logger.warn('crearUsuario: empresa no válida', { empresaId });
+        throw new Error('Empresa no válida');
+      }
 
-      const hashingOptions = {
-        timeCost: 4,
-        memoryCost: 4096,
-        parallelism: 2,
-        type: argon2.argon2id,
-        saltLength: 16,
-      };
-      const contrasenaHasheada = await argon2.hash(contrasena, hashingOptions);
+      const localidad = await prisma.localidad.findUnique({ where: { id: localidadId } });
+      if (!localidad) {
+        logger.warn('crearUsuario: localidad no válida', { localidadId });
+        throw new Error('Localidad no válida');
+      }
 
-      return await prisma.usuario.create({
+      const contrasenaHasheada = await argon2.hash(contrasena, {
+        timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id, saltLength: 16,
+      });
+
+      const creado = await prisma.usuario.create({
         data: {
           nombre,
           email: normalizeEmail(email),
@@ -82,37 +92,63 @@ export class UsuarioModel {
           rol,
           empresaId,
           localidadId,
-          // tokenVersion se crea por defecto = 0 (schema)
+          // tokenVersion debe existir en DB con default 0
         },
         select: {
-          id: true,
-          nombre: true,
-          email: true,
-          rol: true,
+          id: true, nombre: true, email: true, rol: true,
           empresa: { select: { id: true, nombre: true } },
           localidad: { select: { id: true, nombre: true, estado: true } },
         },
       });
+
+      logger.info('crearUsuario: usuario creado', { id: creado.id, nombre: creado.nombre, empresaId, localidadId });
+      return creado;
     } catch (error: any) {
-      if (error?.code === 'P2002') throw new Error('Nombre o email ya registrados');
-      logger.error('Error al crear usuario', {
-        error: error instanceof Error ? error.message : 'Error desconocido',
-      });
+      if (error?.code === 'P2002') {
+        logger.warn('crearUsuario: duplicado nombre/email', { nombre, email });
+        throw new Error('Nombre o email ya registrados');
+      }
+      if (error?.code === 'P2003') {
+        logPrismaError('crearUsuario:P2003', error, { empresaId, localidadId });
+        throw new Error('Relación inválida: empresaId/localidadId');
+      }
+      logPrismaError('crearUsuario', error, { nombre, email, empresaId, localidadId });
       throw error instanceof Error ? error : new Error('Error inesperado');
     }
   }
 
   /**
    * Login: valida credenciales y marca activo.
-   * (Opcional: aquí puedes registrar IpUsuario fuera de este método.)
+   * Selección explícita para evitar leer columnas inexistentes (tokenVersion) si la DB está desfasada.
    */
   static async obtenerUsuarioPorCredenciales(nombre: string, contrasena: string) {
     try {
-      const usuario = await prisma.usuario.findFirst({ where: { nombre } });
-      if (!usuario) return { autenticado: false, rol: null, id: null };
+      logger.info('login: intento', { nombre });
+
+      const usuario = await prisma.usuario.findFirst({
+        where: { nombre },
+        select: {
+          id: true,
+          nombre: true,
+          email: true,
+          contrasena: true,
+          empresaId: true,
+          localidadId: true,
+          rol: true,
+          // NO seleccionamos tokenVersion aquí para esquivar P2022 si falta en DB
+        },
+      });
+
+      if (!usuario) {
+        logger.warn('login: usuario no encontrado', { nombre });
+        return { autenticado: false, rol: null, id: null };
+      }
 
       const valid = await argon2.verify(usuario.contrasena, contrasena);
-      if (!valid) return { autenticado: false, rol: null, id: null };
+      if (!valid) {
+        logger.warn('login: contraseña inválida', { id: usuario.id, nombre: usuario.nombre });
+        return { autenticado: false, rol: null, id: null };
+      }
 
       const actualizado = await prisma.usuario.update({
         where: { id: usuario.id },
@@ -129,9 +165,15 @@ export class UsuarioModel {
         },
       });
 
+      logger.info('login: ok', { id: actualizado.id, rol: actualizado.rol });
       return { autenticado: true, ...actualizado };
-    } catch (error) {
-      logger.error('Error en obtenerUsuarioPorCredenciales', error);
+    } catch (error: any) {
+      if (error?.code === 'P2022') {
+        // Columna inexistente en DB
+        logPrismaError('login:P2022_probable_tokenVersion', error, { hint: 'Agregar columna tokenVersion a Usuario' });
+      } else {
+        logPrismaError('login', error, { nombre });
+      }
       throw new Error('Error de autenticación');
     }
   }
@@ -153,17 +195,12 @@ export class UsuarioModel {
 
       if (contrasena) {
         if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
-        const hashingOptions = {
-          timeCost: 4,
-          memoryCost: 4096,
-          parallelism: 2,
-          type: argon2.argon2id,
-          saltLength: 16,
-        };
-        dataToUpdate.contrasena = await argon2.hash(contrasena, hashingOptions);
+        dataToUpdate.contrasena = await argon2.hash(contrasena, {
+          timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id, saltLength: 16,
+        });
       }
 
-      return await prisma.usuario.update({
+      const upd = await prisma.usuario.update({
         where: { id },
         data: dataToUpdate,
         select: {
@@ -175,30 +212,32 @@ export class UsuarioModel {
           localidad: { select: { id: true, nombre: true, estado: true } },
         },
       });
+
+      logger.info('editarUsuario: ok', { id });
+      return upd;
     } catch (error: any) {
-      if (error?.code === 'P2002') throw new Error('Nombre o email ya registrados');
-      logger.error('Error al editar usuario', { error, id, nombre, email });
+      if (error?.code === 'P2002') {
+        logger.warn('editarUsuario: duplicado nombre/email', { id, nombre, email });
+        throw new Error('Nombre o email ya registrados');
+      }
+      logPrismaError('editarUsuario', error, { id, nombre, email });
       throw error instanceof Error ? error : new Error('Error inesperado');
     }
   }
 
-  /**
-   * Registra token de notificaciones en tabla FcmToken.
-   * (Nombre legado mantenido para compat.)
-   */
+  /** Registra token de notificaciones en tabla FcmToken. */
   static async registrarPlayerId(usuarioId: number, playerId: string) {
     if (!usuarioId || !playerId) throw new Error('Usuario o playerId inválido');
-
     try {
       await prisma.fcmToken.upsert({
         where: { token: playerId },
         update: { usuarioId },
         create: { token: playerId, usuarioId },
       });
-      logger.info(`FCM/Player ID registrado para usuario ${usuarioId}`);
+      logger.info('fcm: registrado', { usuarioId });
       return true;
     } catch (error) {
-      logger.error('Error al registrar playerId', { error, usuarioId });
+      logPrismaError('registrarPlayerId', error, { usuarioId });
       throw new Error('No se pudo registrar el token de notificación');
     }
   }
