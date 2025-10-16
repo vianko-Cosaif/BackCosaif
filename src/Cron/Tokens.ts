@@ -1,44 +1,40 @@
 // src/cron/cleanupTokens.ts
-
 import cron from 'node-cron';
-import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
-import * as tokenService from '../middlewares/token.service';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET as string;
+let running = false;
 
 cron.schedule(
-  '0 * * * *', // cada hora en el minuto 0
+  '*/15 * * * *', // cada 15 minutos
   async () => {
-    let revokedCount = 0;
-    const nowMs = Date.now();
+    if (running) return;
+    running = true;
 
     try {
-      const stored = await prisma.token.findMany({ select: { token: true } });
-      for (const { token } of stored) {
-        let shouldRevoke = false;
-        try {
-          const payload = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as jwt.JwtPayload;
-          if (payload.exp && payload.exp * 1000 < nowMs) shouldRevoke = true;
-        } catch {
-          shouldRevoke = true;
-        }
+      const now = new Date();
 
-        if (shouldRevoke) {
-          await tokenService.removeToken(token);
-          revokedCount++;
-        }
-      }
+      // borra expirados o ya revocados
+      const { count } = await prisma.token.deleteMany({
+        where: {
+          OR: [
+            { expiresAt: { lt: now } },
+            { revokedAt: { not: null } },
+          ],
+        },
+      });
 
-      if (revokedCount > 0) {
-        console.log(`[${new Date().toISOString()}] Revocados ${revokedCount} tokens expirados.`);
+      if (count > 0) {
+        console.log(`[cleanupTokens] ${count} tokens purgados @ ${now.toISOString()}`);
       }
     } catch (err) {
-      console.error('Error en limpieza de tokens expirados:', err);
+      console.error('[cleanupTokens] error:', err);
+    } finally {
+      running = false;
     }
   },
-  {
-    timezone: 'America/Mexico_City',
-  }
+  { timezone: 'America/Mexico_City' }
 );
+
+// opcional: export para pruebas
+export {};
