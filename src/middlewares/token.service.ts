@@ -199,13 +199,12 @@ export async function crearReemplazandoPorPlataforma(params: CrearTokenParams) {
   const jti = params.jti ?? uuidv4();
   const plat = normPlatform(params.platform);
 
-  return prisma.$transaction(async (tx) => {
-    await tx.token.updateMany({
-      where: { usuarioId: params.usuarioId, platform: plat, revokedAt: null },
-      data: { revokedAt: now, reason: 'replaced_login' },
-    });
+  tokenLogger.info('token:replace:start', { usuarioId: params.usuarioId, plat, deviceId: params.deviceId });
 
-    return tx.token.create({
+  return prisma.$transaction(async (tx) => {
+    await tx.token.deleteMany({ where: { usuarioId: params.usuarioId, platform: plat } }); // <- clave
+
+    const created = await tx.token.create({
       data: {
         jti,
         usuarioId: params.usuarioId,
@@ -219,8 +218,12 @@ export async function crearReemplazandoPorPlataforma(params: CrearTokenParams) {
         expiresAt: exp,
       },
     });
+
+    tokenLogger.info('token:replace:created', { jti: created.jti, usuarioId: created.usuarioId, plat: created.platform });
+    return created;
   });
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Validación                                                                */
