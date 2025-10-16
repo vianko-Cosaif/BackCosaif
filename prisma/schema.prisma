@@ -249,8 +249,14 @@ model ServicioCola {
 enum TokenTipo {
   ACCESS
 }
+enum DeviceType {
+  WEB
+  ANDROID
+  IOS
+  DESKTOP
+  OTHER
+}
 
-enum TokenTipo { ACCESS }
 
 
 model Token {
