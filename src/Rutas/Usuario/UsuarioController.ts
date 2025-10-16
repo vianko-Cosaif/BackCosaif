@@ -78,48 +78,120 @@ export class UsuarioController {
   };
 
   /** POST /usuarios/login  body: { nombre, contrasena, playerId?, deviceId?, platform?, tipoDispositivo? } */
- static login: RequestHandler = async (req, res) => {
+/** POST /usuarios/login  body: { nombre, contrasena, playerId?, deviceId?, platform?, tipoDispositivo? } */
+static login: RequestHandler = async (req, res) => {
   const { nombre, contrasena, playerId, deviceId: bodyDeviceId, platform: bodyPlatform, tipoDispositivo } = req.body;
   const reqId = (req.headers['x-req-id'] as string) || uuidv4();
+  const t0 = Date.now();
+
+  const ip = extraerIp(req) || undefined;
+  const ua = (req.headers['user-agent'] as string) || undefined;
+  const devId = (bodyDeviceId || (req.headers['x-device-id'] as string)) || undefined;
+  const platRaw = (bodyPlatform || (req.headers['x-platform'] as string)) || 'other';
+
+  console.log(JSON.stringify({
+    level: 'info', msg: 'login:start', reqId, ip, ua, deviceId: devId ?? null,
+    platform: String(platRaw).toLowerCase(), nombre, hasPlayerId: Boolean(playerId)
+  }));
 
   try {
+    const tFind = Date.now();
     const result = await UsuarioModel.obtenerUsuarioPorCredenciales(nombre, contrasena);
+    const findMs = Number((Date.now() - tFind).toFixed(3));
+
     if (!result.autenticado) {
-      usuarioControllerLogger.warn('login:fail', { reqId, nombre });
+      console.log(JSON.stringify({ level: 'warn', msg: 'login:fail', reqId, nombre, findMs }));
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const user = result as any as SafeUser;
+    console.log(JSON.stringify({
+      level: 'info', msg: 'login:user', reqId, userId: user.id, rol: user.rol,
+      empresaId: user.empresaId, localidadId: user.localidadId, findMs
+    }));
+
+    const tSign = Date.now();
     const { token, jti, exp } = tokenService.signAccess(
       { id: user.id, nombre: user.nombre, rol: user.rol, tokenVersion: 0 },
       undefined,
       { reqId, usuarioId: user.id }
     );
+    const signMs = Number((Date.now() - tSign).toFixed(3));
+    console.log(JSON.stringify({ level: 'info', msg: 'login:sign:ok', reqId, jti, exp, signMs }));
 
-    const ip = extraerIp(req) || undefined;
-    const ua = req.headers['user-agent'] || undefined;
-    const devId = (bodyDeviceId || req.headers['x-device-id']) as string | undefined;
-    const plat = (bodyPlatform || req.headers['x-platform']) as string | undefined;
     const issuedAt = new Date();
     const expiresAt = new Date(exp * 1000);
 
-    await tokenService.crearReemplazandoPorPlataforma({
-      usuarioId: user.id, jti, ip, ua: typeof ua === 'string' ? ua : undefined,
-      deviceId: devId, platform: typeof plat === 'string' ? plat.toLowerCase() : 'other',
-      issuedAt, expiresAt,
-    }, { reqId, usuarioId: user.id });
+    const tPersist = Date.now();
+    await tokenService.crearReemplazandoPorPlataforma(
+      {
+        usuarioId: user.id,
+        jti,
+        ip,
+        ua,
+        deviceId: devId,
+        platform: String(platRaw).toLowerCase(),
+        issuedAt,
+        expiresAt,
+      },
+      { reqId, usuarioId: user.id }
+    );
+    const persistMs = Number((Date.now() - tPersist).toFixed(3));
+    console.log(JSON.stringify({ level: 'info', msg: 'login:session:ok', reqId, jti, persistMs }));
 
-    // resto igual...
-    return res.json({ token, user: { /* ... */ } });
-  } catch (error: any) {
-    usuarioControllerLogger.error('login:error', {
-      reqId,
-      nombre,
-      name: error?.name ?? null,
-      message: error?.message ?? String(error),
-      stack: error?.stack ?? null,
+    if (ip) {
+      try {
+        await registrarIpUsuario({
+          usuarioId: user.id,
+          ip,
+          tipoDispositivo: (['WEB','ANDROID','IOS','DESKTOP','OTHER'] as const)
+            .includes(String(tipoDispositivo || platRaw).toUpperCase() as any)
+            ? (String(tipoDispositivo || platRaw).toUpperCase() as any)
+            : 'OTHER',
+        });
+        console.log(JSON.stringify({ level: 'info', msg: 'login:ip:ok', reqId, userId: user.id, ip }));
+      } catch (e: any) {
+        console.log(JSON.stringify({ level: 'warn', msg: 'login:ip:error', reqId, userId: user.id, err: e?.message ?? String(e) }));
+      }
+    }
+
+    if (playerId && typeof playerId === 'string') {
+      try {
+        await UsuarioModel.registrarPlayerId(user.id, playerId);
+        console.log(JSON.stringify({ level: 'info', msg: 'login:fcm:ok', reqId, userId: user.id }));
+      } catch (e: any) {
+        console.log(JSON.stringify({ level: 'warn', msg: 'login:fcm:error', reqId, userId: user.id, err: e?.message ?? String(e) }));
+      }
+    }
+
+    const totalMs = Number((Date.now() - t0).toFixed(3));
+    console.log(JSON.stringify({
+      level: 'info', msg: 'login:ok', reqId, userId: user.id, jti,
+      metrics: { findMs, signMs, persistMs, totalMs }
+    }));
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        email: user.email,
+        rol: user.rol,
+        empresaId: user.empresaId,
+        localidadId: user.localidadId,
+        empresa: user.empresa,
+        localidad: user.localidad,
+      },
     });
+  } catch (error: any) {
+    console.log(JSON.stringify({
+      level: 'error', msg: 'login:error', reqId, nombre,
+      code: error?.code ?? null, err: error?.message ?? String(error), stack: error?.stack ?? null
+    }));
     return res.status(500).json({ error: 'Error en el login' });
+  } finally {
+    console.log(JSON.stringify({ level: 'info', msg: 'login:end', reqId, durMs: Number((Date.now() - t0).toFixed(3)) }));
   }
 };
+
 }
