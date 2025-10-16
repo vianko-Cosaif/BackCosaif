@@ -62,14 +62,15 @@ model Usuario {
   creados             Movimiento[]      @relation("UsuarioCreador")
   operadorMovs        Movimiento[]      @relation("OperadorMovimiento")
   supervisorMovs      Movimiento[]      @relation("SupervisorMovimiento")
-  tokens              Token[]
   empresa             Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   localidad           Localidad         @relation(fields: [localidadId], references: [id])
   incidentesTorno     IncidenteTorno[]
   incidentesLavado    IncidenteLavado[]
   seguimientosTorno   SeguimientoTorno[]
   seguimientosLavado  SeguimientoLavado[]
-  ips  IpUsuario[]
+  tokenVersion  Int         @default(0)        
+  ips           IpUsuario[]
+  tokens        Token[]
 
   @@index([empresaId, activo])
   @@index([localidadId, rol])
@@ -249,44 +250,46 @@ enum TokenTipo {
   ACCESS
 }
 
+enum TokenTipo { ACCESS }
+
+
 model Token {
-  jti        String     @id @db.Uuid              // JWT ID
+  jti        String     @id @db.Uuid
   usuarioId  Int
-  tipo       TokenTipo  @default(ACCESS)        
-  scope      String?    @db.VarChar(256)          
-  ip         String?    @db.Inet                  // requiere PostgreSQL
+  tipo       TokenTipo  @default(ACCESS)
+  scope      String?    @db.VarChar(256)
+  ip         String?    @db.Inet
   ua         String?    @db.VarChar(512)
-  deviceId   String?    @db.VarChar(128)          
-  platform   String?    @db.VarChar(32)           
+  deviceId   String?    @db.VarChar(128)
+  platform   DeviceType                       
   issuedAt   DateTime   @default(now())
-  expiresAt  DateTime                             
+  expiresAt  DateTime
   revokedAt  DateTime?
-  reason     String?    @db.VarChar(64)           
+  reason     String?    @db.VarChar(64)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
   usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@index([usuarioId, revokedAt])              
-  @@index([expiresAt])                            
-  @@unique([usuarioId, deviceId], map: "uniq_user_device") // opcional: 1 sesión por dispositivo
-}
-enum DeviceType {
-  WEB
-  ANDROID
-  IOS
-  DESKTOP
-  OTHER
+  @@index([usuarioId, expiresAt, revokedAt])
+  @@index([expiresAt])
+  @@index([ip])
+  @@index([deviceId])
+
+  @@unique([usuarioId, platform], map: "uniq_user_platform") 
 }
 
 model IpUsuario {
   usuarioId       Int
   ip              String      @db.Inet
   tipoDispositivo DeviceType
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   usuario         Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  @@id([usuarioId, ip, tipoDispositivo]) // evita duplicados por usuario+ip+dispositivo
+  @@id([usuarioId, ip, tipoDispositivo])
+  @@index([ip])                       
 }
 
 
