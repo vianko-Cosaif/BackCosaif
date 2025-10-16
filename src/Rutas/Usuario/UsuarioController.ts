@@ -1,201 +1,168 @@
-// src/models/Usuario/usuarioModel.ts
-import { PrismaClient, Rol } from '@prisma/client';
-import argon2 from 'argon2';
-import { logger as log } from '../../utils/logger';
+// src/controllers/Usuario/usuario.controller.ts
+import { RequestHandler } from 'express';
+import { DeviceType } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import { UsuarioModel } from '../../models/Usuario/usuarioModel';
+import * as tokenService from '../../middlewares/token.service';
+import { registrarIpUsuario, extraerIp } from '../../models/Token/ipUsuario';
+import { usuarioControllerLogger as log } from './usuario.controller.logger';
 
-const prisma = new PrismaClient();
-const normalizeEmail = (e: string) => e.trim().toLowerCase();
+const ser = (e:any)=>({
+  name: e?.name, message: e?.message, code: e?.code,
+  clientVersion: e?.clientVersion, meta: e?.meta, stack: e?.stack,
+});
 const dt = (t0: bigint)=> Number(process.hrtime.bigint() - t0)/1e6;
-const serPrisma = (e:any)=>({ name:e?.name, code:e?.code, clientVersion:e?.clientVersion, meta:e?.meta, message:e?.message, stack:e?.stack });
+const toDeviceType = (v?: string): DeviceType => {
+  const t = String(v || 'OTHER').toUpperCase();
+  return ['WEB','ANDROID','IOS','DESKTOP','OTHER'].includes(t) ? (t as DeviceType) : 'OTHER';
+};
 
-type Ctx = { reqId?: string };
+type SafeUser = {
+  id: number; nombre: string; email: string; rol: string;
+  empresaId: number; localidadId: number;
+  empresa?: { nombre: string }; localidad?: { nombre: string; estado: string };
+};
 
-export class UsuarioModel {
-  static async obtenerUsuarios(ctx: Ctx = {}) {
+export class UsuarioController {
+  static obtenerUsuarios: RequestHandler = async (req, res) => {
+    const reqId = (req.headers['x-request-id'] as string) || randomUUID();
     const t0 = process.hrtime.bigint();
     try {
-      const rows = await prisma.usuario.findMany({
-        select: {
-          id: true, nombre: true, email: true, empresaId: true, localidadId: true, rol: true, activo: true,
-          empresa: { select: { id: true, nombre: true } },
-          localidad: { select: { id: true, nombre: true, estado: true } },
-          tokens: { select: { jti: true, deviceId: true, ip: true, issuedAt: true, expiresAt: true, revokedAt: true, reason: true } },
-          fcmTokens: { select: { id: true, token: true, createdAt: true } },
-          ips: { select: { ip: true, tipoDispositivo: true } },
-        },
-        orderBy: { id: 'asc' },
-      });
-      log.info('usuarioModel:list:ok', { reqId: ctx.reqId, count: rows.length, ms: dt(t0) });
-      return rows;
+      const data = await UsuarioModel.obtenerUsuarios({ reqId });
+      log.info('usuarios:list:ok', { reqId, count: data.length, ms: dt(t0) });
+      res.json(data);
     } catch (error) {
-      log.error('usuarioModel:list:error', { reqId: ctx.reqId, ms: dt(t0), error: serPrisma(error) });
-      throw new Error('Error de base de datos');
+      log.error('usuarios:list:error', { reqId, ms: dt(t0), error: ser(error) });
+      res.status(500).json({ error: 'Error al obtener usuarios' });
     }
-  }
+  };
 
-  static async crearUsuario(
-    nombre: string, email: string, contrasena: string, rol: Rol, empresaId: number, localidadId: number,
-    ctx: Ctx = {}
-  ) {
+  static crearUsuario: RequestHandler = async (req, res) => {
+    const reqId = (req.headers['x-request-id'] as string) || randomUUID();
     const t0 = process.hrtime.bigint();
-    try {
-      if (!nombre || !email || !contrasena || !rol || !empresaId || !localidadId) {
-        log.warn('usuarioModel:create:bad_input', { reqId: ctx.reqId, nombre, email, rol, empresaId, localidadId });
-        throw new Error('Datos incompletos');
-      }
-      if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
-      if (!Object.values(Rol).includes(rol)) throw new Error('Rol no válido');
-
-      const tRefs = process.hrtime.bigint();
-      const [empresa, localidad] = await Promise.all([
-        prisma.empresa.findUnique({ where: { id: empresaId } }),
-        prisma.localidad.findUnique({ where: { id: localidadId } }),
-      ]);
-      if (!empresa) { log.warn('usuarioModel:create:empresa_invalida', { reqId: ctx.reqId, empresaId }); throw new Error('Empresa no válida'); }
-      if (!localidad){ log.warn('usuarioModel:create:localidad_invalida', { reqId: ctx.reqId, localidadId }); throw new Error('Localidad no válida'); }
-      const refsMs = dt(tRefs);
-
-      const tHash = process.hrtime.bigint();
-      const contrasenaHasheada = await argon2.hash(contrasena, { timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id });
-      const hashMs = dt(tHash);
-
-      const tIns = process.hrtime.bigint();
-      const creado = await prisma.usuario.create({
-        data: {
-          nombre,
-          email: normalizeEmail(email),
-          contrasena: contrasenaHasheada,
-          rol,
-          empresaId,
-          localidadId,
-        },
-        select: {
-          id: true, nombre: true, email: true, rol: true,
-          empresa: { select: { id: true, nombre: true } },
-          localidad: { select: { id: true, nombre: true, estado: true } },
-        },
-      });
-      const insMs = dt(tIns);
-
-      log.info('usuarioModel:create:ok', { reqId: ctx.reqId, id: creado.id, refsMs, hashMs, insMs, totalMs: dt(t0) });
-      return creado;
-    } catch (error:any) {
-      if (error?.code === 'P2002') {
-        log.warn('usuarioModel:create:duplicate', { reqId: ctx.reqId, nombre, email });
-        throw new Error('Nombre o email ya registrados');
-      }
-      if (error?.code === 'P2003') {
-        log.error('usuarioModel:create:fk_violation', { reqId: ctx.reqId, empresaId, localidadId, error: serPrisma(error) });
-        throw new Error('Relación inválida: empresaId/localidadId');
-      }
-      log.error('usuarioModel:create:error', { reqId: ctx.reqId, error: serPrisma(error) });
-      throw error instanceof Error ? error : new Error('Error inesperado');
+    const { nombre, email, contrasena, rol, empresaId, localidadId } = req.body || {};
+    if (!nombre || !email || !contrasena || !rol || !empresaId || !localidadId) {
+      log.warn('usuarios:create:bad_request', { reqId, bodyKeys: Object.keys(req.body||{}), ms: dt(t0) });
+      return res.status(400).json({ error: 'Datos incompletos' });
     }
-  }
-
-  static async obtenerUsuarioPorCredenciales(nombre: string, contrasena: string, ctx: Ctx = {}) {
-    const t0 = process.hrtime.bigint();
     try {
-      const tFind = process.hrtime.bigint();
-      const usuario = await prisma.usuario.findFirst({
-        where: { nombre },
-        select: {
-          id: true, nombre: true, email: true, contrasena: true,
-          empresaId: true, localidadId: true, rol: true,
-        },
-      });
-      const findMs = dt(tFind);
-      if (!usuario) {
-        log.warn('usuarioModel:login:not_found', { reqId: ctx.reqId, nombre, findMs, totalMs: dt(t0) });
-        return { autenticado: false, rol: null, id: null };
-      }
-
-      const tVer = process.hrtime.bigint();
-      const valid = await argon2.verify(usuario.contrasena, contrasena);
-      const verMs = dt(tVer);
-      if (!valid) {
-        log.warn('usuarioModel:login:bad_password', { reqId: ctx.reqId, userId: usuario.id, verMs, totalMs: dt(t0) });
-        return { autenticado: false, rol: null, id: null };
-      }
-
-      const tUpd = process.hrtime.bigint();
-      const actualizado = await prisma.usuario.update({
-        where: { id: usuario.id },
-        data: { activo: true },
-        select: {
-          id: true, nombre: true, email: true, empresaId: true, localidadId: true, rol: true,
-          empresa: { select: { nombre: true } },
-          localidad: { select: { nombre: true, estado: true } },
-        },
-      });
-      const updMs = dt(tUpd);
-
-      log.info('usuarioModel:login:ok', {
-        reqId: ctx.reqId, userId: actualizado.id, rol: actualizado.rol, findMs, verMs, updMs, totalMs: dt(t0),
-      });
-      return { autenticado: true, ...actualizado };
-    } catch (error:any) {
-      if (error?.code === 'P2022') {
-        log.error('usuarioModel:login:p2022_missing_column', { reqId: ctx.reqId, hint: 'Agregar columna tokenVersion a Usuario', error: serPrisma(error) });
-      } else {
-        log.error('usuarioModel:login:error', { reqId: ctx.reqId, error: serPrisma(error) });
-      }
-      throw new Error('Error de autenticación');
-    }
-  }
-
-  static async editarUsuario(id: number, nombre: string, email: string, contrasena?: string, ctx: Ctx = {}) {
-    const t0 = process.hrtime.bigint();
-    try {
-      if (!nombre || !email) throw new Error('Datos incompletos');
-
-      const dataToUpdate: { nombre: string; email: string; contrasena?: string } = {
-        nombre,
-        email: normalizeEmail(email),
-      };
-
-      let hashMs = 0;
-      if (contrasena) {
-        if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
-        const tHash = process.hrtime.bigint();
-        dataToUpdate.contrasena = await argon2.hash(contrasena, { timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id });
-        hashMs = dt(tHash);
-      }
-
-      const tUpd = process.hrtime.bigint();
-      const upd = await prisma.usuario.update({
-        where: { id },
-        data: dataToUpdate,
-        select: {
-          id: true, nombre: true, email: true, rol: true,
-          empresa: { select: { id: true, nombre: true } },
-          localidad: { select: { id: true, nombre: true, estado: true } },
-        },
-      });
-      const updMs = dt(tUpd);
-
-      log.info('usuarioModel:update:ok', { reqId: ctx.reqId, id, hashMs, updMs, totalMs: dt(t0) });
-      return upd;
-    } catch (error:any) {
-      if (error?.code === 'P2002') {
-        log.warn('usuarioModel:update:duplicate', { reqId: ctx.reqId, id, nombre, email });
-        throw new Error('Nombre o email ya registrados');
-      }
-      log.error('usuarioModel:update:error', { reqId: ctx.reqId, id, error: serPrisma(error) });
-      throw error instanceof Error ? error : new Error('Error inesperado');
-    }
-  }
-
-  static async registrarPlayerId(usuarioId: number, playerId: string, ctx: Ctx = {}) {
-    const t0 = process.hrtime.bigint();
-    if (!usuarioId || !playerId) throw new Error('Usuario o playerId inválido');
-    try {
-      await prisma.fcmToken.upsert({ where: { token: playerId }, update: { usuarioId }, create: { token: playerId, usuarioId } });
-      log.info('usuarioModel:fcm:ok', { reqId: ctx.reqId, usuarioId, ms: dt(t0) });
-      return true;
+      log.info('usuarios:create:start', { reqId, nombre, email, rol, empresaId, localidadId });
+      const nuevo = await UsuarioModel.crearUsuario(nombre, email, contrasena, rol, Number(empresaId), Number(localidadId), { reqId });
+      log.info('usuarios:create:ok', { reqId, id: nuevo.id, ms: dt(t0) });
+      res.status(201).json(nuevo);
     } catch (error) {
-      log.error('usuarioModel:fcm:error', { reqId: ctx.reqId, usuarioId, ms: dt(t0), error: serPrisma(error) });
-      throw new Error('No se pudo registrar el token de notificación');
+      log.error('usuarios:create:error', { reqId, ms: dt(t0), nombre, email, empresaId, localidadId, error: ser(error) });
+      res.status(500).json({ error: (error as any)?.message || 'Error al crear usuario' });
     }
-  }
+  };
+
+  static editarUsuario: RequestHandler = async (req, res) => {
+    const reqId = (req.headers['x-request-id'] as string) || randomUUID();
+    const t0 = process.hrtime.bigint();
+    const { id } = req.params;
+    const { nombre, email, contrasena } = req.body || {};
+    if (!id || !nombre || !email) {
+      log.warn('usuarios:update:bad_request', { reqId, id, bodyKeys: Object.keys(req.body||{}), ms: dt(t0) });
+      return res.status(400).json({ error: 'Datos incompletos' });
+    }
+    try {
+      log.info('usuarios:update:start', { reqId, id: Number(id), nombre, email, hasPass: Boolean(contrasena) });
+      const upd = await UsuarioModel.editarUsuario(Number(id), nombre, email, contrasena, { reqId });
+      log.info('usuarios:update:ok', { reqId, id: upd.id, ms: dt(t0) });
+      res.json(upd);
+    } catch (error) {
+      log.error('usuarios:update:error', { reqId, id, ms: dt(t0), error: ser(error) });
+      res.status(500).json({ error: 'Error al editar usuario' });
+    }
+  };
+
+  /** POST /usuarios/login  body: { nombre, contrasena, playerId?, deviceId?, platform?, tipoDispositivo? } */
+  static login: RequestHandler = async (req, res) => {
+    const reqId = (req.headers['x-request-id'] as string) || randomUUID();
+    const t0 = process.hrtime.bigint();
+    const b = req.body || {};
+    const nombre = String(b.nombre || '').trim();
+    const contrasena = String(b.contrasena || '');
+    const platHdr  = (req.headers['x-platform'] as string) || '';
+    const devHdr   = (req.headers['x-device-id'] as string) || '';
+    const platBody = (b.platform as string) || '';
+    const devBody  = (b.deviceId as string) || '';
+    const platform = (platBody || platHdr || 'OTHER').toUpperCase();
+    const deviceId = devBody || devHdr || undefined;
+    const ip = extraerIp(req) || undefined;
+    const ua = (req.headers['user-agent'] as string) || undefined;
+
+    if (!nombre || !contrasena) {
+      log.warn('login:bad_request', { reqId, nombreLen: nombre.length, hasPass: Boolean(contrasena) });
+      return res.status(400).json({ error: 'Faltan credenciales' });
+    }
+
+    log.info('login:start', { reqId, nombre, ip, platform, deviceId, hasUA: Boolean(ua) });
+
+    try {
+      const tFetch = process.hrtime.bigint();
+      const result = await UsuarioModel.obtenerUsuarioPorCredenciales(nombre, contrasena, { reqId });
+      const fetchMs = dt(tFetch);
+
+      if (!result.autenticado) {
+        log.warn('login:invalid_credentials', { reqId, nombre, fetchMs, totalMs: dt(t0) });
+        return res.status(401).json({ error: 'Credenciales inválidas' });
+      }
+
+      const user = result as unknown as SafeUser;
+      log.info('login:user_ok', {
+        reqId, userId: user.id, rol: user.rol, empresaId: user.empresaId, localidadId: user.localidadId, fetchMs,
+      });
+
+      const tSign = process.hrtime.bigint();
+      const { token, jti, exp } = tokenService.signAccess({
+        id: user.id, nombre: user.nombre, rol: user.rol as any, tokenVersion: 0,
+      });
+      const signMs = dt(tSign);
+
+      const issuedAt = new Date();
+      const expiresAt = new Date(exp * 1000);
+
+      const tSess = process.hrtime.bigint();
+      await tokenService.crearReemplazandoPorPlataforma({
+        usuarioId: user.id, jti, ip, ua, deviceId, platform, issuedAt, expiresAt,
+      });
+      const sessMs = dt(tSess);
+
+      if (ip) {
+        const tIp = process.hrtime.bigint();
+        try {
+          await registrarIpUsuario({ usuarioId: user.id, ip, tipoDispositivo: toDeviceType(b.tipoDispositivo || platform) });
+          log.info('login:ip_reg_ok', { reqId, userId: user.id, ip, ms: dt(tIp) });
+        } catch (e) {
+          log.warn('login:ip_reg_fail', { reqId, userId: user.id, ip, ms: dt(tIp), error: ser(e) });
+        }
+      }
+
+      if (b.playerId && typeof b.playerId === 'string') {
+        const tFcm = process.hrtime.bigint();
+        try {
+          await UsuarioModel.registrarPlayerId(user.id, b.playerId);
+          log.info('login:fcm_ok', { reqId, userId: user.id, ms: dt(tFcm) });
+        } catch (e) {
+          log.warn('login:fcm_fail', { reqId, userId: user.id, ms: dt(tFcm), error: ser(e) });
+        }
+      }
+
+      log.info('login:ok', { reqId, userId: user.id, jti, signMs, sessMs, totalMs: dt(t0) });
+
+      return res.json({
+        token,
+        user: {
+          id: user.id, nombre: user.nombre, email: user.email, rol: user.rol,
+          empresaId: user.empresaId, localidadId: user.localidadId, empresa: user.empresa, localidad: user.localidad,
+        },
+      });
+    } catch (error) {
+      log.error('login:error', {
+        reqId, nombre, ip, platform, deviceId, totalMs: dt(t0), error: ser(error),
+      });
+      return res.status(500).json({ error: 'Error en el login' });
+    }
+  };
 }
