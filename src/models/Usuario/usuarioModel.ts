@@ -81,7 +81,7 @@ export class UsuarioModel {
       }
 
       const contrasenaHasheada = await argon2.hash(contrasena, {
-        timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id, saltLength: 16,
+        timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id,
       });
 
       const creado = await prisma.usuario.create({
@@ -196,7 +196,7 @@ export class UsuarioModel {
       if (contrasena) {
         if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
         dataToUpdate.contrasena = await argon2.hash(contrasena, {
-          timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id, saltLength: 16,
+          timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id,
         });
       }
 
