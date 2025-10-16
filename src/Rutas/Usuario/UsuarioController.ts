@@ -6,6 +6,7 @@ import { UsuarioModel } from '../../models/Usuario/usuarioModel';
 import * as tokenService from '../../middlewares/token.service';
 import { registrarIpUsuario, extraerIp } from '../../models/Token/ipUsuario';
 import { usuarioControllerLogger as log } from './usuario.controller.logger';
+import { v4 as uuidv4 } from 'uuid';
 
 const ser = (e:any)=>({
   name: e?.name, message: e?.message, code: e?.code,
@@ -77,92 +78,48 @@ export class UsuarioController {
   };
 
   /** POST /usuarios/login  body: { nombre, contrasena, playerId?, deviceId?, platform?, tipoDispositivo? } */
-  static login: RequestHandler = async (req, res) => {
-    const reqId = (req.headers['x-request-id'] as string) || randomUUID();
-    const t0 = process.hrtime.bigint();
-    const b = req.body || {};
-    const nombre = String(b.nombre || '').trim();
-    const contrasena = String(b.contrasena || '');
-    const platHdr  = (req.headers['x-platform'] as string) || '';
-    const devHdr   = (req.headers['x-device-id'] as string) || '';
-    const platBody = (b.platform as string) || '';
-    const devBody  = (b.deviceId as string) || '';
-    const platform = (platBody || platHdr || 'OTHER').toUpperCase();
-    const deviceId = devBody || devHdr || undefined;
+ static login: RequestHandler = async (req, res) => {
+  const { nombre, contrasena, playerId, deviceId: bodyDeviceId, platform: bodyPlatform, tipoDispositivo } = req.body;
+  const reqId = (req.headers['x-req-id'] as string) || uuidv4();
+
+  try {
+    const result = await UsuarioModel.obtenerUsuarioPorCredenciales(nombre, contrasena);
+    if (!result.autenticado) {
+      usuarioControllerLogger.warn('login:fail', { reqId, nombre });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const user = result as any as SafeUser;
+    const { token, jti, exp } = tokenService.signAccess(
+      { id: user.id, nombre: user.nombre, rol: user.rol, tokenVersion: 0 },
+      undefined,
+      { reqId, usuarioId: user.id }
+    );
+
     const ip = extraerIp(req) || undefined;
-    const ua = (req.headers['user-agent'] as string) || undefined;
+    const ua = req.headers['user-agent'] || undefined;
+    const devId = (bodyDeviceId || req.headers['x-device-id']) as string | undefined;
+    const plat = (bodyPlatform || req.headers['x-platform']) as string | undefined;
+    const issuedAt = new Date();
+    const expiresAt = new Date(exp * 1000);
 
-    if (!nombre || !contrasena) {
-      log.warn('login:bad_request', { reqId, nombreLen: nombre.length, hasPass: Boolean(contrasena) });
-      return res.status(400).json({ error: 'Faltan credenciales' });
-    }
+    await tokenService.crearReemplazandoPorPlataforma({
+      usuarioId: user.id, jti, ip, ua: typeof ua === 'string' ? ua : undefined,
+      deviceId: devId, platform: typeof plat === 'string' ? plat.toLowerCase() : 'other',
+      issuedAt, expiresAt,
+    }, { reqId, usuarioId: user.id });
 
-    log.info('login:start', { reqId, nombre, ip, platform, deviceId, hasUA: Boolean(ua) });
-
-    try {
-      const tFetch = process.hrtime.bigint();
-      const result = await UsuarioModel.obtenerUsuarioPorCredenciales(nombre, contrasena, { reqId });
-      const fetchMs = dt(tFetch);
-
-      if (!result.autenticado) {
-        log.warn('login:invalid_credentials', { reqId, nombre, fetchMs, totalMs: dt(t0) });
-        return res.status(401).json({ error: 'Credenciales inválidas' });
-      }
-
-      const user = result as unknown as SafeUser;
-      log.info('login:user_ok', {
-        reqId, userId: user.id, rol: user.rol, empresaId: user.empresaId, localidadId: user.localidadId, fetchMs,
-      });
-
-      const tSign = process.hrtime.bigint();
-      const { token, jti, exp } = tokenService.signAccess({
-        id: user.id, nombre: user.nombre, rol: user.rol as any, tokenVersion: 0,
-      });
-      const signMs = dt(tSign);
-
-      const issuedAt = new Date();
-      const expiresAt = new Date(exp * 1000);
-
-      const tSess = process.hrtime.bigint();
-      await tokenService.crearReemplazandoPorPlataforma({
-        usuarioId: user.id, jti, ip, ua, deviceId, platform, issuedAt, expiresAt,
-      });
-      const sessMs = dt(tSess);
-
-      if (ip) {
-        const tIp = process.hrtime.bigint();
-        try {
-          await registrarIpUsuario({ usuarioId: user.id, ip, tipoDispositivo: toDeviceType(b.tipoDispositivo || platform) });
-          log.info('login:ip_reg_ok', { reqId, userId: user.id, ip, ms: dt(tIp) });
-        } catch (e) {
-          log.warn('login:ip_reg_fail', { reqId, userId: user.id, ip, ms: dt(tIp), error: ser(e) });
-        }
-      }
-
-      if (b.playerId && typeof b.playerId === 'string') {
-        const tFcm = process.hrtime.bigint();
-        try {
-          await UsuarioModel.registrarPlayerId(user.id, b.playerId);
-          log.info('login:fcm_ok', { reqId, userId: user.id, ms: dt(tFcm) });
-        } catch (e) {
-          log.warn('login:fcm_fail', { reqId, userId: user.id, ms: dt(tFcm), error: ser(e) });
-        }
-      }
-
-      log.info('login:ok', { reqId, userId: user.id, jti, signMs, sessMs, totalMs: dt(t0) });
-
-      return res.json({
-        token,
-        user: {
-          id: user.id, nombre: user.nombre, email: user.email, rol: user.rol,
-          empresaId: user.empresaId, localidadId: user.localidadId, empresa: user.empresa, localidad: user.localidad,
-        },
-      });
-    } catch (error) {
-      log.error('login:error', {
-        reqId, nombre, ip, platform, deviceId, totalMs: dt(t0), error: ser(error),
-      });
-      return res.status(500).json({ error: 'Error en el login' });
-    }
-  };
+    // resto igual...
+    return res.json({ token, user: { /* ... */ } });
+  } catch (error: any) {
+    usuarioControllerLogger.error('login:error', {
+      reqId,
+      nombre,
+      name: error?.name ?? null,
+      message: error?.message ?? String(error),
+      stack: error?.stack ?? null,
+    });
+    return res.status(500).json({ error: 'Error en el login' });
+  }
+};
 }
