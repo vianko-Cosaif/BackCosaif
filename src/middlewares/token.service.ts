@@ -76,48 +76,47 @@ const normPlatform = (p: PlatformInput): DeviceType => {
 export function signAccess(
   user: SignUser,
   ttl: StringValue = JWT_TTL,
-  ctx?: Ctx
+  ctx?: { reqId?: string | null; usuarioId?: number | null }
 ): { token: string; jti: string; exp: number } {
-  const t0 = now();
+  const t0 = Date.now();
   const jti = uuidv4();
+
   const payload = {
     sub: String(user.id),
     nombre: user.nombre,
     rol: user.rol,
     v: user.tokenVersion ?? 0,
     typ: 'access',
-    jti,
+    // jti fuera del payload
   };
+
   const opts: SignOptions = {
     expiresIn: ttl,
     issuer: ISS,
     audience: AUD,
-    jwtid: jti,
+    jwtid: jti,      // jti aquí
     algorithm: 'HS256',
   };
 
-  tokenLogger.info('token:sign:start', withCtx({
-    iss: ISS ?? null,
-    aud: AUD ?? null,
-    ttl: typeof ttl === 'string' ? ttl : `${ttl}ms`,
-  }, ctx));
+  console.log(JSON.stringify({ level:'info', msg:'token:sign:start',
+    iss: ISS ?? null, aud: AUD ?? null, ttl: typeof ttl === 'string' ? ttl : `${ttl}ms`,
+    ...(ctx?.reqId ? { reqId: ctx.reqId } : {}), ...(ctx?.usuarioId ? { usuarioId: ctx.usuarioId } : {}),
+  }));
 
   const token = jwt.sign(payload, SECRET, opts);
   const exp =
     (jwt.decode(token) as any)?.exp ??
     Math.floor((Date.now() + (typeof ttl === 'string' ? ms(ttl) : Number(ttl))) / 1000);
 
-  tokenLogger.info('token:sign:ok', withCtx({
-    jti,
-    sub: payload.sub,
-    rol: user.rol ?? null,
-    v: payload.v,
-    exp,
-    signMs: dt(t0),
-  }, ctx));
+  console.log(JSON.stringify({ level:'info', msg:'token:sign:ok',
+    jti, sub: payload.sub, rol: user.rol ?? null, v: payload.v, exp,
+    signMs: Number((Date.now() - t0).toFixed(3)),
+    ...(ctx?.reqId ? { reqId: ctx.reqId } : {}), ...(ctx?.usuarioId ? { usuarioId: ctx.usuarioId } : {}),
+  }));
 
   return { token, jti, exp };
 }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Persistencia (Token = sesión)                                             */
