@@ -189,6 +189,10 @@ router.get('/localidad/:localidadId/empresa/:empresaId', MovimientoController.ob
  */
 router.get('/ronda/:rondaId/info', MovimientoController.obtenerInfoPorRonda);
 
+
+
+router.patch('/movimientos/:id/cancelar', MovimientoController.cancelarMovimiento);
+
 /**
  * POST /movimientos
  * Crea un movimiento.

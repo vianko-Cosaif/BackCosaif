@@ -160,6 +160,34 @@ export class MovimientoController {
   };
 
   /**
+ * PATCH /movimientos/:id/cancelar
+ *
+ * @summary Cancela el movimiento y lo saca de la ronda.
+ * @auth Requiere JWT.
+ * @param {number} req.params.id
+ * @body {{ razon?: string }}
+ * @returns 200 { message, movimiento } | 400 | 404 | 500
+ */
+static cancelarMovimiento: RequestHandler = async (req, res) => {
+  const id = Number(req.params.id);
+  const razon = String(req.body?.razon ?? 'Sin motivo');
+  const usuarioId = Number((req as any).user?.id || 0);
+
+  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+
+  try {
+    const mov = await MovimientoModel.cancelarMovimiento(id, razon, usuarioId || undefined);
+    return res.status(200).json({ message: 'Movimiento cancelado y removido de la ronda', movimiento: mov });
+  } catch (error: any) {
+    log.error('Error al cancelar movimiento', { error, id, razon, usuarioId });
+    const msg = error?.message || 'Error al cancelar movimiento';
+    const code = /no se encontró|no encontrado|inválid/i.test(msg) ? 404 : 500;
+    return res.status(code).json({ message: msg });
+  }
+};
+
+
+  /**
    * GET /movimientos/:id
    *
    * @summary Obtiene detalle de un movimiento + `meta` derivado de `instrucciones`.
