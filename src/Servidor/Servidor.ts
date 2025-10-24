@@ -1,4 +1,3 @@
-import express, { Express } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import passport from "../middlewares/passport";
@@ -12,6 +11,8 @@ import IncidenteRoutes from "../Rutas/Incidente/IncidenteRutas";
 import FmcRutas from  "../FMC/fmcRoutes"
 import actualizacionRoutes  from "../Rutas/Actualizacion/ActualizacionRoutes";
 import Secciones from "../Rutas/Via/Secciones/SeccionRoutes";
+import express, { Express, Request, Response } from "express";
+
 dotenv.config();
 
 
@@ -42,7 +43,9 @@ export function iniciarServidor(): void {
 
     // Autenticaci�n JWT
     app.use(passport.initialize());
-
+   app.get("/", (_req: Request, res: Response) => {
+      res.json({ ok: true, mensaje: "Hola mundo" });
+    });
     // Registro de rutas por m�dulo
     app.use("/usuarios", usuarioRoutes);
     app.use("/empresas", empresaRoutes);
@@ -57,6 +60,7 @@ export function iniciarServidor(): void {
     // Inicia el servidor Express
     app.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
+
     });
   } catch (error) {
     process.exit(1);
