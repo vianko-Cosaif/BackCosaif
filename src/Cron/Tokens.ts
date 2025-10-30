@@ -1,4 +1,4 @@
-// src/cron/cleanupTokens.ts
+// src/cron/revokeEvery2h.ts
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 
@@ -6,29 +6,30 @@ const prisma = new PrismaClient();
 let running = false;
 
 cron.schedule(
-  '*/15 * * * *', // cada 15 minutos
+  '0 */2 * * *', // cada 2 horas
   async () => {
     if (running) return;
     running = true;
 
     try {
-      const now = new Date();
-
-      // borra expirados o ya revocados
-      const { count } = await prisma.token.deleteMany({
-        where: {
-          OR: [
-            { expiresAt: { lt: now } },
-            { revokedAt: { not: null } },
-          ],
+      // 1. rotar versión de token para tumbar JWT viejos
+      await prisma.usuario.updateMany({
+        data: {
+          tokenVersion: { increment: 1 },
         },
       });
 
-      if (count > 0) {
-        console.log(`[cleanupTokens] ${count} tokens purgados @ ${now.toISOString()}`);
-      }
+      // 2. borrar sesiones (tokens de acceso)
+      const { count: tokenCount } = await prisma.token.deleteMany({});
+
+      // 3. borrar FCM para que no lleguen notificaciones a quien ya no debe
+      const { count: fcmCount } = await prisma.fcmToken.deleteMany({});
+
+      console.log(
+        `[revokeEvery2h] usuarios rotados, ${tokenCount} tokens borrados, ${fcmCount} FCM borrados @ ${new Date().toISOString()}`
+      );
     } catch (err) {
-      console.error('[cleanupTokens] error:', err);
+      console.error('[revokeEvery2h] error:', err);
     } finally {
       running = false;
     }
@@ -36,5 +37,4 @@ cron.schedule(
   { timezone: 'America/Mexico_City' }
 );
 
-// opcional: export para pruebas
 export {};
