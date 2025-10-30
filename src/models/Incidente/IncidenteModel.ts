@@ -421,123 +421,125 @@ export class IncidenteModel {
 
   /* =================== ESCRITURA / UPDATE =================== */
 
-  static async editarIncidente(
-    id: number,
-    data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
-  ) {
-    try {
-      const { incidenteActualizado, estadoAnterior } = await prisma.$transaction(async (tx) => {
-        const actual = await tx.incidente.findUnique({
-          where: { id },
-          include: { movimiento: true },
-        });
-        if (!actual) throw new Error(`No se encontró incidente con id ${id}`);
+static async editarIncidente(
+  id: number,
+  data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
+) {
+  try {
+    const { incidenteActualizado, estadoAnterior } = await prisma.$transaction(async (tx) => {
+      const actual = await tx.incidente.findUnique({
+        where: { id },
+        include: { movimiento: true },
+      });
+      if (!actual) throw new Error(`No se encontró incidente con id ${id}`);
 
-        const updateData: any = {};
-        if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
+      const updateData: any = {};
+      if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
 
-        if (data.imagenes?.length) {
-          const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
-          for (const ruta of anteriores) {
-            if (!ruta) continue;
-            try {
-              await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
-            } catch (err) {
-              incidenteError.warn('No se pudo eliminar imagen anterior', { ruta, err });
-            }
-          }
-          const rutas = await IncidenteModel.procesarImagenes(data.imagenes, id);
-          updateData.imagen1 = rutas[0] ?? null;
-          updateData.imagen2 = rutas[1] ?? null;
-          updateData.imagen3 = rutas[2] ?? null;
-          updateData.imagen4 = rutas[3] ?? null;
-        }
-
-        if (data.estado !== undefined && data.estado !== actual.estado) {
-          updateData.estado = data.estado as any;
-          updateData.fechaFin = new Date();
-
-          if (data.estado === 'RESUELTO') {
-            await tx.movimiento.update({
-              where: { id: actual.movimientoId },
-              data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
-            });
-            incidenteError.info('Movimiento reactivado tras resolución de incidente', {
-              incidenteId: id,
-              movimientoId: actual.movimientoId,
-            });
+      // reemplazo de imágenes igual que antes
+      if (data.imagenes?.length) {
+        const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
+        for (const ruta of anteriores) {
+          if (!ruta) continue;
+          try {
+            await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
+          } catch (err) {
+            incidenteError.warn('No se pudo eliminar imagen anterior', { ruta, err });
           }
         }
+        const rutas = await IncidenteModel.procesarImagenes(data.imagenes, id);
+        updateData.imagen1 = rutas[0] ?? null;
+        updateData.imagen2 = rutas[1] ?? null;
+        updateData.imagen3 = rutas[2] ?? null;
+        updateData.imagen4 = rutas[3] ?? null;
+      }
 
-        const upd = await tx.incidente.update({
-          where: { id },
-          data: updateData,
-          include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
-        });
+      if (data.estado !== undefined && data.estado !== actual.estado) {
+        updateData.estado = data.estado as any;
+        updateData.fechaFin = new Date();
 
-        return { incidenteActualizado: upd, estadoAnterior: actual.estado };
+        // RESUELTO = volver a trabajar
+        if (data.estado === 'RESUELTO') {
+          await tx.movimiento.update({
+            where: { id: actual.movimientoId },
+            data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+          });
+          incidenteError.info('Movimiento reactivado tras resolución de incidente', {
+            incidenteId: id,
+            movimientoId: actual.movimientoId,
+          });
+        }
+      }
+
+      const upd = await tx.incidente.update({
+        where: { id },
+        data: updateData,
+        include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
       });
 
-      // Lógica al cerrar
-      if (data.estado === 'CERRADO') {
-        const movId = incidenteActualizado.movimientoId;
-        const cierres = await prisma.incidente.count({ where: { movimientoId: movId, estado: 'CERRADO' } });
+      return { incidenteActualizado: upd, estadoAnterior: actual.estado };
+    });
 
-        if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
-          const mov = await prisma.movimiento.findUnique({
+    // ======= LÓGICA AL CERRAR =======
+    if (data.estado === 'CERRADO') {
+      const movId = incidenteActualizado.movimientoId;
+      const cierres = await prisma.incidente.count({ where: { movimientoId: movId, estado: 'CERRADO' } });
+
+      if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
+        // aquí sí lo truena de verdad
+        const mov = await prisma.movimiento.findUnique({
+          where: { id: movId },
+          include: { empresa: true, localidad: true },
+        });
+
+        await prisma.$transaction(async (tx) => {
+          await tx.movimiento.update({
             where: { id: movId },
-            include: { empresa: true, localidad: true },
+            data: { finalizado: true, fechaFin: new Date(), incidenteGlobal: false, fechaPausa: null },
           });
+          await tx.ronda.deleteMany({ where: { movimientoId: movId } });
+        });
 
-          await prisma.$transaction(async (tx) => {
-            await tx.movimiento.update({
-              where: { id: movId },
-              data: { finalizado: true, fechaFin: new Date(), incidenteGlobal: false, fechaPausa: null },
-            });
-            await tx.ronda.deleteMany({ where: { movimientoId: movId } });
-          });
+        if (mov?.localidadId) await RondaModel.recomponerRondasLocalidad(mov.localidadId);
+        if (mov) await NotificadorFCM.notificarCancelacionMovimiento(mov, 'Reincidencia de incidentes');
 
-          if (mov?.localidadId) await RondaModel.recomponerRondasLocalidad(mov.localidadId);
+        incidenteError.warn('Movimiento cancelado por múltiples cierres no resueltos', {
+          incidenteId: id,
+          movimientoId: movId,
+          cierres,
+        });
+      } else {
+        // aquí va tu reacomodo NUEVO
+        await RondaModel.gestionarIncidente(movId);
 
-          if (mov) await NotificadorFCM.notificarCancelacionMovimiento(mov, 'Reincidencia de incidentes');
+        // y aquí reactivamos el movimiento para que vuelva a salir en la ronda
+        await prisma.movimiento.update({
+          where: { id: movId },
+          data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+        });
 
-          incidenteError.warn('Movimiento cancelado por múltiples cierres no resueltos', {
-            incidenteId: id,
-            movimientoId: movId,
-            cierres,
-          });
-        } else {
-          await RondaModel.gestionarIncidente(movId, { cerradoNoResuelto: true });
-          incidenteError.info('Reorden ejecutado por cierre de incidente', {
-            incidenteId: id,
-            movimientoId: movId,
-            cierres,
-          });
-        }
+        incidenteError.info('Reorden ejecutado por cierre de incidente', {
+          incidenteId: id,
+          movimientoId: movId,
+          cierres,
+        });
       }
-
-      // Notificación centralizada de cambio de estado
-      if (data.estado && data.estado !== estadoAnterior) {
-        await NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior);
-      }
-
-      // Levanta/garantiza cron
-      _ensureCron();
-
-      // Sweep rápido para no dejar vencidos
-      try { await this.cerrarIncidentesVencidos(); } catch {}
-
-      incidenteError.info('Incidente actualizado correctamente', {
-        incidenteId: id,
-        estadoAnterior,
-        estadoNuevo: incidenteActualizado.estado,
-      });
-      return incidenteActualizado;
-    } catch (error) {
-      incidenteError.error('Error al editar incidente', { id, data, error });
-      throw new Error('Error al editar incidente');
     }
+
+    // Notificación centralizada
+    if (data.estado && data.estado !== estadoAnterior) {
+      await NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior);
+    }
+
+    _ensureCron();
+    try { await this.cerrarIncidentesVencidos(); } catch {}
+
+    return incidenteActualizado;
+  } catch (error) {
+    incidenteError.error('Error al editar incidente', { id, data, error });
+    throw new Error('Error al editar incidente');
   }
+}
 
   private static async procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
     try {
