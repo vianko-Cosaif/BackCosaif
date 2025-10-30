@@ -193,5 +193,4 @@ static login: RequestHandler = async (req, res) => {
     console.log(JSON.stringify({ level: 'info', msg: 'login:end', reqId, durMs: Number((Date.now() - t0).toFixed(3)) }));
   }
 };
-
 }
