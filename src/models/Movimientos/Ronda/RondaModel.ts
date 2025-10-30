@@ -447,8 +447,9 @@ export class RondaModel {
     }
   }
 
-// ---------- INCIDENTES (sin lógica de bloqueo de vía) ----------
-static async gestionarIncidente(
+
+
+  static async gestionarIncidente(
   movimientoId: number,
   opts?: { cerradoNoResuelto?: boolean }
 ) {
@@ -472,42 +473,39 @@ static async gestionarIncidente(
     const { localidadId } = r;
     const esAlta = r.movimiento.prioridad === 'ALTA';
 
-    // 1) castigo de 10 min solo una vez
-    if (opts?.cerradoNoResuelto && !_hold10mOnce.has(movimientoId)) {
-      _hold10m.set(movimientoId, Date.now() + HOLD10M_MS);
-      _hold10mOnce.add(movimientoId);
-    }
-
-    // 2) ALTAS: mismo comportamiento de antes
+    // ====================== ALTAS ======================
+    // Se quedan en R1 pero al final del bloque de ALTAS
     if (esAlta) {
       const r1Altas = await tx.ronda.findMany({
         where: { localidadId, rondaNumero: 1, concluido: false, movimiento: { prioridad: 'ALTA' } },
         include: { movimiento: { select: { id: true, createdAt: true } } },
         orderBy: [{ movimiento: { createdAt: 'asc' } }, { orden: 'asc' }],
       });
+
       const ids = r1Altas.map((x) => x.id);
       const self = r1Altas.find((x) => x.movimiento.id === movimientoId);
       if (self) {
         const nuevo = ids.filter((i) => i !== self.id);
-        nuevo.push(self.id); // al final del bloque de altas
+        nuevo.push(self.id); // al final del bloque de ALTA
         for (let i = 0; i < nuevo.length; i++) {
           await tx.ronda.update({ where: { id: nuevo[i] }, data: { orden: i + 1 } });
         }
       }
+
       await this.compactarOrdenesRonda(tx, localidadId, 1);
       await this.recomponerRondasLocalidad(localidadId, tx);
       return;
     }
 
-    // 3) BAJAS: aquí va tu nueva regla
-    // todas las BAJAS activas de la localidad
+    // ====================== BAJAS ======================
+    // Siempre reacomoda toda la empresa
     const empresasBaja = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'BAJA' } },
       select: { empresaId: true },
       distinct: ['empresaId'],
     });
 
-    // todas las rondas de ESTA empresa desde su ronda actual hacia abajo
+    // toda la cadena de ESA empresa
     const chain = await tx.ronda.findMany({
       where: {
         localidadId,
@@ -519,39 +517,116 @@ static async gestionarIncidente(
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    // CASO A: solo hay UNA empresa en bajas en toda la localidad
-    // alterna 1 <-> 2 para no quedarte ciclado
+    // helper: asegura que exista la ronda y regresa orden donde insertar
+    const ensureTargetRound = async (targetRonda: number): Promise<number> => {
+      const existe = await tx.ronda.count({
+        where: { localidadId, rondaNumero: targetRonda, concluido: false },
+      });
+      if (existe > 0) return existe + 1; // al final
+      // no existe → crear número de ronda al vuelo
+      const max = await tx.ronda.aggregate({
+        where: { localidadId, concluido: false },
+        _max: { rondaNumero: true },
+      });
+      const nuevaRonda = Math.max(targetRonda, (max._max.rondaNumero ?? 0) + 1);
+      // al mover, moverRonda se encarga; aquí solo decimos que el primer orden es 1
+      return 1;
+    };
+
+    // ========== CASO: solo hay una empresa en bajas ==========
+    // alternar 1 ↔ 2 pero respetando orden relativo
     if (empresasBaja.length === 1) {
-      let toggle = 1;
-      for (const row of chain) {
-        const targetRonda = toggle === 1 ? 2 : 1;
-        const tam = await this.tamanoDeRonda(tx, localidadId, targetRonda);
-        await this.moverRonda(tx, row as any, targetRonda, tam + 1);
-        toggle = targetRonda;
-      }
-      await this.recomponerRondasLocalidad(localidadId, tx);
-      return;
-    }
-
-    // CASO B: hay más empresas, pero esta empresa tiene SOLO 2 movimientos
-    // entonces: 1 -> 2 y 2 -> 3 para despegar
-    if (chain.length === 2) {
-      for (let i = 0; i < chain.length; i++) {
+      // procesar de atrás hacia adelante para no pisar órdenes
+      for (let i = chain.length - 1; i >= 0; i--) {
         const row = chain[i];
-        const targetRonda = row.rondaNumero + (i + 1); // 1->2, 2->3
-        const tam = await this.tamanoDeRonda(tx, localidadId, targetRonda);
-        await this.moverRonda(tx, row as any, targetRonda, tam + 1);
+        const targetRonda = row.rondaNumero === 1 ? 2 : 1;
+
+        // si en la ronda destino hay otro movimiento de la misma empresa que estaba después,
+        // lo ponemos ANTES de ese para respetar el orden.
+        const next = chain[i + 1];
+        if (next && next.rondaNumero === targetRonda) {
+          // insertar antes del next
+          await tx.ronda.updateMany({
+            where: { localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: next.orden } },
+            data: { orden: { increment: 1 } },
+          });
+          await this.moverRonda(tx, row as any, targetRonda, next.orden);
+        } else {
+          const tam = await this.tamanoDeRonda(tx, localidadId, targetRonda);
+          // si no hay ronda, tam será 0, moverRonda la crea con ese numero
+          await this.moverRonda(tx, row as any, targetRonda, tam + 1);
+        }
       }
+
       await this.recomponerRondasLocalidad(localidadId, tx);
       return;
     }
 
-    // CASO C: empresa con varias bajas y varias empresas en la localidad
-    // castigo sencillo: todos bajan una ronda
-    for (const row of chain) {
+    // ========== CASO: hay más empresas en bajas y esta empresa tiene exactamente 2 movimientos ==========
+    // m1 en R1, m2 en R2 → m1→R2 antes de m2, m2→R3 (nueva si no existe)
+    if (chain.length === 2) {
+      // mover el ÚLTIMO primero
+      for (let i = chain.length - 1; i >= 0; i--) {
+        const row = chain[i];
+        const targetRonda = row.rondaNumero + 1;
+        const next = chain[i + 1];
+
+        if (next && next.rondaNumero === targetRonda) {
+          // hay “siguiente” de la misma empresa en la ronda destino → insertamos antes
+          await tx.ronda.updateMany({
+            where: { localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: next.orden } },
+            data: { orden: { increment: 1 } },
+          });
+          await this.moverRonda(tx, row as any, targetRonda, next.orden);
+        } else {
+          const tam = await this.tamanoDeRonda(tx, localidadId, targetRonda);
+          if (tam > 0) {
+            await this.moverRonda(tx, row as any, targetRonda, tam + 1);
+          } else {
+            // no existe la ronda → crearla al vuelo y ponerlo en 1
+            const max = await tx.ronda.aggregate({
+              where: { localidadId, concluido: false },
+              _max: { rondaNumero: true },
+            });
+            const nuevaRonda = Math.max(targetRonda, (max._max.rondaNumero ?? 0) + 1);
+            await this.moverRonda(tx, row as any, nuevaRonda, 1);
+          }
+        }
+      }
+
+      await this.recomponerRondasLocalidad(localidadId, tx);
+      return;
+    }
+
+    // ========== CASO GENERAL: varias bajas de esa empresa y varias empresas en la localidad ==========
+    // Todos bajan 1 ronda, pero respetando el orden relativo entre ellos en la ronda destino.
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const row = chain[i];
       const targetRonda = row.rondaNumero + 1;
-      const tam = await this.tamanoDeRonda(tx, localidadId, targetRonda);
-      await this.moverRonda(tx, row as any, targetRonda, tam + 1);
+      const next = chain[i + 1];
+
+      if (next && next.rondaNumero === targetRonda) {
+        // hay “siguiente” de la misma empresa ya en la ronda destino → insertar antes que él
+        await tx.ronda.updateMany({
+          where: { localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: next.orden } },
+          data: { orden: { increment: 1 } },
+        });
+        await this.moverRonda(tx, row as any, targetRonda, next.orden);
+      } else {
+        // no hay siguiente de la misma empresa en esa ronda
+        const tam = await this.tamanoDeRonda(tx, localidadId, targetRonda);
+        if (tam > 0) {
+          await this.moverRonda(tx, row as any, targetRonda, tam + 1);
+        } else {
+          // no existe esa ronda → la creamos al vuelo y metemos en primer lugar
+          const max = await tx.ronda.aggregate({
+            where: { localidadId, concluido: false },
+            _max: { rondaNumero: true },
+          });
+          const nuevaRonda = Math.max(targetRonda, (max._max.rondaNumero ?? 0) + 1);
+          await this.moverRonda(tx, row as any, nuevaRonda, 1);
+        }
+      }
     }
 
     await this.recomponerRondasLocalidad(localidadId, tx);
