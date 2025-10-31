@@ -711,9 +711,9 @@ static async solicitarYEncolarFrenteR1(movimientoId: number) {
 }
 
 // ---------- MOTOR: SIGUIENTE (R1 primero, pero salta EN_PROCESO y servicios en proceso) ----------
-static async siguienteParaMaquinista(localidadId: number) {
+static async siguienteParaMaquinista(localidadId: number, usuarioId?: number) {
   return prisma.$transaction(async (tx) => {
-    // 1) Traer TODO lo de R1 ordenado
+    // 1. Traer TODA la R1
     const r1 = await tx.ronda.findMany({
       where: { localidadId, concluido: false, rondaNumero: 1 },
       include: {
@@ -726,26 +726,29 @@ static async siguienteParaMaquinista(localidadId: number) {
             locomotiveNumber: true,
             lavado: true,
             torno: true,
+            operadorId: true,        // 👈 IMPORTANTE: quién lo está atendiendo
           },
         },
       },
       orderBy: [{ orden: 'asc' }],
     });
 
-    // 2) Buscar en R1 el primer movimiento "usable"
-    //    usable = NO está EN_PROCESO  (esto cubre el caso de lavado/torno ya corriendo)
+    // 2. Buscar el primer slot de R1 que:
+    //    - no esté en proceso, o
+    //    - esté en proceso PERO lo atiende el mismo usuario
     const candidatoR1 = r1.find((row) => {
-      const mov = row.movimiento;
-      const estaEnProceso = mov.estado === 'EN_PROCESO';
-      const esServicio = !!mov.lavado || !!mov.torno;
+      const m = row.movimiento;
+      if (!m) return false;
 
-      // si es servicio y ya está en proceso → NO lo mando
-      if (esServicio && estaEnProceso) return false;
+      // si el movimiento está en proceso...
+      if (m.estado === 'EN_PROCESO') {
+        // ...y es el mismo usuario → SÍ se lo podemos regresar
+        if (usuarioId && m.operadorId === usuarioId) return true;
+        // ...pero es otro → no
+        return false;
+      }
 
-      // si está en proceso (cualquiera) → NO lo mando
-      if (estaEnProceso) return false;
-
-      // si llega aquí, sí lo puedo mandar
+      // si no está en proceso → libre
       return true;
     });
 
@@ -758,16 +761,16 @@ static async siguienteParaMaquinista(localidadId: number) {
         empresaId: m.empresaId,
         prioridad: m.prioridad,
         locomotiveNumber: m.locomotiveNumber ?? null,
-        rondaNumero: candidatoR1.rondaNumero,
+        rondaNumero: 1,
         orden: candidatoR1.orden,
         permiteInicio: true,
-        motivo: 'r1_no_en_proceso'
+        motivo: 'r1_disponible',
       };
     }
 
-    // 3) Si en R1 TODO estaba en proceso → buscar en las demás rondas
+    // 3. Si en R1 no hay nada “libre para mí”, buscar en todo lo demás
     const resto = await tx.ronda.findMany({
-      where: { localidadId, concluido: false, rondaNumero: { gte: 2 } },
+      where: { localidadId, concluido: false },
       include: {
         movimiento: {
           select: {
@@ -778,42 +781,43 @@ static async siguienteParaMaquinista(localidadId: number) {
             locomotiveNumber: true,
             lavado: true,
             torno: true,
+            operadorId: true,      // 👈 igual aquí
           },
         },
       },
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    const candidatoResto = resto.find((row) => {
-      const mov = row.movimiento;
-      const estaEnProceso = mov.estado === 'EN_PROCESO';
-      const esServicio = !!mov.lavado || !!mov.torno;
+    const candidato = resto.find((row) => {
+      const m = row.movimiento;
+      if (!m) return false;
 
-      if (esServicio && estaEnProceso) return false;
-      if (estaEnProceso) return false;
+      if (m.estado === 'EN_PROCESO') {
+        // si lo atiendo yo → sí
+        if (usuarioId && m.operadorId === usuarioId) return true;
+        // si lo atiende otro → no
+        return false;
+      }
+
       return true;
     });
 
-    if (candidatoResto) {
-      const m = candidatoResto.movimiento;
-      return {
-        rondaId: candidatoResto.id,
-        localidadId: candidatoResto.localidadId,
-        movimientoId: m.id,
-        empresaId: m.empresaId,
-        prioridad: m.prioridad,
-        locomotiveNumber: m.locomotiveNumber ?? null,
-        rondaNumero: candidatoResto.rondaNumero,
-        orden: candidatoResto.orden,
-        permiteInicio: true,
-        motivo: 'rondas_siguientes_no_en_proceso'
-      };
+    if (!candidato) {
+      return { vacio: true as const, motivo: 'sin_rondas_libres' };
     }
 
-    // 4) Si llegamos aquí: todos los movimientos están en proceso
+    const m = candidato.movimiento;
     return {
-      vacio: true as const,
-      motivo: 'todos_en_proceso'
+      rondaId: candidato.id,
+      localidadId: candidato.localidadId,
+      movimientoId: m.id,
+      empresaId: m.empresaId,
+      prioridad: m.prioridad,
+      locomotiveNumber: m.locomotiveNumber ?? null,
+      rondaNumero: candidato.rondaNumero,
+      orden: candidato.orden,
+      permiteInicio: true,
+      motivo: 'no_habia_r1_libre',
     };
   });
 }
