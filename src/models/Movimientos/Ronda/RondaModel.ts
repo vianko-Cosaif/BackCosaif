@@ -710,12 +710,11 @@ static async solicitarYEncolarFrenteR1(movimientoId: number) {
   return res;
 }
 
-
-// ---------- MOTOR: SIGUIENTE (FORZAR R1:1) ----------
+// ---------- MOTOR: SIGUIENTE (R1 primero, pero salta EN_PROCESO y servicios en proceso) ----------
 static async siguienteParaMaquinista(localidadId: number) {
   return prisma.$transaction(async (tx) => {
-    // 1. Traer SOLO la ronda 1, orden 1
-    const top = await tx.ronda.findFirst({
+    // 1) Traer TODO lo de R1 ordenado
+    const r1 = await tx.ronda.findMany({
       where: { localidadId, concluido: false, rondaNumero: 1 },
       include: {
         movimiento: {
@@ -733,61 +732,146 @@ static async siguienteParaMaquinista(localidadId: number) {
       orderBy: [{ orden: 'asc' }],
     });
 
-    // 2. Si no hay nada en R1 → caer al comportamiento anterior (opcional)
-    if (!top) {
-      // fallback: lo que había antes
-      const candidatos = await tx.ronda.findMany({
-        where: { localidadId, concluido: false },
-        include: {
-          movimiento: {
-            select: {
-              id: true,
-              empresaId: true,
-              prioridad: true,
-              estado: true,
-              locomotiveNumber: true,
-              lavado: true,
-              torno: true,
-            },
-          },
-        },
-        orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
-        take: 1,
-      });
-      if (!candidatos.length) return { vacio: true as const, motivo: 'sin_rondas' };
-      const c = candidatos[0];
+    // 2) Buscar en R1 el primer movimiento "usable"
+    //    usable = NO está EN_PROCESO  (esto cubre el caso de lavado/torno ya corriendo)
+    const candidatoR1 = r1.find((row) => {
+      const mov = row.movimiento;
+      const estaEnProceso = mov.estado === 'EN_PROCESO';
+      const esServicio = !!mov.lavado || !!mov.torno;
+
+      // si es servicio y ya está en proceso → NO lo mando
+      if (esServicio && estaEnProceso) return false;
+
+      // si está en proceso (cualquiera) → NO lo mando
+      if (estaEnProceso) return false;
+
+      // si llega aquí, sí lo puedo mandar
+      return true;
+    });
+
+    if (candidatoR1) {
+      const m = candidatoR1.movimiento;
       return {
-        rondaId: c.id,
-        localidadId: c.localidadId,
-        movimientoId: c.movimiento.id,
-        empresaId: c.movimiento.empresaId,
-        prioridad: c.movimiento.prioridad,
-        locomotiveNumber: c.movimiento.locomotiveNumber ?? null,
-        // aquí ya no jugamos a “permite”
+        rondaId: candidatoR1.id,
+        localidadId: candidatoR1.localidadId,
+        movimientoId: m.id,
+        empresaId: m.empresaId,
+        prioridad: m.prioridad,
+        locomotiveNumber: m.locomotiveNumber ?? null,
+        rondaNumero: candidatoR1.rondaNumero,
+        orden: candidatoR1.orden,
         permiteInicio: true,
-        motivo: 'fallback_sin_r1'
+        motivo: 'r1_no_en_proceso'
       };
     }
 
-    const m = top.movimiento;
+    // 3) Si en R1 TODO estaba en proceso → buscar en las demás rondas
+    const resto = await tx.ronda.findMany({
+      where: { localidadId, concluido: false, rondaNumero: { gte: 2 } },
+      include: {
+        movimiento: {
+          select: {
+            id: true,
+            empresaId: true,
+            prioridad: true,
+            estado: true,
+            locomotiveNumber: true,
+            lavado: true,
+            torno: true,
+          },
+        },
+      },
+      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
+    });
 
+    const candidatoResto = resto.find((row) => {
+      const mov = row.movimiento;
+      const estaEnProceso = mov.estado === 'EN_PROCESO';
+      const esServicio = !!mov.lavado || !!mov.torno;
+
+      if (esServicio && estaEnProceso) return false;
+      if (estaEnProceso) return false;
+      return true;
+    });
+
+    if (candidatoResto) {
+      const m = candidatoResto.movimiento;
+      return {
+        rondaId: candidatoResto.id,
+        localidadId: candidatoResto.localidadId,
+        movimientoId: m.id,
+        empresaId: m.empresaId,
+        prioridad: m.prioridad,
+        locomotiveNumber: m.locomotiveNumber ?? null,
+        rondaNumero: candidatoResto.rondaNumero,
+        orden: candidatoResto.orden,
+        permiteInicio: true,
+        motivo: 'rondas_siguientes_no_en_proceso'
+      };
+    }
+
+    // 4) Si llegamos aquí: todos los movimientos están en proceso
     return {
-      rondaId: top.id,
-      localidadId: top.localidadId,
-      movimientoId: m.id,
-      empresaId: m.empresaId,
-      prioridad: m.prioridad,
-      locomotiveNumber: m.locomotiveNumber ?? null,
-      // si llegaste aquí es porque lo quieres sí o sí
-      permiteInicio: true,
-      motivo: 'r1_pos1'
+      vacio: true as const,
+      motivo: 'todos_en_proceso'
     };
   });
 }
 
-/** Wrapper por compatibilidad. */
+/** Wrapper por compatibilidad. 
+ *  - fuerza shape
+ *  - si no trae ronda/orden, manda vacio
+ */
 public static async siguienteInteligente(localidadId: number) {
-  return this.siguienteParaMaquinista(localidadId);
+  const res = await this.siguienteParaMaquinista(localidadId);
+
+  // caso: no hay nada
+  if ((res as any).vacio) {
+    return res;
+  }
+
+  // desestructuramos lo que sí nos interesa
+  const {
+    rondaId,
+    movimientoId,
+    empresaId,
+    prioridad,
+    locomotiveNumber,
+    localidadId: locId,
+    rondaNumero,
+    orden,
+    permiteInicio,
+    motivo,
+  } = res as any;
+
+  // si por alguna razón no vino ronda/orden, NO lo mandamos
+  if (typeof rondaNumero !== 'number' || typeof orden !== 'number') {
+    return {
+      vacio: true as const,
+      motivo: 'sin_ronda_orden',  
+    };
+  }
+
+  // si quieres solo aceptar R1-1, descomenta esto:
+  // if (rondaNumero !== 1 || orden !== 1) {
+  //   return {
+  //     vacio: true as const,
+  //     motivo: 'no_es_r1_1',
+  //   };
+  // }
+
+  return {
+    rondaId,
+    movimientoId,
+    empresaId,
+    localidadId: locId,
+    prioridad,
+    locomotiveNumber: locomotiveNumber ?? null,
+    rondaNumero,
+    orden,
+    permiteInicio: permiteInicio ?? true,
+    motivo: motivo ?? 'ok',
+  };
 }
 
 
