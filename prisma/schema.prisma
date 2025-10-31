@@ -68,9 +68,9 @@ model Usuario {
   incidentesLavado    IncidenteLavado[]
   seguimientosTorno   SeguimientoTorno[]
   seguimientosLavado  SeguimientoLavado[]
-  tokenVersion  Int         @default(0)        
-  ips           IpUsuario[]
-  tokens        Token[]
+  tokenVersion        Int               @default(0)
+  ips                 IpUsuario[]
+  tokens              Token[]
 
   @@index([empresaId, activo])
   @@index([localidadId, rol])
@@ -244,11 +244,12 @@ model ServicioCola {
   @@index([empresaId, estado])
 }
 
-
+/* ================== TOKENS ================== */
 
 enum TokenTipo {
   ACCESS
 }
+
 enum DeviceType {
   WEB
   ANDROID
@@ -256,8 +257,6 @@ enum DeviceType {
   DESKTOP
   OTHER
 }
-
-
 
 model Token {
   jti        String     @id @db.Uuid
@@ -267,7 +266,7 @@ model Token {
   ip         String?    @db.Inet
   ua         String?    @db.VarChar(512)
   deviceId   String?    @db.VarChar(128)
-  platform   DeviceType                       
+  platform   DeviceType
   issuedAt   DateTime   @default(now())
   expiresAt  DateTime
   revokedAt  DateTime?
@@ -281,8 +280,7 @@ model Token {
   @@index([expiresAt])
   @@index([ip])
   @@index([deviceId])
-
-  @@unique([usuarioId, platform], map: "uniq_user_platform") 
+  @@unique([usuarioId, platform], map: "uniq_user_platform")
 }
 
 model IpUsuario {
@@ -295,9 +293,8 @@ model IpUsuario {
   usuario         Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@id([usuarioId, ip, tipoDispositivo])
-  @@index([ip])                       
+  @@index([ip])
 }
-
 
 model Actualizacion {
   id               Int                 @id @default(autoincrement())
@@ -325,6 +322,10 @@ model TornoT {
   localidad    Localidad      @relation(fields: [localidadId], references: [id], onDelete: Restrict)
   incidentes   IncidenteTorno[]
   seguimientos SeguimientoTorno[]
+
+  // NUEVO: lados inversos para las medidas
+  medidasI     MedidasTornoI[]
+  medidasF     MedidasTornoF[]
 
   @@index([movimientoId])
   @@index([movimientoId, createdAt])
