@@ -710,9 +710,32 @@ static async solicitarYEncolarFrenteR1(movimientoId: number) {
   return res;
 }
 
-  // ---------- MOTOR: SIGUIENTE (SIN BLOQUEOS) ----------
-  static async siguienteParaMaquinista(localidadId: number) {
-    return prisma.$transaction(async (tx) => {
+
+// ---------- MOTOR: SIGUIENTE (FORZAR R1:1) ----------
+static async siguienteParaMaquinista(localidadId: number) {
+  return prisma.$transaction(async (tx) => {
+    // 1. Traer SOLO la ronda 1, orden 1
+    const top = await tx.ronda.findFirst({
+      where: { localidadId, concluido: false, rondaNumero: 1 },
+      include: {
+        movimiento: {
+          select: {
+            id: true,
+            empresaId: true,
+            prioridad: true,
+            estado: true,
+            locomotiveNumber: true,
+            lavado: true,
+            torno: true,
+          },
+        },
+      },
+      orderBy: [{ orden: 'asc' }],
+    });
+
+    // 2. Si no hay nada en R1 → caer al comportamiento anterior (opcional)
+    if (!top) {
+      // fallback: lo que había antes
       const candidatos = await tx.ronda.findMany({
         where: { localidadId, concluido: false },
         include: {
@@ -729,39 +752,44 @@ static async solicitarYEncolarFrenteR1(movimientoId: number) {
           },
         },
         orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
-        take: 50,
+        take: 1,
       });
-
       if (!candidatos.length) return { vacio: true as const, motivo: 'sin_rondas' };
-
-      const rElegible = candidatos.find((c) => {
-        const m = c.movimiento;
-        const esServicio = !!m.lavado || !!m.torno;
-        return esServicio ? (m.estado === 'EN_PROCESO') : (m.estado !== 'EN_PROCESO');
-      });
-
-      const r = rElegible ?? candidatos[0];
-      const m = r.movimiento;
-      const esServicio = !!m.lavado || !!m.torno;
-      const permiteInicio = esServicio ? (m.estado === 'EN_PROCESO') : (m.estado !== 'EN_PROCESO');
-
+      const c = candidatos[0];
       return {
-        rondaId: r.id,
-        localidadId: r.localidadId,
-        movimientoId: m.id,
-        empresaId: m.empresaId,
-        prioridad: m.prioridad,
-        locomotiveNumber: m.locomotiveNumber ?? null,
-        permiteInicio,
-        motivo: rElegible ? 'ok' : (esServicio ? 'servicio_no_activado' : 'todos_en_proceso')
+        rondaId: c.id,
+        localidadId: c.localidadId,
+        movimientoId: c.movimiento.id,
+        empresaId: c.movimiento.empresaId,
+        prioridad: c.movimiento.prioridad,
+        locomotiveNumber: c.movimiento.locomotiveNumber ?? null,
+        // aquí ya no jugamos a “permite”
+        permiteInicio: true,
+        motivo: 'fallback_sin_r1'
       };
-    });
-  }
+    }
 
-  /** Wrapper por compatibilidad. */
-  public static async siguienteInteligente(localidadId: number) {
-    return this.siguienteParaMaquinista(localidadId);
-  }
+    const m = top.movimiento;
+
+    return {
+      rondaId: top.id,
+      localidadId: top.localidadId,
+      movimientoId: m.id,
+      empresaId: m.empresaId,
+      prioridad: m.prioridad,
+      locomotiveNumber: m.locomotiveNumber ?? null,
+      // si llegaste aquí es porque lo quieres sí o sí
+      permiteInicio: true,
+      motivo: 'r1_pos1'
+    };
+  });
+}
+
+/** Wrapper por compatibilidad. */
+public static async siguienteInteligente(localidadId: number) {
+  return this.siguienteParaMaquinista(localidadId);
+}
+
 
   // ---------- FIN SERVICIO (LAVADO / TORNO) ----------
   static async notificarFinServicio(
