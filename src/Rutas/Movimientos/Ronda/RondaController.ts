@@ -299,20 +299,25 @@ export class RondaController {
    * @returns 400 ID inválido
    * @returns 500 Error del servidor
    */
-  static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
-    const localidadId = Number(req.params.localidadId);
-    if (isNaN(localidadId)) {
-      res.status(400).json({ message: "ID de localidad inválido" });
-      return;
-    }
-    try {
-      const result = await RondaModel.siguienteInteligente(localidadId);
-      res.status(200).json(result);
-    } catch (error) {
-      logger.error("Error al obtener el siguiente (maquinista)", { error, localidadId });
-      res.status(500).json({ message: "Error al obtener el siguiente" });
-    }
-  };
+static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
+  const localidadId = Number(req.params.localidadId);
+  if (isNaN(localidadId)) {
+    res.status(400).json({ message: "ID de localidad inválido" });
+    return;
+  }
+
+  // 👇 sacamos el usuario del JWT
+  const userId = (req.user as any)?.id ? Number((req.user as any).id) : undefined;
+
+  try {
+    const result = await RondaModel.siguienteInteligente(localidadId, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error("Error al obtener el siguiente (maquinista)", { error, localidadId, userId });
+    res.status(500).json({ message: "Error al obtener el siguiente" });
+  }
+};
+
 
   /**
    * GET /rondas/localidad/:localidadId/siguiente-inteligente
@@ -324,20 +329,23 @@ export class RondaController {
    * @returns 400 ID inválido
    * @returns 500 Error del servidor
    */
-  static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
-    const localidadId = Number(req.params.localidadId);
-    if (isNaN(localidadId)) {
-      res.status(400).json({ message: "ID de localidad inválido" });
-      return;
-    }
-    try {
-      const result = await RondaModel.siguienteInteligente(localidadId);
-      res.status(200).json(result);
-    } catch (error) {
-      logger.error("Error en siguiente inteligente", { error, localidadId });
-      res.status(500).json({ message: "Error al calcular siguiente inteligente" });
-    }
-  };
+static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
+  const localidadId = Number(req.params.localidadId);
+  if (isNaN(localidadId)) {
+    res.status(400).json({ message: "ID de localidad inválido" });
+    return;
+  }
+
+  const userId = (req.user as any)?.id ? Number((req.user as any).id) : undefined;
+
+  try {
+    const result = await RondaModel.siguienteInteligente(localidadId, userId);
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error("Error en siguiente inteligente", { error, localidadId, userId });
+    res.status(500).json({ message: "Error al calcular siguiente inteligente" });
+  }
+};
 
   /**
    * GET /rondas/:id/info
