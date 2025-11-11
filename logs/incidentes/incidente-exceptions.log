@@ -1,0 +1,720 @@
+{
+  error: NodeError: write after end
+      at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)
+      at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)
+      at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)
+      at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)
+      at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)
+      at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)
+      at DerivedLogger.emit (node:events:536:35)
+      at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12),
+  level: 'error',
+  message: 'uncaughtException: write after end\n' +
+    'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  stack: 'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  exception: true,
+  date: 'Thu Jul 24 2025 16:40:24 GMT+0000 (Coordinated Universal Time)',
+  process: {
+    pid: 274292,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/www/Cosaif',
+    execPath: '/usr/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/usr/bin/node',
+      '/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'
+    ],
+    memoryUsage: {
+      rss: 107745280,
+      heapTotal: 55894016,
+      heapUsed: 28893944,
+      external: 2984554,
+      arrayBuffers: 467976
+    }
+  },
+  os: { loadavg: [ 0.06, 0.03, 0 ], uptime: 2508623.44 },
+  trace: [
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeAfterEnd',
+      line: 264,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 300,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 34,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js',
+      function: 'File.log',
+      line: 222,
+      method: 'log',
+      native: false
+    },
+    {
+      column: 29,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js',
+      function: 'RejectionStream._write',
+      line: 46,
+      method: '_write',
+      native: false
+    },
+    {
+      column: 139,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'doWrite',
+      line: 390,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeOrBuffer',
+      line: 381,
+      method: null,
+      native: false
+    },
+    {
+      column: 11,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 302,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'DerivedLogger.ondata',
+      line: 629,
+      method: 'ondata',
+      native: false
+    },
+    {
+      column: 35,
+      file: 'node:events',
+      function: 'DerivedLogger.emit',
+      line: 536,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'addChunk',
+      line: 279,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2025-07-24 16:40:24'
+}
+{
+  error: NodeError: write after end
+      at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)
+      at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)
+      at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)
+      at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)
+      at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)
+      at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)
+      at DerivedLogger.emit (node:events:536:35)
+      at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12),
+  level: 'error',
+  message: 'uncaughtException: write after end\n' +
+    'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  stack: 'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  exception: true,
+  date: 'Thu Jul 24 2025 16:40:30 GMT+0000 (Coordinated Universal Time)',
+  process: {
+    pid: 274424,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/www/Cosaif',
+    execPath: '/usr/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/usr/bin/node',
+      '/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'
+    ],
+    memoryUsage: {
+      rss: 108228608,
+      heapTotal: 57466880,
+      heapUsed: 23158352,
+      external: 2970779,
+      arrayBuffers: 454201
+    }
+  },
+  os: { loadavg: [ 0.66, 0.16, 0.05 ], uptime: 2508629.54 },
+  trace: [
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeAfterEnd',
+      line: 264,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 300,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 34,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js',
+      function: 'File.log',
+      line: 222,
+      method: 'log',
+      native: false
+    },
+    {
+      column: 29,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js',
+      function: 'RejectionStream._write',
+      line: 46,
+      method: '_write',
+      native: false
+    },
+    {
+      column: 139,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'doWrite',
+      line: 390,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeOrBuffer',
+      line: 381,
+      method: null,
+      native: false
+    },
+    {
+      column: 11,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 302,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'DerivedLogger.ondata',
+      line: 629,
+      method: 'ondata',
+      native: false
+    },
+    {
+      column: 35,
+      file: 'node:events',
+      function: 'DerivedLogger.emit',
+      line: 536,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'addChunk',
+      line: 279,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2025-07-24 16:40:30'
+}
+{
+  error: NodeError: write after end
+      at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)
+      at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)
+      at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)
+      at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)
+      at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)
+      at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)
+      at DerivedLogger.emit (node:events:536:35)
+      at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12),
+  level: 'error',
+  message: 'uncaughtException: write after end\n' +
+    'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  stack: 'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  exception: true,
+  date: 'Thu Jul 24 2025 16:40:31 GMT+0000 (Coordinated Universal Time)',
+  process: {
+    pid: 274435,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/www/Cosaif',
+    execPath: '/usr/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/usr/bin/node',
+      '/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'
+    ],
+    memoryUsage: {
+      rss: 108068864,
+      heapTotal: 56942592,
+      heapUsed: 24072312,
+      external: 3031462,
+      arrayBuffers: 514884
+    }
+  },
+  os: { loadavg: [ 0.66, 0.16, 0.05 ], uptime: 2508630.1 },
+  trace: [
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeAfterEnd',
+      line: 264,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 300,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 34,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js',
+      function: 'File.log',
+      line: 222,
+      method: 'log',
+      native: false
+    },
+    {
+      column: 29,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js',
+      function: 'RejectionStream._write',
+      line: 46,
+      method: '_write',
+      native: false
+    },
+    {
+      column: 139,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'doWrite',
+      line: 390,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeOrBuffer',
+      line: 381,
+      method: null,
+      native: false
+    },
+    {
+      column: 11,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 302,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'DerivedLogger.ondata',
+      line: 629,
+      method: 'ondata',
+      native: false
+    },
+    {
+      column: 35,
+      file: 'node:events',
+      function: 'DerivedLogger.emit',
+      line: 536,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'addChunk',
+      line: 279,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2025-07-24 16:40:31'
+}
+{
+  error: NodeError: write after end
+      at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)
+      at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)
+      at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)
+      at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)
+      at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)
+      at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)
+      at DerivedLogger.emit (node:events:536:35)
+      at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12),
+  level: 'error',
+  message: 'uncaughtException: write after end\n' +
+    'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  stack: 'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  exception: true,
+  date: 'Thu Jul 24 2025 16:40:31 GMT+0000 (Coordinated Universal Time)',
+  process: {
+    pid: 274446,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/www/Cosaif',
+    execPath: '/usr/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/usr/bin/node',
+      '/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'
+    ],
+    memoryUsage: {
+      rss: 108625920,
+      heapTotal: 57204736,
+      heapUsed: 23858888,
+      external: 3031267,
+      arrayBuffers: 514689
+    }
+  },
+  os: { loadavg: [ 0.66, 0.16, 0.05 ], uptime: 2508630.65 },
+  trace: [
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeAfterEnd',
+      line: 264,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 300,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 34,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js',
+      function: 'File.log',
+      line: 222,
+      method: 'log',
+      native: false
+    },
+    {
+      column: 29,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js',
+      function: 'RejectionStream._write',
+      line: 46,
+      method: '_write',
+      native: false
+    },
+    {
+      column: 139,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'doWrite',
+      line: 390,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeOrBuffer',
+      line: 381,
+      method: null,
+      native: false
+    },
+    {
+      column: 11,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 302,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'DerivedLogger.ondata',
+      line: 629,
+      method: 'ondata',
+      native: false
+    },
+    {
+      column: 35,
+      file: 'node:events',
+      function: 'DerivedLogger.emit',
+      line: 536,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'addChunk',
+      line: 279,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2025-07-24 16:40:31'
+}
+{
+  error: NodeError: write after end
+      at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)
+      at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)
+      at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)
+      at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)
+      at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)
+      at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)
+      at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)
+      at DerivedLogger.emit (node:events:536:35)
+      at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12),
+  level: 'error',
+  message: 'uncaughtException: write after end\n' +
+    'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  stack: 'Error: write after end\n' +
+    '    at writeAfterEnd (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:264:12)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:300:21)\n' +
+    '    at File.log (/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js:222:34)\n' +
+    '    at RejectionStream._write (/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js:46:29)\n' +
+    '    at doWrite (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:390:139)\n' +
+    '    at writeOrBuffer (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:381:5)\n' +
+    '    at Writable.write (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js:302:11)\n' +
+    '    at DerivedLogger.ondata (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:629:20)\n' +
+    '    at DerivedLogger.emit (node:events:536:35)\n' +
+    '    at addChunk (/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js:279:12)',
+  exception: true,
+  date: 'Thu Jul 24 2025 16:40:36 GMT+0000 (Coordinated Universal Time)',
+  process: {
+    pid: 274497,
+    uid: 0,
+    gid: 0,
+    cwd: '/var/www/Cosaif',
+    execPath: '/usr/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/usr/bin/node',
+      '/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js'
+    ],
+    memoryUsage: {
+      rss: 109002752,
+      heapTotal: 56942592,
+      heapUsed: 23164432,
+      external: 2970757,
+      arrayBuffers: 454179
+    }
+  },
+  os: { loadavg: [ 0.68, 0.18, 0.05 ], uptime: 2508635.62 },
+  trace: [
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeAfterEnd',
+      line: 264,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 300,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 34,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/transports/file.js',
+      function: 'File.log',
+      line: 222,
+      method: 'log',
+      native: false
+    },
+    {
+      column: 29,
+      file: '/var/www/Cosaif/node_modules/winston/lib/winston/rejection-stream.js',
+      function: 'RejectionStream._write',
+      line: 46,
+      method: '_write',
+      native: false
+    },
+    {
+      column: 139,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'doWrite',
+      line: 390,
+      method: null,
+      native: false
+    },
+    {
+      column: 5,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'writeOrBuffer',
+      line: 381,
+      method: null,
+      native: false
+    },
+    {
+      column: 11,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_writable.js',
+      function: 'Writable.write',
+      line: 302,
+      method: 'write',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'DerivedLogger.ondata',
+      line: 629,
+      method: 'ondata',
+      native: false
+    },
+    {
+      column: 35,
+      file: 'node:events',
+      function: 'DerivedLogger.emit',
+      line: 536,
+      method: 'emit',
+      native: false
+    },
+    {
+      column: 12,
+      file: '/var/www/Cosaif/node_modules/readable-stream/lib/_stream_readable.js',
+      function: 'addChunk',
+      line: 279,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2025-07-24 16:40:36'
+}
