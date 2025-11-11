@@ -310,17 +310,18 @@ static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
   const userId = (req.user as any)?.id ? Number((req.user as any).id) : undefined;
 
   try {
-    const result = await RondaModel.siguienteInteligente(localidadId, userId);
+    const result = await RondaModel.siguienteInteligente(localidadId);
     res.status(200).json(result);
   } catch (error) {
-    logger.error("Error al obtener el siguiente (maquinista)", { error, localidadId, userId });
+    logger.error("Error al obtener el siguiente (maquinista)", { error, localidadId});
     res.status(500).json({ message: "Error al obtener el siguiente" });
   }
 };
 
 
   /**
-   * GET /rondas/localidad/:localidadId/siguiente-inteligente
+   * GET /rondas/localidad/:localidadId/siguiente-inteligentegit checkout -b master
+
    *
    * @summary Alias de `obtenerSiguienteEnRonda`.
    * @auth Requiere JWT.
