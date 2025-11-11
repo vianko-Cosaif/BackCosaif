@@ -7,7 +7,6 @@ uploads/
 node_modules
 
 .env
-prisma
-
+prisma/migrations
 
 dist
