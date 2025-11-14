@@ -780,57 +780,19 @@ export class RondaModel {
     return res;
   }
 
-  // ---------- MOTOR: SIGUIENTE ----------
-  static async siguienteParaMaquinista(localidadId: number, usuarioId?: number) {
-    return prisma.$transaction(async (tx) => {
-      const r1 = await tx.ronda.findMany({
-        where: { localidadId, concluido: false, rondaNumero: 1 },
-        include: {
+ static async siguienteParaMaquinista(localidadId: number, usuarioId?: number) {
+  return prisma.$transaction(async (tx) => {
+    // 0. Si el usuario YA tiene un movimiento EN_PROCESO, ese manda SIEMPRE.
+    if (usuarioId) {
+      const rondaEnProceso = await tx.ronda.findFirst({
+        where: {
+          localidadId,
+          concluido: false,
           movimiento: {
-            select: {
-              id: true,
-              empresaId: true,
-              prioridad: true,
-              estado: true,
-              locomotiveNumber: true,
-              lavado: true,
-              torno: true,
-              operadorId: true,
-            },
+            estado: 'EN_PROCESO',
+            operadorId: usuarioId,
           },
         },
-        orderBy: [{ orden: 'asc' }],
-      });
-
-      const candidatoR1 = r1.find((row) => {
-        const m = row.movimiento;
-        if (!m) return false;
-        const esServicio = !!m.lavado || !!m.torno;
-        const enProceso = m.estado === 'EN_PROCESO';
-        if (enProceso && usuarioId && m.operadorId === usuarioId) return true; // re-tomar
-        if (enProceso) return false;                 // en proceso de otro
-        if (esServicio && enProceso) return false;
-        return true;
-      });
-
-      if (candidatoR1) {
-        const m = candidatoR1.movimiento;
-        return {
-          rondaId: candidatoR1.id,
-          localidadId: candidatoR1.localidadId,
-          movimientoId: m.id,
-          empresaId: m.empresaId,
-          prioridad: m.prioridad,
-          locomotiveNumber: m.locomotiveNumber ?? null,
-          rondaNumero: 1,
-          orden: candidatoR1.orden,
-          permiteInicio: true,
-          motivo: 'r1_disponible',
-        };
-      }
-
-      const resto = await tx.ronda.findMany({
-        where: { localidadId, concluido: false, rondaNumero: { gte: 2 } },
         include: {
           movimiento: {
             select: {
@@ -848,35 +810,112 @@ export class RondaModel {
         orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
       });
 
-      const candidato = resto.find((row) => {
-        const m = row.movimiento;
-        const esServicio = !!m.lavado || !!m.torno;
-        const enProceso = m.estado === 'EN_PROCESO';
-        if (enProceso && usuarioId && m.operadorId === usuarioId) return true;
-        if (enProceso) return false;
-        if (esServicio && enProceso) return false;
-        return true;
-      });
-
-      if (!candidato) {
-        return { vacio: true as const, motivo: 'todos_en_proceso' };
+      if (rondaEnProceso && rondaEnProceso.movimiento) {
+        const m = rondaEnProceso.movimiento;
+        return {
+          rondaId: rondaEnProceso.id,
+          localidadId,
+          movimientoId: m.id,
+          empresaId: m.empresaId,
+          prioridad: m.prioridad,
+          locomotiveNumber: m.locomotiveNumber ?? null,
+          rondaNumero: rondaEnProceso.rondaNumero,
+          orden: rondaEnProceso.orden,
+          permiteInicio: true,
+          motivo: 'ya_tienes_movimiento_en_proceso',
+        };
       }
+    }
 
-      const m = candidato.movimiento;
+    // 1. Traer TODA la R1
+    const r1 = await tx.ronda.findMany({
+      where: { localidadId, concluido: false, rondaNumero: 1 },
+      include: {
+        movimiento: {
+          select: {
+            id: true,
+            empresaId: true,
+            prioridad: true,
+            estado: true,
+            locomotiveNumber: true,
+            lavado: true,
+            torno: true,
+            operadorId: true,
+          },
+        },
+      },
+      orderBy: [{ orden: 'asc' }],
+    });
+
+    // 2. Buscar el primer slot de R1 que NO esté en proceso (los EN_PROCESO aquí ya son de otro operador)
+    const candidatoR1 = r1.find((row) => {
+      const m = row.movimiento;
+      if (!m) return false;
+      return m.estado !== 'EN_PROCESO';
+    });
+
+    if (candidatoR1) {
+      const m = candidatoR1.movimiento;
       return {
-        rondaId: candidato.id,
-        localidadId: candidato.localidadId,
+        rondaId: candidatoR1.id,
+        localidadId: candidatoR1.localidadId,
         movimientoId: m.id,
         empresaId: m.empresaId,
         prioridad: m.prioridad,
         locomotiveNumber: m.locomotiveNumber ?? null,
-        rondaNumero: candidato.rondaNumero,
-        orden: candidato.orden,
+        rondaNumero: 1,
+        orden: candidatoR1.orden,
         permiteInicio: true,
-        motivo: 'no_habia_r1_libre',
+        motivo: 'r1_disponible',
       };
+    }
+
+    // 3. Si en R1 no hay nada libre, buscar en todo lo demás
+    const resto = await tx.ronda.findMany({
+      where: { localidadId, concluido: false },
+      include: {
+        movimiento: {
+          select: {
+            id: true,
+            empresaId: true,
+            prioridad: true,
+            estado: true,
+            locomotiveNumber: true,
+            lavado: true,
+            torno: true,
+            operadorId: true,
+          },
+        },
+      },
+      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
-  }
+
+    const candidato = resto.find((row) => {
+      const m = row.movimiento;
+      if (!m) return false;
+      // igual: saltamos EN_PROCESO porque si fueran míos ya habría salido en el paso 0
+      return m.estado !== 'EN_PROCESO';
+    });
+
+    if (!candidato) {
+      return { vacio: true as const, motivo: 'sin_rondas_libres' };
+    }
+
+    const m = candidato.movimiento;
+    return {
+      rondaId: candidato.id,
+      localidadId: candidato.localidadId,
+      movimientoId: m.id,
+      empresaId: m.empresaId,
+      prioridad: m.prioridad,
+      locomotiveNumber: m.locomotiveNumber ?? null,
+      rondaNumero: candidato.rondaNumero,
+      orden: candidato.orden,
+      permiteInicio: true,
+      motivo: 'no_habia_r1_libre',
+    };
+  });
+}
 
   /** Wrapper por compatibilidad. */
   public static async siguienteInteligente(localidadId: number) {
