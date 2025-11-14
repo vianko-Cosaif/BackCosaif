@@ -1,0 +1,12 @@
+# Variables de entorno
+
+
+# Archivos subidos
+uploads/
+
+node_modules
+
+.env
+prisma/migrations
+
+dist
