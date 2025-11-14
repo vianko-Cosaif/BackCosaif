@@ -917,41 +917,7 @@ export class RondaModel {
   });
 }
 
-  /** Wrapper por compatibilidad. */
-  public static async siguienteInteligente(localidadId: number) {
-    const res = await this.siguienteParaMaquinista(localidadId);
-    if ((res as any).vacio) return res;
-
-    const {
-      rondaId,
-      movimientoId,
-      empresaId,
-      prioridad,
-      locomotiveNumber,
-      localidadId: locId,
-      rondaNumero,
-      orden,
-      permiteInicio,
-      motivo,
-    } = res as any;
-
-    if (typeof rondaNumero !== 'number' || typeof orden !== 'number') {
-      return { vacio: true as const, motivo: 'sin_ronda_orden' };
-    }
-
-    return {
-      rondaId,
-      movimientoId,
-      empresaId,
-      localidadId: locId,
-      prioridad,
-      locomotiveNumber: locomotiveNumber ?? null,
-      rondaNumero,
-      orden,
-      permiteInicio: permiteInicio ?? true,
-      motivo: motivo ?? 'ok',
-    };
-  }
+siguienteInteligente(
 
   // ---------- FIN SERVICIO (LAVADO / TORNO) ----------
   static async notificarFinServicio(
