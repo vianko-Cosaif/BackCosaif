@@ -22,7 +22,6 @@ const router = Router();
 // ---------------------------------------------------------------------------
 // 🔐 Protección JWT para todas las rutas
 // ---------------------------------------------------------------------------
-router.use(passport.authenticate('jwt', { session: false }));
 
 // ---------------------------------------------------------------------------
 // 🧴 SERVICIOS (lavado / torno)
@@ -314,6 +313,8 @@ router.patch('/:id/reanudar', MovimientoController.reanudarMovimiento);
  *
  * 200 OK | 400 | 404 | 500
  */
+router.use(passport.authenticate('jwt', { session: false }));
+
 router.patch('/:id/finalizar', MovimientoController.finalizarMovimiento);
 
 export default router;
