@@ -500,49 +500,101 @@ public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = pris
   ) {
     return this.insertarRondaSolvente(data);
   }
+/** PRIVADO: inserción BAJA con robin-hood + compactación. */
+private static async _insertarBajaConRobinHood(
+  tx: Tx,
+  params: { localidadId: number; empresaId: number; movimientoId: number }
+) {
+  const { localidadId, empresaId, movimientoId } = params;
 
-  /** PRIVADO: inserción BAJA con robin-hood + compactación. */
-  private static async _insertarBajaConRobinHood(
-    tx: Tx,
-    params: { localidadId: number; empresaId: number; movimientoId: number }
-  ) {
-    const { localidadId, empresaId, movimientoId } = params;
+  // 1) ¿Hay ALTAS sin hold? → Bajas arrancan desde R2, si no desde R1.
+  const altas = await tx.ronda.findMany({
+    where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
+    select: { movimiento: { select: { id: true } } },
+  });
+  const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
+  const startRound = hayAltasSinHold ? 2 : 1;
 
-    const altas = await tx.ronda.findMany({
-      where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
-      select: { movimiento: { select: { id: true } } },
-    });
-    const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
-    const startRound = hayAltasSinHold ? 2 : 1;
+  // 2) Ver si ESTA empresa ya tiene bajas “en cola” (cualquier ronda)
+  const aggEmpresa = await tx.ronda.aggregate({
+    where: {
+      localidadId,
+      empresaId,
+      concluido: false,
+      movimiento: { prioridad: 'BAJA' },
+    },
+    _max: { rondaNumero: true },
+  });
 
+  let rondaDestino: number;
+
+  if (aggEmpresa._max.rondaNumero != null) {
+    // Ya tiene cadena de Bajas:
+    // - Si tiene algo en R2/R3/etc → la nueva va DESPUÉS de la más lejana.
+    // - Nunca subimos por encima de startRound (por si hay ALTAS y startRound=2).
+    const maxEmpresa = aggEmpresa._max.rondaNumero;
+    rondaDestino = Math.max(maxEmpresa + 1, startRound);
+  } else {
+    // Primera BAJA de esta empresa → la vieja lógica:
+    // buscar la primera ronda >= startRound sin BAJA de esta empresa.
     let r = startRound;
     for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
       const ya = await tx.ronda.count({
-        where: { localidadId, rondaNumero: r, concluido: false, empresaId, movimiento: { prioridad: 'BAJA' } }
+        where: {
+          localidadId,
+          rondaNumero: r,
+          concluido: false,
+          empresaId,
+          movimiento: { prioridad: 'BAJA' },
+        },
       });
-      if (ya === 0) break;
+      if (ya === 0) {
+        rondaDestino = r;
+        break;
+      }
       r++;
     }
-
-    const ord = (await this.tamanoDeRonda(tx, localidadId, r)) + 1;
-    await tx.ronda.create({ data: { movimientoId, empresaId, localidadId, rondaNumero: r, orden: ord } });
-
-    await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
-
-    // Compactar/renumerar sin redistribución global
-    const grupos = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { rondaNumero: true }, distinct: ['rondaNumero'], orderBy: { rondaNumero: 'asc' }
-    });
-    let idx = 1;
-    for (const g of grupos) {
-      if (g.rondaNumero !== idx) {
-        await tx.ronda.updateMany({ where: { localidadId, rondaNumero: g.rondaNumero }, data: { rondaNumero: idx } });
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, idx);
-      idx++;
+    if (!rondaDestino) {
+      rondaDestino = r; // por seguridad si rompemos por guard
     }
   }
+
+  // 3) Insertar al final de esa ronda destino
+  const ord = (await this.tamanoDeRonda(tx, localidadId, rondaDestino)) + 1;
+  await tx.ronda.create({
+    data: {
+      movimientoId,
+      empresaId,
+      localidadId,
+      rondaNumero: rondaDestino,
+      orden: ord,
+    },
+  });
+
+  // 4) Regla de "máx 1 BAJA por empresa por ronda" + compactación local
+  await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
+
+  // 5) Compactar/renumerar rondas a 1..N
+  const grupos = await tx.ronda.findMany({
+    where: { localidadId, concluido: false },
+    select: { rondaNumero: true },
+    distinct: ['rondaNumero'],
+    orderBy: { rondaNumero: 'asc' },
+  });
+
+  let idx = 1;
+  for (const g of grupos) {
+    if (g.rondaNumero !== idx) {
+      await tx.ronda.updateMany({
+        where: { localidadId, rondaNumero: g.rondaNumero },
+        data: { rondaNumero: idx },
+      });
+    }
+    await this.compactarOrdenesRonda(tx, localidadId, idx);
+    idx++;
+  }
+}
+
 
 
 
