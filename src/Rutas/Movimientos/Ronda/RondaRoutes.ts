@@ -27,7 +27,6 @@ const router = Router();
 // ---------------------------------------------------------------------------
 // 🔐 Protección JWT para todas las rutas
 // ---------------------------------------------------------------------------
-router.use(passport.authenticate("jwt", { session: false }));
 
 // ---------------------------------------------------------------------------
 // ➕ Crear / insertar en rondas
@@ -189,5 +188,7 @@ router.get("/:id/info", RondaController.obtenerInfoRonda);
  * 200 { message, ronda, siguienteInteligente } | 400 | 500
  */
 router.patch("/:id/concluir", RondaController.marcarRondaComoConcluida);
+router.use(passport.authenticate("jwt", { session: false }));
 
 export default router;
+
