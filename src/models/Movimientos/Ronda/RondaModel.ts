@@ -976,7 +976,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
       // Aquí ya permite:
       // - ESPERA (normal)
       // - EN_PROCESO PERO ya reasignable (>30 min)
-      if (!['EN_PROCESO', 'ESPERA'].includes(mov.estado)) continue;
+      if (!['EN_PROCESO', 'SOLICITADO'].includes(mov.estado)) continue;
 
       return {
         rondaId: r.id,
