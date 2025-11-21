@@ -36,6 +36,24 @@ const MAX_GUARD_ITERS = 1000;
 const MAX_SCAN_ROUNDS = 500;
 const TIMEOUT_EN_PROCESO_MS = 60 * 60 * 1000; // 60 minutos
 
+// Movimiento bloqueado al operador que lo inició por 30 min
+const BLOQUEO_OPERADOR_MS = 30 * 60 * 1000; // 30 minutos
+
+function esReasignablePorTiempo(mov: any): boolean {
+  // AJUSTA estos campos al nombre real en tu Prisma:
+  const base =
+    mov.inicioReal ||
+    mov.inicioOperacion ||
+    mov.fechaInicio ||
+    mov.updatedAt ||
+    mov.createdAt;
+
+  if (!base) return false;
+
+  const t = base instanceof Date ? base.getTime() : new Date(base).getTime();
+  return Date.now() - t >= BLOQUEO_OPERADOR_MS;
+}
+
 // ================== MODELO ==================
 export class RondaModel {
   // ---------- HELPERS INTERNOS (SIN CRON) ----------
@@ -871,63 +889,111 @@ export class RondaModel {
       };
     });
   }
+  
 
-  /** Wrapper por compatibilidad. */
-  public static async siguienteInteligente(localidadId: number, usuarioId?: number) {
-    const res = await this.siguienteParaMaquinista(localidadId, usuarioId);
+static async siguienteInteligente(localidadId: number, userId?: number) {
+    const rondas = await prisma.ronda.findMany({
+      where: {
+        localidadId,
+        concluido: false,
+      },
+      include: {
+        movimiento: {
+          include: {
+            viaDestino: true,
+            viaOrigen: true,
+          },
+        },
+        empresa: true,
+      },
+      orderBy: [
+        { rondaNumero: 'asc' },
+        { orden: 'asc' },
+      ],
+    });
 
-    // si no hay nada, así se queda
-    if ((res as any).vacio) return res;
+    if (!rondas.length) {
+      return { vacio: true, motivo: 'Sin rondas activas en la localidad' };
+    }
 
-    const {
-      rondaId,
-      localidadId: locId,
-      movimientoId,
-      empresaId,
-      prioridad,
-      locomotiveNumber,
-      rondaNumero,
-      orden,
-      permiteInicio,
-      motivo,
-    } = res as any;
-
-    // si por algún camino no vino ronda/orden, lo completamos
-    if (typeof rondaNumero !== 'number' || typeof orden !== 'number') {
-      const r = await prisma.ronda.findUnique({
-        where: { id: rondaId },
-        select: { rondaNumero: true, orden: true },
+    // 1) Si el usuario ya tiene un movimiento EN_PROCESO < 30 min, siempre se le regresa ese
+    if (userId) {
+      const propia = rondas.find((r: any) => {
+        const mov = r.movimiento as any;
+        if (!mov) return false;
+        if (mov.estado !== 'EN_PROCESO') return false;
+        if (mov.operadorId !== userId && mov.maquinistaId !== userId) return false; // ajusta a tu schema
+        return !esReasignablePorTiempo(mov); // todavía dentro de los 30 min
       });
 
-      if (!r) {
-        return { vacio: true as const, motivo: 'ronda_no_encontrada' };
+      if (propia) {
+        const mov = propia.movimiento as any;
+        return {
+          rondaId: propia.id,
+          movimientoId: mov.id,
+          empresaId: mov.empresaId,
+          prioridad: mov.prioridad,
+          locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
+          viaDestino: mov.viaDestino?.nombre ?? null,
+          bloqueado: false,
+          // IMPORTANTE: este flag lo puedes usar en frontend para NO mostrar "Iniciar"
+          permiteInicio: false,
+          enCursoPropio: true,
+        };
+      }
+    }
+
+    // 2) Buscar el siguiente elegible para cualquiera (maquinista que sea)
+    for (const r of rondas) {
+      const mov = r.movimiento as any;
+      if (!mov) continue;
+
+      const esServicio = !!(mov.lavado || mov.torno);
+      const esReasignable = mov.estado === 'EN_PROCESO' && esReasignablePorTiempo(mov);
+
+      // Servicios: tu regla original -> solo visibles si están EN_PROCESO
+      if (esServicio) {
+        if (mov.estado !== 'EN_PROCESO') continue;
+
+        return {
+          rondaId: r.id,
+          movimientoId: mov.id,
+          empresaId: mov.empresaId,
+          prioridad: mov.prioridad,
+          locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
+          viaDestino: mov.viaDestino?.nombre ?? null,
+          bloqueado: false,
+          permiteInicio: true,
+        };
       }
 
+      // No servicio:
+      // - Si está EN_PROCESO y NO es reasignable todavía → se salta
+      if (mov.estado === 'EN_PROCESO' && !esReasignable) {
+        continue;
+      }
+
+      // Aquí ya permite:
+      // - ESPERA (normal)
+      // - EN_PROCESO PERO ya reasignable (>30 min)
+      if (!['EN_PROCESO', 'ESPERA'].includes(mov.estado)) continue;
+
       return {
-        rondaId,
-        localidadId: locId,
-        movimientoId,
-        empresaId,
-        prioridad,
-        locomotiveNumber: locomotiveNumber ?? null,
-        rondaNumero: r.rondaNumero,
-        orden: r.orden,
-        permiteInicio: permiteInicio ?? true,
-        motivo: motivo ?? 'completado_desde_db',
+        rondaId: r.id,
+        movimientoId: mov.id,
+        empresaId: mov.empresaId,
+        prioridad: mov.prioridad,
+        locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
+        viaDestino: mov.viaDestino?.nombre ?? null,
+        bloqueado: false,
+        permiteInicio: true,
       };
     }
 
     return {
-      rondaId,
-      localidadId: locId,
-      movimientoId,
-      empresaId,
-      prioridad,
-      locomotiveNumber: locomotiveNumber ?? null,
-      rondaNumero,
-      orden,
-      permiteInicio: permiteInicio ?? true,
-      motivo: motivo ?? 'ok',
+      vacio: true,
+      motivo:
+        'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
     };
   }
 
