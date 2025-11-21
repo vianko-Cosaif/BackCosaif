@@ -526,17 +526,18 @@ private static async _insertarBajaConRobinHood(
     _max: { rondaNumero: true },
   });
 
-  let rondaDestino: number;
+  // valor por defecto para que TS siempre tenga algo
+  let rondaDestino: number = startRound;
 
   if (aggEmpresa._max.rondaNumero != null) {
     // Ya tiene cadena de Bajas:
     // - Si tiene algo en R2/R3/etc → la nueva va DESPUÉS de la más lejana.
     // - Nunca subimos por encima de startRound (por si hay ALTAS y startRound=2).
-    const maxEmpresa = aggEmpresa._max.rondaNumero;
+    const maxEmpresa = aggEmpresa._max.rondaNumero!;
     rondaDestino = Math.max(maxEmpresa + 1, startRound);
   } else {
-    // Primera BAJA de esta empresa → la vieja lógica:
-    // buscar la primera ronda >= startRound sin BAJA de esta empresa.
+    // Primera BAJA de esta empresa → buscar la primera ronda >= startRound
+    // sin BAJA de esta empresa.
     let r = startRound;
     for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
       const ya = await tx.ronda.count({
@@ -554,9 +555,8 @@ private static async _insertarBajaConRobinHood(
       }
       r++;
     }
-    if (!rondaDestino) {
-      rondaDestino = r; // por seguridad si rompemos por guard
-    }
+    // si por guard no encontró hueco, se queda con el último r probado
+    // (o con startRound si ni siquiera entró al for)
   }
 
   // 3) Insertar al final de esa ronda destino
