@@ -512,11 +512,12 @@ static async editarIncidente(
         // aquí va tu reacomodo NUEVO
         await RondaModel.gestionarIncidente(movId);
 
-        // y aquí reactivamos el movimiento para que vuelva a salir en la ronda
+     // lo dejamos detenido: sigue en la ronda pero no se auto-inicia
         await prisma.movimiento.update({
-          where: { id: movId },
-          data: { estado: 'DETENIDO', fechaPausa: null, incidenteGlobal: false },
+         where: { id: movId },
+        data: { estado: 'DETENIDO', fechaPausa: null, incidenteGlobal: false },
         });
+
 
         incidenteError.info('Reorden ejecutado por cierre de incidente', {
           incidenteId: id,
@@ -591,7 +592,6 @@ static async editarIncidente(
       }
 
       const prioridad = rondaMovimiento.movimiento?.prioridad ?? 'BAJA';
-
       if (prioridad === 'ALTA') {
         await this.moverMovimientoARonda1AlFinal(localidadId, empresaId, movimientoId);
       } else {
