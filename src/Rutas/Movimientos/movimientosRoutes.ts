@@ -236,7 +236,7 @@ router.patch('/:id/prioridad', MovimientoController.cambiarPrioridad);
 
 
 router.get('/:id/edicion', MovimientoController.obtenerInfoEdicion);
-router.patch('/:id/edicion', MovimientoController.guardarEdicion);
+
 
 
 /**
@@ -314,7 +314,7 @@ router.patch('/:id/reanudar', MovimientoController.reanudarMovimiento);
  * 200 OK | 400 | 404 | 500
  */
 router.use(passport.authenticate('jwt', { session: false }));
-
+router.patch('/:id/edicion', MovimientoController.guardarEdicion);
 router.patch('/:id/finalizar', MovimientoController.finalizarMovimiento);
 
 export default router;
