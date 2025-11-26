@@ -41,6 +41,7 @@ const router = Router();
  *  - 400 Bad Request: parámetros inválidos
  *  - 500 Internal Server Error
  */
+router.use(passport.authenticate('jwt', { session: false }));
 router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendientes);
 
 /**
@@ -313,7 +314,7 @@ router.patch('/:id/reanudar', MovimientoController.reanudarMovimiento);
  *
  * 200 OK | 400 | 404 | 500
  */
-router.use(passport.authenticate('jwt', { session: false }));
+
 router.patch('/:id/edicion', MovimientoController.guardarEdicion);
 router.patch('/:id/finalizar', MovimientoController.finalizarMovimiento);
 
