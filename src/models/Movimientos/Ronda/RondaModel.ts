@@ -395,42 +395,58 @@ export class RondaModel {
     }
   }
 
-  // ---------- RECOMPOSICIÓN GENERAL ----------
-  public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
-    await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
+// ---------- RECOMPOSICIÓN GENERAL ----------
+public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
+  // 1) Limpia rondas huérfanas / movimientos ya terminados
+  await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
 
-    await tx.ronda.deleteMany({
-      where: {
-        localidadId,
-        movimiento: { OR: [{ finalizado: true }, { estado: { in: ['CONCLUIDO', 'CANCELADO'] } }] }
-      }
-    });
+  // Borra rondas cuyo movimiento ya terminó o está cancelado/concluido
+  await tx.ronda.deleteMany({
+    where: {
+      localidadId,
+      movimiento: {
+        OR: [
+          { finalizado: true },
+          { estado: { in: ['CONCLUIDO', 'CANCELADO'] } as any },
+        ],
+      },
+    },
+  });
 
-    await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
+  // Borra rondas marcadas como concluido=true
+  await tx.ronda.deleteMany({
+    where: { localidadId, concluido: true },
+  });
 
-    const grupos = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { rondaNumero: true },
-      distinct: ['rondaNumero'],
-      orderBy: { rondaNumero: 'asc' },
-    });
+  // 2) Compacta números de ronda (1..N) y órdenes dentro de cada ronda
+  const grupos = await tx.ronda.findMany({
+    where: { localidadId, concluido: false },
+    select: { rondaNumero: true },
+    distinct: ['rondaNumero'],
+    orderBy: { rondaNumero: 'asc' },
+  });
 
-    let idx = 1;
-    for (const g of grupos) {
-      if (g.rondaNumero !== idx) {
-        await tx.ronda.updateMany({
-          where: { localidadId, rondaNumero: g.rondaNumero },
-          data: { rondaNumero: idx },
-        });
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, idx);
-      idx++;
+  let idx = 1;
+  for (const g of grupos) {
+    if (g.rondaNumero !== idx) {
+      await tx.ronda.updateMany({
+        where: { localidadId, rondaNumero: g.rondaNumero },
+        data: { rondaNumero: idx },
+      });
     }
-
-    await this.ordenarAltasR1_FIFO(tx, localidadId);
-    await this.reequilibrarBajasRobinHood(tx, localidadId);
-    await this.resetSiExcesoDeRondas(tx, localidadId);
+    await this.compactarOrdenesRonda(tx, localidadId, idx);
+    idx++;
   }
+
+  // IMPORTANTE:
+  // Ya NO llamamos a:
+  // - ordenarAltasR1_FIFO
+  // - reequilibrarBajasRobinHood
+  // - resetSiExcesoDeRondas
+  //
+  // La justicia entre empresas ahora la resuelve `siguienteInteligente`
+  // sin mover físicamente las rondas.
+}
 
   // ---------- SERVICIO ACTIVADO (LAVADO / TORNO) ----------
   public static async onServicioActivado(movimientoId: number) {
