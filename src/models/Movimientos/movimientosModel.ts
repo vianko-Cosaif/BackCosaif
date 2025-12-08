@@ -854,8 +854,7 @@ static async nuevoMovimiento(data: {
       where: {
         estado: 'EN_PROCESO',
         OR: [
-          { operadorId },
-          { maquinistaId: operadorId },
+          { operadorId }
         ],
       },
       orderBy: {
