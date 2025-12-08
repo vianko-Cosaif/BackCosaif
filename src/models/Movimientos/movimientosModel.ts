@@ -849,16 +849,20 @@ static async nuevoMovimiento(data: {
   }
 }
 
-// src/models/Movimientos/MovimientoModel.ts
-static async obtenerMovimientoActivoPorOperador(operadorId: number) {
-  return prisma.movimiento.findFirst({
-    where: {
-      operadorId,
-      estado: "EN_PROCESO",
-      eliminado: false,
-    },
-  });
-}
+  static async obtenerMovimientoActivoPorOperador(operadorId: number) {
+    return prisma.movimiento.findFirst({
+      where: {
+        estado: 'EN_PROCESO',
+        OR: [
+          { operadorId },
+          { maquinistaId: operadorId },
+        ],
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+  }
 
 
   /** Cambia estado de servicios (lavado/torno) usando lógica central. */
@@ -1390,30 +1394,16 @@ static async solicitarServicioYEncolarFrenteR1(id: number) {
 
   /* -------------------------- Acciones rápidas maquinista -------------------------- */
 
-  /** Marca EN_PROCESO e inicia (setea operadorId=maquinistaId). */
-  static async iniciarMovimiento(id: number, maquinistaId: number) {
-    try {
-      const fechaActual = new Date();
-      const mov = await prisma.movimiento.update({
-        where: { id },
-        data: {
-          estado: 'EN_PROCESO',
-          fechaInicio: fechaActual,
-          operadorId: maquinistaId,
-          updatedAt: fechaActual,
-        },
-      });
-
-      await notificarMovimientoIniciado(mov.id);
-      await RondaModel.siguienteInteligente(mov.localidadId);
-      return mov;
-    } catch (error: any) {
-      movimientoError.error('Error al iniciar movimiento', {
-        id, maquinistaId,
-        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al iniciar movimiento');
-    }
+ static async iniciarMovimiento(id: number, maquinistaId: number) {
+    return prisma.movimiento.update({
+      where: { id },
+      data: {
+        estado: 'EN_PROCESO',
+        operadorId: maquinistaId,    // si no quieres tocar operadorId, bórralo
+        maquinistaId,                // si no existe en el esquema, quita esta línea
+         fechaInicio: new Date(),  // solo si tienes esta columna
+      },
+    });
   }
 
   /** Pausa (DETENIDO). */
