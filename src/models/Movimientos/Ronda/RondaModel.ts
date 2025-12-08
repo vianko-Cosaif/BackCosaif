@@ -948,24 +948,22 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
   });
 
   if (!rondas.length) {
-    return { vacio: true, motivo: 'Sin rondas activas en la localidad' };
+    return { vacio: true as const, motivo: 'Sin rondas activas en la localidad' };
   }
 
-  // 1) Si el usuario ya tiene un movimiento EN_PROCESO en esta localidad,
-  // SIEMPRE se le regresa ese mismo (uno a la vez).
+  // 1) Si el usuario ya tiene un movimiento EN_PROCESO → lo forzamos a cerrar ese.
   if (userId) {
-    const propia = rondas.find((r: any) => {
+    const propia = (rondas as any[]).find((r) => {
       const mov = r.movimiento as any;
       if (!mov) return false;
       if (mov.estado !== 'EN_PROCESO') return false;
       if (mov.operadorId !== userId && mov.maquinistaId !== userId) return false;
-      // Ya no aplicamos reasignación por tiempo para el propio usuario:
-      // mientras esté EN_PROCESO, se le fuerza a cerrar ese.
+      // Mientras esté EN_PROCESO suyo, siempre se le regresa ese
       return true;
     });
 
     if (propia) {
-      const mov = propia.movimiento as any;
+      const mov = (propia as any).movimiento as any;
       const viaDestinoNombre =
         mov.viaDestino?.nombre ??
         (mov.lavado ? 'Lavado' : mov.torno ? 'Torno' : null);
@@ -978,54 +976,53 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
         locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
         viaDestino: viaDestinoNombre,
         bloqueado: false,
-        // Ya está en curso, no es para "iniciar" otro, es para que lo termine
+        // Ya está en curso, no es para iniciar de nuevo
         permiteInicio: false,
         enCursoPropio: true,
       };
     }
   }
 
-  // 2) Si el usuario NO tiene nada en proceso, buscamos el siguiente elegible
-  for (const r of rondas) {
+  // 2) Construimos candidatos ALTA / BAJA aplicando filtros de estado/bloqueo
+  const candidatosAltas: any[] = [];
+  const candidatosBajas: any[] = [];
+
+  for (const r of rondas as any[]) {
     const mov = r.movimiento as any;
     if (!mov) continue;
 
     const esServicio = !!(mov.lavado || mov.torno);
     const esReasignable = mov.estado === 'EN_PROCESO' && esReasignablePorTiempo(mov);
 
+    if (esServicio) {
+      // Servicios sólo en estos estados
+      if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
+      // EN_PROCESO de otro operador pero dentro de la ventana de bloqueo → no se reasigna
+      if (mov.estado === 'EN_PROCESO' && mov.operadorId && !esReasignable) continue;
+    } else {
+      // Movimientos normales
+      if (mov.estado === 'EN_PROCESO' && !esReasignable) {
+        // EN_PROCESO reciente de otro operador → no disponible todavía
+        continue;
+      }
+      if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
+    }
+
+    if (mov.prioridad === 'ALTA') {
+      candidatosAltas.push(r);
+    } else {
+      candidatosBajas.push(r);
+    }
+  }
+
+  const buildRespuesta = (row: any) => {
+    const mov = row.movimiento as any;
     const viaDestinoNombre =
       mov.viaDestino?.nombre ??
       (mov.lavado ? 'Lavado' : mov.torno ? 'Torno' : null);
 
-    if (esServicio) {
-      // Servicios: solo visibles si están en estados elegibles
-      if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) {
-        continue;
-      }
-
-      return {
-        rondaId: r.id,
-        movimientoId: mov.id,
-        empresaId: mov.empresaId,
-        prioridad: mov.prioridad,
-        locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
-        viaDestino: viaDestinoNombre,
-        bloqueado: false,
-        permiteInicio: true,
-      };
-    }
-
-    // Movimientos normales:
-    // si están EN_PROCESO y NO son reasignables (de OTRO operador), se brincan
-    if (mov.estado === 'EN_PROCESO' && !esReasignable) {
-      continue;
-    }
-
-    // Solo se consideran estos estados como candidatos
-    if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
-
     return {
-      rondaId: r.id,
+      rondaId: row.id,
       movimientoId: mov.id,
       empresaId: mov.empresaId,
       prioridad: mov.prioridad,
@@ -1034,14 +1031,48 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
       bloqueado: false,
       permiteInicio: true,
     };
+  };
+
+  // 3) Primero ALTA, en el orden natural de rondas (R1 FIFO como ya lo tenías)
+  if (candidatosAltas.length) {
+    return buildRespuesta(candidatosAltas[0]);
   }
 
-  return {
-    vacio: true,
-    motivo:
-      'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
-  };
+  // 4) BAJA → round-robin por empresa: 1-2-3-1-2-3…
+  if (!candidatosBajas.length) {
+    return {
+      vacio: true as const,
+      motivo:
+        'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
+    };
+  }
+
+  const porEmpresa = new Map<number, any[]>();
+
+  for (const r of candidatosBajas) {
+    const empresaId = (r as any).empresaId as number;
+    const arr = porEmpresa.get(empresaId) ?? [];
+    arr.push(r);
+    porEmpresa.set(empresaId, arr);
+  }
+
+  const empresas = [...porEmpresa.keys()].sort((a, b) => a - b);
+
+  const fairList: any[] = [];
+  let guard = 0;
+
+  while ([...porEmpresa.values()].some((arr) => arr.length > 0) && guard++ < MAX_GUARD_ITERS) {
+    for (const empresaId of empresas) {
+      const queue = porEmpresa.get(empresaId)!;
+      if (!queue.length) continue;
+      fairList.push(queue.shift()!);
+    }
+  }
+
+  const elegido = fairList[0] ?? candidatosBajas[0];
+  return buildRespuesta(elegido);
 }
+
 
 
   static async notificarFinServicio(
