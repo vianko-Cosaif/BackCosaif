@@ -785,49 +785,18 @@ export class MovimientoController {
    * @returns
    *   200 { message, movimiento?, yaEnProceso?, movimientoEnProcesoId?, locomotora? } | 400 | 409 | 500
    */
-  static iniciarMovimiento: RequestHandler = async (req, res) => {
-    const movimientoId = Number(req.params.id);
-    const { operadorId } = req.body as { operadorId?: number };
+static async iniciarMovimiento(req: Request, res: Response) {
+  try {
+    const id = Number(req.params.id);
+    const operadorId = (req.user as any).id;
 
-    if (!Number.isInteger(movimientoId) || !operadorId || typeof operadorId !== 'number') {
-      return res.status(400).json({ message: 'Parámetros inválidos' });
-    }
-
-    try {
-      // 1) Buscar si el operador ya tiene un movimiento EN_PROCESO
-      const activo = await MovimientoModel.obtenerMovimientoActivoPorOperador(operadorId);
-
-      if (activo) {
-        // a) Es el mismo movimiento → idempotente
-        if (activo.id === movimientoId) {
-          return res.status(200).json({
-            message: 'Movimiento ya estaba en proceso para este operador',
-            id: activo.id,
-            estado: activo.estado,
-            yaEnProceso: true,
-          });
-        }
-
-        // b) Es otro movimiento → candado: primero tiene que cerrar ese
-        return res.status(409).json({
-          message: 'Ya tienes un movimiento en proceso, debes cerrarlo antes de iniciar otro.',
-          movimientoEnProcesoId: activo.id,
-          locomotiveNumber: (activo as any).locomotiveNumber ?? null,
-        });
-      }
-
-      // 2) Si no tiene ninguno activo → flujo normal
-      const movimiento = await MovimientoModel.iniciarMovimiento({ movimientoId, operadorId });
-
-      return res.status(200).json({
-        message: 'Movimiento iniciado correctamente',
-        movimiento,
-      });
-    } catch (error) {
-      log.error('Error al iniciar movimiento', { error, movimientoId, operadorId });
-      return res.status(500).json({ message: 'Error al iniciar movimiento' });
-    }
-  };
+    const mov = await MovimientoModel.iniciarMovimiento(id, operadorId);
+    return res.json(mov);
+  } catch (err) {
+    console.error('Error al iniciar movimiento', err);
+    return res.status(500).json({ error: 'No se pudo iniciar el movimiento' });
+  }
+}
 
   /**
    * PATCH /movimientos/:id/pausar

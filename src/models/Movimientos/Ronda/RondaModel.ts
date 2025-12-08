@@ -184,6 +184,9 @@ export class RondaModel {
     }
   }
 
+
+
+  
   /** En BAJAS: máx 1 por empresa por ronda. En ALTAS: sin límite (cola FIFO en R1). */
   private static async garantizarUnSlotBajasPorEmpresaPorRonda(tx: Tx, localidadId: number, startRound: number) {
     const filas = await tx.ronda.findMany({
@@ -395,11 +398,10 @@ export class RondaModel {
     }
   }
 
-  private static async recomponerSoloCompactar(
+private static async recomponerSoloCompactar(
   localidadId: number,
   tx: Tx = prisma
 ) {
-  // 1) Quitar rondas huérfanas y movimientos ya terminados
   await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
 
   await tx.ronda.deleteMany({
@@ -414,12 +416,10 @@ export class RondaModel {
     },
   });
 
-  // 2) Quitar rondas marcadas como concluidas
   await tx.ronda.deleteMany({
     where: { localidadId, concluido: true },
   });
 
-  // 3) Recompactar números de ronda y órdenes
   const grupos = await tx.ronda.findMany({
     where: { localidadId, concluido: false },
     select: { rondaNumero: true },
@@ -439,7 +439,6 @@ export class RondaModel {
     idx++;
   }
 
-  // 4) Por si hay demasiadas rondas, aplica solo el reset suave
   await this.resetSiExcesoDeRondas(tx, localidadId);
 }
 
@@ -1371,14 +1370,13 @@ static async marcarRondaComoConcluida(id: number) {
       data: { concluido: true, updatedAt: new Date() },
     });
 
-    // IMPORTANTe: ya NO llamamos a recomponerRondasLocalidad
     await this.recomponerSoloCompactar(rondaActualizada.localidadId);
-
     return rondaActualizada;
   } catch (error) {
     movimientoError.error('Error al marcar ronda como concluida', { id, error });
     throw new Error('Error al marcar ronda como concluida');
   }
 }
+
 
 }
