@@ -58,7 +58,11 @@ function buildMetaTag(opts: {
  * Retorna { destinoId?, seccion?, liberar:boolean }.
  */
 function parseMetaFromInstrucciones(instr?: string) {
-  const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
+  const meta = {
+    destinoId: undefined as number | undefined,
+    seccion: undefined as number | undefined,
+    liberar: false,
+  };
   if (!instr) return meta;
   const m = instr.match(/\[META ([^\]]+)\]/i);
   if (!m) return meta;
@@ -66,10 +70,12 @@ function parseMetaFromInstrucciones(instr?: string) {
   for (const t of tokens) {
     if (t === 'LIBERAR') meta.liberar = true;
     if (t.startsWith('DESTINO:')) {
-      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) meta.destinoId = v;
+      const v = Number(t.split(':')[1]);
+      if (!Number.isNaN(v)) meta.destinoId = v;
     }
     if (t.startsWith('SECCION:')) {
-      const s = Number(t.split(':')[1]); if (!Number.isNaN(s)) meta.seccion = s;
+      const s = Number(t.split(':')[1]);
+      if (!Number.isNaN(s)) meta.seccion = s;
     }
   }
   return meta;
@@ -109,7 +115,9 @@ export class MovimientoController {
       (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
       (empresaId !== undefined && Number.isNaN(Number(empresaId)))
     ) {
-      return res.status(400).json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
+      return res
+        .status(400)
+        .json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
     }
     try {
       const lista = await MovimientoModel.obtenerServiciosPendientes({
@@ -144,7 +152,9 @@ export class MovimientoController {
     const validos = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CANCELADO'];
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
     if (!validos.includes(estado)) {
-      return res.status(400).json({ message: `Estado inválido. Debe ser uno de: ${validos.join(' | ')}` });
+      return res
+        .status(400)
+        .json({ message: `Estado inválido. Debe ser uno de: ${validos.join(' | ')}` });
     }
     if (operadorId !== undefined && typeof operadorId !== 'number') {
       return res.status(400).json({ message: 'operadorId debe ser numérico si se envía' });
@@ -155,37 +165,40 @@ export class MovimientoController {
       res.status(200).json({ message: 'Estado de servicio actualizado', movimiento: mov });
     } catch (error: any) {
       log.error('Error al actualizar estado de servicio', { error, id, estado });
-      res.status(500).json({ message: error?.message || 'Error al actualizar estado de servicio' });
+      res
+        .status(500)
+        .json({ message: error?.message || 'Error al actualizar estado de servicio' });
     }
   };
 
   /**
- * PATCH /movimientos/:id/cancelar
- *
- * @summary Cancela el movimiento y lo saca de la ronda.
- * @auth Requiere JWT.
- * @param {number} req.params.id
- * @body {{ razon?: string }}
- * @returns 200 { message, movimiento } | 400 | 404 | 500
- */
-static cancelarMovimiento: RequestHandler = async (req, res) => {
-  const id = Number(req.params.id);
-  const razon = String(req.body?.razon ?? 'Sin motivo');
-  const usuarioId = Number((req as any).user?.id || 0);
+   * PATCH /movimientos/:id/cancelar
+   *
+   * @summary Cancela el movimiento y lo saca de la ronda.
+   * @auth Requiere JWT.
+   * @param {number} req.params.id
+   * @body {{ razon?: string }}
+   * @returns 200 { message, movimiento } | 400 | 404 | 500
+   */
+  static cancelarMovimiento: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    const razon = String(req.body?.razon ?? 'Sin motivo');
+    const usuarioId = Number((req as any).user?.id || 0);
 
-  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
-  try {
-    const mov = await MovimientoModel.cancelarMovimiento(id, razon, usuarioId || undefined);
-    return res.status(200).json({ message: 'Movimiento cancelado y removido de la ronda', movimiento: mov });
-  } catch (error: any) {
-    log.error('Error al cancelar movimiento', { error, id, razon, usuarioId });
-    const msg = error?.message || 'Error al cancelar movimiento';
-    const code = /no se encontró|no encontrado|inválid/i.test(msg) ? 404 : 500;
-    return res.status(code).json({ message: msg });
-  }
-};
-
+    try {
+      const mov = await MovimientoModel.cancelarMovimiento(id, razon, usuarioId || undefined);
+      return res
+        .status(200)
+        .json({ message: 'Movimiento cancelado y removido de la ronda', movimiento: mov });
+    } catch (error: any) {
+      log.error('Error al cancelar movimiento', { error, id, razon, usuarioId });
+      const msg = error?.message || 'Error al cancelar movimiento';
+      const code = /no se encontró|no encontrado|inválid/i.test(msg) ? 404 : 500;
+      return res.status(code).json({ message: msg });
+    }
+  };
 
   /**
    * GET /movimientos/:id
@@ -247,7 +260,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const tieneOrigen = raw.viaOrigenId !== undefined && raw.viaOrigenId !== null;
       const tieneDestino = raw.viaDestinoId !== undefined && raw.viaDestinoId !== null;
       if (!tieneOrigen && !tieneDestino) {
-        return res.status(400).json({ message: 'Debe enviar viaOrigenId o viaDestinoId (al menos uno).' });
+        return res
+          .status(400)
+          .json({ message: 'Debe enviar viaOrigenId o viaDestinoId (al menos uno).' });
       }
       if (tieneOrigen && Number.isNaN(Number(raw.viaOrigenId))) {
         return res.status(400).json({ message: 'viaOrigenId debe ser numérico' });
@@ -264,11 +279,12 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
 
       // Deducción de intención sin tocar DB de Vías:
       const liberarOrigenFlag =
-        raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
+        raw.liberarOrigen === true ||
+        /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
       const meta = buildMetaTag({
-        viaDestinoId: raw.viaDestinoId,            // se guarda como META (además de en DB si viene)
-        numeroSeccion: raw.numeroSeccion,          // solo META
+        viaDestinoId: raw.viaDestinoId, // se guarda como META (además de en DB si viene)
+        numeroSeccion: raw.numeroSeccion, // solo META
         liberarOrigen: liberarOrigenFlag,
       });
 
@@ -283,7 +299,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
 
       res.status(201).json({
-        message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
+        message:
+          'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
         meta: {
           destinoSolicitado: raw.viaDestinoId ?? null,
           seccionSolicitada: raw.numeroSeccion ?? null,
@@ -297,38 +314,41 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
+  /**
+   * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
+   *
+   * @summary Lista SOLO servicios (lavado/torno) en **SOLICITADO** o **DETENIDO**, FIFO por creación.
+   * @auth Requiere JWT.
+   * @query {number} [localidadId]
+   * @query {number} [empresaId]
+   * @returns 200 [Movimiento] | 400 | 500
+   */
+  static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
+    const { localidadId, empresaId } = req.query;
+    if (
+      (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
+      (empresaId !== undefined && Number.isNaN(Number(empresaId)))
+    ) {
+      return res
+        .status(400)
+        .json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
+    }
+    try {
+      const lista = await MovimientoModel.listarServiciosPendientesFIFO({
+        localidadId: localidadId !== undefined ? Number(localidadId) : undefined,
+        empresaId: empresaId !== undefined ? Number(empresaId) : undefined,
+      });
+      return res.status(200).json(lista);
+    } catch (error) {
+      log.error('Error al listar servicios pendientes (FIFO)', { error, localidadId, empresaId });
+      return res.status(500).json({ message: 'Error al listar servicios pendientes' });
+    }
+  };
 
-/**
- * GET /movimientos/servicios/pendientes?localidadId=&empresaId=
- *
- * @summary Lista SOLO servicios (lavado/torno) en **SOLICITADO** o **DETENIDO**, FIFO por creación.
- * @auth Requiere JWT.
- * @query {number} [localidadId]
- * @query {number} [empresaId]
- * @returns 200 [Movimiento] | 400 | 500
- */
-static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
-  const { localidadId, empresaId } = req.query;
-  if (
-    (localidadId !== undefined && Number.isNaN(Number(localidadId))) ||
-    (empresaId !== undefined && Number.isNaN(Number(empresaId)))
+  static async obtenerInfoEdicion(
+    req: import('express').Request,
+    res: import('express').Response,
   ) {
-    return res.status(400).json({ message: 'Parámetros inválidos (localidadId/empresaId deben ser numéricos)' });
-  }
-  try {
-    const lista = await MovimientoModel.listarServiciosPendientesFIFO({
-      localidadId: localidadId !== undefined ? Number(localidadId) : undefined,
-      empresaId: empresaId !== undefined ? Number(empresaId) : undefined,
-    });
-    return res.status(200).json(lista);
-  } catch (error) {
-    log.error('Error al listar servicios pendientes (FIFO)', { error, localidadId, empresaId });
-    return res.status(500).json({ message: 'Error al listar servicios pendientes' });
-  }
-};
-
-
- static async obtenerInfoEdicion(req: import('express').Request, res: import('express').Response) {
     try {
       const id = Number(req.params.id);
       if (Number.isNaN(id)) return res.status(400).json({ error: 'id inválido' });
@@ -339,7 +359,10 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
     }
   }
 
-  static async guardarEdicion(req: import('express').Request, res: import('express').Response) {
+  static async guardarEdicion(
+    req: import('express').Request,
+    res: import('express').Response,
+  ) {
     try {
       const id = Number(req.params.id);
       if (Number.isNaN(id)) return res.status(400).json({ error: 'id inválido' });
@@ -357,29 +380,32 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
     }
   }
 
-/**
- * PATCH /movimientos/servicios/:id/solicitar
- *
- * @summary Cambia un servicio (lavado/torno) de **ESPERA → SOLICITADO** y lo encola al frente de **R1** (posición 1), sin importar prioridad.
- * @auth Requiere JWT.
- * @param {number} req.params.id
- * @returns 200 { message, movimiento } | 400 | 500
- */
-static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+  /**
+   * PATCH /movimientos/servicios/:id/solicitar
+   *
+   * @summary Cambia un servicio (lavado/torno) de **ESPERA → SOLICITADO** y lo encola al frente de **R1**
+   *          (posición 1), sin importar prioridad.
+   * @auth Requiere JWT.
+   * @param {number} req.params.id
+   * @returns 200 { message, movimiento } | 400 | 500
+   */
+  static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
-  try {
-    const movimiento = await MovimientoModel.solicitarServicioYEncolarFrenteR1(id);
-    res.status(200).json({
-      message: 'Servicio solicitado y encolado al frente de R1',
-      movimiento,
-    });
-  } catch (error: any) {
-    log.error('Error al solicitar y encolar servicio al frente de R1', { error, id });
-    res.status(400).json({ message: error?.message || 'Error al solicitar y encolar servicio' });
-  }
-};
+    try {
+      const movimiento = await MovimientoModel.solicitarServicioYEncolarFrenteR1(id);
+      res.status(200).json({
+        message: 'Servicio solicitado y encolado al frente de R1',
+        movimiento,
+      });
+    } catch (error: any) {
+      log.error('Error al solicitar y encolar servicio al frente de R1', { error, id });
+      res
+        .status(400)
+        .json({ message: error?.message || 'Error al solicitar y encolar servicio' });
+    }
+  };
 
   /**
    * PATCH /movimientos/:id/prioridad
@@ -397,7 +423,9 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
 
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID de movimiento inválido' });
     if (!['ALTA', 'BAJA'].includes(prioridad)) {
-      return res.status(400).json({ message: 'Valor de prioridad inválido. Debe ser "ALTA" o "BAJA"' });
+      return res
+        .status(400)
+        .json({ message: 'Valor de prioridad inválido. Debe ser "ALTA" o "BAJA"' });
     }
 
     try {
@@ -406,7 +434,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
       if (!original) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       if (original.prioridad === prioridad) {
-        return res.status(200).json({ message: `El movimiento ya tiene prioridad ${prioridad}`, movimiento: original });
+        return res.status(200).json({
+          message: `El movimiento ya tiene prioridad ${prioridad}`,
+          movimiento: original,
+        });
       }
 
       if (prioridad === 'ALTA') {
@@ -423,7 +454,12 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
           ? 'Prioridad actualizada a ALTA. Se reorganizaron las rondas.'
           : `Prioridad actualizada a ${prioridad}`;
 
-      res.status(200).json({ message, movimiento, prioridadAnterior: (original as any).prioridad, prioridadNueva: prioridad });
+      res.status(200).json({
+        message,
+        movimiento,
+        prioridadAnterior: (original as any).prioridad,
+        prioridadNueva: prioridad,
+      });
     } catch (error) {
       log.error('Error al cambiar prioridad del movimiento', { error, id, prioridad });
       res.status(500).json({ message: 'Error al cambiar prioridad del movimiento' });
@@ -478,14 +514,18 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    */
   static obtenerMovimientosPendientesPorEmpresa: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
-    if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
+    if (!Number.isInteger(empresaId)) {
+      return res.status(400).json({ message: 'ID de empresa inválido' });
+    }
 
     try {
       const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresa(empresaId);
       res.status(200).json(pendientes);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId });
-      res.status(500).json({ message: 'Error al obtener movimientos pendientes por empresa' });
+      res
+        .status(500)
+        .json({ message: 'Error al obtener movimientos pendientes por empresa' });
     }
   };
 
@@ -516,7 +556,9 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    */
   static obtenerMovimientosPorEmpresa: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
-    if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
+    if (!Number.isInteger(empresaId)) {
+      return res.status(400).json({ message: 'ID de empresa inválido' });
+    }
 
     try {
       const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresa(empresaId);
@@ -537,14 +579,22 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    */
   static obtenerMovimientosPendientesPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
-    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
+    if (!Number.isInteger(localidadId)) {
+      return res.status(400).json({ message: 'ID de localidad inválido' });
+    }
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
+      const movimientos =
+        await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad' });
+      log.error('Error al obtener movimientos pendientes por localidad', {
+        error,
+        localidadId,
+      });
+      res
+        .status(500)
+        .json({ message: 'Error al obtener movimientos pendientes por localidad' });
     }
   };
 
@@ -558,14 +608,21 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    */
   static obtenerTodosMovimientosPorLocalidad: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
-    if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
+    if (!Number.isInteger(localidadId)) {
+      return res.status(400).json({ message: 'ID de localidad inválido' });
+    }
 
     try {
       const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidad(localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener todos los movimientos por localidad', { error, localidadId });
-      res.status(500).json({ message: 'Error al obtener todos los movimientos por localidad' });
+      log.error('Error al obtener todos los movimientos por localidad', {
+        error,
+        localidadId,
+      });
+      res
+        .status(500)
+        .json({ message: 'Error al obtener todos los movimientos por localidad' });
     }
   };
 
@@ -582,14 +639,25 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(localidadId) || !Number.isInteger(empresaId)) {
-      return res.status(400).json({ message: 'ID de localidad o empresa inválido' });
+      return res
+        .status(400)
+        .json({ message: 'ID de localidad o empresa inválido' });
     }
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorLocalidadEmpresa(localidadId, empresaId);
+      const movimientos = await MovimientoModel.obtenerMovimientosPorLocalidadEmpresa(
+        localidadId,
+        empresaId,
+      );
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId });
-      res.status(500).json({ message: 'Error al obtener movimientos por localidad y empresa' });
+      log.error('Error al obtener movimientos por localidad y empresa', {
+        error,
+        localidadId,
+        empresaId,
+      });
+      res
+        .status(500)
+        .json({ message: 'Error al obtener movimientos por localidad y empresa' });
     }
   };
 
@@ -606,14 +674,25 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
-      return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
+      return res
+        .status(400)
+        .json({ message: 'ID de empresa o localidad inválido' });
     }
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidad(empresaId, localidadId);
+      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidad(
+        empresaId,
+        localidadId,
+      );
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos por empresa y localidad' });
+      log.error('Error al obtener movimientos por empresa y localidad', {
+        error,
+        empresaId,
+        localidadId,
+      });
+      res
+        .status(500)
+        .json({ message: 'Error al obtener movimientos por empresa y localidad' });
     }
   };
 
@@ -626,18 +705,33 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    * @param {number} req.params.localidadId
    * @returns 200 [Movimiento] | 400 | 500
    */
-  static obtenerMovimientosNoConcluidosPorEmpresaYLocalidad: RequestHandler = async (req, res) => {
+  static obtenerMovimientosNoConcluidosPorEmpresaYLocalidad: RequestHandler = async (
+    req,
+    res,
+  ) => {
     const empresaId = Number(req.params.empresaId);
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
-      return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
+      return res
+        .status(400)
+        .json({ message: 'ID de empresa o localidad inválido' });
     }
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId, localidadId);
+      const pendientes =
+        await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(
+          empresaId,
+          localidadId,
+        );
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos no concluidos por empresa y localidad' });
+      log.error('Error al obtener movimientos no concluidos por empresa y localidad', {
+        error,
+        empresaId,
+        localidadId,
+      });
+      res.status(500).json({
+        message: 'Error al obtener movimientos no concluidos por empresa y localidad',
+      });
     }
   };
 
@@ -651,7 +745,9 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    */
   static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     const rondaId = Number(req.params.rondaId);
-    if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
+    if (!Number.isInteger(rondaId)) {
+      return res.status(400).json({ message: 'ID de ronda inválido' });
+    }
 
     try {
       const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
@@ -662,7 +758,9 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
         const todos = await MovimientoModel.obtenerMovimientos();
         const mov = todos.find((m: any) => m.id === (info as any)?.movimiento?.id);
         if (mov) meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
-      } catch { /* noop */ }
+      } catch {
+        /* noop */
+      }
 
       res.status(200).json(meta ? { ...info, meta } : info);
     } catch (error) {
@@ -674,61 +772,70 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
   /**
    * PATCH /movimientos/:id/iniciar
    *
-   * @summary Marca un movimiento como iniciado por `operadorId`.
+   * @summary Marca un movimiento como iniciado por `operadorId`,
+   *          garantizando **solo un movimiento EN_PROCESO por operador**.
+   * @description
+   *  - Si el operador ya tiene un movimiento EN_PROCESO distinto:
+   *      → no inicia el nuevo, informa cuál está activo.
+   *  - Si el movimiento ya estaba EN_PROCESO para ese operador:
+   *      → operación idempotente.
    * @auth Requiere JWT.
    * @param {number} req.params.id
    * @body {{operadorId:number}}
-   * @returns 200 { message, movimiento } | 400 | 500
+   * @returns
+   *   200 { message, movimiento?, yaEnProceso?, movimientoEnProcesoId?, locomotora? } | 400 | 409 | 500
    */
+  static iniciarMovimiento: RequestHandler = async (req, res) => {
+    const movimientoId = Number(req.params.id);
+    const { operadorId } = req.body as { operadorId?: number };
 
-static iniciarMovimiento: RequestHandler = async (req, res) => {
-  const movimientoId = Number(req.params.id);
-  const { operadorId } = req.body as { operadorId?: number };
+    if (
+      Number.isNaN(movimientoId) ||
+      !operadorId ||
+      typeof operadorId !== 'number' ||
+      Number.isNaN(operadorId)
+    ) {
+      return res.status(400).json({ message: 'Parámetros inválidos' });
+    }
 
-  if (isNaN(movimientoId) || !operadorId || typeof operadorId !== "number") {
-    res.status(400).json({ message: "Parámetros inválidos" });
-    return;
-  }
+    try {
+      // 1) Buscar si el operador ya tiene un movimiento EN_PROCESO
+      const activo = await MovimientoModel.obtenerMovimientoActivoPorOperador(operadorId);
 
-  try {
-    // 1) Buscar si el operador ya tiene un movimiento EN_PROCESO
-    const activo = await MovimientoModel.obtenerMovimientoActivoPorOperador(operadorId);
+      if (activo) {
+        // a) Es el mismo movimiento → idempotente
+        if (activo.id === movimientoId) {
+          return res.status(200).json({
+            message: 'Movimiento ya estaba en proceso para este operador',
+            id: activo.id,
+            estado: (activo as any).estado,
+            yaEnProceso: true,
+          });
+        }
 
-    if (activo) {
-      // a) Es el mismo movimiento → idempotente
-      if (activo.id === movimientoId) {
-        return res.status(200).json({
-          message: "Movimiento ya estaba en proceso para este operador",
-          id: activo.id,
-          estado: activo.estado,
-          yaEnProceso: true,
+        // b) Es otro movimiento → candado: primero tiene que cerrar ese
+        return res.status(409).json({
+          message: 'Ya tienes un movimiento en proceso, debes cerrarlo antes de iniciar otro.',
+          movimientoEnProcesoId: activo.id,
+          locomotora:
+            (activo as any).locomotora ??
+            (activo as any).locomotiveNumber ??
+            null,
         });
       }
 
-      // b) Es otro movimiento → candado: primero tiene que cerrar ese
-      return res.status(409).json({
-        message: "Ya tienes un movimiento en proceso, debes cerrarlo antes de iniciar otro.",
-        movimientoEnProcesoId: activo.id,
-        locomotora: activo.locomotora,
+      // 2) Si no tiene ninguno activo → flujo normal
+      const result = await MovimientoModel.iniciarMovimiento(movimientoId, operadorId);
+
+      return res.status(200).json({
+        message: 'Movimiento iniciado correctamente',
+        movimiento: result,
       });
+    } catch (error) {
+      log.error('Error al iniciar movimiento', { error, movimientoId, operadorId });
+      return res.status(500).json({ message: 'Error al iniciar movimiento' });
     }
-
-    // 2) Si no tiene ninguno activo → flujo normal
-    const result = await MovimientoModel.iniciarMovimiento({
-      movimientoId,
-      operadorId,
-    });
-
-    return res.status(200).json({
-      message: "Movimiento iniciado correctamente",
-      movimiento: result,
-    });
-  } catch (error) {
-    logger.error("Error al iniciar movimiento", { error, movimientoId, operadorId });
-    res.status(500).json({ message: "Error al iniciar movimiento" });
-  }
-};
-
+  };
 
   /**
    * PATCH /movimientos/:id/pausar
