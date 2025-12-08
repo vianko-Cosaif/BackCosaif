@@ -339,7 +339,7 @@ static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
   }
 
   const userId = (req.user as any)?.id ? Number((req.user as any).id) : undefined;
-
+x
   try {
     const result = await RondaModel.siguienteInteligente(localidadId, userId);
     res.status(200).json(result);

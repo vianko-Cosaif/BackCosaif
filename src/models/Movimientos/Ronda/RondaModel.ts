@@ -395,6 +395,54 @@ export class RondaModel {
     }
   }
 
+  private static async recomponerSoloCompactar(
+  localidadId: number,
+  tx: Tx = prisma
+) {
+  // 1) Quitar rondas huérfanas y movimientos ya terminados
+  await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
+
+  await tx.ronda.deleteMany({
+    where: {
+      localidadId,
+      movimiento: {
+        OR: [
+          { finalizado: true },
+          { estado: { in: ['CONCLUIDO', 'CANCELADO'] as any } },
+        ],
+      },
+    },
+  });
+
+  // 2) Quitar rondas marcadas como concluidas
+  await tx.ronda.deleteMany({
+    where: { localidadId, concluido: true },
+  });
+
+  // 3) Recompactar números de ronda y órdenes
+  const grupos = await tx.ronda.findMany({
+    where: { localidadId, concluido: false },
+    select: { rondaNumero: true },
+    distinct: ['rondaNumero'],
+    orderBy: { rondaNumero: 'asc' },
+  });
+
+  let idx = 1;
+  for (const g of grupos) {
+    if (g.rondaNumero !== idx) {
+      await tx.ronda.updateMany({
+        where: { localidadId, rondaNumero: g.rondaNumero },
+        data: { rondaNumero: idx },
+      });
+    }
+    await this.compactarOrdenesRonda(tx, localidadId, idx);
+    idx++;
+  }
+
+  // 4) Por si hay demasiadas rondas, aplica solo el reset suave
+  await this.resetSiExcesoDeRondas(tx, localidadId);
+}
+
 // ---------- RECOMPOSICIÓN GENERAL ----------
 public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
   // 1) Limpia rondas huérfanas / movimientos ya terminados
@@ -447,6 +495,7 @@ public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = pris
   // La justicia entre empresas ahora la resuelve `siguienteInteligente`
   // sin mover físicamente las rondas.
 }
+
 
   // ---------- SERVICIO ACTIVADO (LAVADO / TORNO) ----------
   public static async onServicioActivado(movimientoId: number) {
@@ -1315,17 +1364,21 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     }
   }
 
-  static async marcarRondaComoConcluida(id: number) {
-    try {
-      const rondaActualizada = await prisma.ronda.update({
-        where: { id },
-        data: { concluido: true, updatedAt: new Date() },
-      });
-      await this.recomponerRondasLocalidad(rondaActualizada.localidadId);
-      return rondaActualizada;
-    } catch (error) {
-      movimientoError.error('Error al marcar ronda como concluida', { id, error });
-      throw new Error('Error al marcar ronda como concluida');
-    }
+static async marcarRondaComoConcluida(id: number) {
+  try {
+    const rondaActualizada = await prisma.ronda.update({
+      where: { id },
+      data: { concluido: true, updatedAt: new Date() },
+    });
+
+    // IMPORTANTe: ya NO llamamos a recomponerRondasLocalidad
+    await this.recomponerSoloCompactar(rondaActualizada.localidadId);
+
+    return rondaActualizada;
+  } catch (error) {
+    movimientoError.error('Error al marcar ronda como concluida', { id, error });
+    throw new Error('Error al marcar ronda como concluida');
   }
+}
+
 }
