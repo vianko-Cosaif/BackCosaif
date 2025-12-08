@@ -785,18 +785,34 @@ export class MovimientoController {
    * @returns
    *   200 { message, movimiento?, yaEnProceso?, movimientoEnProcesoId?, locomotora? } | 400 | 409 | 500
    */
-static async iniciarMovimiento(req: Request, res: Response) {
-  try {
-    const id = Number(req.params.id);
-    const operadorId = (req.user as any).id;
+  /**
+   * PATCH /movimientos/:id/iniciar
+   *
+   * Marca un movimiento como iniciado por un operador.
+   */
+  static iniciarMovimiento: RequestHandler = async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id)) {
+        return res.status(400).json({ message: 'ID inválido' });
+      }
 
-    const mov = await MovimientoModel.iniciarMovimiento(id, operadorId);
-    return res.json(mov);
-  } catch (err) {
-    console.error('Error al iniciar movimiento', err);
-    return res.status(500).json({ error: 'No se pudo iniciar el movimiento' });
-  }
-}
+      // passport jwt debe inyectar user
+      const operadorId = Number((req as any).user?.id);
+      if (!operadorId) {
+        return res.status(401).json({ message: 'No autenticado' });
+      }
+
+      const mov = await MovimientoModel.iniciarMovimiento(id, operadorId);
+      return res.status(200).json(mov);
+    } catch (err) {
+      console.error('Error al iniciar movimiento', err);
+      return res
+        .status(500)
+        .json({ error: 'No se pudo iniciar el movimiento' });
+    }
+  };
+
 
   /**
    * PATCH /movimientos/:id/pausar
