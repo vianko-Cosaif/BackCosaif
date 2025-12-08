@@ -849,6 +849,16 @@ static async nuevoMovimiento(data: {
   }
 }
 
+// src/models/Movimientos/MovimientoModel.ts
+static async obtenerMovimientoActivoPorOperador(operadorId: number) {
+  return prisma.movimiento.findFirst({
+    where: {
+      operadorId,
+      estado: "EN_PROCESO",
+      eliminado: false,
+    },
+  });
+}
 
 
   /** Cambia estado de servicios (lavado/torno) usando lógica central. */

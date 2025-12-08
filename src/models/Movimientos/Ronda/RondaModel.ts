@@ -926,85 +926,82 @@ export class RondaModel {
     });
   }
 
-  static async siguienteInteligente(localidadId: number, userId?: number) {
-    const rondas = await prisma.ronda.findMany({
-      where: {
-        localidadId,
-        concluido: false,
-      },
-      include: {
-        movimiento: {
-          include: {
-            viaDestino: true,
-            viaOrigen: true,
-          },
+static async siguienteInteligente(localidadId: number, userId?: number) {
+  const rondas = await prisma.ronda.findMany({
+    where: {
+      localidadId,
+      concluido: false,
+    },
+    include: {
+      movimiento: {
+        include: {
+          viaDestino: true,
+          viaOrigen: true,
         },
-        empresa: true,
       },
-      orderBy: [
-        { rondaNumero: 'asc' },
-        { orden: 'asc' },
-      ],
+      empresa: true,
+    },
+    orderBy: [
+      { rondaNumero: 'asc' },
+      { orden: 'asc' },
+    ],
+  });
+
+  if (!rondas.length) {
+    return { vacio: true, motivo: 'Sin rondas activas en la localidad' };
+  }
+
+  // 1) Si el usuario ya tiene un movimiento EN_PROCESO en esta localidad,
+  // SIEMPRE se le regresa ese mismo (uno a la vez).
+  if (userId) {
+    const propia = rondas.find((r: any) => {
+      const mov = r.movimiento as any;
+      if (!mov) return false;
+      if (mov.estado !== 'EN_PROCESO') return false;
+      if (mov.operadorId !== userId && mov.maquinistaId !== userId) return false;
+      // Ya no aplicamos reasignación por tiempo para el propio usuario:
+      // mientras esté EN_PROCESO, se le fuerza a cerrar ese.
+      return true;
     });
 
-    if (!rondas.length) {
-      return { vacio: true, motivo: 'Sin rondas activas en la localidad' };
+    if (propia) {
+      const mov = propia.movimiento as any;
+      const viaDestinoNombre =
+        mov.viaDestino?.nombre ??
+        (mov.lavado ? 'Lavado' : mov.torno ? 'Torno' : null);
+
+      return {
+        rondaId: propia.id,
+        movimientoId: mov.id,
+        empresaId: mov.empresaId,
+        prioridad: mov.prioridad,
+        locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
+        viaDestino: viaDestinoNombre,
+        bloqueado: false,
+        // Ya está en curso, no es para "iniciar" otro, es para que lo termine
+        permiteInicio: false,
+        enCursoPropio: true,
+      };
     }
+  }
 
-    if (userId) {
-      const propia = rondas.find((r: any) => {
-        const mov = r.movimiento as any;
-        if (!mov) return false;
-        if (mov.estado !== 'EN_PROCESO') return false;
-        if (mov.operadorId !== userId && mov.maquinistaId !== userId) return false;
-        return !esReasignablePorTiempo(mov);
-      });
+  // 2) Si el usuario NO tiene nada en proceso, buscamos el siguiente elegible
+  for (const r of rondas) {
+    const mov = r.movimiento as any;
+    if (!mov) continue;
 
-      if (propia) {
-        const mov = propia.movimiento as any;
-        return {
-          rondaId: propia.id,
-          movimientoId: mov.id,
-          empresaId: mov.empresaId,
-          prioridad: mov.prioridad,
-          locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
-          viaDestino: mov.viaDestino?.nombre ?? null,
-          bloqueado: false,
-          permiteInicio: false,
-          enCursoPropio: true,
-        };
-      }
-    }
+    const esServicio = !!(mov.lavado || mov.torno);
+    const esReasignable = mov.estado === 'EN_PROCESO' && esReasignablePorTiempo(mov);
 
-    for (const r of rondas) {
-      const mov = r.movimiento as any;
-      if (!mov) continue;
+    const viaDestinoNombre =
+      mov.viaDestino?.nombre ??
+      (mov.lavado ? 'Lavado' : mov.torno ? 'Torno' : null);
 
-      const esServicio = !!(mov.lavado || mov.torno);
-      const esReasignable = mov.estado === 'EN_PROCESO' && esReasignablePorTiempo(mov);
-
-      if (esServicio) {
-        if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) {
-          continue;
-        }
-
-        return {
-          rondaId: r.id,
-          movimientoId: mov.id,
-          empresaId: mov.empresaId,
-          prioridad: mov.prioridad,
-          locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
-          viaDestino: mov.viaDestino?.nombre ?? null,
-          bloqueado: false,
-          permiteInicio: true,
-        };
-      }
-
-      if (mov.estado === 'EN_PROCESO' && !esReasignable) {
+    if (esServicio) {
+      // Servicios: solo visibles si están en estados elegibles
+      if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) {
         continue;
       }
-
-      if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
 
       return {
         rondaId: r.id,
@@ -1012,18 +1009,40 @@ export class RondaModel {
         empresaId: mov.empresaId,
         prioridad: mov.prioridad,
         locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
-        viaDestino: mov.viaDestino?.nombre ?? null,
+        viaDestino: viaDestinoNombre,
         bloqueado: false,
         permiteInicio: true,
       };
     }
 
+    // Movimientos normales:
+    // si están EN_PROCESO y NO son reasignables (de OTRO operador), se brincan
+    if (mov.estado === 'EN_PROCESO' && !esReasignable) {
+      continue;
+    }
+
+    // Solo se consideran estos estados como candidatos
+    if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
+
     return {
-      vacio: true,
-      motivo:
-        'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
+      rondaId: r.id,
+      movimientoId: mov.id,
+      empresaId: mov.empresaId,
+      prioridad: mov.prioridad,
+      locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
+      viaDestino: viaDestinoNombre,
+      bloqueado: false,
+      permiteInicio: true,
     };
   }
+
+  return {
+    vacio: true,
+    motivo:
+      'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
+  };
+}
+
 
   static async notificarFinServicio(
     movimientoId: number,
