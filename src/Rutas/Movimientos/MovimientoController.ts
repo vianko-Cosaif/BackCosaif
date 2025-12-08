@@ -789,12 +789,7 @@ export class MovimientoController {
     const movimientoId = Number(req.params.id);
     const { operadorId } = req.body as { operadorId?: number };
 
-    if (
-      Number.isNaN(movimientoId) ||
-      !operadorId ||
-      typeof operadorId !== 'number' ||
-      Number.isNaN(operadorId)
-    ) {
+    if (!Number.isInteger(movimientoId) || !operadorId || typeof operadorId !== 'number') {
       return res.status(400).json({ message: 'Parámetros inválidos' });
     }
 
@@ -808,7 +803,7 @@ export class MovimientoController {
           return res.status(200).json({
             message: 'Movimiento ya estaba en proceso para este operador',
             id: activo.id,
-            estado: (activo as any).estado,
+            estado: activo.estado,
             yaEnProceso: true,
           });
         }
@@ -817,19 +812,16 @@ export class MovimientoController {
         return res.status(409).json({
           message: 'Ya tienes un movimiento en proceso, debes cerrarlo antes de iniciar otro.',
           movimientoEnProcesoId: activo.id,
-          locomotora:
-            (activo as any).locomotora ??
-            (activo as any).locomotiveNumber ??
-            null,
+          locomotiveNumber: (activo as any).locomotiveNumber ?? null,
         });
       }
 
       // 2) Si no tiene ninguno activo → flujo normal
-      const result = await MovimientoModel.iniciarMovimiento(movimientoId, operadorId);
+      const movimiento = await MovimientoModel.iniciarMovimiento({ movimientoId, operadorId });
 
       return res.status(200).json({
         message: 'Movimiento iniciado correctamente',
-        movimiento: result,
+        movimiento,
       });
     } catch (error) {
       log.error('Error al iniciar movimiento', { error, movimientoId, operadorId });
