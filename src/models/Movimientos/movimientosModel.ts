@@ -1393,17 +1393,20 @@ static async solicitarServicioYEncolarFrenteR1(id: number) {
 
   /* -------------------------- Acciones rápidas maquinista -------------------------- */
 
- static async iniciarMovimiento(id: number, maquinistaId: number) {
-    return prisma.movimiento.update({
-      where: { id },
-      data: {
-        estado: 'EN_PROCESO',
-        operadorId: maquinistaId,    // si no quieres tocar operadorId, bórralo
-        maquinistaId,                // si no existe en el esquema, quita esta línea
-         fechaInicio: new Date(),  // solo si tienes esta columna
-      },
-    });
-  }
+// src/models/Movimientos/movimientosModel.ts
+
+static async iniciarMovimiento(params: { movimientoId: number; operadorId: number }) {
+  const { movimientoId, operadorId } = params;
+
+  return prisma.movimiento.update({
+    where: { id: movimientoId },
+    data: {
+      estado: 'EN_PROCESO',
+      operadorId,        // esto sí existe en tu esquema
+      fechaInicio: new Date(), // asumiendo que tienes esta columna; si no, quítala también
+    },
+  });
+}
 
   /** Pausa (DETENIDO). */
   static async pausarMovimiento(id: number) {
