@@ -1015,13 +1015,14 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     return { vacio: true as const, motivo: 'Sin rondas activas en la localidad' };
   }
 
-  // 1) Si el usuario ya tiene un movimiento EN_PROCESO → se le regresa ese mismo (sin mezclar nada)
+  // 1) Si el usuario ya tiene un movimiento EN_PROCESO → lo forzamos a cerrar ese.
   if (userId) {
     const propia = (rondas as any[]).find((r) => {
       const mov = r.movimiento as any;
       if (!mov) return false;
       if (mov.estado !== 'EN_PROCESO') return false;
       if (mov.operadorId !== userId && mov.maquinistaId !== userId) return false;
+      // Mientras esté EN_PROCESO suyo, siempre se le regresa ese
       return true;
     });
 
@@ -1039,13 +1040,14 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
         locomotiveNumber: mov.locomotora ?? mov.locomotiveNumber ?? null,
         viaDestino: viaDestinoNombre,
         bloqueado: false,
+        // Ya está en curso, no es para iniciar de nuevo
         permiteInicio: false,
         enCursoPropio: true,
       };
     }
   }
 
-  // 2) Construimos candidatos respetando SOLO el orden físico (sin agrupar por empresa)
+  // 2) Construimos candidatos ALTA / BAJA aplicando filtros de estado/bloqueo
   const candidatosAltas: any[] = [];
   const candidatosBajas: any[] = [];
 
@@ -1057,17 +1059,23 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     const esReasignable = mov.estado === 'EN_PROCESO' && esReasignablePorTiempo(mov);
 
     if (esServicio) {
+      // Servicios sólo en estos estados
       if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
+      // EN_PROCESO de otro operador pero dentro de la ventana de bloqueo → no se reasigna
       if (mov.estado === 'EN_PROCESO' && mov.operadorId && !esReasignable) continue;
     } else {
-      if (mov.estado === 'EN_PROCESO' && !esReasignable) continue;
+      // Movimientos normales
+      if (mov.estado === 'EN_PROCESO' && !esReasignable) {
+        // EN_PROCESO reciente de otro operador → no disponible todavía
+        continue;
+      }
       if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) continue;
     }
 
     if (mov.prioridad === 'ALTA') {
-      candidatosAltas.push(r);   // en el MISMO orden en que vienen de la BD
+      candidatosAltas.push(r);
     } else {
-      candidatosBajas.push(r);   // idem
+      candidatosBajas.push(r);
     }
   }
 
@@ -1089,24 +1097,45 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     };
   };
 
-  // 3) Primero ALTAS en el orden físico de la cola
+  // 3) Primero ALTA, en el orden natural de rondas (R1 FIFO como ya lo tenías)
   if (candidatosAltas.length) {
-    return buildRespuesta(candidatosAltas[0]); // ya vienen ordenadas por rondaNumero/orden
+    return buildRespuesta(candidatosAltas[0]);
   }
 
-  // 4) Luego BAJAS en el orden físico de la cola (SIN round-robin por empresa)
-  if (candidatosBajas.length) {
-    return buildRespuesta(candidatosBajas[0]);
+  // 4) BAJA → round-robin por empresa: 1-2-3-1-2-3…
+  if (!candidatosBajas.length) {
+    return {
+      vacio: true as const,
+      motivo:
+        'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
+    };
   }
 
-  // 5) Hay rondas pero nada disponible por bloqueo de 30 min, etc.
-  return {
-    vacio: true as const,
-    motivo:
-      'Hay rondas pero todos los movimientos están en proceso reciente de otro operador (<30 min)',
-  };
+  const porEmpresa = new Map<number, any[]>();
+
+  for (const r of candidatosBajas) {
+    const empresaId = (r as any).empresaId as number;
+    const arr = porEmpresa.get(empresaId) ?? [];
+    arr.push(r);
+    porEmpresa.set(empresaId, arr);
+  }
+
+  const empresas = [...porEmpresa.keys()].sort((a, b) => a - b);
+
+  const fairList: any[] = [];
+  let guard = 0;
+
+  while ([...porEmpresa.values()].some((arr) => arr.length > 0) && guard++ < MAX_GUARD_ITERS) {
+    for (const empresaId of empresas) {
+      const queue = porEmpresa.get(empresaId)!;
+      if (!queue.length) continue;
+      fairList.push(queue.shift()!);
+    }
+  }
+
+  const elegido = fairList[0] ?? candidatosBajas[0];
+  return buildRespuesta(elegido);
 }
-
 
 
 
