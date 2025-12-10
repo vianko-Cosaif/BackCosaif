@@ -849,19 +849,6 @@ static async nuevoMovimiento(data: {
   }
 }
 
-  static async obtenerMovimientoActivoPorOperador(operadorId: number) {
-    return prisma.movimiento.findFirst({
-      where: {
-        estado: 'EN_PROCESO',
-        OR: [
-          { operadorId }
-        ],
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
-  }
 
 
   /** Cambia estado de servicios (lavado/torno) usando lógica central. */
@@ -1393,18 +1380,31 @@ static async solicitarServicioYEncolarFrenteR1(id: number) {
 
   /* -------------------------- Acciones rápidas maquinista -------------------------- */
 
-// src/models/Movimientos/movimientosModel.ts
-static async iniciarMovimiento(id: number, operadorId: number) {
-  return prisma.movimiento.update({
-    where: { id },
-    data: {
-      estado: 'EN_PROCESO',
-      operadorId,
-      fechaInicio: new Date(),
-    },
-  });
-}
+  /** Marca EN_PROCESO e inicia (setea operadorId=maquinistaId). */
+  static async iniciarMovimiento(id: number, maquinistaId: number) {
+    try {
+      const fechaActual = new Date();
+      const mov = await prisma.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'EN_PROCESO',
+          fechaInicio: fechaActual,
+          operadorId: maquinistaId,
+          updatedAt: fechaActual,
+        },
+      });
 
+      await notificarMovimientoIniciado(mov.id);
+      await RondaModel.siguienteInteligente(mov.localidadId);
+      return mov;
+    } catch (error: any) {
+      movimientoError.error('Error al iniciar movimiento', {
+        id, maquinistaId,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al iniciar movimiento');
+    }
+  }
 
   /** Pausa (DETENIDO). */
   static async pausarMovimiento(id: number) {
