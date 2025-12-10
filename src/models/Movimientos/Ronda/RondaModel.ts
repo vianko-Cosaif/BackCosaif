@@ -1110,6 +1110,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
 
 
+
   static async notificarFinServicio(
     movimientoId: number,
     tipo: 'LAVADO' | 'TORNO',
