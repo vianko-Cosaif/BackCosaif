@@ -1339,44 +1339,86 @@ static async solicitarServicioYEncolarFrenteR1(id: number) {
 
   /* -------------------------- Info compuesta por ronda -------------------------- */
 
-  static async obtenerInfoPorRonda(rondaId: number) {
-    
-    try {
-      const info = await RondaModel.obtenerInfoPorRonda(rondaId);
-      
-      if (!info) throw new Error(`No se encontró la ronda con ID ${rondaId}`);
+// MovimientoModel.ts
+static async obtenerInfoPorRonda(rondaId: number) {
+  const r = await prisma.ronda.findUnique({
+    where: { id: rondaId },
+    include: {
+      empresa: { select: { id: true, nombre: true } },
+      movimiento: {
+        include: {
+          empresa: { select: { id: true, nombre: true } },
+          localidad: { select: { id: true, nombre: true } },
+          viaOrigen: { select: { id: true, nombre: true } },
+          viaDestino: { select: { id: true, nombre: true } },
 
-      // Asegura instrucciones frescas desde la DB del movimiento
-      const movDB = await prisma.movimiento.findUnique({
-        where: { id: info.movimiento.id },
-        select: { instrucciones: true },
-      });
-      const instrucciones = movDB?.instrucciones;
-      const meta = parseMetaFromInstrucciones(instrucciones ?? undefined);
+          creadoPor: { select: { id: true, nombre: true, rol: true } },
+          cliente: { select: { id: true, nombre: true } },
+          supervisor: { select: { id: true, nombre: true } },
+          coordinador: { select: { id: true, nombre: true } },
+          operador: { select: { id: true, nombre: true } },
 
-      return {
-        rondaId: info.rondaId,
-        rondaNumero: info.rondaNumero,
-        orden: info.orden,
-        concluido: info.concluido,
-        empresa: info.empresa,
-        movimiento: {
-          id: info.movimiento.id,
-          viaOrigen: info.movimiento.viaOrigen,
-          viaDestino: info.movimiento.viaDestino,
-          lavado: info.movimiento.lavado,
-          torno: info.movimiento.torno,
-          instrucciones, // ← proviene de la DB del movimiento
+          ronda: { select: { id: true, rondaNumero: true, orden: true, concluido: true } },
+          incidentes: { select: { id: true, estado: true, createdAt: true } },
         },
-        meta, // ← derivado del tag [META ...] en instrucciones (si existe)
-      };
-    } catch (error: any) {
-      movimientoError.error('Error al obtener info de ronda desde MovimientoModel', {
-        rondaId, errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
-      });
-      throw new Error('Error al obtener información de la ronda');
-    }
-  }
+      },
+    },
+  });
+
+  if (!r || !r.movimiento) throw new Error(`No se encontró la ronda con ID ${rondaId}`);
+
+  const m = r.movimiento;
+  const meta = parseMetaFromInstrucciones(m.instrucciones ?? undefined);
+
+  return {
+    rondaId: r.id,
+    rondaNumero: (r as any).rondaNumero,
+    orden: (r as any).orden,
+    concluido: (r as any).concluido,
+    empresa: r.empresa,
+
+    movimiento: {
+      id: m.id,
+
+      // “tarjeta completa”
+      locomotiveNumber: m.locomotiveNumber,
+      estado: m.estado,
+      prioridad: m.prioridad,
+      tipoMovimiento: m.tipoMovimiento,
+      posicionCabina: m.posicionCabina,
+      posicionChimenea: m.posicionChimenea,
+      direccionEmpuje: m.direccionEmpuje,
+
+      lavado: m.lavado,
+      torno: m.torno,
+
+      fechaSolicitud: m.fechaSolicitud,
+      fechaInicio: m.fechaInicio,
+      fechaFin: m.fechaFin,
+      fechaPausa: m.fechaPausa,
+
+      instrucciones: m.instrucciones,
+
+      // relaciones con nombres
+      empresa: m.empresa,
+      localidad: m.localidad,
+      viaOrigen: m.viaOrigen,
+      viaDestino: m.viaDestino,
+
+      creadoPor: m.creadoPor,
+      cliente: m.cliente,
+      supervisor: m.supervisor,
+      coordinador: m.coordinador,
+      operador: m.operador,
+
+      ronda: m.ronda,
+      incidentes: m.incidentes,
+    },
+
+    meta,
+  };
+}
+
 
   /* -------------------------- Acciones rápidas maquinista -------------------------- */
 
