@@ -42934,3 +42934,164 @@
   message: 'Iniciando reorganizaci�n por incidente',
   timestamp: '2025-08-04 03:16:16'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 9,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/11/14',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-11-14 20:04:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  CRON_INTERVAL_MS: 60000,
+  level: 'info',
+  message: 'Cron interno de incidentes iniciado',
+  timestamp: '2025-11-14 20:04:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 9,
+  movimientoId: 33,
+  empresaId: 4,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-11-14 20:04:10'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 9,
+  movimientoId: 33,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-11-14 20:06:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 10,
+  movimientoId: 33,
+  empresaId: 4,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-11-14 20:06:25'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 10,
+  movimientoId: 33,
+  cierres: 1,
+  level: 'info',
+  message: 'Reorden ejecutado por cierre de incidente',
+  timestamp: '2025-11-14 20:06:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  CRON_INTERVAL_MS: 60000,
+  level: 'info',
+  message: 'Cron interno de incidentes iniciado',
+  timestamp: '2025-12-09 17:24:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  movimientoId: 64,
+  empresaId: 4,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-09 17:24:34'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  movimientoId: 64,
+  cierres: 1,
+  level: 'info',
+  message: 'Reorden ejecutado por cierre de incidente',
+  timestamp: '2025-12-09 17:24:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 11,
+  movimientoId: 64,
+  cierres: 1,
+  level: 'info',
+  message: 'Reorden ejecutado por cierre de incidente',
+  timestamp: '2025-12-09 17:24:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  CRON_INTERVAL_MS: 60000,
+  level: 'info',
+  message: 'Cron interno de incidentes iniciado',
+  timestamp: '2025-12-17 15:32:41'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 12,
+  movimientoId: 105,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-17 15:32:42'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 12,
+  movimientoId: 105,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-17 15:32:53'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 13,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/17',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-17 16:15:40'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 13,
+  movimientoId: 106,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-17 16:15:40'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 13,
+  movimientoId: 106,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-17 16:16:09'
+}
