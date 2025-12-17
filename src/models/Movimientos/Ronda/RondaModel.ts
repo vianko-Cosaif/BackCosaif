@@ -1112,8 +1112,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     });
     if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
 
-    const ids = [ (m as any).clienteId, (m as any).supervisorId, (m as any).coordinadorId, (m as any).operadorId ]
-      .filter(Boolean) as number[];
+    const ids = [ (m as any).clienteId, (m as any).supervisorId, (m as any).coordinadorId, (m as any).operadorId ].filter(Boolean) as number[];
     const tokens = await tokensDeUsuarios(ids);
     if (!tokens.length) return;
 
@@ -1315,6 +1314,8 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
           prioridad: info.movimiento.prioridad,
           viaOrigen: info.movimiento.viaOrigen,
           viaDestino: info.movimiento.viaDestino,
+          fechaInicio: info.movimiento.fechaInicio,
+          fechaFin: info.movimiento.fechaFin,
           lavado: (info.movimiento as any).lavado,
           torno: (info.movimiento as any).torno,
         },

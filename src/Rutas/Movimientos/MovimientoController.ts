@@ -649,27 +649,18 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    * @param {number} req.params.rondaId
    * @returns 200 info | { ...info, meta } | 400 | 500
    */
-  static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
-    const rondaId = Number(req.params.rondaId);
-    if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
+static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
+  const rondaId = Number(req.params.rondaId);
+  if (!Number.isInteger(rondaId)) return res.status(400).json({ message: 'ID de ronda inválido' });
 
-    try {
-      const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
-
-      // Intentamos enriquecer con META a partir del movimiento original
-      let meta: ReturnType<typeof parseMetaFromInstrucciones> | undefined;
-      try {
-        const todos = await MovimientoModel.obtenerMovimientos();
-        const mov = todos.find((m: any) => m.id === (info as any)?.movimiento?.id);
-        if (mov) meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
-      } catch { /* noop */ }
-
-      res.status(200).json(meta ? { ...info, meta } : info);
-    } catch (error) {
-      log.error('Error al obtener info de ronda', { error, rondaId });
-      res.status(500).json({ message: 'Error al obtener info de ronda' });
-    }
-  };
+  try {
+    const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
+    return res.status(200).json(info);
+  } catch (error) {
+    log.error('Error al obtener info de ronda', { error, rondaId });
+    return res.status(500).json({ message: 'Error al obtener info de ronda' });
+  }
+};
 
   /**
    * PATCH /movimientos/:id/iniciar
