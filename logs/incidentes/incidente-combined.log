@@ -43095,3 +43095,281 @@
   message: 'Movimiento reactivado tras resolución de incidente',
   timestamp: '2025-12-17 16:16:09'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 00:07:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  CRON_INTERVAL_MS: 60000,
+  level: 'info',
+  message: 'Cron interno de incidentes iniciado',
+  timestamp: '2025-12-18 00:07:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  movimientoId: 115,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 00:07:49'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 14,
+  movimientoId: 115,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-18 00:09:13'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 00:19:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  movimientoId: 118,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 00:19:36'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 15,
+  movimientoId: 118,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-18 00:20:45'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 00:22:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  movimientoId: 119,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 00:22:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 17,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 00:22:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 17,
+  movimientoId: 119,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 00:22:29'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 16,
+  movimientoId: 119,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-18 00:22:30'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  id: 17,
+  data: { estado: 'CERRADO' },
+  error: Error: No hay ronda activa para el movimiento 119
+      at prisma.$transaction.isolationLevel (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:546:23)
+      at async Proxy._transactionWithCallback (/var/www/Developer/BackCosaif/node_modules/@prisma/client/runtime/library.js:130:8120)
+      at async RondaModel.gestionarIncidente (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:530:9)
+      at async IncidenteModel.editarIncidente (/var/www/Developer/BackCosaif/dist/models/Incidente/IncidenteModel.js:449:21)
+      at async IncidenteController.cerrar (/var/www/Developer/BackCosaif/dist/Rutas/Incidente/IncidenteController.js:210:25),
+  level: 'error',
+  message: 'Error al editar incidente',
+  timestamp: '2025-12-18 00:23:19'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  id: 17,
+  data: { estado: 'CERRADO' },
+  error: Error: No hay ronda activa para el movimiento 119
+      at prisma.$transaction.isolationLevel (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:546:23)
+      at async Proxy._transactionWithCallback (/var/www/Developer/BackCosaif/node_modules/@prisma/client/runtime/library.js:130:8120)
+      at async RondaModel.gestionarIncidente (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:530:9)
+      at async IncidenteModel.editarIncidente (/var/www/Developer/BackCosaif/dist/models/Incidente/IncidenteModel.js:449:21)
+      at async IncidenteController.cerrar (/var/www/Developer/BackCosaif/dist/Rutas/Incidente/IncidenteController.js:210:25),
+  level: 'error',
+  message: 'Error al editar incidente',
+  timestamp: '2025-12-18 00:23:22'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 00:55:23'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  movimientoId: 122,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 00:55:24'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 18,
+  movimientoId: 122,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-18 00:55:33'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 00:57:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  movimientoId: 122,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 00:57:27'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 19,
+  movimientoId: 122,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-18 00:57:41'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  movimientoId: 120,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 0,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 01:00:00'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  movimientoId: 120,
+  cierres: 1,
+  level: 'info',
+  message: 'Reorden ejecutado por cierre de incidente',
+  timestamp: '2025-12-18 01:00:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 20,
+  movimientoId: 120,
+  cierres: 1,
+  level: 'info',
+  message: 'Reorden ejecutado por cierre de incidente',
+  timestamp: '2025-12-18 01:00:06'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  cantidad: 1,
+  carpeta: '/var/www/Developer/BackCosaif/uploads/incidentes/2025/12/18',
+  level: 'info',
+  message: 'Imágenes procesadas y guardadas',
+  timestamp: '2025-12-18 01:40:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  movimientoId: 123,
+  empresaId: 3,
+  localidadId: 1,
+  imagenesGuardadas: 1,
+  level: 'info',
+  message: 'Incidente creado y procesado',
+  timestamp: '2025-12-18 01:40:08'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  incidenteId: 21,
+  movimientoId: 123,
+  level: 'info',
+  message: 'Movimiento reactivado tras resolución de incidente',
+  timestamp: '2025-12-18 01:41:04'
+}
