@@ -78,7 +78,7 @@ router.get('/', MovimientoController.obtenerMovimientos);
 
 /**
  * GET /movimientos/all
- * Lista *todos* los movimientos (sin filtros).
+ * Lista *todos* los movimientos (sin filtros). 
  * Efecto: solo lectura.
  * 200 OK | 500
  */

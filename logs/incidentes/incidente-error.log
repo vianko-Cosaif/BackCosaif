@@ -6666,3 +6666,33 @@
   module: 'Movimientos/Incidente',
   timestamp: '2025-07-24 16:40:42'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  id: 17,
+  data: { estado: 'CERRADO' },
+  error: Error: No hay ronda activa para el movimiento 119
+      at prisma.$transaction.isolationLevel (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:546:23)
+      at async Proxy._transactionWithCallback (/var/www/Developer/BackCosaif/node_modules/@prisma/client/runtime/library.js:130:8120)
+      at async RondaModel.gestionarIncidente (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:530:9)
+      at async IncidenteModel.editarIncidente (/var/www/Developer/BackCosaif/dist/models/Incidente/IncidenteModel.js:449:21)
+      at async IncidenteController.cerrar (/var/www/Developer/BackCosaif/dist/Rutas/Incidente/IncidenteController.js:210:25),
+  level: 'error',
+  message: 'Error al editar incidente',
+  timestamp: '2025-12-18 00:23:19'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  id: 17,
+  data: { estado: 'CERRADO' },
+  error: Error: No hay ronda activa para el movimiento 119
+      at prisma.$transaction.isolationLevel (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:546:23)
+      at async Proxy._transactionWithCallback (/var/www/Developer/BackCosaif/node_modules/@prisma/client/runtime/library.js:130:8120)
+      at async RondaModel.gestionarIncidente (/var/www/Developer/BackCosaif/dist/models/Movimientos/Ronda/RondaModel.js:530:9)
+      at async IncidenteModel.editarIncidente (/var/www/Developer/BackCosaif/dist/models/Incidente/IncidenteModel.js:449:21)
+      at async IncidenteController.cerrar (/var/www/Developer/BackCosaif/dist/Rutas/Incidente/IncidenteController.js:210:25),
+  level: 'error',
+  message: 'Error al editar incidente',
+  timestamp: '2025-12-18 00:23:22'
+}
