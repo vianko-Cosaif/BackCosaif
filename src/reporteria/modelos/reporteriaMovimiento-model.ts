@@ -1,5 +1,5 @@
 // reporteria/modelos/reporteriaMovimiento-model.ts
-// Reportería Movimientos (DÍA / MES / BIMESTRE / SEMESTRE / ANUAL)
+// Reportería Movimientos (DÍA / SEMANA / MES / BIMESTRE / SEMESTRE / ANUAL)
 // - Rango se calcula en TZ MX y se consulta en UTC con fin EXCLUSIVO.
 // - Incidentes “reales” salen de Incidente por movimientoId (no se usa incidenteGlobal).
 // - Sin torno/lavado (aún no entran al reporte).
@@ -7,12 +7,13 @@
 import { DateTime } from 'luxon';
 import { PrismaClient } from '@prisma/client';
 
-export type PeriodoReporte = 'DIA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
+export type PeriodoReporte = 'DIA' | 'SEMANA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
 
 export type ReportePeriodoFilters = {
   /**
    * Fecha “ancla” en horario MX.
    * - DIA: usa ese día
+   * - SEMANA: usa la semana ISO (LUN-DOM) donde cae esa fecha
    * - MES/BIMESTRE/SEMESTRE/ANUAL: usa el periodo donde cae esa fecha
    */
   fecha: string; // 'YYYY-MM-DD'
@@ -131,6 +132,14 @@ function etiquetaPeriodo(periodo: PeriodoReporte, dtLocal: DateTime) {
   const m = dtLocal.month;
 
   if (periodo === 'DIA') return dtLocal.toFormat('yyyy-LL-dd');
+
+  if (periodo === 'SEMANA') {
+    // Semana ISO (lunes-domingo). Luxon: weekNumber + weekYear.
+    const wy = dtLocal.weekYear; // puede diferir al inicio/fin de año
+    const w = dtLocal.weekNumber; // 1..53
+    return `${wy}-W${String(w).padStart(2, '0')}`;
+  }
+
   if (periodo === 'MES') return dtLocal.toFormat('yyyy-LL');
 
   if (periodo === 'BIMESTRE') {
@@ -163,11 +172,21 @@ function rangoPeriodoUTC(fechaLocal: string, tz: string, periodo: PeriodoReporte
       endLocal = startLocal.plus({ days: 1 });
       break;
     }
+
+    case 'SEMANA': {
+      // Semana ISO: lunes 00:00 → lunes siguiente 00:00
+      // startOf('week') en Luxon es ISO week (lunes) por default.
+      startLocal = anchor.startOf('week').startOf('day');
+      endLocal = startLocal.plus({ weeks: 1 });
+      break;
+    }
+
     case 'MES': {
       startLocal = anchor.startOf('month').startOf('day');
       endLocal = startLocal.plus({ months: 1 });
       break;
     }
+
     case 'BIMESTRE': {
       const bIndex = Math.floor((anchor.month - 1) / 2); // 0..5
       const startMonth = bIndex * 2 + 1; // 1,3,5,7,9,11
@@ -175,17 +194,20 @@ function rangoPeriodoUTC(fechaLocal: string, tz: string, periodo: PeriodoReporte
       endLocal = startLocal.plus({ months: 2 });
       break;
     }
+
     case 'SEMESTRE': {
       const startMonth = anchor.month <= 6 ? 1 : 7;
       startLocal = anchor.set({ month: startMonth, day: 1 }).startOf('day');
       endLocal = startLocal.plus({ months: 6 });
       break;
     }
+
     case 'ANUAL': {
       startLocal = anchor.startOf('year').startOf('day');
       endLocal = startLocal.plus({ years: 1 });
       break;
     }
+
     default:
       throw new Error(`Periodo no soportado: ${periodo}`);
   }
@@ -384,6 +406,9 @@ export class ReporteriaMovimientoModel {
   // Atajos
   static reporteDia(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'DIA');
+  }
+  static reporteSemana(filters: ReportePeriodoFilters) {
+    return this.reportePorPeriodo(filters, 'SEMANA');
   }
   static reporteMes(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'MES');

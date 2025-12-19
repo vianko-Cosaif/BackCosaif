@@ -1,11 +1,15 @@
 // reporteria/controller/movimeintoPdf.ts
-// Controller: genera PDF (Puppeteer + Chart.js) para reportes de movimientos
+// Controller: genera PDF (Puppeteer + SVG embebido) para reportes de movimientos
 //
 // GET sugerido:
 // /reporteria/movimientos/pdf?periodo=dia&fecha=2025-12-19&localidadId=1&empresaId=2&tz=America/Mexico_City
 //
-// Nota: hoy SOLO queda completo "dia" porque en el model ahorita existe reporteDia().
-// Mes/bimestre/semestre/anual los dejamos listos para conectar cuando metas esos métodos al model.
+// periodos soportados:
+// - dia | semana | mes | bimestre | semestre | anual
+//
+// Nota:
+// - El model ya expone: reporteDia, reporteSemana, reporteMes, reporteBimestre, reporteSemestre, reporteAnual
+// - Aquí solo enruta al método correcto y convierte a ReporteBase para el generador PDF.
 
 import type { Request, Response } from 'express';
 import { ReporteriaMovimientoModel } from '../modelos/reporteriaMovimiento-model';
@@ -14,7 +18,7 @@ import {
   type ReporteBase,
 } from '../modelos/reporteriaMovimiento-pdf';
 
-type Periodo = 'dia' | 'mes' | 'bimestre' | 'semestre' | 'anual';
+type Periodo = 'dia' | 'semana' | 'mes' | 'bimestre' | 'semestre' | 'anual';
 
 function parseIntOpt(v: any): number | undefined {
   if (v === undefined || v === null || v === '') return undefined;
@@ -27,16 +31,28 @@ function pickPeriodo(q: any): Periodo {
 
   // aliases por si alguien escribe raro:
   if (raw === 'diario' || raw === 'día' || raw === 'day') return 'dia';
+
+  if (raw === 'semana' || raw === 'weekly' || raw === 'week' || raw === 'semanal') return 'semana';
+
   if (raw === 'mensual' || raw === 'month') return 'mes';
+
   if (raw === 'bi' || raw === 'bim' || raw === 'bimestral') return 'bimestre';
+
   if (raw === 'semi' || raw === 'semestral') return 'semestre';
+
   if (raw === 'year' || raw === 'anual' || raw === 'año') return 'anual';
 
-  if (raw === 'dia' || raw === 'mes' || raw === 'bimestre‘' || raw === 'semestre' || raw === 'anual') {
-    // ojo: el bimestre‘ con comilla rara no debería existir, pero ya sabes cómo es la vida.
-  }
+  // typo common: comilla rara
+  if (raw === 'bimestre‘') return 'bimestre';
 
-  if (raw === 'dia' || raw === 'mes' || raw === 'bimestre' || raw === 'semestre' || raw === 'anual') return raw as Periodo;
+  if (
+    raw === 'dia' ||
+    raw === 'semana' ||
+    raw === 'mes' ||
+    raw === 'bimestre' ||
+    raw === 'semestre' ||
+    raw === 'anual'
+  ) return raw as Periodo;
 
   return 'dia';
 }
@@ -47,6 +63,53 @@ function assertYYYYMMDD(fecha: any) {
     throw new Error('Parámetro "fecha" inválido. Usa formato YYYY-MM-DD (día en México).');
   }
   return s;
+}
+
+function periodoLabel(periodo: Periodo) {
+  switch (periodo) {
+    case 'dia':
+      return 'Día';
+    case 'semana':
+      return 'Semana';
+    case 'mes':
+      return 'Mes';
+    case 'bimestre':
+      return 'Bimestre';
+    case 'semestre':
+      return 'Semestre';
+    case 'anual':
+      return 'Año';
+    default:
+      return 'Periodo';
+  }
+}
+
+function toReporteBase(r: any, periodo: Periodo): ReporteBase {
+  return {
+    meta: {
+      fechaLocal: r.meta.fechaLocal,
+      etiqueta: `Movimientos ${r.meta.etiqueta ?? r.meta.fechaLocal ?? ''}`.trim(),
+      periodo: periodoLabel(periodo),
+      tz: r.meta.tz,
+      // ojo: el PDF tú lo vas a mostrar en MX, pero el model trae ambos rangos.
+      // El generador PDF puede usar rangoLocal si lo soportas; aquí mantenemos contrato con ReporteBase.
+      rangoUTC: r.meta.rangoUTC,
+    },
+    resumen: {
+      totalMovimientos: r.resumen.totalMovimientos,
+      movimientosPorEstado: r.resumen.movimientosPorEstado,
+      totalIncidentes: r.resumen.totalIncidentes,
+      incidentesPorEstado: r.resumen.incidentesPorEstado,
+      porEmpresa: (r.resumen.porEmpresa ?? []).map((e: any) => ({
+        empresaId: e.empresaId,
+        empresa: e.empresa,
+        totalMovimientos: e.totalMovimientos,
+        movimientosPorEstado: e.movimientosPorEstado,
+        totalIncidentes: e.totalIncidentes,
+        incidentesPorEstado: e.incidentesPorEstado,
+      })),
+    },
+  };
 }
 
 export class MovimientoPdfController {
@@ -60,56 +123,43 @@ export class MovimientoPdfController {
 
       const localidadId = parseIntOpt(req.query.localidadId);
       const empresaId = parseIntOpt(req.query.empresaId);
+      const fecha = assertYYYYMMDD(req.query.fecha);
 
       // 1) Obtener reporte (data) desde el model
-      let base: ReporteBase;
+      let reporte: any;
 
-      if (periodo === 'dia') {
-        const fecha = assertYYYYMMDD(req.query.fecha);
+      switch (periodo) {
+        case 'dia':
+          reporte = await ReporteriaMovimientoModel.reporteDia({ fecha, tz, localidadId, empresaId });
+          break;
 
-        const reporteDia = await ReporteriaMovimientoModel.reporteDia({
-          fecha,
-          tz,
-          localidadId,
-          empresaId,
-        });
+        case 'semana':
+          reporte = await ReporteriaMovimientoModel.reporteSemana({ fecha, tz, localidadId, empresaId });
+          break;
 
-        // Convertimos a ReporteBase (sin campos extra para que TS no se ponga mamón)
-        base = {
-          meta: {
-            fechaLocal: reporteDia.meta.fechaLocal,
-            etiqueta: `Movimientos ${reporteDia.meta.fechaLocal}`,
-            periodo: 'Día',
-            tz: reporteDia.meta.tz,
-            rangoUTC: reporteDia.meta.rangoUTC,
-          },
-          resumen: {
-            totalMovimientos: reporteDia.resumen.totalMovimientos,
-            movimientosPorEstado: reporteDia.resumen.movimientosPorEstado,
-            totalIncidentes: reporteDia.resumen.totalIncidentes,
-            incidentesPorEstado: reporteDia.resumen.incidentesPorEstado,
-            porEmpresa: (reporteDia.resumen.porEmpresa ?? []).map((e) => ({
-              empresaId: e.empresaId,
-              empresa: e.empresa,
-              totalMovimientos: e.totalMovimientos,
-              movimientosPorEstado: e.movimientosPorEstado,
-              totalIncidentes: e.totalIncidentes,
-              incidentesPorEstado: e.incidentesPorEstado,
-            })),
-          },
-        };
-      } else {
-        // Aquí conectas cuando existan:
-        // - ReporteriaMovimientoModel.reporteMes(...)
-        // - ReporteriaMovimientoModel.reporteBimestre(...)
-        // - ReporteriaMovimientoModel.reporteSemestre(...)
-        // - ReporteriaMovimientoModel.reporteAnual(...)
-        return res.status(501).json({
-          ok: false,
-          error: `Periodo "${periodo}" aún no está implementado en el model. Hoy solo existe "dia".`,
-          hint: 'Implementa los métodos del model y aquí se conectan en 2 líneas.',
-        });
+        case 'mes':
+          reporte = await ReporteriaMovimientoModel.reporteMes({ fecha, tz, localidadId, empresaId });
+          break;
+
+        case 'bimestre':
+          reporte = await ReporteriaMovimientoModel.reporteBimestre({ fecha, tz, localidadId, empresaId });
+          break;
+
+        case 'semestre':
+          reporte = await ReporteriaMovimientoModel.reporteSemestre({ fecha, tz, localidadId, empresaId });
+          break;
+
+        case 'anual':
+          reporte = await ReporteriaMovimientoModel.reporteAnual({ fecha, tz, localidadId, empresaId });
+          break;
+
+        default:
+          // pickPeriodo ya lo limita, pero por si el universo se pone creativo:
+          reporte = await ReporteriaMovimientoModel.reporteDia({ fecha, tz, localidadId, empresaId });
+          break;
       }
+
+      const base: ReporteBase = toReporteBase(reporte, periodo);
 
       // 2) Exportar a PDF
       const pdf = await exportarReporteMovimientoPDF(base);
@@ -128,13 +178,13 @@ export class MovimientoPdfController {
       // Validaciones -> 400
       if (
         msg.includes('Parámetro "fecha" inválido') ||
-        msg.includes('Fecha inválida')
+        msg.includes('Fecha inválida') ||
+        msg.includes('usa YYYY-MM-DD')
       ) {
         return res.status(400).json({ ok: false, error: msg });
       }
 
       // Todo lo demás -> 500
-      // (sí, aquí es donde se esconden los gremlins)
       return res.status(500).json({
         ok: false,
         error: 'No se pudo generar el PDF',
