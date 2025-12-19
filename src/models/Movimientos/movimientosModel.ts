@@ -1530,3 +1530,4 @@ static async obtenerInfoPorRonda(rondaId: number) {
     }
   }
 }
+
