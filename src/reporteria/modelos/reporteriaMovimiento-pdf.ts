@@ -161,25 +161,21 @@ function computeKpis(reporte: ReporteBase) {
   };
 }
 
-// ---------- Chart.js resolver (FIX exports) ----------
 function resolveChartUmdPath(): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const chartPkg = require.resolve('chart.js/package.json');
-  const baseDir = path.dirname(chartPkg);
+  // CommonJS OK
+  const pkg = require.resolve("chart.js/package.json");
+  const base = path.dirname(pkg);
 
   const candidates = [
-    path.join(baseDir, 'dist', 'chart.umd.min.js'),
-    path.join(baseDir, 'dist', 'chart.umd.js'),
+    path.join(base, "dist", "chart.umd.min.js"),
+    path.join(base, "dist", "chart.umd.js"),
   ];
 
   for (const p of candidates) {
     if (fs.existsSync(p)) return p;
   }
-
-  // Si aquí truena, tu node_modules está raro o chart.js no trae dist (muy raro).
-  throw new Error(`No encontré Chart UMD en: ${candidates.join(' | ')}`);
+  throw new Error(`No encontré Chart UMD en: ${candidates.join(" | ")}`);
 }
-
 // ---------- HTML ----------
 function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   const meta = reporte.meta;
