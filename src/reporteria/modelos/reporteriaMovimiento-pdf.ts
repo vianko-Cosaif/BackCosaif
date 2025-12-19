@@ -1,18 +1,15 @@
 // reporteria/reporteriaMovimiento-pdf.ts
 // PDF empresarial con gráficas (Chart.js) vía Puppeteer (HTML -> PDF)
-// Gráficas por empresa:
-// - Movimientos CONCLUIDOS
-// - Movimientos CANCELADOS
-// - Total INCIDENTES
-// - INCIDENTES resueltos vs no resueltos (ABIERTO + CERRADO)
 
 import * as puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
 
 export type ReporteBase = {
   meta: {
     fechaLocal?: string;
-    etiqueta?: string; // recomendado: "2025-12-19" | "2025-12" | "2025-S2" | "2025"
-    periodo?: string;  // texto libre: "Día", "Mes", "Semestre", "Anual", etc.
+    etiqueta?: string;
+    periodo?: string;
     tz: string;
     rangoUTC: { desde: string; hastaExclusivo: string };
   };
@@ -44,7 +41,6 @@ let browserSingleton: puppeteer.Browser | null = null;
 async function getBrowser() {
   if (browserSingleton) return browserSingleton;
 
-  // Nota: headless: 'new' es la opción moderna (Puppeteer reciente)
   browserSingleton = await puppeteer.launch({
     headless: 'new' as any,
     args: [
@@ -52,6 +48,7 @@ async function getBrowser() {
       '--disable-setuid-sandbox',
       '--font-render-hinting=none',
       '--disable-dev-shm-usage',
+      '--disable-gpu',
     ],
   });
 
@@ -91,7 +88,6 @@ function safeFilename(name: string) {
 }
 
 function jsonForScript(obj: any) {
-  // evita romper <script> con </script> y edge-cases unicode
   return JSON.stringify(obj)
     .replace(/</g, '\\u003c')
     .replace(/\u2028/g, '\\u2028')
@@ -128,7 +124,6 @@ function normalizeData(r: ReporteBase): EmpresaNorm[] {
       };
     })
     .sort((a, b) => {
-      // orden: concluidos + incidentes como “impacto”
       const sa = a.concluidos + a.cancelados + a.incTotal;
       const sb = b.concluidos + b.cancelados + b.incTotal;
       return sb - sa;
@@ -166,6 +161,25 @@ function computeKpis(reporte: ReporteBase) {
   };
 }
 
+// ---------- Chart.js resolver (FIX exports) ----------
+function resolveChartUmdPath(): string {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const chartPkg = require.resolve('chart.js/package.json');
+  const baseDir = path.dirname(chartPkg);
+
+  const candidates = [
+    path.join(baseDir, 'dist', 'chart.umd.min.js'),
+    path.join(baseDir, 'dist', 'chart.umd.js'),
+  ];
+
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+
+  // Si aquí truena, tu node_modules está raro o chart.js no trae dist (muy raro).
+  throw new Error(`No encontré Chart UMD en: ${candidates.join(' | ')}`);
+}
+
 // ---------- HTML ----------
 function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   const meta = reporte.meta;
@@ -178,8 +192,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   const desde = escapeHtml(meta.rangoUTC.desde);
   const hasta = escapeHtml(meta.rangoUTC.hastaExclusivo);
 
-  // Altura dinámica para que no se aplasten labels con muchas empresas.
-  // (A4 no crece mágicamente, pero esto mejora legibilidad dentro del área)
   const hBars = clamp(340 + data.length * 18, 380, 820);
   const hStack = clamp(360 + data.length * 16, 420, 880);
 
@@ -192,7 +204,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
     incNoResueltos: data.map((d) => d.incNoResueltos),
   };
 
-  // Tabla ejecutiva (top 12) para lectura rápida
   const top = data.slice(0, 12);
   const rows = top
     .map((d, idx) => {
@@ -220,6 +231,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
+    /* OJO: si usas margen aquí, NO lo dupliques en page.pdf() */
     @page { size: A4; margin: 10mm; }
     :root{
       --bg:#0b1220;
@@ -571,6 +583,8 @@ function buildChartScript() {
   return `
 (function(){
   try{
+    if (!window.Chart) throw new Error('Chart no está definido (falló inyección UMD).');
+
     const p = window.__REPORT_PAYLOAD__ || {};
     const labels = p.labels || [];
     const concluidos = p.concluidos || [];
@@ -597,8 +611,14 @@ function buildChartScript() {
       }
     };
 
+    function mustEl(id){
+      const el = document.getElementById(id);
+      if(!el) throw new Error('No existe canvas #' + id);
+      return el;
+    }
+
     function makeBar(id, title, arr, color){
-      new Chart(document.getElementById(id), {
+      new Chart(mustEl(id), {
         type: 'bar',
         data: { labels, datasets: [{ data: arr, backgroundColor: color, borderRadius: 6, barThickness: 12, borderWidth: 0 }] },
         options: {
@@ -618,8 +638,7 @@ function buildChartScript() {
     makeBar('chCancelados', 'MOVIMIENTOS CANCELADOS (por empresa)', cancelados, 'rgba(244,63,94,0.85)');
     makeBar('chIncTotal', 'TOTAL INCIDENTES (por empresa)', incTotal, 'rgba(56,189,248,0.85)');
 
-    // Stacked: resueltos vs no resueltos
-    new Chart(document.getElementById('chResVsNoRes'), {
+    new Chart(mustEl('chResVsNoRes'), {
       type: 'bar',
       data: {
         labels,
@@ -665,31 +684,26 @@ export async function exportarReporteMovimientoPDF(reporte: ReporteBase): Promis
     await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
     await page.emulateMediaType('screen');
 
-    // DOM listo es suficiente (no dependemos de red)
     await page.setContent(buildHtml(reporte, normalized), { waitUntil: 'domcontentloaded' });
 
-    // Inyectar Chart.js + script
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const chartPath = require.resolve('chart.js/dist/chart.umd.js');
-    await page.addScriptTag({ path: chartPath });
+    // FIX: Chart.js UMD path válido con exports
+    const chartUmdPath = resolveChartUmdPath();
+    await page.addScriptTag({ path: chartUmdPath });
     await page.addScriptTag({ content: buildChartScript() });
 
-    // Esperar charts o error
     await page.waitForFunction(
       'window.__CHARTS_DONE__ === true || typeof window.__CHARTS_ERR__ === "string"',
       { timeout: 15000 }
     );
 
     const chartErr = await page.evaluate(() => (window as any).__CHARTS_ERR__);
-    if (chartErr) {
-      throw new Error(`Chart render failed: ${chartErr}`);
-    }
+    if (chartErr) throw new Error(`Chart render failed: ${chartErr}`);
 
     const buffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
       preferCSSPageSize: true,
+      // margen ya está en @page, no lo dupliques aquí
     });
 
     return {
