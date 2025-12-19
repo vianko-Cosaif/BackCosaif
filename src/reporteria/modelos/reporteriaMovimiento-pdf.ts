@@ -1,9 +1,7 @@
-// reporteria/reporteriaMovimiento-pdf.ts
-// PDF empresarial con gráficas (Chart.js) vía Puppeteer (HTML -> PDF)
+// PDF empresarial con gráficas (SIN Chart.js) vía Puppeteer (HTML -> PDF)
+// Gráficas en SVG embebido (0 dependencias extra, 0 "exports" problems)
 
 import * as puppeteer from 'puppeteer';
-import fs from 'fs';
-import path from 'path';
 
 export type ReporteBase = {
   meta: {
@@ -87,11 +85,9 @@ function safeFilename(name: string) {
     .slice(0, 120);
 }
 
-function jsonForScript(obj: any) {
-  return JSON.stringify(obj)
-    .replace(/</g, '\\u003c')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
+function truncLabel(s: string, n: number) {
+  const t = String(s ?? '');
+  return t.length > n ? t.slice(0, n - 1) + '…' : t;
 }
 
 type EmpresaNorm = {
@@ -161,21 +157,186 @@ function computeKpis(reporte: ReporteBase) {
   };
 }
 
-function resolveChartUmdPath(): string {
-  // CommonJS OK
-  const pkg = require.resolve("chart.js/package.json");
-  const base = path.dirname(pkg);
+// ---------- SVG Charts (no JS needed) ----------
+function svgHBarChart(opts: {
+  title: string;
+  height: number;
+  labels: string[];
+  values: number[];
+  barColor: string; // rgba(...)
+}) {
+  const w = 560;
+  const h = Math.max(260, Math.floor(opts.height));
 
-  const candidates = [
-    path.join(base, "dist", "chart.umd.min.js"),
-    path.join(base, "dist", "chart.umd.js"),
-  ];
+  const title = escapeHtml(opts.title);
+  const labels = opts.labels ?? [];
+  const values = (opts.values ?? []).map(safeNum);
 
-  for (const p of candidates) {
-    if (fs.existsSync(p)) return p;
+  if (!labels.length) {
+    return `<div style="height:${h}px;display:flex;align-items:center;justify-content:center;color:rgba(147,164,199,.9);font-size:12px">
+      Sin datos para graficar.
+    </div>`;
   }
-  throw new Error(`No encontré Chart UMD en: ${candidates.join(" | ")}`);
+
+  const left = 220;      // espacio para nombres
+  const right = 18;
+  const top = 56;        // deja espacio para título
+  const bottom = 18;
+
+  const rowH = 20;
+  const barH = 12;
+
+  const maxVal = Math.max(1, ...values);
+  const barW = w - left - right;
+  const scale = barW / maxVal;
+
+  const lines: string[] = [];
+
+  // título
+  lines.push(
+    `<text x="14" y="28" fill="#f8fafc" font-size="14" font-weight="700">${title}</text>`
+  );
+
+  // guía vertical (0, 25, 50, 75, 100%)
+  for (let i = 0; i <= 4; i++) {
+    const x = left + (barW * i) / 4;
+    lines.push(
+      `<line x1="${x}" y1="${top - 6}" x2="${x}" y2="${h - bottom}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`
+    );
+  }
+
+  for (let i = 0; i < labels.length; i++) {
+    const y = top + i * rowH + rowH / 2;
+    const name = escapeHtml(truncLabel(labels[i], 26));
+    const v = safeNum(values[i]);
+    const bw = Math.max(0, Math.round(v * scale));
+
+    // label
+    lines.push(
+      `<text x="14" y="${y}" fill="#93a4c7" font-size="10" dominant-baseline="middle">${name}</text>`
+    );
+
+    // bar
+    lines.push(
+      `<rect x="${left}" y="${y - barH / 2}" width="${bw}" height="${barH}" rx="6" fill="${opts.barColor}"></rect>`
+    );
+
+    // value (pegado al final de la barra, sin salirse)
+    const vx = Math.min(left + bw + 6, w - right - 20);
+    lines.push(
+      `<text x="${vx}" y="${y}" fill="rgba(230,238,252,.9)" font-size="10" dominant-baseline="middle" class="mono">${v}</text>`
+    );
+  }
+
+  return `
+  <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMinYMin meet"
+       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">
+    ${lines.join('\n')}
+  </svg>`;
 }
+
+function svgStackedBarChart(opts: {
+  title: string;
+  height: number;
+  labels: string[];
+  aLabel: string;
+  aValues: number[];
+  aColor: string;
+  bLabel: string;
+  bValues: number[];
+  bColor: string;
+}) {
+  const w = 560;
+  const h = Math.max(320, Math.floor(opts.height));
+
+  const title = escapeHtml(opts.title);
+  const labels = opts.labels ?? [];
+  const aValues = (opts.aValues ?? []).map(safeNum);
+  const bValues = (opts.bValues ?? []).map(safeNum);
+
+  if (!labels.length) {
+    return `<div style="height:${h}px;display:flex;align-items:center;justify-content:center;color:rgba(147,164,199,.9);font-size:12px">
+      Sin datos para graficar.
+    </div>`;
+  }
+
+  const left = 220;
+  const right = 18;
+  const top = 56;
+  const bottom = 46; // deja espacio para leyenda
+  const rowH = 24;
+  const barH = 16;
+
+  const totals = labels.map((_, i) => safeNum(aValues[i]) + safeNum(bValues[i]));
+  const maxTotal = Math.max(1, ...totals);
+
+  const barW = w - left - right;
+  const scale = barW / maxTotal;
+
+  const lines: string[] = [];
+
+  // título
+  lines.push(
+    `<text x="14" y="28" fill="#f8fafc" font-size="14" font-weight="700">${title}</text>`
+  );
+
+  // guía vertical
+  for (let i = 0; i <= 4; i++) {
+    const x = left + (barW * i) / 4;
+    lines.push(
+      `<line x1="${x}" y1="${top - 6}" x2="${x}" y2="${h - bottom}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`
+    );
+  }
+
+  for (let i = 0; i < labels.length; i++) {
+    const y = top + i * rowH + rowH / 2;
+    const name = escapeHtml(truncLabel(labels[i], 26));
+
+    const a = safeNum(aValues[i]);
+    const b = safeNum(bValues[i]);
+    const total = a + b;
+
+    const aw = Math.round(a * scale);
+    const bw = Math.round(b * scale);
+
+    // label
+    lines.push(
+      `<text x="14" y="${y}" fill="#93a4c7" font-size="10" dominant-baseline="middle">${name}</text>`
+    );
+
+    // a segment
+    lines.push(
+      `<rect x="${left}" y="${y - barH / 2}" width="${aw}" height="${barH}" rx="6" fill="${opts.aColor}"></rect>`
+    );
+
+    // b segment (pegado)
+    lines.push(
+      `<rect x="${left + aw}" y="${y - barH / 2}" width="${bw}" height="${barH}" rx="6" fill="${opts.bColor}"></rect>`
+    );
+
+    // total label
+    const tx = Math.min(left + aw + bw + 6, w - right - 30);
+    lines.push(
+      `<text x="${tx}" y="${y}" fill="rgba(230,238,252,.9)" font-size="10" dominant-baseline="middle" class="mono">${total}</text>`
+    );
+  }
+
+  // legend
+  const legY = h - 18;
+  lines.push(
+    `<rect x="14" y="${legY - 10}" width="10" height="10" rx="3" fill="${opts.aColor}"></rect>
+     <text x="30" y="${legY - 1}" fill="rgba(230,238,252,.9)" font-size="10">${escapeHtml(opts.aLabel)}</text>
+     <rect x="180" y="${legY - 10}" width="10" height="10" rx="3" fill="${opts.bColor}"></rect>
+     <text x="196" y="${legY - 1}" fill="rgba(230,238,252,.9)" font-size="10">${escapeHtml(opts.bLabel)}</text>`
+  );
+
+  return `
+  <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMinYMin meet"
+       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">
+    ${lines.join('\n')}
+  </svg>`;
+}
+
 // ---------- HTML ----------
 function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   const meta = reporte.meta;
@@ -188,18 +349,17 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   const desde = escapeHtml(meta.rangoUTC.desde);
   const hasta = escapeHtml(meta.rangoUTC.hastaExclusivo);
 
-  const hBars = clamp(340 + data.length * 18, 380, 820);
-  const hStack = clamp(360 + data.length * 16, 420, 880);
+  const hBars = clamp(320 + data.length * 20, 360, 820);
+  const hStack = clamp(340 + data.length * 24, 420, 900);
 
-  const payload = {
-    labels: data.map((d) => d.name),
-    concluidos: data.map((d) => d.concluidos),
-    cancelados: data.map((d) => d.cancelados),
-    incTotal: data.map((d) => d.incTotal),
-    incResueltos: data.map((d) => d.incResueltos),
-    incNoResueltos: data.map((d) => d.incNoResueltos),
-  };
+  const labels = data.map((d) => d.name);
+  const concluidos = data.map((d) => d.concluidos);
+  const cancelados = data.map((d) => d.cancelados);
+  const incTotal = data.map((d) => d.incTotal);
+  const incRes = data.map((d) => d.incResueltos);
+  const incNoRes = data.map((d) => d.incNoResueltos);
 
+  // Tabla ejecutiva (top 12)
   const top = data.slice(0, 12);
   const rows = top
     .map((d, idx) => {
@@ -219,7 +379,42 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
     })
     .join('');
 
-  const dataJson = jsonForScript(payload);
+  // SVG charts (sin JS)
+  const chConcluidos = svgHBarChart({
+    title: 'MOVIMIENTOS CONCLUIDOS (por empresa)',
+    height: hBars,
+    labels,
+    values: concluidos,
+    barColor: 'rgba(16,185,129,0.85)',
+  });
+
+  const chCancelados = svgHBarChart({
+    title: 'MOVIMIENTOS CANCELADOS (por empresa)',
+    height: hBars,
+    labels,
+    values: cancelados,
+    barColor: 'rgba(244,63,94,0.85)',
+  });
+
+  const chIncTotal = svgHBarChart({
+    title: 'TOTAL INCIDENTES (por empresa)',
+    height: hBars,
+    labels,
+    values: incTotal,
+    barColor: 'rgba(56,189,248,0.85)',
+  });
+
+  const chResVsNoRes = svgStackedBarChart({
+    title: 'INCIDENTES: RESUELTOS VS NO RESUELTOS (por empresa)',
+    height: hStack,
+    labels,
+    aLabel: 'RESUELTO',
+    aValues: incRes,
+    aColor: 'rgba(16,185,129,0.85)',
+    bLabel: 'NO RESUELTO (ABIERTO+CERRADO)',
+    bValues: incNoRes,
+    bColor: 'rgba(245,158,11,0.85)',
+  });
 
   return `<!doctype html>
 <html lang="es">
@@ -227,24 +422,17 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* OJO: si usas margen aquí, NO lo dupliques en page.pdf() */
     @page { size: A4; margin: 10mm; }
     :root{
       --bg:#0b1220;
-      --panel:#0f1930;
-      --card:#111a2e;
-      --card2:#0f172a;
       --border:rgba(255,255,255,.08);
       --text:#f8fafc;
       --muted:#93a4c7;
-
       --brand:#38bdf8;
       --brand2:#60a5fa;
-
       --success:#10b981;
       --danger:#f43f5e;
       --warning:#f59e0b;
-
       --shadow: 0 18px 50px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
@@ -258,7 +446,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
         radial-gradient(700px 420px at 90% 12%, rgba(96,165,250,.14), transparent 55%),
         linear-gradient(180deg, #070c16 0%, var(--bg) 40%, #070c16 100%);
     }
-
     .watermark{
       position: fixed;
       inset: 0;
@@ -275,7 +462,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       text-transform: uppercase;
       user-select:none;
     }
-
     .header{
       border: 1px solid var(--border);
       background: linear-gradient(180deg, rgba(56,189,248,.16), rgba(17,26,46,1));
@@ -286,7 +472,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       justify-content:space-between;
       gap: 14px;
     }
-
     .brandline{
       display:flex;
       gap:10px;
@@ -317,7 +502,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       gap: 4px;
       min-width: 0;
     }
-
     .meta{
       text-align:right;
       font-size: 11px;
@@ -334,7 +518,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       color: var(--text);
       white-space: nowrap;
     }
-
     .stats{
       margin-top: 14px;
       display:grid;
@@ -369,7 +552,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       background: var(--success);
       box-shadow: 0 0 0 4px rgba(16,185,129,.1);
     }
-
     .sectionTitle{
       margin: 18px 2px 10px;
       font-size: 11px;
@@ -381,7 +563,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       align-items:center;
     }
     .sectionTitle small{letter-spacing: .08em; text-transform:none; color: rgba(147,164,199,.85);}
-
     .grid{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -404,7 +585,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       pointer-events:none;
     }
     .chartWrap{ position:relative; z-index:1; }
-    canvas{ width:100% !important; height:100% !important; }
+    .muted{ color: var(--muted); }
 
     table{
       width: 100%;
@@ -451,8 +632,6 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       font-size: 10px;
       color: var(--muted);
     }
-
-    .muted{ color: var(--muted); }
   </style>
 </head>
 <body>
@@ -518,22 +697,14 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
 
   <div class="sectionTitle">
     <div>Gráficas por empresa</div>
-    <small>Escala horizontal para nombres largos · Sin animación (PDF estable)</small>
+    <small>SVG embebido · Sin JS · PDF estable</small>
   </div>
 
   <div class="grid">
-    <div class="card">
-      <div class="chartWrap" style="height:${hBars}px"><canvas id="chConcluidos"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="chartWrap" style="height:${hBars}px"><canvas id="chCancelados"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="chartWrap" style="height:${hBars}px"><canvas id="chIncTotal"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="chartWrap" style="height:${hStack}px"><canvas id="chResVsNoRes"></canvas></div>
-    </div>
+    <div class="card"><div class="chartWrap" style="height:${hBars}px">${chConcluidos}</div></div>
+    <div class="card"><div class="chartWrap" style="height:${hBars}px">${chCancelados}</div></div>
+    <div class="card"><div class="chartWrap" style="height:${hBars}px">${chIncTotal}</div></div>
+    <div class="card"><div class="chartWrap" style="height:${hStack}px">${chResVsNoRes}</div></div>
   </div>
 
   <div class="sectionTitle">
@@ -566,103 +737,10 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
 
   <div class="footer">
     <div>Generado automáticamente por <b>Cosaif · Reportería</b></div>
-    <div class="mono">Engine: Puppeteer + Chart.js</div>
+    <div class="mono">Engine: Puppeteer + SVG</div>
   </div>
-
-  <script>window.__REPORT_PAYLOAD__ = ${dataJson};</script>
 </body>
 </html>`;
-}
-
-// ---------- Charts Script ----------
-function buildChartScript() {
-  return `
-(function(){
-  try{
-    if (!window.Chart) throw new Error('Chart no está definido (falló inyección UMD).');
-
-    const p = window.__REPORT_PAYLOAD__ || {};
-    const labels = p.labels || [];
-    const concluidos = p.concluidos || [];
-    const cancelados = p.cancelados || [];
-    const incTotal = p.incTotal || [];
-    const incResueltos = p.incResueltos || [];
-    const incNoResueltos = p.incNoResueltos || [];
-
-    Chart.defaults.color = '#93a4c7';
-    Chart.defaults.font.family = 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial';
-    Chart.defaults.animation = false;
-
-    const baseScales = {
-      x: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { font: { size: 10 } } },
-      y: {
-        grid: { display: false },
-        ticks: {
-          font: { size: 10 },
-          callback: function(v){
-            const lbl = this.getLabelForValue(v) || '';
-            return lbl.length > 22 ? (lbl.slice(0, 22) + '…') : lbl;
-          }
-        }
-      }
-    };
-
-    function mustEl(id){
-      const el = document.getElementById(id);
-      if(!el) throw new Error('No existe canvas #' + id);
-      return el;
-    }
-
-    function makeBar(id, title, arr, color){
-      new Chart(mustEl(id), {
-        type: 'bar',
-        data: { labels, datasets: [{ data: arr, backgroundColor: color, borderRadius: 6, barThickness: 12, borderWidth: 0 }] },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            title: { display: true, text: title, color: '#f8fafc', font: { size: 14, weight: '700' }, align: 'start', padding: 18 }
-          },
-          scales: baseScales
-        }
-      });
-    }
-
-    makeBar('chConcluidos', 'MOVIMIENTOS CONCLUIDOS (por empresa)', concluidos, 'rgba(16,185,129,0.85)');
-    makeBar('chCancelados', 'MOVIMIENTOS CANCELADOS (por empresa)', cancelados, 'rgba(244,63,94,0.85)');
-    makeBar('chIncTotal', 'TOTAL INCIDENTES (por empresa)', incTotal, 'rgba(56,189,248,0.85)');
-
-    new Chart(mustEl('chResVsNoRes'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          { label: 'RESUELTO', data: incResueltos, backgroundColor: 'rgba(16,185,129,0.85)', borderWidth: 0, barThickness: 18, borderRadius: 6 },
-          { label: 'NO RESUELTO (ABIERTO+CERRADO)', data: incNoResueltos, backgroundColor: 'rgba(245,158,11,0.85)', borderWidth: 0, barThickness: 18, borderRadius: 6 }
-        ]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 16, color: '#e6eefc' } },
-          title: { display: true, text: 'INCIDENTES: RESUELTOS VS NO RESUELTOS (por empresa)', color: '#f8fafc', font: { size: 14, weight: '700' }, align: 'start', padding: 18 }
-        },
-        scales: {
-          x: { ...baseScales.x, stacked: true },
-          y: { ...baseScales.y, stacked: true }
-        }
-      }
-    });
-
-    window.__CHARTS_DONE__ = true;
-  }catch(err){
-    window.__CHARTS_ERR__ = String(err && err.message ? err.message : err);
-  }
-})();`;
 }
 
 // ---------- Export ----------
@@ -680,26 +758,14 @@ export async function exportarReporteMovimientoPDF(reporte: ReporteBase): Promis
     await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
     await page.emulateMediaType('screen');
 
+    // No dependemos de red ni scripts externos
     await page.setContent(buildHtml(reporte, normalized), { waitUntil: 'domcontentloaded' });
-
-    // FIX: Chart.js UMD path válido con exports
-    const chartUmdPath = resolveChartUmdPath();
-    await page.addScriptTag({ path: chartUmdPath });
-    await page.addScriptTag({ content: buildChartScript() });
-
-    await page.waitForFunction(
-      'window.__CHARTS_DONE__ === true || typeof window.__CHARTS_ERR__ === "string"',
-      { timeout: 15000 }
-    );
-
-    const chartErr = await page.evaluate(() => (window as any).__CHARTS_ERR__);
-    if (chartErr) throw new Error(`Chart render failed: ${chartErr}`);
 
     const buffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
-      // margen ya está en @page, no lo dupliques aquí
+      // margen ya está en @page
     });
 
     return {
