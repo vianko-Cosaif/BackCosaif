@@ -1,5 +1,11 @@
+// reporteria/modelos/reporteriaMovimiento-model.ts
+// Reportería Movimientos (DÍA / MES / BIMESTRE / SEMESTRE / ANUAL)
+// - Rango se calcula en TZ MX y se consulta en UTC con fin EXCLUSIVO.
+// - Incidentes “reales” salen de Incidente por movimientoId (no se usa incidenteGlobal).
+// - Sin torno/lavado (aún no entran al reporte).
+
 import { DateTime } from 'luxon';
-import { prisma } from '../../prisma';
+import { PrismaClient } from '@prisma/client';
 
 export type PeriodoReporte = 'DIA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
 
@@ -15,8 +21,23 @@ export type ReportePeriodoFilters = {
   empresaId?: number;
 };
 
-// Backwards compatibility si ya tenías el nombre viejo:
+// Backwards compatibility si ya tenías el nombre viejo
 export type ReporteDiaFilters = ReportePeriodoFilters;
+
+/**
+ * Prisma singleton (evita múltiples conexiones si hay hot-reload / nodemon).
+ */
+declare global {
+  // eslint-disable-next-line no-var
+  var __PRISMA__: PrismaClient | undefined;
+}
+const prisma: PrismaClient =
+  global.__PRISMA__ ??
+  new PrismaClient({
+    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
+  });
+
+if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
 
 /**
  * Incidente real: sale de Incidente por movimientoId.
@@ -52,7 +73,7 @@ export type MovimientoPeriodoRow = {
   clienteId: number | null;
   clienteNombre: string | null;
 
-  operadorId: number | null; // operador = maquinista (según tu operación)
+  operadorId: number | null; // operador = maquinista (según operación)
   operadorNombre: string | null;
 
   incidentes: IncidenteMini[];
@@ -128,7 +149,7 @@ function etiquetaPeriodo(periodo: PeriodoReporte, dtLocal: DateTime) {
 
 /**
  * Regresa rango [startLocal, endLocal) y su versión UTC.
- * Nota: usamos fin exclusivo para no andar peleando con 23:59:59.999.
+ * Usamos fin EXCLUSIVO para evitar broncas de 23:59:59.999.
  */
 function rangoPeriodoUTC(fechaLocal: string, tz: string, periodo: PeriodoReporte) {
   const anchor = parseFechaLocal(fechaLocal, tz);
@@ -169,10 +190,13 @@ function rangoPeriodoUTC(fechaLocal: string, tz: string, periodo: PeriodoReporte
       throw new Error(`Periodo no soportado: ${periodo}`);
   }
 
-  const startUTC = startLocal.toUTC();
-  const endUTC = endLocal.toUTC();
-
-  return { anchor, startLocal, endLocal, startUTC, endUTC };
+  return {
+    anchor,
+    startLocal,
+    endLocal,
+    startUTC: startLocal.toUTC(),
+    endUTC: endLocal.toUTC(),
+  };
 }
 
 export class ReporteriaMovimientoModel {
@@ -191,14 +215,14 @@ export class ReporteriaMovimientoModel {
     );
 
     // 1) Movimientos del periodo (por fechaSolicitud) + nombres de involucrados
-    // operador = maquinista (tu operación) porque el schema no trae maquinistaId
+    // operador = maquinista (tu operación)
     const movimientos = await prisma.movimiento.findMany({
       where: {
         ...(filters.localidadId ? { localidadId: filters.localidadId } : {}),
         ...(filters.empresaId ? { empresaId: filters.empresaId } : {}),
         fechaSolicitud: {
           gte: startUTC.toJSDate(),
-          lt: endUTC.toJSDate(), // fin exclusivo
+          lt: endUTC.toJSDate(),
         },
       },
       orderBy: [{ fechaSolicitud: 'asc' }],
@@ -273,7 +297,7 @@ export class ReporteriaMovimientoModel {
         localidadId: m.localidadId,
         localidad: m.localidad?.nombre ?? '—',
 
-        estado: m.estado,
+        estado: String(m.estado),
         locomotiveNumber: m.locomotiveNumber,
 
         fechaSolicitud: m.fechaSolicitud.toISOString(),
@@ -328,7 +352,7 @@ export class ReporteriaMovimientoModel {
     }
 
     const porEmpresa = Array.from(porEmpresaMap.values()).sort((a, b) =>
-      a.empresa.localeCompare(b.empresa),
+      a.empresa.localeCompare(b.empresa)
     );
 
     return {
@@ -361,19 +385,15 @@ export class ReporteriaMovimientoModel {
   static reporteDia(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'DIA');
   }
-
   static reporteMes(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'MES');
   }
-
   static reporteBimestre(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'BIMESTRE');
   }
-
   static reporteSemestre(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'SEMESTRE');
   }
-
   static reporteAnual(filters: ReportePeriodoFilters) {
     return this.reportePorPeriodo(filters, 'ANUAL');
   }
