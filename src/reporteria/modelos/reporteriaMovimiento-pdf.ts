@@ -1,6 +1,7 @@
 // reporteria/reporteriaMovimiento-pdf.ts
 // PDF empresarial (BLANCO / NEGRO) con gráficas SIN Chart.js
-// Gráficas en SVG embebido (0 dependencias extra, 0 problemas de "exports")
+// + Segmentación por empresa (quién y cuántos) además de la gráfica.
+// Gráficas en SVG embebido (0 dependencias extra).
 // Rango mostrado en hora MX (America/Mexico_City) aunque venga en UTC desde el model.
 
 import * as puppeteer from 'puppeteer';
@@ -94,38 +95,34 @@ function truncLabel(s: string, n: number) {
 }
 
 function formatRangoMX(meta: ReporteBase['meta']) {
-  const zone = 'America/Mexico_City'; // fijo como pediste
+  const zone = 'America/Mexico_City';
   const fmt = 'yyyy-LL-dd HH:mm';
 
   try {
     const desde = DateTime.fromISO(meta.rangoUTC.desde, { zone: 'utc' }).setZone(zone);
     const hasta = DateTime.fromISO(meta.rangoUTC.hastaExclusivo, { zone: 'utc' }).setZone(zone);
 
-    // fallback si algo raro llega
     if (!desde.isValid || !hasta.isValid) {
-      return {
-        desde: meta.rangoUTC.desde,
-        hasta: meta.rangoUTC.hastaExclusivo,
-      };
+      return { desde: meta.rangoUTC.desde, hasta: meta.rangoUTC.hastaExclusivo };
     }
 
-    return {
-      desde: desde.toFormat(fmt),
-      hasta: hasta.toFormat(fmt),
-    };
+    return { desde: desde.toFormat(fmt), hasta: hasta.toFormat(fmt) };
   } catch {
-    return {
-      desde: meta.rangoUTC.desde,
-      hasta: meta.rangoUTC.hastaExclusivo,
-    };
+    return { desde: meta.rangoUTC.desde, hasta: meta.rangoUTC.hastaExclusivo };
   }
 }
 
 type EmpresaNorm = {
+  id: number;
   name: string;
+  totalMov: number;
+  movEstados: Record<string, number>;
+  incTotal: number;
+  incEstados: Record<string, number>;
+
+  // atajos usados por charts
   concluidos: number;
   cancelados: number;
-  incTotal: number;
   incResueltos: number;
   incNoResueltos: number; // ABIERTO + CERRADO
 };
@@ -133,26 +130,34 @@ type EmpresaNorm = {
 function normalizeData(r: ReporteBase): EmpresaNorm[] {
   return (r.resumen.porEmpresa ?? [])
     .map((e) => {
-      const concluidos = safeNum(e.movimientosPorEstado?.['CONCLUIDO']);
-      const cancelados = safeNum(e.movimientosPorEstado?.['CANCELADO']);
+      const movEstados = e.movimientosPorEstado ?? {};
+      const incEstados = e.incidentesPorEstado ?? {};
+
+      const concluidos = safeNum(movEstados['CONCLUIDO']);
+      const cancelados = safeNum(movEstados['CANCELADO']);
 
       const incTotal = safeNum(e.totalIncidentes);
-      const incResueltos = safeNum(e.incidentesPorEstado?.['RESUELTO']);
-      const incAbiertos = safeNum(e.incidentesPorEstado?.['ABIERTO']);
-      const incCerrados = safeNum(e.incidentesPorEstado?.['CERRADO']);
+      const incResueltos = safeNum(incEstados['RESUELTO']);
+      const incAbiertos = safeNum(incEstados['ABIERTO']);
+      const incCerrados = safeNum(incEstados['CERRADO']);
 
       return {
+        id: safeNum(e.empresaId),
         name: e.empresa || 'Sin Nombre',
+        totalMov: safeNum(e.totalMovimientos),
+        movEstados: movEstados,
+        incTotal,
+        incEstados: incEstados,
+
         concluidos,
         cancelados,
-        incTotal,
         incResueltos,
         incNoResueltos: incAbiertos + incCerrados,
       };
     })
     .sort((a, b) => {
-      const sa = a.concluidos + a.cancelados + a.incTotal;
-      const sb = b.concluidos + b.cancelados + b.incTotal;
+      const sa = a.totalMov + a.incTotal;
+      const sb = b.totalMov + b.incTotal;
       return sb - sa;
     });
 }
@@ -187,13 +192,41 @@ function computeKpis(reporte: ReporteBase) {
   };
 }
 
+function sortRecordDesc(rec: Record<string, number>) {
+  return Object.entries(rec ?? {})
+    .map(([k, v]) => [k, safeNum(v)] as const)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1]);
+}
+
+function niceEstadoMov(k: string) {
+  const up = String(k || '').toUpperCase();
+  if (up === 'EN_PROCESO') return 'En proceso';
+  if (up === 'CONCLUIDO') return 'Concluido';
+  if (up === 'CANCELADO') return 'Cancelado';
+  if (up === 'ESPERA') return 'En espera';
+  if (up === 'SOLICITADO') return 'Solicitado';
+  return k
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/(^|\s)\S/g, (m) => m.toUpperCase());
+}
+
+function niceEstadoInc(k: string) {
+  const up = String(k || '').toUpperCase();
+  if (up === 'ABIERTO') return 'Abierto';
+  if (up === 'CERRADO') return 'Cerrado';
+  if (up === 'RESUELTO') return 'Resuelto';
+  return niceEstadoMov(k);
+}
+
 // ---------- SVG Charts (sin JS) ----------
 function svgHBarChart(opts: {
   title: string;
   height: number;
   labels: string[];
   values: number[];
-  barColor: string; // sólido (corporativo)
+  barColor: string;
 }) {
   const w = 560;
   const h = Math.max(260, Math.floor(opts.height));
@@ -208,7 +241,7 @@ function svgHBarChart(opts: {
     </div>`;
   }
 
-  const left = 230; // más espacio para nombres
+  const left = 230;
   const right = 20;
   const top = 52;
   const bottom = 18;
@@ -222,12 +255,8 @@ function svgHBarChart(opts: {
 
   const lines: string[] = [];
 
-  // título
-  lines.push(
-    `<text x="16" y="26" fill="#111827" font-size="14" font-weight="700">${title}</text>`
-  );
+  lines.push(`<text x="16" y="26" fill="#111827" font-size="14" font-weight="700">${title}</text>`);
 
-  // guía vertical (0, 25, 50, 75, 100%)
   for (let i = 0; i <= 4; i++) {
     const x = left + (barW * i) / 4;
     lines.push(
@@ -241,22 +270,16 @@ function svgHBarChart(opts: {
     const v = safeNum(values[i]);
     const bw = Math.max(0, Math.round(v * scale));
 
-    // label
-    lines.push(
-      `<text x="16" y="${y}" fill="#374151" font-size="10.8" dominant-baseline="middle">${name}</text>`
-    );
+    lines.push(`<text x="16" y="${y}" fill="#374151" font-size="10.8" dominant-baseline="middle">${name}</text>`);
 
-    // bar track (gris claro)
     lines.push(
       `<rect x="${left}" y="${y - barH / 2}" width="${barW}" height="${barH}" rx="6" fill="#f3f4f6"></rect>`
     );
 
-    // bar
     lines.push(
       `<rect x="${left}" y="${y - barH / 2}" width="${bw}" height="${barH}" rx="6" fill="${opts.barColor}"></rect>`
     );
 
-    // value (negro, siempre visible)
     const vx = Math.min(left + bw + 8, w - right - 24);
     lines.push(
       `<text x="${vx}" y="${y}" fill="#111827" font-size="11" dominant-baseline="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace">${v}</text>`
@@ -298,7 +321,7 @@ function svgStackedBarChart(opts: {
   const left = 230;
   const right = 20;
   const top = 52;
-  const bottom = 54; // leyenda
+  const bottom = 54;
   const rowH = 26;
   const barH = 16;
 
@@ -310,9 +333,7 @@ function svgStackedBarChart(opts: {
 
   const lines: string[] = [];
 
-  lines.push(
-    `<text x="16" y="26" fill="#111827" font-size="14" font-weight="700">${title}</text>`
-  );
+  lines.push(`<text x="16" y="26" fill="#111827" font-size="14" font-weight="700">${title}</text>`);
 
   for (let i = 0; i <= 4; i++) {
     const x = left + (barW * i) / 4;
@@ -332,33 +353,26 @@ function svgStackedBarChart(opts: {
     const aw = Math.round(a * scale);
     const bw = Math.round(b * scale);
 
-    lines.push(
-      `<text x="16" y="${y}" fill="#374151" font-size="10.8" dominant-baseline="middle">${name}</text>`
-    );
+    lines.push(`<text x="16" y="${y}" fill="#374151" font-size="10.8" dominant-baseline="middle">${name}</text>`);
 
-    // track
     lines.push(
       `<rect x="${left}" y="${y - barH / 2}" width="${barW}" height="${barH}" rx="8" fill="#f3f4f6"></rect>`
     );
 
-    // a segment
     lines.push(
       `<rect x="${left}" y="${y - barH / 2}" width="${aw}" height="${barH}" rx="8" fill="${opts.aColor}"></rect>`
     );
 
-    // b segment
     lines.push(
       `<rect x="${left + aw}" y="${y - barH / 2}" width="${bw}" height="${barH}" rx="8" fill="${opts.bColor}"></rect>`
     );
 
-    // total label
     const tx = Math.min(left + aw + bw + 8, w - right - 34);
     lines.push(
       `<text x="${tx}" y="${y}" fill="#111827" font-size="11" dominant-baseline="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace">${total}</text>`
     );
   }
 
-  // leyenda
   const legY = h - 18;
   lines.push(
     `<rect x="16" y="${legY - 10}" width="10" height="10" rx="3" fill="${opts.aColor}"></rect>
@@ -375,7 +389,81 @@ function svgStackedBarChart(opts: {
 }
 
 // ---------- HTML ----------
-function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
+function buildEmpresaCards(empresas: EmpresaNorm[]) {
+  if (!empresas.length) {
+    return `<div class="card" style="color:#6b7280">Sin empresas en el periodo.</div>`;
+  }
+
+  return empresas
+    .map((e) => {
+      const movList = sortRecordDesc(e.movEstados);
+      const incList = sortRecordDesc(e.incEstados);
+
+      const movRows =
+        movList.length > 0
+          ? movList
+              .map(([k, v]) => {
+                return `<tr><td>${escapeHtml(niceEstadoMov(k))}</td><td class="right mono">${v}</td></tr>`;
+              })
+              .join('')
+          : `<tr><td colspan="2" style="color:#6b7280">Sin movimientos por estado</td></tr>`;
+
+      const incRows =
+        incList.length > 0
+          ? incList
+              .map(([k, v]) => {
+                return `<tr><td>${escapeHtml(niceEstadoInc(k))}</td><td class="right mono">${v}</td></tr>`;
+              })
+              .join('')
+          : `<tr><td colspan="2" style="color:#6b7280">Sin incidentes por estado</td></tr>`;
+
+      const sem =
+        e.incNoResueltos > 0 ? 'risk' : e.incTotal > 0 ? 'warn' : 'ok';
+      const semTxt =
+        e.incNoResueltos > 0 ? 'Riesgo' : e.incTotal > 0 ? 'Atención' : 'OK';
+
+      return `
+        <div class="card empresaCard">
+          <div class="empresaHead">
+            <div class="empresaName">${escapeHtml(e.name)}</div>
+            <span class="chip ${sem}">${semTxt}</span>
+          </div>
+
+          <div class="empresaNums">
+            <div class="numBox">
+              <div class="lbl">Movimientos</div>
+              <div class="val mono">${e.totalMov}</div>
+            </div>
+            <div class="numBox">
+              <div class="lbl">Incidentes</div>
+              <div class="val mono">${e.incTotal}</div>
+            </div>
+          </div>
+
+          <div class="empresaGrid">
+            <div>
+              <div class="miniTitle">Movimientos por estado</div>
+              <table class="miniTable">
+                <thead><tr><th>Estado</th><th class="right">Cant.</th></tr></thead>
+                <tbody>${movRows}</tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="miniTitle">Incidentes por estado</div>
+              <table class="miniTable">
+                <thead><tr><th>Estado</th><th class="right">Cant.</th></tr></thead>
+                <tbody>${incRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function buildHtml(reporte: ReporteBase, empresas: EmpresaNorm[]) {
   const meta = reporte.meta;
   const resumen = reporte.resumen;
   const k = computeKpis(reporte);
@@ -388,42 +476,22 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
   const hastaMX = escapeHtml(rangoMX.hasta);
 
   // charts dinámicos
-  const hBars = clamp(320 + data.length * 20, 360, 840);
-  const hStack = clamp(340 + data.length * 24, 420, 960);
+  const hBars = clamp(320 + empresas.length * 20, 360, 840);
+  const hStack = clamp(340 + empresas.length * 24, 420, 960);
 
-  const labels = data.map((d) => d.name);
-  const concluidos = data.map((d) => d.concluidos);
-  const cancelados = data.map((d) => d.cancelados);
-  const incTotal = data.map((d) => d.incTotal);
-  const incRes = data.map((d) => d.incResueltos);
-  const incNoRes = data.map((d) => d.incNoResueltos);
+  const labels = empresas.map((d) => d.name);
+  const concluidos = empresas.map((d) => d.concluidos);
+  const cancelados = empresas.map((d) => d.cancelados);
+  const incTotal = empresas.map((d) => d.incTotal);
+  const incRes = empresas.map((d) => d.incResueltos);
+  const incNoRes = empresas.map((d) => d.incNoResueltos);
 
-  // Tabla: TODAS las empresas (si son muchas, se va a páginas siguientes)
-  const rows = (data ?? [])
-    .map((d, idx) => {
-      const risk = d.incNoResueltos > 0 ? 'Riesgo' : d.incTotal > 0 ? 'Atención' : 'OK';
-      const riskClass = d.incNoResueltos > 0 ? 'risk' : d.incTotal > 0 ? 'warn' : 'ok';
-      return `
-        <tr>
-          <td class="mono">${idx + 1}</td>
-          <td class="name">${escapeHtml(d.name)}</td>
-          <td class="mono right">${d.concluidos}</td>
-          <td class="mono right">${d.cancelados}</td>
-          <td class="mono right">${d.incTotal}</td>
-          <td class="mono right">${d.incResueltos}</td>
-          <td class="mono right">${d.incNoResueltos}</td>
-          <td><span class="chip ${riskClass}">${risk}</span></td>
-        </tr>`;
-    })
-    .join('');
-
-  // Colores corporativos (sobrios)
   const chConcluidos = svgHBarChart({
     title: 'Movimientos concluidos (por empresa)',
     height: hBars,
     labels,
     values: concluidos,
-    barColor: '#111827', // negro corporativo
+    barColor: '#111827',
   });
 
   const chCancelados = svgHBarChart({
@@ -431,7 +499,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
     height: hBars,
     labels,
     values: cancelados,
-    barColor: '#4b5563', // gris fuerte
+    barColor: '#4b5563',
   });
 
   const chIncTotal = svgHBarChart({
@@ -439,7 +507,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
     height: hBars,
     labels,
     values: incTotal,
-    barColor: '#0f172a', // navy casi negro (muy corporativo)
+    barColor: '#0f172a',
   });
 
   const chResVsNoRes = svgStackedBarChart({
@@ -453,6 +521,8 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
     bValues: incNoRes,
     bColor: '#6b7280',
   });
+
+  const empresaCards = buildEmpresaCards(empresas);
 
   return `<!doctype html>
 <html lang="es">
@@ -478,10 +548,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       background: var(--bg);
       color: var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      padding: 0;
     }
-
-    .wrap{ padding: 8px 0 0; }
 
     .header{
       border: 1px solid var(--border);
@@ -547,6 +614,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       color: var(--muted);
       font-size: 12px;
       line-height: 1.35;
+      font-weight: 600;
     }
 
     .meta{
@@ -555,7 +623,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       color: var(--muted);
       line-height: 1.45;
       max-width: 420px;
-      font-weight: 600;
+      font-weight: 700;
     }
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
     .meta code{
@@ -565,10 +633,9 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       border-radius: 10px;
       color: var(--text);
       white-space: nowrap;
-      font-weight: 700;
       display:inline-block;
     }
-    .meta .lbl{ color: var(--muted2); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 10px; }
+    .meta .lbl{ color: var(--muted2); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; font-size: 10px; }
 
     .stats{
       margin-top: 12px;
@@ -588,7 +655,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       color: var(--muted2);
       text-transform: uppercase;
       letter-spacing: .14em;
-      font-weight: 800;
+      font-weight: 900;
     }
     .stat .value{
       margin-top: 7px;
@@ -600,7 +667,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       margin-top: 4px;
       font-size: 11px;
       color: var(--muted);
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .sectionTitle{
@@ -620,6 +687,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
+
     .card{
       border: 1px solid var(--border);
       background: #fff;
@@ -628,40 +696,14 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       box-shadow: var(--shadow);
       overflow:hidden;
       break-inside: avoid;
+      page-break-inside: avoid;
     }
-    .chartWrap{ position:relative; }
 
     .pagebreak{
       break-before: page;
       page-break-before: always;
       height: 1px;
     }
-
-    table{
-      width: 100%;
-      border-collapse: collapse;
-      overflow:hidden;
-      border-radius: 14px;
-      font-size: 11px;
-      border: 1px solid var(--border);
-    }
-    th, td{
-      border-bottom: 1px solid var(--border);
-      padding: 10px 10px;
-      vertical-align: middle;
-    }
-    th{
-      text-align:left;
-      color: #111827;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .14em;
-      font-size: 9px;
-      background: var(--panel);
-    }
-    tbody tr:nth-child(even){ background: #fcfcfd; }
-    .right{ text-align:right; }
-    td.name{ max-width: 320px; }
 
     .chip{
       display:inline-block;
@@ -671,11 +713,93 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       background: #fff;
       font-size: 10px;
       color: var(--muted);
-      font-weight: 800;
+      font-weight: 900;
     }
     .chip.ok{ color:#065f46; border-color: rgba(6,95,70,.20); background: rgba(6,95,70,.06); }
     .chip.warn{ color:#92400e; border-color: rgba(146,64,14,.20); background: rgba(146,64,14,.06); }
     .chip.risk{ color:#991b1b; border-color: rgba(153,27,27,.20); background: rgba(153,27,27,.06); }
+
+    /* Segmentación por empresa */
+    .empresaWrap{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .empresaCard{ padding: 12px; }
+    .empresaHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .empresaName{
+      font-weight: 900;
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .empresaNums{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .numBox{
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .numBox .lbl{
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted2);
+      font-weight: 900;
+    }
+    .numBox .val{
+      margin-top: 6px;
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .empresaGrid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .miniTitle{
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted2);
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .miniTable{
+      width:100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow:hidden;
+      font-size: 10.5px;
+    }
+    .miniTable th, .miniTable td{
+      padding: 8px 8px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .miniTable th{
+      background: #fff;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 9px;
+      font-weight: 900;
+      color: var(--text);
+    }
+    .miniTable tbody tr:nth-child(even){ background: #fcfcfd; }
+    .right{ text-align:right; }
 
     .footer{
       margin-top: 12px;
@@ -685,114 +809,92 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
       font-size: 10px;
       color: var(--muted);
       border-top: 1px solid var(--border);
-      font-weight: 600;
+      font-weight: 700;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div>
-        <div class="brandline">
-          <span class="logoMark"></span>
-          <div class="kicker">Cosaif · Reportería</div>
-          <span class="badge"><span class="dot"></span> Ejecutado</span>
-        </div>
-
-        <h1>${etiqueta}${periodo ? ` <span style="font-weight:700;color:#6b7280;font-size:13px">· ${periodo}</span>` : ''}</h1>
-        <!-- Quitado: “Resumen ejecutivo …” (porque estorbaba y no aporta en impresión) -->
-        <div class="subline">Reporte operativo de movimientos e incidentes.</div>
+  <div class="header">
+    <div>
+      <div class="brandline">
+        <span class="logoMark"></span>
+        <div class="kicker">Cosaif · Reportería</div>
+        <span class="badge"><span class="dot"></span> Ejecutado</span>
       </div>
 
-      <div class="meta">
-        <div class="lbl">Rango (hora MX)</div>
-        <div style="margin-top:6px">
-          <code class="mono">${desdeMX}</code>
-          <span style="color:#9ca3af">→</span>
-          <code class="mono">${hastaMX}</code>
-        </div>
-      </div>
+      <h1>${etiqueta}${periodo ? ` <span style="font-weight:700;color:#6b7280;font-size:13px">· ${periodo}</span>` : ''}</h1>
+      <div class="subline">Reporte operativo de movimientos e incidentes.</div>
     </div>
 
-    <div class="stats">
-      <div class="stat">
-        <div class="label">Total movimientos</div>
-        <div class="value mono">${safeNum(resumen.totalMovimientos)}</div>
-        <div class="sub">Operación agregada</div>
-      </div>
-      <div class="stat">
-        <div class="label">Concluidos</div>
-        <div class="value mono">${k.concluidos}</div>
-        <div class="sub">${k.concluidosPct}% del total</div>
-      </div>
-      <div class="stat">
-        <div class="label">Cancelados</div>
-        <div class="value mono">${k.cancelados}</div>
-        <div class="sub">${k.canceladosPct}% del total</div>
-      </div>
-      <div class="stat">
-        <div class="label">Total incidentes</div>
-        <div class="value mono">${safeNum(resumen.totalIncidentes)}</div>
-        <div class="sub">Tickets operativos</div>
-      </div>
-      <div class="stat">
-        <div class="label">Incidentes resueltos</div>
-        <div class="value mono">${k.incResueltos}</div>
-        <div class="sub">${k.incResueltosPct}% del total</div>
-      </div>
-      <div class="stat">
-        <div class="label">Incidentes no resueltos</div>
-        <div class="value mono">${k.incNoResueltos}</div>
-        <div class="sub">${k.incNoResueltosPct}% del total</div>
+    <div class="meta">
+      <div class="lbl">Rango (hora MX)</div>
+      <div style="margin-top:6px">
+        <code class="mono">${desdeMX}</code>
+        <span style="color:#9ca3af">→</span>
+        <code class="mono">${hastaMX}</code>
       </div>
     </div>
+  </div>
 
-    <div class="sectionTitle">
-      <div>Gráficas por empresa</div>
-      <div style="text-transform:none;letter-spacing:.02em;font-weight:700;color:#9ca3af">SVG embebido</div>
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Total movimientos</div>
+      <div class="value mono">${safeNum(resumen.totalMovimientos)}</div>
+      <div class="sub">Operación agregada</div>
     </div>
-
-    <div class="grid">
-      <div class="card"><div class="chartWrap" style="height:${hBars}px">${chConcluidos}</div></div>
-      <div class="card"><div class="chartWrap" style="height:${hBars}px">${chCancelados}</div></div>
-      <div class="card"><div class="chartWrap" style="height:${hBars}px">${chIncTotal}</div></div>
-      <div class="card"><div class="chartWrap" style="height:${hStack}px">${chResVsNoRes}</div></div>
+    <div class="stat">
+      <div class="label">Concluidos</div>
+      <div class="value mono">${k.concluidos}</div>
+      <div class="sub">${k.concluidosPct}% del total</div>
     </div>
-
-    <div class="pagebreak"></div>
-
-    <div class="sectionTitle">
-      <div>Detalle por empresa</div>
-      <div style="text-transform:none;letter-spacing:.02em;font-weight:700;color:#9ca3af">Ordenado por impacto</div>
+    <div class="stat">
+      <div class="label">Cancelados</div>
+      <div class="value mono">${k.cancelados}</div>
+      <div class="sub">${k.canceladosPct}% del total</div>
     </div>
-
-    <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Empresa</th>
-            <th class="right">Concl.</th>
-            <th class="right">Canc.</th>
-            <th class="right">Inc.</th>
-            <th class="right">Res.</th>
-            <th class="right">No res.</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${
-            rows ||
-            `<tr><td colspan="8" style="color:#6b7280">Sin datos por empresa.</td></tr>`
-          }
-        </tbody>
-      </table>
+    <div class="stat">
+      <div class="label">Total incidentes</div>
+      <div class="value mono">${safeNum(resumen.totalIncidentes)}</div>
+      <div class="sub">Tickets operativos</div>
     </div>
-
-    <div class="footer">
-      <div>Generado automáticamente por <b>Cosaif · Reportería</b></div>
-      <div class="mono">Engine: Puppeteer + SVG</div>
+    <div class="stat">
+      <div class="label">Incidentes resueltos</div>
+      <div class="value mono">${k.incResueltos}</div>
+      <div class="sub">${k.incResueltosPct}% del total</div>
     </div>
+    <div class="stat">
+      <div class="label">Incidentes no resueltos</div>
+      <div class="value mono">${k.incNoResueltos}</div>
+      <div class="sub">${k.incNoResueltosPct}% del total</div>
+    </div>
+  </div>
+
+  <div class="sectionTitle">
+    <div>Gráficas por empresa</div>
+    <div style="text-transform:none;letter-spacing:.02em;font-weight:700;color:#9ca3af">SVG embebido</div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div style="height:${hBars}px">${chConcluidos}</div></div>
+    <div class="card"><div style="height:${hBars}px">${chCancelados}</div></div>
+    <div class="card"><div style="height:${hBars}px">${chIncTotal}</div></div>
+    <div class="card"><div style="height:${hStack}px">${chResVsNoRes}</div></div>
+  </div>
+
+  <div class="pagebreak"></div>
+
+  <div class="sectionTitle">
+    <div>Movimientos segmentados por empresa</div>
+    <div style="text-transform:none;letter-spacing:.02em;font-weight:700;color:#9ca3af">Quién y cuántos</div>
+  </div>
+
+  <div class="empresaWrap">
+    ${empresaCards}
+  </div>
+
+  <div class="footer">
+    <div>Generado automáticamente por <b>Cosaif · Reportería</b></div>
+    <div class="mono">Engine: Puppeteer + SVG</div>
   </div>
 </body>
 </html>`;
@@ -802,7 +904,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaNorm[]) {
 export async function exportarReporteMovimientoPDF(reporte: ReporteBase): Promise<PdfFile> {
   const browser = await getBrowser();
   const page = await browser.newPage();
-  const normalized = normalizeData(reporte);
+  const empresas = normalizeData(reporte);
 
   const etiquetaRaw = reporte.meta.etiqueta || reporte.meta.fechaLocal || 'Movimientos';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
@@ -810,11 +912,10 @@ export async function exportarReporteMovimientoPDF(reporte: ReporteBase): Promis
   try {
     page.setDefaultTimeout(25000);
 
-    // Escala buena para texto nítido en PDF
     await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
     await page.emulateMediaType('screen');
 
-    await page.setContent(buildHtml(reporte, normalized), { waitUntil: 'domcontentloaded' });
+    await page.setContent(buildHtml(reporte, empresas), { waitUntil: 'domcontentloaded' });
 
     const buffer = await page.pdf({
       format: 'A4',
