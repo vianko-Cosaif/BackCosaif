@@ -5,8 +5,9 @@
 
 import { Router } from 'express';
 import { MovimientoPdfController } from '../controller/movimeintoPdf';
-
+import passport from '../../middlewares/passport';
 const router = Router();
+router.use(passport.authenticate('jwt', { session: false }));
 
 /**
  * Si montas así:
