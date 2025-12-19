@@ -1,11 +1,15 @@
 // reporteria/reporteriaMovimiento-pdf.ts
-// PDF empresarial (BLANCO / NEGRO) con gráficas SIN Chart.js
-// + Segmentación por empresa (quién y cuántos) además de la gráfica.
-// Gráficas en SVG embebido (0 dependencias extra).
-// Rango mostrado en hora MX (America/Mexico_City) aunque venga en UTC desde el model.
+// PDF empresarial (BLANCO) con gráficas (SIN Chart.js) vía Puppeteer (HTML -> PDF)
+// Gráficas en SVG embebido (0 dependencias extra, 0 problemas de "exports").
+//
+// Mejoras:
+// - Tema corporativo blanco (alta legibilidad al imprimir)
+// - Rango mostrado en hora MX (sin enseñar tz)
+// - Gráficas GRANDES verticales (labels abajo)
+// - Tabla "Movimientos por empresa" (segmentado: quién y cuántos, por estado)
+// - Tabla "Incidentes por empresa" opcional (útil y ligera)
 
 import * as puppeteer from 'puppeteer';
-import { DateTime } from 'luxon';
 
 export type ReporteBase = {
   meta: {
@@ -37,20 +41,26 @@ export type PdfFile = {
   buffer: Buffer;
 };
 
-// ---------- Singleton Browser ----------
+// ---------- Browser Singleton ----------
 let browserSingleton: puppeteer.Browser | null = null;
 
 async function getBrowser() {
   if (browserSingleton) return browserSingleton;
 
+  const executablePath =
+    process.env.PUPPETEER_EXECUTABLE_PATH ||
+    process.env.CHROME_BIN ||
+    undefined;
+
   browserSingleton = await puppeteer.launch({
     headless: 'new' as any,
+    executablePath,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--font-render-hinting=none',
       '--disable-dev-shm-usage',
       '--disable-gpu',
+      '--font-render-hinting=none',
     ],
   });
 
@@ -65,11 +75,9 @@ export async function closeReporteriaBrowser() {
 }
 
 // ---------- Helpers ----------
-const safeNum = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0);
+const MX_TZ = 'America/Mexico_City';
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+const safeNum = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0);
 
 function escapeHtml(v: any) {
   const s = String(v ?? '');
@@ -94,85 +102,100 @@ function truncLabel(s: string, n: number) {
   return t.length > n ? t.slice(0, n - 1) + '…' : t;
 }
 
-function formatRangoMX(meta: ReporteBase['meta']) {
-  const zone = 'America/Mexico_City';
-  const fmt = 'yyyy-LL-dd HH:mm';
-
-  try {
-    const desde = DateTime.fromISO(meta.rangoUTC.desde, { zone: 'utc' }).setZone(zone);
-    const hasta = DateTime.fromISO(meta.rangoUTC.hastaExclusivo, { zone: 'utc' }).setZone(zone);
-
-    if (!desde.isValid || !hasta.isValid) {
-      return { desde: meta.rangoUTC.desde, hasta: meta.rangoUTC.hastaExclusivo };
-    }
-
-    return { desde: desde.toFormat(fmt), hasta: hasta.toFormat(fmt) };
-  } catch {
-    return { desde: meta.rangoUTC.desde, hasta: meta.rangoUTC.hastaExclusivo };
-  }
+function fmtMX(iso: string) {
+  const d = new Date(String(iso ?? ''));
+  if (Number.isNaN(d.getTime())) return String(iso ?? '');
+  // sv-SE da formato tipo "YYYY-MM-DD HH:mm:ss"
+  const s = d.toLocaleString('sv-SE', { timeZone: MX_TZ, hour12: false }).replace(',', '');
+  return s.length >= 16 ? s.slice(0, 16) : s;
 }
 
-type EmpresaNorm = {
-  id: number;
-  name: string;
-  totalMov: number;
-  movEstados: Record<string, number>;
-  incTotal: number;
-  incEstados: Record<string, number>;
+function pickState(map: Record<string, number> | undefined, keys: string[]) {
+  const m = map ?? {};
+  for (const k of keys) {
+    if (m[k] !== undefined) return safeNum(m[k]);
+  }
+  return 0;
+}
 
-  // atajos usados por charts
+type EmpresaRow = {
+  empresaId: number;
+  name: string;
+
+  totalMov: number;
+  movPorEstado: Record<string, number>;
   concluidos: number;
   cancelados: number;
+  enProceso: number;
+  espera: number;
+  solicitado: number;
+  otrosMov: number;
+
+  totalInc: number;
+  incPorEstado: Record<string, number>;
   incResueltos: number;
   incNoResueltos: number; // ABIERTO + CERRADO
 };
 
-function normalizeData(r: ReporteBase): EmpresaNorm[] {
-  return (r.resumen.porEmpresa ?? [])
-    .map((e) => {
-      const movEstados = e.movimientosPorEstado ?? {};
-      const incEstados = e.incidentesPorEstado ?? {};
+function normalizeData(r: ReporteBase): EmpresaRow[] {
+  const rows =
+    (r.resumen.porEmpresa ?? []).map((e) => {
+      const movMap = e.movimientosPorEstado ?? {};
+      const incMap = e.incidentesPorEstado ?? {};
 
-      const concluidos = safeNum(movEstados['CONCLUIDO']);
-      const cancelados = safeNum(movEstados['CANCELADO']);
+      const concluidos = pickState(movMap, ['CONCLUIDO']);
+      const cancelados = pickState(movMap, ['CANCELADO']);
+      const enProceso = pickState(movMap, ['EN_PROCESO', 'PROCESO']);
+      const espera = pickState(movMap, ['ESPERA', 'EN_ESPERA']);
+      const solicitado = pickState(movMap, ['SOLICITADO']);
 
-      const incTotal = safeNum(e.totalIncidentes);
-      const incResueltos = safeNum(incEstados['RESUELTO']);
-      const incAbiertos = safeNum(incEstados['ABIERTO']);
-      const incCerrados = safeNum(incEstados['CERRADO']);
+      const totalMov = safeNum(e.totalMovimientos);
+      const known = concluidos + cancelados + enProceso + espera + solicitado;
+      const otrosMov = Math.max(0, totalMov - known);
+
+      const totalInc = safeNum(e.totalIncidentes);
+      const incResueltos = pickState(incMap, ['RESUELTO', 'RESUELTA']);
+      const incAbiertos = pickState(incMap, ['ABIERTO', 'ABIERTA']);
+      const incCerrados = pickState(incMap, ['CERRADO', 'CERRADA']);
+      const incNoResueltos = incAbiertos + incCerrados;
 
       return {
-        id: safeNum(e.empresaId),
+        empresaId: e.empresaId,
         name: e.empresa || 'Sin Nombre',
-        totalMov: safeNum(e.totalMovimientos),
-        movEstados: movEstados,
-        incTotal,
-        incEstados: incEstados,
 
+        totalMov,
+        movPorEstado: movMap,
         concluidos,
         cancelados,
+        enProceso,
+        espera,
+        solicitado,
+        otrosMov,
+
+        totalInc,
+        incPorEstado: incMap,
         incResueltos,
-        incNoResueltos: incAbiertos + incCerrados,
+        incNoResueltos,
       };
-    })
-    .sort((a, b) => {
-      const sa = a.totalMov + a.incTotal;
-      const sb = b.totalMov + b.incTotal;
-      return sb - sa;
-    });
+    }) ?? [];
+
+  // orden por impacto (movimientos + incidentes)
+  return rows.sort((a, b) => (b.totalMov + b.totalInc) - (a.totalMov + a.totalInc));
 }
 
 function computeKpis(reporte: ReporteBase) {
   const totalMov = safeNum(reporte.resumen.totalMovimientos);
   const totalInc = safeNum(reporte.resumen.totalIncidentes);
 
-  const concluidos = safeNum(reporte.resumen.movimientosPorEstado?.['CONCLUIDO']);
-  const cancelados = safeNum(reporte.resumen.movimientosPorEstado?.['CANCELADO']);
+  const concluidos = pickState(reporte.resumen.movimientosPorEstado, ['CONCLUIDO']);
+  const cancelados = pickState(reporte.resumen.movimientosPorEstado, ['CANCELADO']);
+  const enProceso = pickState(reporte.resumen.movimientosPorEstado, ['EN_PROCESO', 'PROCESO']);
+  const espera = pickState(reporte.resumen.movimientosPorEstado, ['ESPERA', 'EN_ESPERA']);
 
-  const incResueltos = safeNum(reporte.resumen.incidentesPorEstado?.['RESUELTO']);
+  const incResueltos = pickState(reporte.resumen.incidentesPorEstado, ['RESUELTO', 'RESUELTA']);
   const incNoResueltos =
-    safeNum(reporte.resumen.incidentesPorEstado?.['ABIERTO']) +
-    safeNum(reporte.resumen.incidentesPorEstado?.['CERRADO']);
+    pickState(reporte.resumen.incidentesPorEstado, ['ABIERTO', 'ABIERTA']) +
+    pickState(reporte.resumen.incidentesPorEstado, ['CERRADO', 'CERRADA']);
 
   const pct = (part: number, total: number) => (total ? Math.round((part / total) * 100) : 0);
 
@@ -182,8 +205,13 @@ function computeKpis(reporte: ReporteBase) {
 
     concluidos,
     cancelados,
+    enProceso,
+    espera,
+
     concluidosPct: pct(concluidos, totalMov),
     canceladosPct: pct(cancelados, totalMov),
+    enProcesoPct: pct(enProceso, totalMov),
+    esperaPct: pct(espera, totalMov),
 
     incResueltos,
     incNoResueltos,
@@ -192,337 +220,377 @@ function computeKpis(reporte: ReporteBase) {
   };
 }
 
-function sortRecordDesc(rec: Record<string, number>) {
-  return Object.entries(rec ?? {})
-    .map(([k, v]) => [k, safeNum(v)] as const)
-    .filter(([, v]) => v > 0)
-    .sort((a, b) => b[1] - a[1]);
-}
-
-function niceEstadoMov(k: string) {
-  const up = String(k || '').toUpperCase();
-  if (up === 'EN_PROCESO') return 'En proceso';
-  if (up === 'CONCLUIDO') return 'Concluido';
-  if (up === 'CANCELADO') return 'Cancelado';
-  if (up === 'ESPERA') return 'En espera';
-  if (up === 'SOLICITADO') return 'Solicitado';
-  return k
-    .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/(^|\s)\S/g, (m) => m.toUpperCase());
-}
-
-function niceEstadoInc(k: string) {
-  const up = String(k || '').toUpperCase();
-  if (up === 'ABIERTO') return 'Abierto';
-  if (up === 'CERRADO') return 'Cerrado';
-  if (up === 'RESUELTO') return 'Resuelto';
-  return niceEstadoMov(k);
-}
-
-// ---------- SVG Charts (sin JS) ----------
-function svgHBarChart(opts: {
+// ---------- SVG Charts (Vertical, big, labels bottom) ----------
+function svgVBarChart(opts: {
   title: string;
-  height: number;
+  subtitle?: string;
   labels: string[];
   values: number[];
-  barColor: string;
+  height: number; // px (viewBox)
+  barFill: string; // e.g. "#0B2A4A"
+  maxBars?: number;
 }) {
-  const w = 560;
-  const h = Math.max(260, Math.floor(opts.height));
+  const maxBars = opts.maxBars ?? 12;
+  const labels = (opts.labels ?? []).slice(0, maxBars);
+  const values = (opts.values ?? []).slice(0, maxBars).map(safeNum);
+
+  const w = 860;
+  const h = Math.max(340, Math.floor(opts.height));
 
   const title = escapeHtml(opts.title);
-  const labels = opts.labels ?? [];
-  const values = (opts.values ?? []).map(safeNum);
+  const subtitle = escapeHtml(opts.subtitle ?? '');
 
   if (!labels.length) {
-    return `<div style="height:${h}px;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px">
-      Sin datos para graficar.
-    </div>`;
+    return `<div class="empty">Sin datos para graficar.</div>`;
   }
 
-  const left = 230;
-  const right = 20;
-  const top = 52;
-  const bottom = 18;
+  const left = 54;
+  const right = 18;
+  const top = subtitle ? 62 : 52;
+  const bottom = 96;
 
-  const rowH = 22;
-  const barH = 12;
+  const chartW = w - left - right;
+  const chartH = h - top - bottom;
 
   const maxVal = Math.max(1, ...values);
-  const barW = w - left - right;
-  const scale = barW / maxVal;
 
-  const lines: string[] = [];
+  const n = labels.length;
+  const step = chartW / n;
+  const barW = Math.max(18, Math.min(44, Math.floor(step * 0.62)));
 
-  lines.push(`<text x="16" y="26" fill="#111827" font-size="14" font-weight="700">${title}</text>`);
+  // redondea escala a “bonito” (para ejes)
+  const niceMax = (() => {
+    const raw = maxVal;
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / pow;
+    const nice =
+      norm <= 1 ? 1 :
+      norm <= 2 ? 2 :
+      norm <= 5 ? 5 : 10;
+    return nice * pow;
+  })();
 
-  for (let i = 0; i <= 4; i++) {
-    const x = left + (barW * i) / 4;
-    lines.push(
-      `<line x1="${x}" y1="${top - 6}" x2="${x}" y2="${h - bottom}" stroke="#e5e7eb" stroke-width="1"/>`
-    );
+  const gridLines = 5;
+  const parts: string[] = [];
+
+  // defs (pattern suave para impresión, por si lo quieres después)
+  parts.push(`
+    <defs>
+      <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="rgba(0,0,0,0.16)"/>
+      </filter>
+    </defs>
+  `);
+
+  // titles
+  parts.push(`<text x="14" y="26" fill="#0F172A" font-size="16" font-weight="800">${title}</text>`);
+  if (subtitle) {
+    parts.push(`<text x="14" y="46" fill="#475569" font-size="11" font-weight="600">${subtitle}</text>`);
   }
 
-  for (let i = 0; i < labels.length; i++) {
-    const y = top + i * rowH + rowH / 2;
-    const name = escapeHtml(truncLabel(labels[i], 28));
+  // grid + y labels
+  for (let i = 0; i < gridLines; i++) {
+    const t = i / (gridLines - 1);
+    const y = top + (1 - t) * chartH;
+    const v = Math.round(t * niceMax);
+
+    parts.push(`<line x1="${left}" y1="${y}" x2="${w - right}" y2="${y}" stroke="#E5E7EB" stroke-width="1"/>`);
+    parts.push(`<text x="${left - 10}" y="${y + 4}" text-anchor="end" fill="#64748B" font-size="10" class="mono">${v}</text>`);
+  }
+
+  // axis line
+  parts.push(`<line x1="${left}" y1="${top + chartH}" x2="${w - right}" y2="${top + chartH}" stroke="#CBD5E1" stroke-width="1.2"/>`);
+
+  // bars
+  for (let i = 0; i < n; i++) {
     const v = safeNum(values[i]);
-    const bw = Math.max(0, Math.round(v * scale));
+    const bh = Math.round((v / niceMax) * chartH);
+    const xCenter = left + step * i + step / 2;
+    const x = Math.round(xCenter - barW / 2);
+    const y = Math.round(top + chartH - bh);
 
-    lines.push(`<text x="16" y="${y}" fill="#374151" font-size="10.8" dominant-baseline="middle">${name}</text>`);
-
-    lines.push(
-      `<rect x="${left}" y="${y - barH / 2}" width="${barW}" height="${barH}" rx="6" fill="#f3f4f6"></rect>`
+    // bar
+    parts.push(
+      `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="8" fill="${opts.barFill}" filter="url(#shadow)"></rect>`
     );
 
-    lines.push(
-      `<rect x="${left}" y="${y - barH / 2}" width="${bw}" height="${barH}" rx="6" fill="${opts.barColor}"></rect>`
+    // value (arriba, para que se vea sí o sí)
+    parts.push(
+      `<text x="${xCenter}" y="${Math.max(16, y - 6)}" text-anchor="middle" fill="#0F172A" font-size="10" font-weight="700" class="mono">${v}</text>`
     );
 
-    const vx = Math.min(left + bw + 8, w - right - 24);
-    lines.push(
-      `<text x="${vx}" y="${y}" fill="#111827" font-size="11" dominant-baseline="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace">${v}</text>`
+    // label abajo (rotado)
+    const lbl = escapeHtml(truncLabel(labels[i], 18));
+    const lx = xCenter;
+    const ly = top + chartH + 16;
+    parts.push(
+      `<text transform="translate(${lx},${ly}) rotate(-35)" text-anchor="end" fill="#0F172A" font-size="10" font-weight="600">${lbl}</text>`
     );
   }
 
   return `
-  <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMinYMin meet"
-       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">
-    ${lines.join('\n')}
-  </svg>`;
+    <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMinYMin meet"
+      xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">
+      ${parts.join('\n')}
+    </svg>
+  `;
 }
 
-function svgStackedBarChart(opts: {
+function svgVStackedBarChart(opts: {
   title: string;
-  height: number;
+  subtitle?: string;
   labels: string[];
   aLabel: string;
   aValues: number[];
-  aColor: string;
+  aFill: string;
   bLabel: string;
   bValues: number[];
-  bColor: string;
+  bFill: string;
+  height: number;
+  maxBars?: number;
 }) {
-  const w = 560;
-  const h = Math.max(320, Math.floor(opts.height));
+  const maxBars = opts.maxBars ?? 12;
+  const labels = (opts.labels ?? []).slice(0, maxBars);
+  const aValues = (opts.aValues ?? []).slice(0, maxBars).map(safeNum);
+  const bValues = (opts.bValues ?? []).slice(0, maxBars).map(safeNum);
+
+  const w = 860;
+  const h = Math.max(360, Math.floor(opts.height));
 
   const title = escapeHtml(opts.title);
-  const labels = opts.labels ?? [];
-  const aValues = (opts.aValues ?? []).map(safeNum);
-  const bValues = (opts.bValues ?? []).map(safeNum);
+  const subtitle = escapeHtml(opts.subtitle ?? '');
 
   if (!labels.length) {
-    return `<div style="height:${h}px;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px">
-      Sin datos para graficar.
-    </div>`;
+    return `<div class="empty">Sin datos para graficar.</div>`;
   }
 
-  const left = 230;
-  const right = 20;
-  const top = 52;
-  const bottom = 54;
-  const rowH = 26;
-  const barH = 16;
+  const left = 54;
+  const right = 18;
+  const top = subtitle ? 62 : 52;
+  const bottom = 120;
+
+  const chartW = w - left - right;
+  const chartH = h - top - bottom;
 
   const totals = labels.map((_, i) => safeNum(aValues[i]) + safeNum(bValues[i]));
-  const maxTotal = Math.max(1, ...totals);
+  const maxVal = Math.max(1, ...totals);
 
-  const barW = w - left - right;
-  const scale = barW / maxTotal;
+  const niceMax = (() => {
+    const raw = maxVal;
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const norm = raw / pow;
+    const nice =
+      norm <= 1 ? 1 :
+      norm <= 2 ? 2 :
+      norm <= 5 ? 5 : 10;
+    return nice * pow;
+  })();
 
-  const lines: string[] = [];
+  const n = labels.length;
+  const step = chartW / n;
+  const barW = Math.max(18, Math.min(44, Math.floor(step * 0.62)));
 
-  lines.push(`<text x="16" y="26" fill="#111827" font-size="14" font-weight="700">${title}</text>`);
+  const gridLines = 5;
+  const parts: string[] = [];
 
-  for (let i = 0; i <= 4; i++) {
-    const x = left + (barW * i) / 4;
-    lines.push(
-      `<line x1="${x}" y1="${top - 6}" x2="${x}" y2="${h - bottom}" stroke="#e5e7eb" stroke-width="1"/>`
-    );
+  parts.push(`
+    <defs>
+      <filter id="shadow2" x="-10%" y="-10%" width="120%" height="140%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="rgba(0,0,0,0.16)"/>
+      </filter>
+      <pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+        <line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>
+      </pattern>
+    </defs>
+  `);
+
+  parts.push(`<text x="14" y="26" fill="#0F172A" font-size="16" font-weight="800">${title}</text>`);
+  if (subtitle) {
+    parts.push(`<text x="14" y="46" fill="#475569" font-size="11" font-weight="600">${subtitle}</text>`);
   }
 
-  for (let i = 0; i < labels.length; i++) {
-    const y = top + i * rowH + rowH / 2;
-    const name = escapeHtml(truncLabel(labels[i], 28));
+  for (let i = 0; i < gridLines; i++) {
+    const t = i / (gridLines - 1);
+    const y = top + (1 - t) * chartH;
+    const v = Math.round(t * niceMax);
 
+    parts.push(`<line x1="${left}" y1="${y}" x2="${w - right}" y2="${y}" stroke="#E5E7EB" stroke-width="1"/>`);
+    parts.push(`<text x="${left - 10}" y="${y + 4}" text-anchor="end" fill="#64748B" font-size="10" class="mono">${v}</text>`);
+  }
+
+  parts.push(`<line x1="${left}" y1="${top + chartH}" x2="${w - right}" y2="${top + chartH}" stroke="#CBD5E1" stroke-width="1.2"/>`);
+
+  for (let i = 0; i < n; i++) {
     const a = safeNum(aValues[i]);
     const b = safeNum(bValues[i]);
     const total = a + b;
 
-    const aw = Math.round(a * scale);
-    const bw = Math.round(b * scale);
+    const aH = Math.round((a / niceMax) * chartH);
+    const bH = Math.round((b / niceMax) * chartH);
 
-    lines.push(`<text x="16" y="${y}" fill="#374151" font-size="10.8" dominant-baseline="middle">${name}</text>`);
+    const xCenter = left + step * i + step / 2;
+    const x = Math.round(xCenter - barW / 2);
 
-    lines.push(
-      `<rect x="${left}" y="${y - barH / 2}" width="${barW}" height="${barH}" rx="8" fill="#f3f4f6"></rect>`
+    const yBase = top + chartH;
+
+    const yA = yBase - aH;
+    const yB = yA - bH;
+
+    // segmento A (abajo)
+    parts.push(
+      `<rect x="${x}" y="${yA}" width="${barW}" height="${aH}" rx="8" fill="${opts.aFill}" filter="url(#shadow2)"></rect>`
     );
 
-    lines.push(
-      `<rect x="${left}" y="${y - barH / 2}" width="${aw}" height="${barH}" rx="8" fill="${opts.aColor}"></rect>`
+    // segmento B (arriba) con hatch ligero para diferenciar en impresión
+    parts.push(
+      `<rect x="${x}" y="${yB}" width="${barW}" height="${bH}" rx="8" fill="${opts.bFill}" filter="url(#shadow2)"></rect>`
+    );
+    parts.push(
+      `<rect x="${x}" y="${yB}" width="${barW}" height="${bH}" rx="8" fill="url(#hatch)" opacity="0.35"></rect>`
     );
 
-    lines.push(
-      `<rect x="${left + aw}" y="${y - barH / 2}" width="${bw}" height="${barH}" rx="8" fill="${opts.bColor}"></rect>`
+    // total arriba
+    parts.push(
+      `<text x="${xCenter}" y="${Math.max(16, yB - 6)}" text-anchor="middle" fill="#0F172A" font-size="10" font-weight="800" class="mono">${total}</text>`
     );
 
-    const tx = Math.min(left + aw + bw + 8, w - right - 34);
-    lines.push(
-      `<text x="${tx}" y="${y}" fill="#111827" font-size="11" dominant-baseline="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace">${total}</text>`
+    // label abajo
+    const lbl = escapeHtml(truncLabel(labels[i], 18));
+    const lx = xCenter;
+    const ly = top + chartH + 16;
+    parts.push(
+      `<text transform="translate(${lx},${ly}) rotate(-35)" text-anchor="end" fill="#0F172A" font-size="10" font-weight="600">${lbl}</text>`
     );
   }
 
-  const legY = h - 18;
-  lines.push(
-    `<rect x="16" y="${legY - 10}" width="10" height="10" rx="3" fill="${opts.aColor}"></rect>
-     <text x="32" y="${legY - 1}" fill="#111827" font-size="10.5">${escapeHtml(opts.aLabel)}</text>
-     <rect x="200" y="${legY - 10}" width="10" height="10" rx="3" fill="${opts.bColor}"></rect>
-     <text x="216" y="${legY - 1}" fill="#111827" font-size="10.5">${escapeHtml(opts.bLabel)}</text>`
-  );
+  // legend
+  const legY = h - 40;
+  parts.push(`
+    <rect x="14" y="${legY}" width="12" height="12" rx="3" fill="${opts.aFill}"></rect>
+    <text x="32" y="${legY + 10}" fill="#0F172A" font-size="11" font-weight="700">${escapeHtml(opts.aLabel)}</text>
+
+    <rect x="200" y="${legY}" width="12" height="12" rx="3" fill="${opts.bFill}"></rect>
+    <rect x="200" y="${legY}" width="12" height="12" rx="3" fill="url(#hatch)" opacity="0.35"></rect>
+    <text x="218" y="${legY + 10}" fill="#0F172A" font-size="11" font-weight="700">${escapeHtml(opts.bLabel)}</text>
+  `);
 
   return `
-  <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMinYMin meet"
-       xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">
-    ${lines.join('\n')}
-  </svg>`;
+    <svg width="100%" height="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMinYMin meet"
+      xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${title}">
+      ${parts.join('\n')}
+    </svg>
+  `;
 }
 
 // ---------- HTML ----------
-function buildEmpresaCards(empresas: EmpresaNorm[]) {
-  if (!empresas.length) {
-    return `<div class="card" style="color:#6b7280">Sin empresas en el periodo.</div>`;
-  }
-
-  return empresas
-    .map((e) => {
-      const movList = sortRecordDesc(e.movEstados);
-      const incList = sortRecordDesc(e.incEstados);
-
-      const movRows =
-        movList.length > 0
-          ? movList
-              .map(([k, v]) => {
-                return `<tr><td>${escapeHtml(niceEstadoMov(k))}</td><td class="right mono">${v}</td></tr>`;
-              })
-              .join('')
-          : `<tr><td colspan="2" style="color:#6b7280">Sin movimientos por estado</td></tr>`;
-
-      const incRows =
-        incList.length > 0
-          ? incList
-              .map(([k, v]) => {
-                return `<tr><td>${escapeHtml(niceEstadoInc(k))}</td><td class="right mono">${v}</td></tr>`;
-              })
-              .join('')
-          : `<tr><td colspan="2" style="color:#6b7280">Sin incidentes por estado</td></tr>`;
-
-      const sem =
-        e.incNoResueltos > 0 ? 'risk' : e.incTotal > 0 ? 'warn' : 'ok';
-      const semTxt =
-        e.incNoResueltos > 0 ? 'Riesgo' : e.incTotal > 0 ? 'Atención' : 'OK';
-
-      return `
-        <div class="card empresaCard">
-          <div class="empresaHead">
-            <div class="empresaName">${escapeHtml(e.name)}</div>
-            <span class="chip ${sem}">${semTxt}</span>
-          </div>
-
-          <div class="empresaNums">
-            <div class="numBox">
-              <div class="lbl">Movimientos</div>
-              <div class="val mono">${e.totalMov}</div>
-            </div>
-            <div class="numBox">
-              <div class="lbl">Incidentes</div>
-              <div class="val mono">${e.incTotal}</div>
-            </div>
-          </div>
-
-          <div class="empresaGrid">
-            <div>
-              <div class="miniTitle">Movimientos por estado</div>
-              <table class="miniTable">
-                <thead><tr><th>Estado</th><th class="right">Cant.</th></tr></thead>
-                <tbody>${movRows}</tbody>
-              </table>
-            </div>
-
-            <div>
-              <div class="miniTitle">Incidentes por estado</div>
-              <table class="miniTable">
-                <thead><tr><th>Estado</th><th class="right">Cant.</th></tr></thead>
-                <tbody>${incRows}</tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      `;
-    })
-    .join('');
-}
-
-function buildHtml(reporte: ReporteBase, empresas: EmpresaNorm[]) {
+function buildHtml(reporte: ReporteBase, data: EmpresaRow[]) {
   const meta = reporte.meta;
   const resumen = reporte.resumen;
   const k = computeKpis(reporte);
 
-  const etiqueta = escapeHtml(meta.etiqueta || meta.fechaLocal || 'Reporte de movimientos');
+  const etiqueta = escapeHtml(meta.etiqueta || meta.fechaLocal || 'Reporte de Movimientos');
   const periodo = escapeHtml(meta.periodo || '');
 
-  const rangoMX = formatRangoMX(meta);
-  const desdeMX = escapeHtml(rangoMX.desde);
-  const hastaMX = escapeHtml(rangoMX.hasta);
+  // Rango mostrado SIEMPRE en MX (aunque venga en UTC)
+  const rangoMXDesde = escapeHtml(fmtMX(meta.rangoUTC.desde));
+  const rangoMXHasta = escapeHtml(fmtMX(meta.rangoUTC.hastaExclusivo));
 
-  // charts dinámicos
-  const hBars = clamp(320 + empresas.length * 20, 360, 840);
-  const hStack = clamp(340 + empresas.length * 24, 420, 960);
+  // Charts: top N para legibilidad (tabla trae TODO)
+  const topN = 12;
+  const chartData = data.slice(0, topN);
 
-  const labels = empresas.map((d) => d.name);
-  const concluidos = empresas.map((d) => d.concluidos);
-  const cancelados = empresas.map((d) => d.cancelados);
-  const incTotal = empresas.map((d) => d.incTotal);
-  const incRes = empresas.map((d) => d.incResueltos);
-  const incNoRes = empresas.map((d) => d.incNoResueltos);
+  const labels = chartData.map((d) => d.name);
+  const concluidos = chartData.map((d) => d.concluidos);
+  const cancelados = chartData.map((d) => d.cancelados);
+  const incTotal = chartData.map((d) => d.totalInc);
+  const incRes = chartData.map((d) => d.incResueltos);
+  const incNoRes = chartData.map((d) => d.incNoResueltos);
 
-  const chConcluidos = svgHBarChart({
+  const chartH = 420;
+
+  const chConcluidos = svgVBarChart({
     title: 'Movimientos concluidos (por empresa)',
-    height: hBars,
+    subtitle: `Top ${topN} por impacto`,
     labels,
     values: concluidos,
-    barColor: '#111827',
+    height: chartH,
+    barFill: '#0B2A4A',
+    maxBars: topN,
   });
 
-  const chCancelados = svgHBarChart({
+  const chCancelados = svgVBarChart({
     title: 'Movimientos cancelados (por empresa)',
-    height: hBars,
+    subtitle: `Top ${topN} por impacto`,
     labels,
     values: cancelados,
-    barColor: '#4b5563',
+    height: chartH,
+    barFill: '#334155',
+    maxBars: topN,
   });
 
-  const chIncTotal = svgHBarChart({
-    title: 'Total incidentes (por empresa)',
-    height: hBars,
+  const chIncTotal = svgVBarChart({
+    title: 'Incidentes totales (por empresa)',
+    subtitle: `Top ${topN} por impacto`,
     labels,
     values: incTotal,
-    barColor: '#0f172a',
+    height: chartH,
+    barFill: '#111827',
+    maxBars: topN,
   });
 
-  const chResVsNoRes = svgStackedBarChart({
+  const chResVsNoRes = svgVStackedBarChart({
     title: 'Incidentes: resueltos vs no resueltos (por empresa)',
-    height: hStack,
+    subtitle: `Top ${topN} por impacto`,
     labels,
     aLabel: 'Resuelto',
     aValues: incRes,
-    aColor: '#111827',
+    aFill: '#0B2A4A',
     bLabel: 'No resuelto (Abierto + Cerrado)',
     bValues: incNoRes,
-    bColor: '#6b7280',
+    bFill: '#64748B',
+    height: 460,
+    maxBars: topN,
   });
 
-  const empresaCards = buildEmpresaCards(empresas);
+  // Tabla: movimientos por empresa (TODAS)
+  const movRowsAll = data
+    .map((d, idx) => {
+      return `
+        <tr>
+          <td class="mono right">${idx + 1}</td>
+          <td class="name">${escapeHtml(d.name)}</td>
+          <td class="mono right"><b>${d.totalMov}</b></td>
+          <td class="mono right">${d.concluidos}</td>
+          <td class="mono right">${d.cancelados}</td>
+          <td class="mono right">${d.enProceso}</td>
+          <td class="mono right">${d.espera}</td>
+          <td class="mono right">${d.solicitado}</td>
+          <td class="mono right">${d.otrosMov}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  // Tabla: incidentes por empresa (TODAS) — ligera
+  const incRowsAll = data
+    .map((d, idx) => {
+      const sem =
+        d.incNoResueltos > 0 ? 'Riesgo' : d.totalInc > 0 ? 'Atención' : 'OK';
+      const semClass =
+        d.incNoResueltos > 0 ? 'risk' : d.totalInc > 0 ? 'warn' : 'ok';
+
+      return `
+        <tr>
+          <td class="mono right">${idx + 1}</td>
+          <td class="name">${escapeHtml(d.name)}</td>
+          <td class="mono right"><b>${d.totalInc}</b></td>
+          <td class="mono right">${d.incResueltos}</td>
+          <td class="mono right">${d.incNoResueltos}</td>
+          <td><span class="chip ${semClass}">${sem}</span></td>
+        </tr>
+      `;
+    })
+    .join('');
 
   return `<!doctype html>
 <html lang="es">
@@ -530,91 +598,75 @@ function buildHtml(reporte: ReporteBase, empresas: EmpresaNorm[]) {
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    @page { size: A4; margin: 12mm; }
-    *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    @page { size: A4; margin: 10mm; }
 
     :root{
       --bg:#ffffff;
-      --text:#111827;
-      --muted:#4b5563;
-      --muted2:#6b7280;
+      --panel:#ffffff;
+      --ink:#0f172a;
+      --muted:#475569;
+      --muted2:#64748b;
       --border:#e5e7eb;
-      --panel:#f9fafb;
-      --shadow: 0 10px 26px rgba(17,24,39,.10);
+      --soft:#f8fafc;
+
+      --brand:#0B2A4A;
+      --brand2:#111827;
+
+      --ok:#0B2A4A;
+      --warn:#92400e;
+      --risk:#991b1b;
     }
 
+    *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     body{
       margin:0;
-      background: var(--bg);
-      color: var(--text);
+      padding: 18px;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--ink);
+      background: var(--bg);
     }
 
-    .header{
+    .topbar{
       border: 1px solid var(--border);
-      background: linear-gradient(180deg, var(--panel), #fff);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 16px 16px 12px;
-      box-shadow: var(--shadow);
+      background: var(--panel);
+    }
+
+    .toprow{
       display:flex;
       justify-content:space-between;
-      gap: 14px;
       align-items:flex-start;
+      gap: 12px;
     }
 
-    .brandline{
+    .title{
       display:flex;
-      gap:10px;
-      align-items:center;
-      margin-bottom: 8px;
+      flex-direction:column;
+      gap: 6px;
+      min-width: 0;
     }
-    .logoMark{
-      width: 10px; height: 10px;
-      border-radius: 999px;
-      background: #111827;
-      box-shadow: 0 0 0 5px rgba(17,24,39,.08);
-    }
+
     .kicker{
       font-size: 11px;
+      letter-spacing: .18em;
       text-transform: uppercase;
-      letter-spacing: .16em;
-      color: var(--muted2);
-      font-weight: 700;
-    }
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #fff;
-      font-size: 10px;
       color: var(--muted);
-      margin-left: 8px;
-      vertical-align: middle;
       font-weight: 700;
-    }
-    .dot{
-      width: 7px; height: 7px;
-      border-radius: 99px;
-      background: #111827;
-      box-shadow: 0 0 0 4px rgba(17,24,39,.08);
     }
 
     h1{
       margin: 0;
       font-size: 22px;
+      font-weight: 900;
       letter-spacing: .2px;
-      line-height: 1.15;
-      font-weight: 800;
+      line-height: 1.12;
     }
-    .subline{
-      margin-top: 6px;
-      color: var(--muted);
+
+    .periodo{
       font-size: 12px;
-      line-height: 1.35;
-      font-weight: 600;
+      color: var(--muted);
+      font-weight: 700;
     }
 
     .meta{
@@ -622,278 +674,325 @@ function buildHtml(reporte: ReporteBase, empresas: EmpresaNorm[]) {
       font-size: 11px;
       color: var(--muted);
       line-height: 1.45;
-      max-width: 420px;
+      max-width: 360px;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .metaLine{
+      display:flex;
+      gap: 8px;
+      justify-content:flex-end;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--soft);
+      font-size: 11px;
+      color: var(--ink);
       font-weight: 700;
     }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-    .meta code{
-      background: #fff;
-      border: 1px solid var(--border);
-      padding: 3px 8px;
-      border-radius: 10px;
-      color: var(--text);
-      white-space: nowrap;
-      display:inline-block;
-    }
-    .meta .lbl{ color: var(--muted2); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; font-size: 10px; }
 
-    .stats{
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .code{
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .kpis{
       margin-top: 12px;
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 10px;
     }
-    .stat{
+
+    .kpi{
       border: 1px solid var(--border);
-      background: #fff;
       border-radius: 14px;
-      padding: 12px 12px 10px;
-      box-shadow: 0 6px 18px rgba(17,24,39,.06);
+      background: var(--soft);
+      padding: 10px 10px 9px;
+      min-height: 66px;
     }
-    .stat .label{
+
+    .kpi .label{
       font-size: 10px;
-      color: var(--muted2);
       text-transform: uppercase;
       letter-spacing: .14em;
-      font-weight: 900;
+      color: var(--muted2);
+      font-weight: 800;
     }
-    .stat .value{
-      margin-top: 7px;
+
+    .kpi .value{
+      margin-top: 6px;
       font-size: 18px;
       font-weight: 900;
-      color: var(--text);
+      color: var(--ink);
     }
-    .stat .sub{
-      margin-top: 4px;
-      font-size: 11px;
+
+    .kpi .sub{
+      margin-top: 2px;
+      font-size: 10px;
       color: var(--muted);
       font-weight: 700;
     }
 
-    .sectionTitle{
-      margin: 16px 2px 10px;
-      font-size: 11px;
-      color: var(--muted2);
-      text-transform: uppercase;
-      letter-spacing: .18em;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      font-weight: 900;
+    .section{
+      margin-top: 14px;
     }
 
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .sectionTitle{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap: 10px;
+      margin: 14px 2px 8px;
+    }
+
+    .sectionTitle .h{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--brand);
+    }
+
+    .sectionTitle .s{
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
     }
 
     .card{
       border: 1px solid var(--border);
+      border-radius: 16px;
       background: #fff;
-      border-radius: 14px;
       padding: 12px;
-      box-shadow: var(--shadow);
       overflow:hidden;
-      break-inside: avoid;
-      page-break-inside: avoid;
     }
 
-    .pagebreak{
-      break-before: page;
-      page-break-before: always;
-      height: 1px;
+    .chart{
+      height: 420px;
+      width: 100%;
     }
+    .chart.tall{ height: 460px; }
+
+    .empty{
+      height: 200px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow:hidden;
+      border-radius: 14px;
+      font-size: 11px;
+    }
+
+    thead th{
+      background: var(--soft);
+      border-bottom: 1px solid var(--border);
+      color: var(--muted2);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 9.5px;
+      padding: 10px 10px;
+      text-align:left;
+    }
+
+    tbody td{
+      border-bottom: 1px solid var(--border);
+      padding: 10px 10px;
+      vertical-align: middle;
+      color: var(--ink);
+    }
+    tbody tr:last-child td{ border-bottom: none; }
+
+    .right{ text-align:right; }
+    td.name{ max-width: 260px; font-weight: 800; }
 
     .chip{
       display:inline-block;
-      padding: 3px 9px;
+      padding: 4px 10px;
       border-radius: 999px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--soft);
       font-size: 10px;
-      color: var(--muted);
       font-weight: 900;
     }
-    .chip.ok{ color:#065f46; border-color: rgba(6,95,70,.20); background: rgba(6,95,70,.06); }
-    .chip.warn{ color:#92400e; border-color: rgba(146,64,14,.20); background: rgba(146,64,14,.06); }
-    .chip.risk{ color:#991b1b; border-color: rgba(153,27,27,.20); background: rgba(153,27,27,.06); }
+    .chip.ok{ color: var(--ok); border-color: rgba(11,42,74,.22); background: rgba(11,42,74,.06); }
+    .chip.warn{ color: var(--warn); border-color: rgba(146,64,14,.25); background: rgba(146,64,14,.06); }
+    .chip.risk{ color: var(--risk); border-color: rgba(153,27,27,.25); background: rgba(153,27,27,.06); }
 
-    /* Segmentación por empresa */
-    .empresaWrap{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .empresaCard{ padding: 12px; }
-    .empresaHead{
+    .foot{
+      margin-top: 10px;
       display:flex;
       justify-content:space-between;
-      align-items:flex-start;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .empresaName{
-      font-weight: 900;
-      font-size: 13px;
-      color: var(--text);
-      line-height: 1.2;
-    }
-    .empresaNums{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .numBox{
-      border: 1px solid var(--border);
-      background: var(--panel);
-      border-radius: 12px;
-      padding: 10px;
-    }
-    .numBox .lbl{
-      font-size: 10px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--muted2);
-      font-weight: 900;
-    }
-    .numBox .val{
-      margin-top: 6px;
-      font-size: 16px;
-      font-weight: 900;
-      color: var(--text);
-    }
-    .empresaGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .miniTitle{
-      font-size: 10px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      color: var(--muted2);
-      font-weight: 900;
-      margin-bottom: 6px;
-    }
-    .miniTable{
-      width:100%;
-      border-collapse: collapse;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow:hidden;
-      font-size: 10.5px;
-    }
-    .miniTable th, .miniTable td{
-      padding: 8px 8px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-    .miniTable th{
-      background: #fff;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-size: 9px;
-      font-weight: 900;
-      color: var(--text);
-    }
-    .miniTable tbody tr:nth-child(even){ background: #fcfcfd; }
-    .right{ text-align:right; }
-
-    .footer{
-      margin-top: 12px;
-      padding-top: 10px;
-      display:flex;
-      justify-content:space-between;
-      font-size: 10px;
       color: var(--muted);
-      border-top: 1px solid var(--border);
+      font-size: 10px;
       font-weight: 700;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
     }
+
+    /* Print tightening */
+    .card, .topbar { break-inside: avoid; }
+    table { break-inside: auto; }
+    tr { break-inside: avoid; break-after: auto; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div>
-      <div class="brandline">
-        <span class="logoMark"></span>
-        <div class="kicker">Cosaif · Reportería</div>
-        <span class="badge"><span class="dot"></span> Ejecutado</span>
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title">
+        <div class="kicker">COSAIF · Reportería</div>
+        <h1>${etiqueta}${periodo ? ` <span class="periodo">· ${periodo}</span>` : ''}</h1>
       </div>
 
-      <h1>${etiqueta}${periodo ? ` <span style="font-weight:700;color:#6b7280;font-size:13px">· ${periodo}</span>` : ''}</h1>
-      <div class="subline">Reporte operativo de movimientos e incidentes.</div>
+      <div class="meta">
+        <div class="metaLine">
+          <span class="pill">Rango (MX)</span>
+          <span class="code mono">${rangoMXDesde}</span>
+          <span class="mono" style="color:var(--muted2);font-weight:900;">→</span>
+          <span class="code mono">${rangoMXHasta}</span>
+        </div>
+      </div>
     </div>
 
-    <div class="meta">
-      <div class="lbl">Rango (hora MX)</div>
-      <div style="margin-top:6px">
-        <code class="mono">${desdeMX}</code>
-        <span style="color:#9ca3af">→</span>
-        <code class="mono">${hastaMX}</code>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="label">Total movimientos</div>
+        <div class="value mono">${safeNum(resumen.totalMovimientos)}</div>
+        <div class="sub">Agregado</div>
+      </div>
+
+      <div class="kpi">
+        <div class="label">Concluidos</div>
+        <div class="value mono">${k.concluidos}</div>
+        <div class="sub">${k.concluidosPct}%</div>
+      </div>
+
+      <div class="kpi">
+        <div class="label">Cancelados</div>
+        <div class="value mono">${k.cancelados}</div>
+        <div class="sub">${k.canceladosPct}%</div>
+      </div>
+
+      <div class="kpi">
+        <div class="label">En proceso</div>
+        <div class="value mono">${k.enProceso}</div>
+        <div class="sub">${k.enProcesoPct}%</div>
+      </div>
+
+      <div class="kpi">
+        <div class="label">Total incidentes</div>
+        <div class="value mono">${safeNum(resumen.totalIncidentes)}</div>
+        <div class="sub">Tickets</div>
+      </div>
+
+      <div class="kpi">
+        <div class="label">No resueltos</div>
+        <div class="value mono">${k.incNoResueltos}</div>
+        <div class="sub">${k.incNoResueltosPct}%</div>
       </div>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="label">Total movimientos</div>
-      <div class="value mono">${safeNum(resumen.totalMovimientos)}</div>
-      <div class="sub">Operación agregada</div>
+  <div class="section">
+    <div class="sectionTitle">
+      <div class="h">Gráficas por empresa</div>
+      <div class="s">Vertical · labels abajo · tamaño grande</div>
     </div>
-    <div class="stat">
-      <div class="label">Concluidos</div>
-      <div class="value mono">${k.concluidos}</div>
-      <div class="sub">${k.concluidosPct}% del total</div>
+
+    <div class="card"><div class="chart">${chConcluidos}</div></div>
+    <div style="height:10px"></div>
+    <div class="card"><div class="chart">${chCancelados}</div></div>
+    <div style="height:10px"></div>
+    <div class="card"><div class="chart">${chIncTotal}</div></div>
+    <div style="height:10px"></div>
+    <div class="card"><div class="chart tall">${chResVsNoRes}</div></div>
+  </div>
+
+  <div class="section">
+    <div class="sectionTitle">
+      <div class="h">Movimientos por empresa</div>
+      <div class="s">Segmentación completa (todas las empresas)</div>
     </div>
-    <div class="stat">
-      <div class="label">Cancelados</div>
-      <div class="value mono">${k.cancelados}</div>
-      <div class="sub">${k.canceladosPct}% del total</div>
-    </div>
-    <div class="stat">
-      <div class="label">Total incidentes</div>
-      <div class="value mono">${safeNum(resumen.totalIncidentes)}</div>
-      <div class="sub">Tickets operativos</div>
-    </div>
-    <div class="stat">
-      <div class="label">Incidentes resueltos</div>
-      <div class="value mono">${k.incResueltos}</div>
-      <div class="sub">${k.incResueltosPct}% del total</div>
-    </div>
-    <div class="stat">
-      <div class="label">Incidentes no resueltos</div>
-      <div class="value mono">${k.incNoResueltos}</div>
-      <div class="sub">${k.incNoResueltosPct}% del total</div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th class="right">#</th>
+            <th>Empresa</th>
+            <th class="right">Total</th>
+            <th class="right">Concl.</th>
+            <th class="right">Canc.</th>
+            <th class="right">Proceso</th>
+            <th class="right">Espera</th>
+            <th class="right">Solic.</th>
+            <th class="right">Otros</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            movRowsAll ||
+            `<tr><td colspan="9" style="color:var(--muted)">Sin datos por empresa.</td></tr>`
+          }
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <div class="sectionTitle">
-    <div>Gráficas por empresa</div>
-    <div style="text-transform:none;letter-spacing:.02em;font-weight:700;color:#9ca3af">SVG embebido</div>
+  <div class="section">
+    <div class="sectionTitle">
+      <div class="h">Incidentes por empresa</div>
+      <div class="s">Desglose rápido (todas las empresas)</div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th class="right">#</th>
+            <th>Empresa</th>
+            <th class="right">Total</th>
+            <th class="right">Res.</th>
+            <th class="right">No Res.</th>
+            <th>Semáforo</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            incRowsAll ||
+            `<tr><td colspan="6" style="color:var(--muted)">Sin datos por empresa.</td></tr>`
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <div class="grid">
-    <div class="card"><div style="height:${hBars}px">${chConcluidos}</div></div>
-    <div class="card"><div style="height:${hBars}px">${chCancelados}</div></div>
-    <div class="card"><div style="height:${hBars}px">${chIncTotal}</div></div>
-    <div class="card"><div style="height:${hStack}px">${chResVsNoRes}</div></div>
-  </div>
-
-  <div class="pagebreak"></div>
-
-  <div class="sectionTitle">
-    <div>Movimientos segmentados por empresa</div>
-    <div style="text-transform:none;letter-spacing:.02em;font-weight:700;color:#9ca3af">Quién y cuántos</div>
-  </div>
-
-  <div class="empresaWrap">
-    ${empresaCards}
-  </div>
-
-  <div class="footer">
-    <div>Generado automáticamente por <b>Cosaif · Reportería</b></div>
+  <div class="foot">
+    <div>Generado automáticamente · Cosaif</div>
     <div class="mono">Engine: Puppeteer + SVG</div>
   </div>
 </body>
@@ -904,23 +1003,26 @@ function buildHtml(reporte: ReporteBase, empresas: EmpresaNorm[]) {
 export async function exportarReporteMovimientoPDF(reporte: ReporteBase): Promise<PdfFile> {
   const browser = await getBrowser();
   const page = await browser.newPage();
-  const empresas = normalizeData(reporte);
+
+  const normalized = normalizeData(reporte);
 
   const etiquetaRaw = reporte.meta.etiqueta || reporte.meta.fechaLocal || 'Movimientos';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 
   try {
-    page.setDefaultTimeout(25000);
+    page.setDefaultTimeout(30000);
 
-    await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
+    // viewport grande para buena rasterización
+    await page.setViewport({ width: 1400, height: 1800, deviceScaleFactor: 2 });
     await page.emulateMediaType('screen');
 
-    await page.setContent(buildHtml(reporte, empresas), { waitUntil: 'domcontentloaded' });
+    await page.setContent(buildHtml(reporte, normalized), { waitUntil: 'domcontentloaded' });
 
     const buffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: true,
+      // margen definido en @page
     });
 
     return {
