@@ -37,6 +37,7 @@ import FmcRutas from "../FMC/fmcRoutes";
 import actualizacionRoutes from "../Rutas/Actualizacion/ActualizacionRoutes";
 import Secciones from "../Rutas/Via/Secciones/SeccionRoutes";
 import Reporte from "../reporteria/rutas/rutasPdf";
+import Excel from "../reporteria/rutas/rutasExcel";
 // Carga variables de entorno
 dotenv.config();
 
@@ -81,6 +82,7 @@ export function iniciarServidor(): void {
     app.use("/actualizaciones", actualizacionRoutes);
     app.use("/secciones", Secciones);
     app.use("/reporteria", Reporte);
+    app.use("/reporteria", Excel);
 
     // ---------------- Arranque del servidor ----------------
     app.listen(PORT, () => {
