@@ -82,7 +82,7 @@ export function iniciarServidor(): void {
     app.use("/actualizaciones", actualizacionRoutes);
     app.use("/secciones", Secciones);
     app.use("/reporteria", Reporte);
-    app.use("/reporteria", Excel);
+    app.use("/reporterias", Excel);
 
     // ---------------- Arranque del servidor ----------------
     app.listen(PORT, () => {
