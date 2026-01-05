@@ -1,8 +1,10 @@
 // reporteria/modelos/reporteriaMovimiento-excel.ts
 // Genera .xlsx desde PLANTILLA usando el motor de datos Excel.
 //
-// Requiere plantilla:
-// reporteria/plantillas/Movimientos_Reporteria.xlsx
+// Requiere plantilla (se buscan varias rutas):
+// - reporteria/plantillas/Movimientos_Reporteria.xlsx
+// - src/reporteria/plantillas/Movimientos_Reporteria.xlsx
+// - (relativo a este archivo) ../plantillas/Movimientos_Reporteria.xlsx
 //
 // Hojas (si existen, se llenan):
 // - Dashboard (opcional)
@@ -28,6 +30,7 @@
 // y este archivo solo actualiza datos + mantiene filtros/tablas.
 
 import path from 'path';
+import fs from 'fs';
 import ExcelJS from 'exceljs';
 import {
   ReporteriaMovimientoExcelModel,
@@ -68,7 +71,14 @@ function pickPeriodo(q: any): PeriodoReporte {
   if (raw === 'semi' || raw === 'semestral' || raw === 'semestre') return 'SEMESTRE';
   if (raw === 'year' || raw === 'anual' || raw === 'año') return 'ANUAL';
 
-  if (raw === 'dia' || raw === 'semana' || raw === 'mes' || raw === 'bimestre' || raw === 'semestre' || raw === 'anual') {
+  if (
+    raw === 'dia' ||
+    raw === 'semana' ||
+    raw === 'mes' ||
+    raw === 'bimestre' ||
+    raw === 'semestre' ||
+    raw === 'anual'
+  ) {
     return raw.toUpperCase() as PeriodoReporte;
   }
 
@@ -83,14 +93,68 @@ function safeFilename(name: string) {
     .slice(0, 120);
 }
 
-function wsOrThrow(wb: ExcelJS.Workbook, name: string) {
-  const ws = wb.getWorksheet(name);
-  if (!ws) throw new Error(`Plantilla inválida: falta hoja "${name}"`);
+function normalizeSheetName(s: string) {
+  return String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, ''); // quita acentos
+}
+
+function listSheetNames(wb: ExcelJS.Workbook) {
+  return (wb.worksheets ?? []).map((w) => w.name);
+}
+
+function wsByNameLoose(wb: ExcelJS.Workbook, wanted: string) {
+  // 1) Exacto
+  const exact = wb.getWorksheet(wanted);
+  if (exact) return exact;
+
+  // 2) Normalizado
+  const wNorm = normalizeSheetName(wanted);
+  const found = (wb.worksheets ?? []).find((w) => normalizeSheetName(w.name) === wNorm);
+  if (found) return found;
+
+  return null;
+}
+
+/**
+ * Resolver de hojas:
+ * - evita undefined (que luego explota con cosas tipo 'anchors')
+ * - si no existe exacta, busca por normalización/alias
+ * - si no existe, tira error con el listado de hojas reales
+ */
+function wsOrThrow(wb: ExcelJS.Workbook, name: string, aliases: string[] = []) {
+  let ws = wsByNameLoose(wb, name);
+
+  if (!ws && aliases.length) {
+    for (const a of aliases) {
+      ws = wsByNameLoose(wb, a);
+      if (ws) break;
+    }
+  }
+
+  if (!ws) {
+    const available = listSheetNames(wb);
+    throw new Error(
+      `Plantilla inválida: falta hoja "${name}". Hojas disponibles: ${available.length ? available.join(', ') : '(ninguna)'}`
+    );
+  }
+
   return ws;
 }
 
-function tryWs(wb: ExcelJS.Workbook, name: string) {
-  return wb.getWorksheet(name) ?? null;
+function tryWs(wb: ExcelJS.Workbook, name: string, aliases: string[] = []) {
+  const ws = wsByNameLoose(wb, name);
+  if (ws) return ws;
+
+  for (const a of aliases) {
+    const wa = wsByNameLoose(wb, a);
+    if (wa) return wa;
+  }
+
+  return null;
 }
 
 function clearSheetKeepHeader(ws: ExcelJS.Worksheet) {
@@ -131,7 +195,6 @@ function showIfExists(wb: ExcelJS.Workbook, name: string) {
 }
 
 function applyPeriodoSheetPolicy(wb: ExcelJS.Workbook, periodo: PeriodoReporte) {
-  // por defecto mostramos todo lo relevante y ocultamos lo que no aplica
   const showDia = periodo === 'DIA' || periodo === 'SEMANA';
   const showMes = periodo === 'MES' || periodo === 'BIMESTRE' || periodo === 'SEMESTRE';
   const showAnio = periodo === 'ANUAL';
@@ -152,7 +215,33 @@ function applyPeriodoSheetPolicy(wb: ExcelJS.Workbook, periodo: PeriodoReporte) 
 }
 
 function ensureWorksheet(wb: ExcelJS.Workbook, name: string) {
+  // OJO: aquí sí “creamos” si no existe.
+  // Si tu plantilla trae imágenes/gráficas, NO uses esto para hojas "core" (Movimientos, Incidentes),
+  // porque crear una hoja nueva rompe el vínculo de pivots/charts.
   return wb.getWorksheet(name) ?? wb.addWorksheet(name);
+}
+
+function findTemplatePath() {
+  // 1) donde corre el proceso (root del proyecto normalmente)
+  const candidates = [
+    path.join(process.cwd(), 'reporteria', 'plantillas', 'Movimientos_Reporteria.xlsx'),
+    path.join(process.cwd(), 'src', 'reporteria', 'plantillas', 'Movimientos_Reporteria.xlsx'),
+    // 2) relativo a este archivo (en ts es src/, en dist cambia)
+    path.resolve(__dirname, '..', 'plantillas', 'Movimientos_Reporteria.xlsx'),
+    path.resolve(__dirname, '..', '..', 'reporteria', 'plantillas', 'Movimientos_Reporteria.xlsx'),
+  ];
+
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch {
+      // noop
+    }
+  }
+
+  throw new Error(
+    `File not found: no se encontró la plantilla Movimientos_Reporteria.xlsx. Probé: ${candidates.join(' | ')}`
+  );
 }
 
 /**
@@ -214,8 +303,6 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: ReporteExcel) {
   const wsDash = tryWs(wb, 'Dashboard');
   if (!wsDash) return;
 
-  // Si la plantilla trae un Dashboard bonito, esto solo “inyecta” meta rápida.
-  // Si esas celdas no existen / están protegidas, no rompemos.
   try {
     wsDash.getCell('B2').value = data.meta.periodo;
     wsDash.getCell('B3').value = data.meta.fechaLocal;
@@ -367,7 +454,6 @@ function fillIncidentesSheet(wsInc: ExcelJS.Worksheet, incidentes: IncidenteExce
 /**
  * Hoja “Movimientos_Incidentes”:
  * - Explota una fila por incidente (si no tiene incidentes, aún deja fila con flags).
- * - Esto te deja "todo en una misma hoja" sin romper tus hojas base.
  */
 function fillMovimientosIncidentesSheet(wb: ExcelJS.Workbook, data: ReporteExcel) {
   const ws = ensureWorksheet(wb, 'Movimientos_Incidentes');
@@ -422,7 +508,7 @@ function fillMovimientosIncidentesSheet(wb: ExcelJS.Workbook, data: ReporteExcel
       'incActorId',
       'incActorNombre',
       'incActorRol',
-      'incResueltoPorProxy', // ver comentario arriba
+      'incResueltoPorProxy',
       'incTotalEvidencias',
       'incTieneEvidencia',
       'incImagen1',
@@ -435,7 +521,6 @@ function fillMovimientosIncidentesSheet(wb: ExcelJS.Workbook, data: ReporteExcel
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
 
-  // Index incidentes por movimientoId
   const byMov = new Map<number, IncidenteExcelRow[]>();
   for (const i of data.incidentes) {
     const arr = byMov.get(i.movimientoId) ?? [];
@@ -446,7 +531,6 @@ function fillMovimientosIncidentesSheet(wb: ExcelJS.Workbook, data: ReporteExcel
   for (const m of data.movimientos) {
     const incs = byMov.get(m.movimientoId) ?? [];
 
-    // Si no hay incidentes, igual dejamos una fila “vacía” de incidente.
     if (!incs.length) {
       ws.addRow([
         m.movimientoId,
@@ -580,31 +664,33 @@ export async function exportarReporteMovimientoExcel(params: {
   const localidadId = parseIntOpt(params.localidadId);
   const empresaId = parseIntOpt(params.empresaId);
 
-  // 1) Data (motor Excel)
+  // 1) Data
   const data = await ReporteriaMovimientoExcelModel.reportePorPeriodo(
     { fecha, tz, localidadId, empresaId },
     periodo
   );
 
-  // 2) Plantilla
-  const templatePath = path.join(process.cwd(), 'reporteria', 'plantillas', 'Movimientos_Reporteria.xlsx');
+  // 2) Plantilla (resolver rutas)
+  const templatePath = findTemplatePath();
+
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(templatePath);
 
-  // 3) Política visual por periodo (no “todas las hojas de madrazo”)
+  // 3) Política visual por periodo
   applyPeriodoSheetPolicy(wb, periodo);
 
-  // 4) Hojas base (obligatorias)
-  const wsMov = wsOrThrow(wb, 'Movimientos');
-  const wsInc = wsOrThrow(wb, 'Incidentes');
+  // 4) Hojas base (OBLIGATORIAS)
+  // Alias por si tu plantilla trae nombres raros tipo "MOVIMIENTOS" / "Movimientos " / etc.
+  const wsMov = wsOrThrow(wb, 'Movimientos', ['MOVIMIENTOS', 'Movimiento', 'MOVIMIENTO']);
+  const wsInc = wsOrThrow(wb, 'Incidentes', ['INCIDENTES', 'Incidente', 'INCIDENTE']);
 
   fillMovimientosSheet(wsMov, data.movimientos);
   fillIncidentesSheet(wsInc, data.incidentes);
 
-  // 5) Hoja combinada (todo en una sola hoja, sin romper tu template)
+  // 5) Hoja combinada (si no existe, se crea)
   fillMovimientosIncidentesSheet(wb, data);
 
-  // 6) Agregados (si existen en plantilla)
+  // 6) Agregados (si existen)
   fillGeneralSheet(wb, data);
 
   fillResumenSheet(wb, 'PorEmpresa', data.porEmpresa);
@@ -634,6 +720,9 @@ export async function exportarReporteMovimientoExcel(params: {
   // 9) Output
   const etiquetaRaw = data.meta.etiqueta || data.meta.fechaLocal || 'Movimientos';
   const filename = `Reporte_Movimientos_${safeFilename(etiquetaRaw)}.xlsx`;
+
+  // Si aquí te vuelve a tronar con "anchors", el problema YA NO es tu hoja:
+  // es la plantilla (objetos/drawings) + versión de ExcelJS.
   const buffer = await wb.xlsx.writeBuffer();
 
   return {
