@@ -10,6 +10,9 @@ import {
 
 const router = Router();
 
+// Todas las rutas requieren JWT
+router.use(passport.authenticate('jwt', { session: false }));
+
 
 // ——— RUTAS DE CONSULTA ———
 
@@ -63,9 +66,6 @@ router.post('/cerrar-vencidos', IncidenteController.cerrarVencidos);
 // Ruta para marcar como resuelto y notificar
 // POST /incidentes/:id/resuelto
 router.post('/:id/resuelto', IncidenteController.resolver);
-
-// Todas las rutas requieren JWT
-router.use(passport.authenticate('jwt', { session: false }));
 
 
 export default router;
