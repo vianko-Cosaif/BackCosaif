@@ -16,7 +16,7 @@ router.use(passport.authenticate('jwt', { session: false }));
  *
  * URLs finales:
  *   GET /reporteria/movimientos/pdf
- *   GET /reporteria/admin
+ *   GET /reporteria/adminnpx tsc 
  */
 router.get('/movimientos/pdf', MovimientoPdfController.generar);
 router.get('/admin/pdf', AdminReporteriaController.getPDF);
