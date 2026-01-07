@@ -545,187 +545,246 @@ export class IncidenteModel {
   }
 
   /* =================== ESCRITURA / UPDATE =================== */
+static async editarIncidente(
+  id: number,
+  data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
+) {
+  const rid = _rid();
 
-  static async editarIncidente(
-    id: number,
-    data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
-  ) {
-    const rid = _rid();
+  const isNoActiveRoundErr = (e: any) => {
+    const msg = String(e?.message ?? e ?? '');
+    const stack = String(e?.stack ?? '');
+    return (
+      msg.toLowerCase().includes('no hay ronda activa') ||
+      stack.toLowerCase().includes('no hay ronda activa')
+    );
+  };
 
-    return traceSpan(
-      'editarIncidente',
-      async () => {
-        trace('info', 'editarIncidente:start', {
-          rid,
-          id,
-          estado: data.estado,
-          hasDesc: data.descripcion !== undefined,
-          imgs: data.imagenes?.length ?? 0,
-        });
+  const shouldSkipRoundOnClose = (e: any) => isNoActiveRoundErr(e);
 
-        const { incidenteActualizado, estadoAnterior } = await traceSpan(
-          'prisma.$transaction(editarIncidente)',
-          () =>
-            prisma.$transaction(async (tx) => {
-              trace('info', 'tx:load incidente', { rid, id });
+  return traceSpan(
+    'editarIncidente',
+    async () => {
+      trace('info', 'editarIncidente:start', {
+        rid,
+        id,
+        estado: data.estado,
+        hasDesc: data.descripcion !== undefined,
+        imgs: data.imagenes?.length ?? 0,
+      });
 
-              const actual = await tx.incidente.findUnique({
-                where: { id },
-                include: { movimiento: true },
-              });
-              if (!actual) throw new Error(`No se encontró incidente con id ${id}`);
+      const { incidenteActualizado, estadoAnterior } = await traceSpan(
+        'prisma.$transaction(editarIncidente)',
+        () =>
+          prisma.$transaction(async (tx) => {
+            trace('info', 'tx:load incidente', { rid, id });
 
-              const updateData: any = {};
-              if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
+            const actual = await tx.incidente.findUnique({
+              where: { id },
+              include: { movimiento: true },
+            });
+            if (!actual) throw new Error(`No se encontró incidente con id ${id}`);
 
-              // reemplazo de imágenes
-              if (data.imagenes?.length) {
-                trace('info', 'tx:reemplazo imagenes:start', { rid, id, count: data.imagenes.length });
+            const updateData: any = {};
+            if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
 
-                const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
-                for (const ruta of anteriores) {
-                  if (!ruta) continue;
-                  try {
-                    await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
-                    TRACE_VERBOSE && trace('debug', 'unlink imagen anterior OK', { rid, ruta });
-                  } catch (err: any) {
-                    trace('warn', 'No se pudo eliminar imagen anterior', { rid, ruta, err: String(err?.message ?? err) });
-                  }
-                }
+            // reemplazo de imágenes
+            if (data.imagenes?.length) {
+              trace('info', 'tx:reemplazo imagenes:start', { rid, id, count: data.imagenes.length });
 
-                const rutas = await traceSpan(
-                  'procesarImagenes',
-                  () => IncidenteModel.procesarImagenes(data.imagenes as Buffer[], id),
-                  { rid, incidenteId: id }
-                );
-
-                updateData.imagen1 = rutas[0] ?? null;
-                updateData.imagen2 = rutas[1] ?? null;
-                updateData.imagen3 = rutas[2] ?? null;
-                updateData.imagen4 = rutas[3] ?? null;
-
-                trace('info', 'tx:reemplazo imagenes:done', { rid, id, rutasCount: rutas.length });
-              }
-
-              if (data.estado !== undefined && data.estado !== actual.estado) {
-                updateData.estado = data.estado as any;
-                updateData.fechaFin = new Date();
-
-                // RESUELTO = volver a trabajar
-                if (data.estado === 'RESUELTO') {
-                  trace('info', 'tx:movimiento reactivar (RESUELTO)', { rid, incidenteId: id, movimientoId: actual.movimientoId });
-
-                  await tx.movimiento.update({
-                    where: { id: actual.movimientoId },
-                    data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
-                  });
-
-                  trace('info', 'Movimiento reactivado tras resolución de incidente', {
+              const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
+              for (const ruta of anteriores) {
+                if (!ruta) continue;
+                try {
+                  await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
+                  TRACE_VERBOSE && trace('debug', 'unlink imagen anterior OK', { rid, ruta });
+                } catch (err: any) {
+                  trace('warn', 'No se pudo eliminar imagen anterior', {
                     rid,
-                    incidenteId: id,
-                    movimientoId: actual.movimientoId,
+                    ruta,
+                    err: String(err?.message ?? err),
                   });
                 }
               }
 
-              trace('info', 'tx:update incidente', { rid, id, patchKeys: Object.keys(updateData) });
+              const rutas = await traceSpan(
+                'procesarImagenes',
+                () => IncidenteModel.procesarImagenes(data.imagenes as Buffer[], id),
+                { rid, incidenteId: id }
+              );
 
-              const upd = await tx.incidente.update({
-                where: { id },
-                data: updateData,
-                include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
-              });
+              updateData.imagen1 = rutas[0] ?? null;
+              updateData.imagen2 = rutas[1] ?? null;
+              updateData.imagen3 = rutas[2] ?? null;
+              updateData.imagen4 = rutas[3] ?? null;
 
-              trace('info', 'tx:update incidente:done', { rid, id, estadoAnterior: actual.estado, estadoNuevo: upd.estado });
-              return { incidenteActualizado: upd, estadoAnterior: actual.estado };
-            }),
-          { rid, id }
-        );
+              trace('info', 'tx:reemplazo imagenes:done', { rid, id, rutasCount: rutas.length });
+            }
 
-        // ======= LÓGICA AL CERRAR =======
-        if (data.estado === 'CERRADO') {
-          const movId = incidenteActualizado.movimientoId;
+            if (data.estado !== undefined && data.estado !== actual.estado) {
+              updateData.estado = data.estado as any;
+              updateData.fechaFin = new Date();
 
-          trace('info', 'post:cerrado:count cierres', { rid, incidenteId: id, movId });
+              // RESUELTO = volver a trabajar
+              if (data.estado === 'RESUELTO') {
+                trace('info', 'tx:movimiento reactivar (RESUELTO)', {
+                  rid,
+                  incidenteId: id,
+                  movimientoId: actual.movimientoId,
+                });
 
-          const cierres = await prisma.incidente.count({ where: { movimientoId: movId, estado: 'CERRADO' } });
+                await tx.movimiento.update({
+                  where: { id: actual.movimientoId },
+                  data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
+                });
 
-          trace('info', 'post:cerrado:cierres', { rid, incidenteId: id, movId, cierres, MAX_CIERRES_NO_RESUELTOS });
+                trace('info', 'Movimiento reactivado tras resolución de incidente', {
+                  rid,
+                  incidenteId: id,
+                  movimientoId: actual.movimientoId,
+                });
+              }
+            }
 
-          if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
-            trace('warn', 'post:cerrado:cancelación por reincidencia', { rid, incidenteId: id, movId, cierres });
+            trace('info', 'tx:update incidente', { rid, id, patchKeys: Object.keys(updateData) });
 
-            const mov = await prisma.movimiento.findUnique({
-              where: { id: movId },
-              include: { empresa: true, localidad: true },
+            const upd = await tx.incidente.update({
+              where: { id },
+              data: updateData,
+              include: { movimiento: true, usuario: { select: { id: true, nombre: true, email: true } } },
             });
 
-            await traceSpan(
-              'prisma.$transaction(cancelar movimiento + borrar rondas)',
-              () =>
-                prisma.$transaction(async (tx) => {
-                  await tx.movimiento.update({
-                    where: { id: movId },
-                    data: { finalizado: true, fechaFin: new Date(), incidenteGlobal: false, fechaPausa: null },
-                  });
-                  await tx.ronda.deleteMany({ where: { movimientoId: movId } });
-                }),
-              { rid, movId }
-            );
+            trace('info', 'tx:update incidente:done', {
+              rid,
+              id,
+              estadoAnterior: actual.estado,
+              estadoNuevo: upd.estado,
+            });
 
-            if (mov?.localidadId) {
-              await traceSpan('RondaModel.recomponerRondasLocalidad', () => RondaModel.recomponerRondasLocalidad(mov.localidadId!), {
-                rid,
-                localidadId: mov.localidadId,
-              });
-            }
+            return { incidenteActualizado: upd, estadoAnterior: actual.estado };
+          }),
+        { rid, id }
+      );
 
-            if (mov) {
-              await traceSpan('NotificadorFCM.notificarCancelacionMovimiento', () =>
-                NotificadorFCM.notificarCancelacionMovimiento(mov, 'Reincidencia de incidentes'), { rid, movId });
-            }
+      // ======= LÓGICA AL CERRAR =======
+      if (data.estado === 'CERRADO') {
+        const movId = incidenteActualizado.movimientoId;
 
-            trace('warn', 'Movimiento cancelado por múltiples cierres no resueltos', { rid, incidenteId: id, movimientoId: movId, cierres });
-          } else {
-            await traceSpan('RondaModel.gestionarIncidente', () => RondaModel.gestionarIncidente(movId), { rid, movId });
+        trace('info', 'post:cerrado:count cierres', { rid, incidenteId: id, movId });
 
-            // lo dejamos detenido: sigue en la ronda pero no se auto-inicia
-            await traceSpan(
-              'prisma.movimiento.update(DETENIDO post-cierre)',
-              () =>
-                prisma.movimiento.update({
-                  where: { id: movId },
-                  data: { estado: 'DETENIDO', fechaPausa: null, incidenteGlobal: false },
-                }) as any,
-              { rid, movId }
-            );
+        const cierres = await prisma.incidente.count({
+          where: { movimientoId: movId, estado: 'CERRADO' },
+        });
 
-            trace('info', 'Reorden ejecutado por cierre de incidente', { rid, incidenteId: id, movimientoId: movId, cierres });
-          }
-        }
+        trace('info', 'post:cerrado:cierres', {
+          rid,
+          incidenteId: id,
+          movId,
+          cierres,
+          MAX_CIERRES_NO_RESUELTOS,
+        });
 
-        // Notificación centralizada
-        if (data.estado && data.estado !== estadoAnterior) {
+        if (cierres >= MAX_CIERRES_NO_RESUELTOS) {
+          trace('warn', 'post:cerrado:cancelación por reincidencia', { rid, incidenteId: id, movId, cierres });
+
+          const mov = await prisma.movimiento.findUnique({
+            where: { id: movId },
+            include: { empresa: true, localidad: true },
+          });
+
           await traceSpan(
-            'NotificadorFCM.notificarCambioEstado',
-            () => NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior),
-            { rid, incidenteId: id, estadoAnterior, estadoNuevo: data.estado }
+            'prisma.$transaction(cancelar movimiento + borrar rondas)',
+            () =>
+              prisma.$transaction(async (tx) => {
+                await tx.movimiento.update({
+                  where: { id: movId },
+                  data: { finalizado: true, fechaFin: new Date(), incidenteGlobal: false, fechaPausa: null },
+                });
+                await tx.ronda.deleteMany({ where: { movimientoId: movId } });
+              }),
+            { rid, movId }
           );
-        }
 
-        _ensureCron();
-        try {
-          await traceSpan('cerrarIncidentesVencidos(sweep inmediato)', () => this.cerrarIncidentesVencidos(), { rid });
-        } catch (e: any) {
-          trace('warn', 'sweep inmediato falló', { rid, error: String(e?.stack ?? e) });
-        }
+          if (mov?.localidadId) {
+            await traceSpan(
+              'RondaModel.recomponerRondasLocalidad',
+              () => RondaModel.recomponerRondasLocalidad(mov.localidadId!),
+              { rid, localidadId: mov.localidadId }
+            );
+          }
 
-        trace('info', 'editarIncidente:done', { rid, id, estadoFinal: incidenteActualizado.estado });
-        return incidenteActualizado;
-      },
-      { rid, id }
-    );
-  }
+          if (mov) {
+            await traceSpan(
+              'NotificadorFCM.notificarCancelacionMovimiento',
+              () => NotificadorFCM.notificarCancelacionMovimiento(mov, 'Reincidencia de incidentes'),
+              { rid, movId }
+            );
+          }
+
+          trace('warn', 'Movimiento cancelado por múltiples cierres no resueltos', {
+            rid,
+            incidenteId: id,
+            movimientoId: movId,
+            cierres,
+          });
+        } else {
+          // ✅ CAMBIO: gestionarIncidente es BEST-EFFORT.
+          // Si no hay ronda activa, NO debe tumbar el cierre (evita 500 y el front deja de creer que “no se mandó”).
+          try {
+            await traceSpan('RondaModel.gestionarIncidente', () => RondaModel.gestionarIncidente(movId), { rid, movId });
+          } catch (e: any) {
+            if (shouldSkipRoundOnClose(e)) {
+              trace('warn', 'gestionarIncidente omitido: movimiento sin ronda activa', {
+                rid,
+                movId,
+                incidenteId: id,
+                error: String(e?.message ?? e),
+              });
+            } else {
+              throw e;
+            }
+          }
+
+          // lo dejamos detenido: sigue en la ronda si existe, pero no se auto-inicia
+          await traceSpan(
+            'prisma.movimiento.update(DETENIDO post-cierre)',
+            () =>
+              prisma.movimiento.update({
+                where: { id: movId },
+                data: { estado: 'DETENIDO', fechaPausa: null, incidenteGlobal: false },
+              }) as any,
+            { rid, movId }
+          );
+
+          trace('info', 'Cierre ejecutado (reorden best-effort)', { rid, incidenteId: id, movimientoId: movId, cierres });
+        }
+      }
+
+      // Notificación centralizada
+      if (data.estado && data.estado !== estadoAnterior) {
+        await traceSpan(
+          'NotificadorFCM.notificarCambioEstado',
+          () => NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior),
+          { rid, incidenteId: id, estadoAnterior, estadoNuevo: data.estado }
+        );
+      }
+
+      _ensureCron();
+
+      // ✅ CAMBIO: sweep inmediato no debe romper editarIncidente (best-effort)
+      try {
+        await traceSpan('cerrarIncidentesVencidos(sweep inmediato)', () => this.cerrarIncidentesVencidos(), { rid });
+      } catch (e: any) {
+        trace('warn', 'sweep inmediato falló (ignorado)', { rid, error: String(e?.stack ?? e) });
+      }
+
+      trace('info', 'editarIncidente:done', { rid, id, estadoFinal: incidenteActualizado.estado });
+      return incidenteActualizado;
+    },
+    { rid, id }
+  );
+}
+
 
   private static async procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
     const rid = _rid();
