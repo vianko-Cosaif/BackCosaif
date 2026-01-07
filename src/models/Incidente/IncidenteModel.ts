@@ -771,7 +771,7 @@ static async editarIncidente(
 
       _ensureCron();
 
-      // ✅ CAMBIO: sweep inmediato no debe romper editarIncidente (best-effort)
+      // ✅ CAMBIO: sweep inmediato no  debe romper editarIncidente (best-effort)
       try {
         await traceSpan('cerrarIncidentesVencidos(sweep inmediato)', () => this.cerrarIncidentesVencidos(), { rid });
       } catch (e: any) {
