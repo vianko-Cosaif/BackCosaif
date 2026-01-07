@@ -544,7 +544,6 @@ export class IncidenteModel {
     );
   }
 
-  /* =================== ESCRITURA / UPDATE =================== */
 static async editarIncidente(
   id: number,
   data: { descripcion?: string; estado?: 'ABIERTO' | 'CERRADO' | 'RESUELTO'; imagenes?: Buffer[] }
@@ -771,7 +770,7 @@ static async editarIncidente(
 
       _ensureCron();
 
-      // ✅ CAMBIO: sweep inmediato no  debe romper editarIncidente (best-effort)
+      // ✅ CAMBIO: sweep inmediato no debe romper editarIncidente (best-effort)
       try {
         await traceSpan('cerrarIncidentesVencidos(sweep inmediato)', () => this.cerrarIncidentesVencidos(), { rid });
       } catch (e: any) {
@@ -784,6 +783,7 @@ static async editarIncidente(
     { rid, id }
   );
 }
+
 
 
   private static async procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
