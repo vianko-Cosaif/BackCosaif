@@ -50,6 +50,8 @@ const EDITABLE_KEYS = new Set([
   'posicionCabina',
   'posicionChimenea',
   'direccionEmpuje',
+  'torno',
+  'lavado'
 ]);
 type EditableMovimientoInput = Partial<Record<
   | 'instrucciones'
@@ -59,8 +61,10 @@ type EditableMovimientoInput = Partial<Record<
   | 'tipoMovimiento'
   | 'posicionCabina'
   | 'posicionChimenea'
-  | 'direccionEmpuje',
-  string | number
+  | 'direccionEmpuje'
+  | 'torno'
+  | 'lavado',
+  string | number | boolean
 >>;
 
 function pickEditable(data: Record<string, any>) {
@@ -517,6 +521,8 @@ export class MovimientoModel {
         locomotiveNumber: m.locomotiveNumber,
         viaOrigen: m.viaOrigen,
         viaDestino: m.viaDestino,
+        torno:m.torno,
+        Lavado:m.lavado,
         tipoMovimiento: m.tipoMovimiento,
         posicionCabina: m.posicionCabina,
         posicionChimenea: m.posicionChimenea,
