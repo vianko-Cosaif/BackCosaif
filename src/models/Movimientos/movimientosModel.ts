@@ -564,7 +564,7 @@ export class MovimientoModel {
     Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
 
     // no tocar prioridad/estado/empresa/localidad en este endpoint
-    ['prioridad','estado','empresaId','localidadId','lavado','torno','finalizado'].forEach(k => delete (updateData as any)[k]);
+    ['prioridad','estado','empresaId','localidadId','finalizado'].forEach(k => delete (updateData as any)[k]);
 
     const cambios = diff(actual, updateData);
     if (!Object.keys(cambios).length) return actual; // nada que hacer
