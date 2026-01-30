@@ -50,6 +50,8 @@ const EDITABLE_KEYS = new Set([
   'posicionCabina',
   'posicionChimenea',
   'direccionEmpuje',
+  'torno',
+  'lavado'
 ]);
 type EditableMovimientoInput = Partial<Record<
   | 'instrucciones'
@@ -59,8 +61,10 @@ type EditableMovimientoInput = Partial<Record<
   | 'tipoMovimiento'
   | 'posicionCabina'
   | 'posicionChimenea'
-  | 'direccionEmpuje',
-  string | number
+  | 'direccionEmpuje'
+  | 'torno'
+  | 'lavado',
+  string | number | boolean
 >>;
 
 function pickEditable(data: Record<string, any>) {
@@ -517,6 +521,8 @@ export class MovimientoModel {
         locomotiveNumber: m.locomotiveNumber,
         viaOrigen: m.viaOrigen,
         viaDestino: m.viaDestino,
+        torno:m.torno,
+        Lavado:m.lavado,
         tipoMovimiento: m.tipoMovimiento,
         posicionCabina: m.posicionCabina,
         posicionChimenea: m.posicionChimenea,
@@ -558,7 +564,7 @@ export class MovimientoModel {
     Object.keys(updateData).forEach(k => updateData[k] === undefined && delete updateData[k]);
 
     // no tocar prioridad/estado/empresa/localidad en este endpoint
-    ['prioridad','estado','empresaId','localidadId','lavado','torno','finalizado'].forEach(k => delete (updateData as any)[k]);
+    ['prioridad','estado','empresaId','localidadId','finalizado'].forEach(k => delete (updateData as any)[k]);
 
     const cambios = diff(actual, updateData);
     if (!Object.keys(cambios).length) return actual; // nada que hacer
