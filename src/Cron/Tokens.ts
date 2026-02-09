@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+const PORT = process.env.PORT;
 let running = false;
 
 cron.schedule(
@@ -25,11 +26,22 @@ cron.schedule(
       // 3. borrar FCM para que no lleguen notificaciones a quien ya no debe
       const { count: fcmCount } = await prisma.fcmToken.deleteMany({});
 
-      console.log(
+      if(PORT === "3001"){
+        console.log(
         `[revokeEvery2h] usuarios rotados, ${tokenCount} tokens borrados, ${fcmCount} FCM borrados @ ${new Date().toISOString()}`
       );
+      } else {
+        console.log(
+          `usuarios rotados, tokens borrados, FCM borrados @ ${new Date().toISOString()}`
+        );
+      }
+      
     } catch (err) {
-      console.error('[revokeEvery2h] error:', err);
+      if(PORT === "3001"){
+        console.error('[revokeEvery2h] error:', err, ' en revokeEvery2h');
+      } else {
+        console.error('error: Al revocar tokens');
+      }
     } finally {
       running = false;
     }

@@ -10,6 +10,7 @@ const parseFecha = (valor: unknown): Date | undefined => {
   }
   return undefined;
 };
+const PORT = process.env.PORT;
 
 export class ActualizacionController {
   /** GET /actualizaciones */
@@ -18,7 +19,11 @@ export class ActualizacionController {
       const lista = await modelo.obtenerActualizaciones();
       res.json(lista);
     } catch (err) {
-      console.error('Error al obtener actualizaciones:', err);
+      if(PORT === "3001"){
+        console.error('Error al obtener actualizaciones:', err, ' en obtenerActualizaciones');
+      } else {
+        console.error('Error al obtener actualizaciones');
+      }
       res.status(500).json({ error: 'No se pudieron obtener las actualizaciones' });
     }
   };
@@ -33,7 +38,11 @@ export class ActualizacionController {
       }
       res.json(ultima);
     } catch (err) {
-      console.error('Error al obtener la última actualización:', err);
+      if(PORT === "3001"){
+        console.error('Error al obtener la última actualización:', err, ' en obtenerUltimaActualizacion');
+      } else {
+        console.error('Error al obtener la última actualización');
+      }
       res.status(500).json({ error: 'No se pudo obtener la última actualización' });
     }
   };
@@ -60,7 +69,11 @@ export class ActualizacionController {
       );
       res.status(201).json(creada);
     } catch (err) {
-      console.error('Error al crear actualización:', err);
+      if(PORT === "3001"){
+        console.error('Error al crear actualización:', err, ' en crearActualizacion');
+      } else {
+        console.error('Error al crear actualización');
+      }
       res.status(500).json({ error: 'Error al crear la actualización' });
     }
   };
@@ -97,7 +110,11 @@ export class ActualizacionController {
       const actualizado = await modelo.actualizarActualizacion(id, cambios);
       res.json(actualizado);
     } catch (err) {
-      console.error(`Error al actualizar con ID ${id}:`, err);
+      if(PORT === "3001"){
+        console.error(`Error al actualizar con ID ${id}:`, err, ' en actualizarActualizacion');
+      } else {
+        console.error(`Error al actualizar con ID ${id}:`, err);
+      }
       res.status(500).json({ error: 'Error al actualizar la actualización' });
     }
   };

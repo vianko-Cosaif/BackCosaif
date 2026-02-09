@@ -86,8 +86,14 @@ export function iniciarServidor(): void {
 
     // ---------------- Arranque del servidor ----------------
     app.listen(PORT, () => {
-      console.log(`Servidor corriendo en puerto ${PORT}`);
-      console.log(`Cron de tokens y FCM cargado (src/Cron/Tokens.ts)`);
+      if (PORT === "3001") {
+        console.log(`Servidor corriendo en puerto de desarrollo ${PORT}`);
+        console.log(`Cron de tokens y FCM cargado (src/Cron/Tokens.ts)`);
+      } else {
+        console.log(`Servidor corriendo en puerto de producción ${PORT}`);
+        console.log(`Cron de tokens y FCM cargado`);
+      }
+      
     });
   } catch (error) {
     // Error crítico al iniciar el server: se termina el proceso

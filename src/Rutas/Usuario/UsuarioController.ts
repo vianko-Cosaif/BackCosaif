@@ -17,6 +17,7 @@ const toDeviceType = (v?: string): DeviceType => {
   const t = String(v || 'OTHER').toUpperCase();
   return ['WEB','ANDROID','IOS','DESKTOP','OTHER'].includes(t) ? (t as DeviceType) : 'OTHER';
 };
+const PORT = process.env.PORT;
 
 type SafeUser = {
   id: number; nombre: string; email: string; rol: string;

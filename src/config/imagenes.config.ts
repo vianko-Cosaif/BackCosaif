@@ -36,13 +36,15 @@ export const IMAGEN_CONFIG: ConfigImagenes = {
   ]
 };
 
+const PORT = process.env.PORT;
+
 /**
  * Utilidades para manejo de imagenes
  */
 export class ImagenUtils {
   /**
    * Crea la estructura de directorios para almacenar imagenes.
-   * Organiza por año/mes/dia para facilitar busquedas.
+   * Organiza por aï¿½o/mes/dia para facilitar busquedas.
    */
   static async crearEstructuraDirectorios(): Promise<void> {
     try {
@@ -107,7 +109,7 @@ export class ImagenUtils {
       };
     }
 
-    // Validar tamaño
+    // Validar tamaï¿½o
     if (file.size > IMAGEN_CONFIG.maxFileSize) {
       return {
         valido: false,
@@ -139,13 +141,18 @@ export class ImagenUtils {
       await fs.unlink(rutaCompleta);
       return true;
     } catch (error) {
-      console.warn(`No se pudo eliminar imagen: ${rutaRelativa}`, error);
+      if(PORT === "3001"){
+        console.error(`Error al eliminar imagen: ${rutaRelativa}`, error, ' en eliminarImagen');
+      } else {
+        console.error(`Error al eliminar imagen`);
+      }
+      console.warn(`No se pudo eliminar imagen`);
       return false;
     }
   }
 
   /**
-   * Obtiene informacion sobre una imagen (tamaño, dimensiones, etc.)
+   * Obtiene informacion sobre una imagen (tamaï¿½o, dimensiones, etc.)
    */
   static async obtenerInfoImagen(rutaRelativa: string): Promise<any> {
     try {
@@ -184,8 +191,11 @@ export class ImagenUtils {
       
       // Esta implementacion requeriria acceso a la base de datos
       // para comparar que imagenes estan referenciadas
-      
-      console.log(`Limpieza de imagenes huerfanas ejecutada. Fecha limite: ${fechaLimite.toISOString()}`);
+      if(PORT === "3001"){
+        console.log(`Limpieza de imagenes huerfanas ejecutada. Fecha limite: ${fechaLimite.toISOString()}`, ' en limpiarImagenesHuerfanas');
+      } else {
+        console.log(`Limpieza de imagenes huerfanas ejecutada. Fecha limite: ${fechaLimite.toISOString()}`);
+      }
       
       return archivosEliminados;
     } catch (error) {
@@ -244,7 +254,11 @@ export async function inicializarSistemaImagenes(): Promise<void> {
     await ImagenUtils.crearEstructuraDirectorios();
     console.log('Sistema de imagenes inicializado correctamente');
   } catch (error) {
-    console.error('Error al inicializar sistema de imagenes:', error);
+    if(PORT === "3001"){
+      console.error('Error al inicializar sistema de imagenes:', error, ' en inicializarSistemaImagenes');
+    } else {
+      console.error('Error al inicializar sistema de imagenes');
+    }
     throw error;
   }
 }

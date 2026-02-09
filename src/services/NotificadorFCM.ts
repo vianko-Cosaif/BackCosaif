@@ -4,6 +4,9 @@ import { messaging } from '../config/firebase';
 
 const prisma = new PrismaClient();
 
+// Puerto de escucha
+const PORT = process.env.PORT;
+
 type NotificacionFCM = {
   titulo: string;
   cuerpo: string;
@@ -85,7 +88,11 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
         .flatMap(u => u.fcmTokens.map(t => t.token).filter(Boolean) as string[])
     )];
     if (!tokens.length) {
-      console.warn('FCM: sin tokens', { movId: mov.id, loc: mov.localidadId, emp: mov.empresaId });
+      if(PORT === "3001"){
+        console.error('FCM: sin tokens', { movId: mov.id, loc: mov.localidadId, emp: mov.empresaId });
+      } else {
+        console.warn('FCM: sin tokens');
+      }
       return;
     }
 
@@ -120,7 +127,11 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
       .filter(Boolean) as string[];
     if (toDelete.length) await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
   } catch (e) {
-    console.error('Error notificarNuevoMovimiento:', e);
+    if(PORT === "3001"){
+      console.error('Error en notificarNuevoMovimiento:', e);
+    } else {
+      console.warn('Error al notificar nuevo movimiento');
+    }
   }
 }
 
@@ -233,7 +244,11 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
       await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
     }
   } catch (e) {
-    console.error('Error notificarNuevoIncidente:', e);
+    if(PORT === "3001"){
+      console.error('Error notificarNuevoIncidente:', e);
+    } else {
+      console.warn('Error al notificar nuevo incidente');
+    }
     throw e;
   }
 }
@@ -339,7 +354,11 @@ static async notificarCambioEstado(
       await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
     }
   } catch (e) {
-    console.error('Error notificarCambioEstado:', e);
+    if(PORT === "3001"){
+      console.error('Error notificarCambioEstado:', e);
+    } else {
+      console.warn('Error al notificar cambio de estado');
+    }
   }
 }
   /**
@@ -360,7 +379,11 @@ static async notificarCambioEstado(
       const idsANotificar = usuarioIds || (usuarioId ? [usuarioId] : []);
       
       if (idsANotificar.length === 0) {
-        console.warn('No se especificaron usuarios para notificar');
+        if(PORT === "3001"){
+          console.warn('No se especificaron usuarios para notificar en enviarNotificacionPersonalizada');
+        } else {
+          console.warn('No se especificaron usuarios para notificar');
+        }
         return;
       }
 
@@ -378,7 +401,11 @@ static async notificarCambioEstado(
       const tokens = usuariosConTokens.flatMap(u => u.fcmTokens.map(t => t.token));
       
       if (tokens.length === 0) {
-        console.warn('No se encontraron tokens FCM para los usuarios especificados');
+        if(PORT === "3001"){
+          console.warn('No se encontraron tokens FCM para los usuarios especificados en enviarNotificacionPersonalizada');
+        } else {
+          console.warn('No se encontraron tokens FCM para los usuarios especificados');
+        }
         return;
       }
 
@@ -420,7 +447,11 @@ static async notificarCambioEstado(
       await admin.messaging().sendEachForMulticast(mensaje_config);
       
     } catch (error) {
-      console.error('Error enviando notificacion personalizada:', error);
+      if(PORT === "3001"){
+        console.error('Error enviando notificacion personalizada en NotificadorFCM', error);
+      } else {
+        console.error('Error enviando notificacion personalizada');
+      }
       throw error;
     }
   }
@@ -459,7 +490,11 @@ static async notificarCambioEstado(
   static async suscribirATopico(tokens: string[], topico: string): Promise<void> {
     try {
       if (tokens.length === 0) {
-        console.warn('No hay tokens para suscribir al topico:', topico);
+        if(PORT === "3001"){
+          console.warn('No hay tokens para suscribir al topico:', topico, ' en suscribirATopico');
+        } else {
+          console.warn('No hay tokens para suscribir al topico');
+        }
         return;
       }
       await admin.messaging().subscribeToTopic(tokens, topico);
@@ -475,12 +510,20 @@ static async notificarCambioEstado(
   static async desuscribirDeTopico(tokens: string[], topico: string): Promise<void> {
     try {
       if (tokens.length === 0) {
-        console.warn('No hay tokens para desuscribir del topico:', topico);
+        if(PORT === "3001"){
+          console.warn('No hay tokens para desuscribir del topico:', topico, ' en desuscribirDeTopico');
+        } else {
+          console.warn('No hay tokens para desuscribir del topico');
+        }
         return;
       }
       await admin.messaging().unsubscribeFromTopic(tokens, topico);
     } catch (error) {
-      console.error('Error desuscribiendo de topico:', error);
+      if(PORT === "3001"){
+        console.error('Error desuscribiendo de topico:', error, ' en desuscribirDeTopico');
+      } else {
+        console.error('Error desuscribiendo de topico');
+      }
       throw error;
     }
   }
@@ -544,7 +587,11 @@ static async notificarContinuarMovimiento(
     });
 
   } catch (error) {
-    console.error('Error en notificarContinuarMovimiento:', error);
+    if(PORT === "3001"){
+      console.error('Error en notificarContinuarMovimiento:', error);
+    } else {
+      console.error('Error al notificar continuar movimiento');
+    }
     throw error;
   }
 }
