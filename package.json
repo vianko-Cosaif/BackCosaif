@@ -8,7 +8,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "cypress:open": "cypress open",
     "build": "tsc && cpx src/config/*.json dist/config",
-    "preinstall": "npx npm-force-resolutions"
+    "preinstall": "npx npm-force-resolutions",
+    "dev:torno": "ts-node-dev --project msTorno/tsconfig.json msTorno/src/index.ts",
+    "build:torno": "tsc -p msTorno/tsconfig.json"
   },
   "resolutions": {
     "braces": "3.0.2",
