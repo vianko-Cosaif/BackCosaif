@@ -58,6 +58,7 @@ function esReasignablePorTiempo(mov: any): boolean {
 export class RondaModel {
   // ---------- HELPERS INTERNOS (SIN CRON) ----------
 
+
   /**
    * Libera movimientos EN_PROCESO que llevan más de TIMEOUT_EN_PROCESO_MS
    * con operador asignado, dejándolos con operadorId = null.
@@ -276,6 +277,8 @@ export class RondaModel {
   // - Respeta: máx 1 BAJA por empresa por ronda.
   // - NO promueve movimientos de rondas altas a rondas bajas mientras la ronda base tenga pendientes.
   // - Dentro de cada ronda: ordena por createdAt (más viejo primero) para evitar sesgo.
+  // - Anti "doble turno": si la última empresa de la ronda anterior es la primera de la siguiente,
+  //   rota el orden (si hay alternativa).
   private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
     // 1) Ver si hay ALTAS sin hold para arrancar desde R2
     const altas = await tx.ronda.findMany({
@@ -288,9 +291,27 @@ export class RondaModel {
     // 2) Asegurar máx 1 BAJA por empresa por ronda a partir de startRound
     await this.garantizarUnSlotBajasPorEmpresaPorRonda(tx, localidadId, startRound);
 
+    // Helper: empresaId del ÚLTIMO slot de una ronda (solo BAJAS vivas)
+    const ultimaEmpresaDeRonda = async (rn: number): Promise<number | null> => {
+      if (rn < startRound) return null;
+      const last = await tx.ronda.findFirst({
+        where: {
+          localidadId,
+          concluido: false,
+          rondaNumero: rn,
+          movimiento: {
+            prioridad: 'BAJA',
+            estado: { in: ['ESPERA', 'SOLICITADO', 'EN_PROCESO'] as any },
+          },
+        },
+        orderBy: [{ orden: 'desc' }],
+        select: { empresaId: true },
+      });
+      return last?.empresaId ?? null;
+    };
+
     // 3) Si la ronda base (startRound) está vacía de BAJAS, entonces sí: “avanzar ciclo”
     //    (colapsar rondas hacia abajo), pero SOLO en ese caso.
-    //    Esto evita que una empresa que ya jugó en R1 vuelva a meter otro en R1 mientras existan otras en R1.
     while (true) {
       const hayEnBase = await tx.ronda.count({
         where: {
@@ -358,9 +379,9 @@ export class RondaModel {
       porRonda.set(r.rondaNumero, arr);
     }
 
+    // Reordenar cada ronda
     for (const [rondaNumero, arr] of porRonda) {
-      // En teoría ya hay máx 1 por empresa por ronda (por el garantizador).
-      // Aun así, ordenamos por antigüedad del movimiento y desempate por empresaId para estabilidad.
+      // Orden base: más viejo primero; desempate estable por empresaId
       arr.sort((a, b) => {
         const ta = new Date((a.movimiento as any).createdAt).getTime();
         const tb = new Date((b.movimiento as any).createdAt).getTime();
@@ -368,6 +389,22 @@ export class RondaModel {
         return a.empresaId - b.empresaId;
       });
 
+      // Anti "doble turno": evita que la última empresa de la ronda anterior
+      // sea la primera de esta ronda, si hay alternativa.
+      const prevLastEmpresa = await ultimaEmpresaDeRonda(rondaNumero - 1);
+
+      if (prevLastEmpresa != null && arr.length > 1) {
+        if (arr[0].empresaId === prevLastEmpresa) {
+          const idx = arr.findIndex(x => x.empresaId !== prevLastEmpresa);
+          if (idx > 0) {
+            const rotated = arr.slice(idx).concat(arr.slice(0, idx));
+            arr.length = 0;
+            arr.push(...rotated);
+          }
+        }
+      }
+
+      // Aplicar órdenes
       for (let i = 0; i < arr.length; i++) {
         const row = arr[i];
         const nuevoOrden = i + 1;
