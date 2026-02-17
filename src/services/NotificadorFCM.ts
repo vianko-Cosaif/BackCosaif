@@ -5,7 +5,7 @@ import { messaging } from '../config/firebase';
 const prisma = new PrismaClient();
 
 // Puerto de escucha
-const PORT = process.env.PORT;
+const ENV = process.env.NODE_ENV;
 
 type NotificacionFCM = {
   titulo: string;
@@ -88,7 +88,7 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
         .flatMap(u => u.fcmTokens.map(t => t.token).filter(Boolean) as string[])
     )];
     if (!tokens.length) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error('FCM: sin tokens', { movId: mov.id, loc: mov.localidadId, emp: mov.empresaId });
       } else {
         console.warn('FCM: sin tokens');
@@ -127,7 +127,7 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
       .filter(Boolean) as string[];
     if (toDelete.length) await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
   } catch (e) {
-    if(PORT === "3001"){
+    if(ENV === "development"){
       console.error('Error en notificarNuevoMovimiento:', e);
     } else {
       console.warn('Error al notificar nuevo movimiento');
@@ -244,7 +244,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
       await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
     }
   } catch (e) {
-    if(PORT === "3001"){
+    if(ENV === "development"){
       console.error('Error notificarNuevoIncidente:', e);
     } else {
       console.warn('Error al notificar nuevo incidente');
@@ -354,7 +354,7 @@ static async notificarCambioEstado(
       await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
     }
   } catch (e) {
-    if(PORT === "3001"){
+    if(ENV === "development"){
       console.error('Error notificarCambioEstado:', e);
     } else {
       console.warn('Error al notificar cambio de estado');
@@ -379,7 +379,7 @@ static async notificarCambioEstado(
       const idsANotificar = usuarioIds || (usuarioId ? [usuarioId] : []);
       
       if (idsANotificar.length === 0) {
-        if(PORT === "3001"){
+        if(ENV === "development"){
           console.warn('No se especificaron usuarios para notificar en enviarNotificacionPersonalizada');
         } else {
           console.warn('No se especificaron usuarios para notificar');
@@ -401,7 +401,7 @@ static async notificarCambioEstado(
       const tokens = usuariosConTokens.flatMap(u => u.fcmTokens.map(t => t.token));
       
       if (tokens.length === 0) {
-        if(PORT === "3001"){
+        if(ENV === "development"){
           console.warn('No se encontraron tokens FCM para los usuarios especificados en enviarNotificacionPersonalizada');
         } else {
           console.warn('No se encontraron tokens FCM para los usuarios especificados');
@@ -447,7 +447,7 @@ static async notificarCambioEstado(
       await admin.messaging().sendEachForMulticast(mensaje_config);
       
     } catch (error) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error('Error enviando notificacion personalizada en NotificadorFCM', error);
       } else {
         console.error('Error enviando notificacion personalizada');
@@ -490,7 +490,7 @@ static async notificarCambioEstado(
   static async suscribirATopico(tokens: string[], topico: string): Promise<void> {
     try {
       if (tokens.length === 0) {
-        if(PORT === "3001"){
+        if(ENV === "development"){
           console.warn('No hay tokens para suscribir al topico:', topico, ' en suscribirATopico');
         } else {
           console.warn('No hay tokens para suscribir al topico');
@@ -510,7 +510,7 @@ static async notificarCambioEstado(
   static async desuscribirDeTopico(tokens: string[], topico: string): Promise<void> {
     try {
       if (tokens.length === 0) {
-        if(PORT === "3001"){
+        if(ENV === "development"){
           console.warn('No hay tokens para desuscribir del topico:', topico, ' en desuscribirDeTopico');
         } else {
           console.warn('No hay tokens para desuscribir del topico');
@@ -519,7 +519,7 @@ static async notificarCambioEstado(
       }
       await admin.messaging().unsubscribeFromTopic(tokens, topico);
     } catch (error) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error('Error desuscribiendo de topico:', error, ' en desuscribirDeTopico');
       } else {
         console.error('Error desuscribiendo de topico');
@@ -587,7 +587,7 @@ static async notificarContinuarMovimiento(
     });
 
   } catch (error) {
-    if(PORT === "3001"){
+    if(ENV === "development"){
       console.error('Error en notificarContinuarMovimiento:', error);
     } else {
       console.error('Error al notificar continuar movimiento');

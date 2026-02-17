@@ -42,7 +42,7 @@ import Excel from "../reporteria/rutas/rutasExcel";
 dotenv.config();
 
 // Puerto de escucha
-const PORT = process.env.PORT;
+const ENV = process.env.NODE_ENV;
 
 /**
  * Inicializa y arranca el servidor Express.
@@ -85,12 +85,12 @@ export function iniciarServidor(): void {
     app.use("/reporterias", Excel);
 
     // ---------------- Arranque del servidor ----------------
-    app.listen(PORT, () => {
-      if (PORT === "3001") {
-        console.log(`Servidor corriendo en puerto de desarrollo ${PORT}`);
+    app.listen(ENV, () => {
+      if (ENV === "development") {
+        console.log(`Servidor corriendo en puerto de desarrollo ${ENV}`);
         console.log(`Cron de tokens y FCM cargado (src/Cron/Tokens.ts)`);
       } else {
-        console.log(`Servidor corriendo en puerto de producción ${PORT}`);
+        console.log(`Servidor corriendo en puerto de producción ${ENV}`);
         console.log(`Cron de tokens y FCM cargado`);
       }
       

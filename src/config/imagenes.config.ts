@@ -36,7 +36,7 @@ export const IMAGEN_CONFIG: ConfigImagenes = {
   ]
 };
 
-const PORT = process.env.PORT;
+const ENV = process.env.NODE_ENV;
 
 /**
  * Utilidades para manejo de imagenes
@@ -141,7 +141,7 @@ export class ImagenUtils {
       await fs.unlink(rutaCompleta);
       return true;
     } catch (error) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error(`Error al eliminar imagen: ${rutaRelativa}`, error, ' en eliminarImagen');
       } else {
         console.error(`Error al eliminar imagen`);
@@ -191,7 +191,7 @@ export class ImagenUtils {
       
       // Esta implementacion requeriria acceso a la base de datos
       // para comparar que imagenes estan referenciadas
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.log(`Limpieza de imagenes huerfanas ejecutada. Fecha limite: ${fechaLimite.toISOString()}`, ' en limpiarImagenesHuerfanas');
       } else {
         console.log(`Limpieza de imagenes huerfanas ejecutada. Fecha limite: ${fechaLimite.toISOString()}`);
@@ -254,7 +254,7 @@ export async function inicializarSistemaImagenes(): Promise<void> {
     await ImagenUtils.crearEstructuraDirectorios();
     console.log('Sistema de imagenes inicializado correctamente');
   } catch (error) {
-    if(PORT === "3001"){
+    if(ENV === "development"){
       console.error('Error al inicializar sistema de imagenes:', error, ' en inicializarSistemaImagenes');
     } else {
       console.error('Error al inicializar sistema de imagenes');

@@ -10,7 +10,7 @@ const parseFecha = (valor: unknown): Date | undefined => {
   }
   return undefined;
 };
-const PORT = process.env.PORT;
+const ENV = process.env.NODE_ENV;
 
 export class ActualizacionController {
   /** GET /actualizaciones */
@@ -19,7 +19,7 @@ export class ActualizacionController {
       const lista = await modelo.obtenerActualizaciones();
       res.json(lista);
     } catch (err) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error('Error al obtener actualizaciones:', err, ' en obtenerActualizaciones');
       } else {
         console.error('Error al obtener actualizaciones');
@@ -38,7 +38,7 @@ export class ActualizacionController {
       }
       res.json(ultima);
     } catch (err) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error('Error al obtener la última actualización:', err, ' en obtenerUltimaActualizacion');
       } else {
         console.error('Error al obtener la última actualización');
@@ -69,7 +69,7 @@ export class ActualizacionController {
       );
       res.status(201).json(creada);
     } catch (err) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error('Error al crear actualización:', err, ' en crearActualizacion');
       } else {
         console.error('Error al crear actualización');
@@ -110,10 +110,10 @@ export class ActualizacionController {
       const actualizado = await modelo.actualizarActualizacion(id, cambios);
       res.json(actualizado);
     } catch (err) {
-      if(PORT === "3001"){
+      if(ENV === "development"){
         console.error(`Error al actualizar con ID ${id}:`, err, ' en actualizarActualizacion');
       } else {
-        console.error(`Error al actualizar con ID ${id}:`, err);
+        console.error(`Error al actualizar con ID ${id}:`);
       }
       res.status(500).json({ error: 'Error al actualizar la actualización' });
     }
