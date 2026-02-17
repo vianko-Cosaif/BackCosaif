@@ -223,6 +223,7 @@ export class RondaModel {
     return r;
   }
 
+  // Compacta órdenes internos de una ronda (1..N).
   private static async compactarOrdenesRonda(tx: Tx, localidadId: number, rondaNumero: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, rondaNumero, concluido: false },
@@ -237,6 +238,8 @@ export class RondaModel {
     }
   }
 
+  // Ordena BAJAS dentro de una ronda:
+  // 1) SOLICITADO/EN_PROCESO primero; 2) DETENIDO al final; 3) por fechaSolicitud.
   private static ordenarBajasPorTiempoEnRonda<T extends { empresaId: number; movimiento: any }>(arr: T[]): T[] {
     return arr.sort((a, b) => {
       const pa = prioridadEstadoBaja((a.movimiento as any).estado);
@@ -249,6 +252,7 @@ export class RondaModel {
     });
   }
 
+  // Elimina duplicados (misma movimientoId) sin borrar movimientos concluidos.
   private static async eliminarRondasHuerfanasYDuplicadas(tx: Tx, localidadId: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
@@ -267,6 +271,7 @@ export class RondaModel {
     }
   }
 
+  // Borra rondas cuando TODOS sus movimientos ya terminaron.
   private static async eliminarRondasCompletadas(tx: Tx, localidadId: number) {
     const grupos = await tx.ronda.findMany({
       where: { localidadId },
@@ -291,6 +296,7 @@ export class RondaModel {
     }
   }
 
+  // Renumera rondas a 1..N y compacta órdenes.
   private static async renumerarRondas(tx: Tx, localidadId: number) {
     const grupos = await tx.ronda.findMany({
       where: { localidadId },
@@ -342,6 +348,7 @@ export class RondaModel {
       const rondaActual = parseInt(rondaNumeroStr, 10);
       const empresaId = parseInt(empresaIdStr, 10);
 
+      // Mantener el más viejo de esa empresa en esta ronda; mover el resto hacia abajo.
       for (let i = 1; i < bajas.length; i++) {
         const target = await this.primeraRondaLibreParaEmpresaBaja(tx, localidadId, empresaId, rondaActual + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
@@ -464,13 +471,13 @@ export class RondaModel {
     // 2) Renumerar rondas existentes (1..N) y compactar órdenes activos
     await this.renumerarRondas(tx, localidadId);
 
-    // 2) ALTAS → R1 (FIFO), respetando HOLD
+    // 3) ALTAS → R1 (FIFO), respetando HOLD
     await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // 3) BAJAS → normalización por ronda (sin re-balancear entre rondas)
+    // 4) BAJAS → normalización por ronda (sin re-balancear entre rondas)
     await this.reequilibrarBajasRobinHood(tx, localidadId);
 
-    // 4) Si quedaron rondas vacías tras reordenar, limpiar y renumerar de nuevo
+    // 5) Si quedaron rondas vacías tras reordenar, limpiar y renumerar de nuevo
     await this.eliminarRondasCompletadas(tx, localidadId);
     await this.renumerarRondas(tx, localidadId);
   }
