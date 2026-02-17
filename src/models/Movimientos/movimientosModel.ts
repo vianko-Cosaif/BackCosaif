@@ -461,7 +461,7 @@ export class MovimientoModel {
         });
 
         if (original.ronda) {
-          await tx.ronda.delete({ where: { id: original.ronda.id } });
+          await tx.ronda.update({ where: { id: original.ronda.id }, data: { concluido: true } });
           await RondaModel.recomponerRondasLocalidad(original.localidadId, tx);
         }
 
@@ -723,11 +723,8 @@ export class MovimientoModel {
         });
 
         if (movAct.ronda) {
-          if (nuevoEstado === 'CONCLUIDO') {
+          if (nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') {
             await tx.ronda.update({ where: { id: movAct.ronda.id }, data: { concluido: true } });
-            await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
-          } else if (nuevoEstado === 'CANCELADO') {
-            await tx.ronda.delete({ where: { id: movAct.ronda.id } });
             await RondaModel.recomponerRondasLocalidad(movAct.localidadId, tx);
           }
         }
@@ -1536,4 +1533,3 @@ static async obtenerInfoPorRonda(rondaId: number) {
     }
   }
 }
-

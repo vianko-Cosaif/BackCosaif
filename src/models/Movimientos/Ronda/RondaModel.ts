@@ -236,13 +236,6 @@ export class RondaModel {
   }
 
   private static async eliminarRondasHuerfanasYDuplicadas(tx: Tx, localidadId: number) {
-    await tx.ronda.deleteMany({
-      where: {
-        localidadId,
-        movimiento: { OR: [{ finalizado: true }, { estado: { in: ['CONCLUIDO', 'CANCELADO'] } }] }
-      }
-    });
-
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
       select: { id: true, movimientoId: true, rondaNumero: true, orden: true },
@@ -257,6 +250,51 @@ export class RondaModel {
         await tx.ronda.deleteMany({ where: { id: { in: drop } } });
       }
       i += group.length || 1;
+    }
+  }
+
+  private static async eliminarRondasCompletadas(tx: Tx, localidadId: number) {
+    const grupos = await tx.ronda.findMany({
+      where: { localidadId },
+      select: { rondaNumero: true },
+      distinct: ['rondaNumero'],
+      orderBy: { rondaNumero: 'asc' },
+    });
+
+    for (const g of grupos) {
+      const activos = await tx.ronda.count({
+        where: {
+          localidadId,
+          rondaNumero: g.rondaNumero,
+          movimiento: {
+            estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] as any },
+          },
+        },
+      });
+      if (activos === 0) {
+        await tx.ronda.deleteMany({ where: { localidadId, rondaNumero: g.rondaNumero } });
+      }
+    }
+  }
+
+  private static async renumerarRondas(tx: Tx, localidadId: number) {
+    const grupos = await tx.ronda.findMany({
+      where: { localidadId },
+      select: { rondaNumero: true },
+      distinct: ['rondaNumero'],
+      orderBy: { rondaNumero: 'asc' },
+    });
+
+    let idx = 1;
+    for (const g of grupos) {
+      if (g.rondaNumero !== idx) {
+        await tx.ronda.updateMany({
+          where: { localidadId, rondaNumero: g.rondaNumero },
+          data: { rondaNumero: idx },
+        });
+      }
+      await this.compactarOrdenesRonda(tx, localidadId, idx);
+      idx++;
     }
   }
 
@@ -411,35 +449,24 @@ export class RondaModel {
 
   // ---------- RECOMPOSICIÓN GENERAL (CLARA POR RONDAS) ----------
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
-    // 0) Limpiar basura: rondas huérfanas, duplicadas y concluidas
+    // 0) Limpiar duplicadas (no borrar concluidas aquí)
     await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
-    await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
 
-    // 1) Normalizar numeración de rondas existente (1..N) y órdenes internos
-    const grupos = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { rondaNumero: true },
-      distinct: ['rondaNumero'],
-      orderBy: { rondaNumero: 'asc' },
-    });
+    // 1) Eliminar rondas COMPLETADAS (todas sus movimientos ya terminaron)
+    await this.eliminarRondasCompletadas(tx, localidadId);
 
-    let idx = 1;
-    for (const g of grupos) {
-      if (g.rondaNumero !== idx) {
-        await tx.ronda.updateMany({
-          where: { localidadId, rondaNumero: g.rondaNumero },
-          data: { rondaNumero: idx },
-        });
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, idx);
-      idx++;
-    }
+    // 2) Renumerar rondas existentes (1..N) y compactar órdenes activos
+    await this.renumerarRondas(tx, localidadId);
 
     // 2) ALTAS → R1 (FIFO), respetando HOLD
     await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // 3) BAJAS → Robin Hood por empresa, más viejos primero
+    // 3) BAJAS → normalización por ronda (sin re-balancear entre rondas)
     await this.reequilibrarBajasRobinHood(tx, localidadId);
+
+    // 4) Si quedaron rondas vacías tras reordenar, limpiar y renumerar de nuevo
+    await this.eliminarRondasCompletadas(tx, localidadId);
+    await this.renumerarRondas(tx, localidadId);
   }
 
 
@@ -1192,7 +1219,6 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     const locs = await prisma.ronda.findMany({ select: { localidadId: true }, distinct: ['localidadId'] });
     for (const { localidadId } of locs) {
       await prisma.$transaction(async (tx) => {
-        await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
         await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
         await this.recomponerRondasLocalidad(localidadId, tx);
       });
