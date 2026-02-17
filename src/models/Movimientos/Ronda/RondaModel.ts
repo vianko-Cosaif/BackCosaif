@@ -54,6 +54,38 @@ function esReasignablePorTiempo(mov: any): boolean {
   return Date.now() - t >= BLOQUEO_OPERADOR_MS;
 }
 
+function fechaOrdenBaja(mov: any): number {
+  const base = mov?.fechaSolicitud ?? mov?.createdAt ?? mov?.updatedAt ?? 0;
+  const t = base instanceof Date ? base.getTime() : new Date(base).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+function necesitaReequilibrarBajas(rondas: any[]): boolean {
+  let rondaActual = -1;
+  let ultimaFecha = -Infinity;
+  const empresasEnRonda = new Set<number>();
+
+  for (const r of rondas) {
+    if (r.rondaNumero !== rondaActual) {
+      rondaActual = r.rondaNumero;
+      ultimaFecha = -Infinity;
+      empresasEnRonda.clear();
+    }
+
+    const mov = r.movimiento as any;
+    if (!mov || mov.prioridad !== 'BAJA') continue;
+    if (!['ESPERA', 'SOLICITADO', 'EN_PROCESO'].includes(mov.estado)) continue;
+
+    const fecha = fechaOrdenBaja(mov);
+    if (empresasEnRonda.has(r.empresaId)) return true;
+    if (fecha < ultimaFecha) return true;
+    empresasEnRonda.add(r.empresaId);
+    ultimaFecha = fecha;
+  }
+
+  return false;
+}
+
 // ================== MODELO ==================
 export class RondaModel {
   // ---------- HELPERS INTERNOS (SIN CRON) ----------
@@ -995,7 +1027,7 @@ private static async _insertarBajaConRobinHood(
   
 
 static async siguienteInteligente(localidadId: number, userId?: number) {
-  const rondas = await prisma.ronda.findMany({
+  let rondas = await prisma.ronda.findMany({
     where: {
       localidadId,
       concluido: false,
@@ -1017,6 +1049,30 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   if (!rondas.length) {
     return { vacio: true, motivo: 'Sin rondas activas en la localidad' };
+  }
+
+  // Auto-corrección: si hay BAJAS desordenadas o repetidas en una ronda, recomponer y re-leer.
+  if (necesitaReequilibrarBajas(rondas)) {
+    await this.recomponerRondasLocalidad(localidadId);
+    rondas = await prisma.ronda.findMany({
+      where: {
+        localidadId,
+        concluido: false,
+      },
+      include: {
+        movimiento: {
+          include: {
+            viaDestino: true,
+            viaOrigen: true,
+          },
+        },
+        empresa: true,
+      },
+      orderBy: [
+        { rondaNumero: 'asc' },
+        { orden: 'asc' },
+      ],
+    });
   }
 
   // 1) Si el usuario ya tiene un movimiento EN_PROCESO < 30 min, siempre se le regresa ese
