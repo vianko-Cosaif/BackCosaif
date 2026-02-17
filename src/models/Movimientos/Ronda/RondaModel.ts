@@ -274,7 +274,8 @@ export class RondaModel {
 
 // BAJAS: reequilibrio general tipo "Robin Hood"
 // - Respeta: máx 1 BAJA por empresa por ronda.
-// - Dentro de cada empresa: más viejos (createdAt) primero.
+// - Dentro de cada empresa: más viejos primero (fechaSolicitud/createdAt).
+// - Orden en la ronda: por fecha (fechaSolicitud/createdAt) del siguiente de cada empresa.
 // - Movimientos DETENIDOS se respetan (no se mueven).
 private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
   // 1) Ver si hay ALTAS sin hold para arrancar desde R2
@@ -304,6 +305,7 @@ private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
       movimiento: {
         select: {
           id: true,
+          fechaSolicitud: true,
           createdAt: true,
           estado: true,
         },
@@ -325,27 +327,34 @@ private static async reequilibrarBajasRobinHood(tx: Tx, localidadId: number) {
     porEmpresa.set(r.empresaId, arr);
   }
 
-  // 5) Dentro de cada empresa: ordenar por createdAt (más viejo primero)
+  // 5) Dentro de cada empresa: ordenar por fechaSolicitud (o createdAt) asc
   for (const [empresaId, arr] of porEmpresa) {
     arr.sort((a, b) => {
-      const da = new Date((a.movimiento as any).createdAt).getTime();
-      const db = new Date((b.movimiento as any).createdAt).getTime();
+      const da = new Date((a.movimiento as any).fechaSolicitud ?? (a.movimiento as any).createdAt).getTime();
+      const db = new Date((b.movimiento as any).fechaSolicitud ?? (b.movimiento as any).createdAt).getTime();
       return da - db;
     });
     porEmpresa.set(empresaId, arr);
   }
 
-  const empresas = [...porEmpresa.keys()].sort((a, b) => a - b);
-
-  // 6) Robin Hood: una BAJA por empresa por ronda, en orden de edad
+  // 6) Robin Hood: una BAJA por empresa por ronda, ordenadas por fecha del siguiente de cada empresa
   let ronda = startRound;
   let guard = 0;
   while ([...porEmpresa.values()].some(arr => arr.length > 0) && guard++ < MAX_GUARD_ITERS) {
-    let orden = 1;
-    for (const e of empresas) {
-      const arr = porEmpresa.get(e)!;
+    const candidatos: { empresaId: number; itemId: number; fecha: number }[] = [];
+    for (const [empresaId, arr] of porEmpresa) {
       if (!arr.length) continue;
+      const item = arr[0];
+      const fecha = new Date((item.movimiento as any).fechaSolicitud ?? (item.movimiento as any).createdAt).getTime();
+      candidatos.push({ empresaId, itemId: item.id, fecha });
+    }
 
+    candidatos.sort((a, b) => (a.fecha - b.fecha) || (a.empresaId - b.empresaId));
+
+    let orden = 1;
+    for (const c of candidatos) {
+      const arr = porEmpresa.get(c.empresaId)!;
+      if (!arr.length) continue;
       const item = arr.shift()!;
       await tx.ronda.update({
         where: { id: item.id },
