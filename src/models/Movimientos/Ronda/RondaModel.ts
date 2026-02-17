@@ -54,17 +54,19 @@ function esReasignablePorTiempo(mov: any): boolean {
   return Date.now() - t >= BLOQUEO_OPERADOR_MS;
 }
 
+// Fecha base para ordenar BAJAS (más viejo primero).
 function fechaOrdenBaja(mov: any): number {
   const base = mov?.fechaSolicitud ?? mov?.createdAt ?? mov?.updatedAt ?? 0;
   const t = base instanceof Date ? base.getTime() : new Date(base).getTime();
   return Number.isFinite(t) ? t : 0;
 }
 
+// Prioridad por estado en BAJAS: DETENIDO va al final para dejar pasar a los demás.
 function prioridadEstadoBaja(estado: string): number {
-  // DETENIDO va al final para dejar pasar a los demás
   return estado === 'DETENIDO' ? 1 : 0;
 }
 
+// Detecta si una ronda BAJA quedó desordenada (o con empresas duplicadas).
 function necesitaReequilibrarBajas(rondas: any[]): boolean {
   let rondaActual = -1;
   let ultimaFecha = -Infinity;
@@ -221,6 +223,7 @@ export class RondaModel {
     return r;
   }
 
+  // Compacta órdenes internos de una ronda (1..N).
   private static async compactarOrdenesRonda(tx: Tx, localidadId: number, rondaNumero: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, rondaNumero, concluido: false },
@@ -235,14 +238,22 @@ export class RondaModel {
     }
   }
 
-  private static async eliminarRondasHuerfanasYDuplicadas(tx: Tx, localidadId: number) {
-    await tx.ronda.deleteMany({
-      where: {
-        localidadId,
-        movimiento: { OR: [{ finalizado: true }, { estado: { in: ['CONCLUIDO', 'CANCELADO'] } }] }
-      }
+  // Ordena BAJAS dentro de una ronda:
+  // 1) SOLICITADO/EN_PROCESO primero; 2) DETENIDO al final; 3) por fechaSolicitud.
+  private static ordenarBajasPorTiempoEnRonda<T extends { empresaId: number; movimiento: any }>(arr: T[]): T[] {
+    return arr.sort((a, b) => {
+      const pa = prioridadEstadoBaja((a.movimiento as any).estado);
+      const pb = prioridadEstadoBaja((b.movimiento as any).estado);
+      if (pa !== pb) return pa - pb;
+      const ta = fechaOrdenBaja(a.movimiento);
+      const tb = fechaOrdenBaja(b.movimiento);
+      if (ta !== tb) return ta - tb;
+      return a.empresaId - b.empresaId;
     });
+  }
 
+  // Elimina duplicados (misma movimientoId) sin borrar movimientos concluidos.
+  private static async eliminarRondasHuerfanasYDuplicadas(tx: Tx, localidadId: number) {
     const filas = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
       select: { id: true, movimientoId: true, rondaNumero: true, orden: true },
@@ -257,6 +268,53 @@ export class RondaModel {
         await tx.ronda.deleteMany({ where: { id: { in: drop } } });
       }
       i += group.length || 1;
+    }
+  }
+
+  // Borra rondas cuando TODOS sus movimientos ya terminaron.
+  private static async eliminarRondasCompletadas(tx: Tx, localidadId: number) {
+    const grupos = await tx.ronda.findMany({
+      where: { localidadId },
+      select: { rondaNumero: true },
+      distinct: ['rondaNumero'],
+      orderBy: { rondaNumero: 'asc' },
+    });
+
+    for (const g of grupos) {
+      const activos = await tx.ronda.count({
+        where: {
+          localidadId,
+          rondaNumero: g.rondaNumero,
+          movimiento: {
+            estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] as any },
+          },
+        },
+      });
+      if (activos === 0) {
+        await tx.ronda.deleteMany({ where: { localidadId, rondaNumero: g.rondaNumero } });
+      }
+    }
+  }
+
+  // Renumera rondas a 1..N y compacta órdenes.
+  private static async renumerarRondas(tx: Tx, localidadId: number) {
+    const grupos = await tx.ronda.findMany({
+      where: { localidadId },
+      select: { rondaNumero: true },
+      distinct: ['rondaNumero'],
+      orderBy: { rondaNumero: 'asc' },
+    });
+
+    let idx = 1;
+    for (const g of grupos) {
+      if (g.rondaNumero !== idx) {
+        await tx.ronda.updateMany({
+          where: { localidadId, rondaNumero: g.rondaNumero },
+          data: { rondaNumero: idx },
+        });
+      }
+      await this.compactarOrdenesRonda(tx, localidadId, idx);
+      idx++;
     }
   }
 
@@ -290,6 +348,7 @@ export class RondaModel {
       const rondaActual = parseInt(rondaNumeroStr, 10);
       const empresaId = parseInt(empresaIdStr, 10);
 
+      // Mantener el más viejo de esa empresa en esta ronda; mover el resto hacia abajo.
       for (let i = 1; i < bajas.length; i++) {
         const target = await this.primeraRondaLibreParaEmpresaBaja(tx, localidadId, empresaId, rondaActual + 1);
         const tam = await this.tamanoDeRonda(tx, localidadId, target);
@@ -386,15 +445,7 @@ export class RondaModel {
     }
 
     for (const [rondaNumero, arr] of porRonda) {
-      arr.sort((a, b) => {
-        const pa = prioridadEstadoBaja((a.movimiento as any).estado);
-        const pb = prioridadEstadoBaja((b.movimiento as any).estado);
-        if (pa !== pb) return pa - pb;
-        const ta = fechaOrdenBaja(a.movimiento);
-        const tb = fechaOrdenBaja(b.movimiento);
-        if (ta !== tb) return ta - tb;
-        return a.empresaId - b.empresaId;
-      });
+      this.ordenarBajasPorTiempoEnRonda(arr);
 
       for (let i = 0; i < arr.length; i++) {
         const row = arr[i];
@@ -411,35 +462,24 @@ export class RondaModel {
 
   // ---------- RECOMPOSICIÓN GENERAL (CLARA POR RONDAS) ----------
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
-    // 0) Limpiar basura: rondas huérfanas, duplicadas y concluidas
+    // 0) Limpiar duplicadas (no borrar concluidas aquí)
     await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
-    await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
 
-    // 1) Normalizar numeración de rondas existente (1..N) y órdenes internos
-    const grupos = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { rondaNumero: true },
-      distinct: ['rondaNumero'],
-      orderBy: { rondaNumero: 'asc' },
-    });
+    // 1) Eliminar rondas COMPLETADAS (todas sus movimientos ya terminaron)
+    await this.eliminarRondasCompletadas(tx, localidadId);
 
-    let idx = 1;
-    for (const g of grupos) {
-      if (g.rondaNumero !== idx) {
-        await tx.ronda.updateMany({
-          where: { localidadId, rondaNumero: g.rondaNumero },
-          data: { rondaNumero: idx },
-        });
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, idx);
-      idx++;
-    }
+    // 2) Renumerar rondas existentes (1..N) y compactar órdenes activos
+    await this.renumerarRondas(tx, localidadId);
 
-    // 2) ALTAS → R1 (FIFO), respetando HOLD
+    // 3) ALTAS → R1 (FIFO), respetando HOLD
     await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // 3) BAJAS → Robin Hood por empresa, más viejos primero
+    // 4) BAJAS → normalización por ronda (sin re-balancear entre rondas)
     await this.reequilibrarBajasRobinHood(tx, localidadId);
+
+    // 5) Si quedaron rondas vacías tras reordenar, limpiar y renumerar de nuevo
+    await this.eliminarRondasCompletadas(tx, localidadId);
+    await this.renumerarRondas(tx, localidadId);
   }
 
 
@@ -1192,7 +1232,6 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     const locs = await prisma.ronda.findMany({ select: { localidadId: true }, distinct: ['localidadId'] });
     for (const { localidadId } of locs) {
       await prisma.$transaction(async (tx) => {
-        await tx.ronda.deleteMany({ where: { localidadId, concluido: true } });
         await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
         await this.recomponerRondasLocalidad(localidadId, tx);
       });
