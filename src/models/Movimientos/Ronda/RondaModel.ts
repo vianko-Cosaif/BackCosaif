@@ -54,17 +54,19 @@ function esReasignablePorTiempo(mov: any): boolean {
   return Date.now() - t >= BLOQUEO_OPERADOR_MS;
 }
 
+// Fecha base para ordenar BAJAS (más viejo primero).
 function fechaOrdenBaja(mov: any): number {
   const base = mov?.fechaSolicitud ?? mov?.createdAt ?? mov?.updatedAt ?? 0;
   const t = base instanceof Date ? base.getTime() : new Date(base).getTime();
   return Number.isFinite(t) ? t : 0;
 }
 
+// Prioridad por estado en BAJAS: DETENIDO va al final para dejar pasar a los demás.
 function prioridadEstadoBaja(estado: string): number {
-  // DETENIDO va al final para dejar pasar a los demás
   return estado === 'DETENIDO' ? 1 : 0;
 }
 
+// Detecta si una ronda BAJA quedó desordenada (o con empresas duplicadas).
 function necesitaReequilibrarBajas(rondas: any[]): boolean {
   let rondaActual = -1;
   let ultimaFecha = -Infinity;
@@ -233,6 +235,18 @@ export class RondaModel {
         await tx.ronda.update({ where: { id: filas[i].id }, data: { orden: esperado } });
       }
     }
+  }
+
+  private static ordenarBajasPorTiempoEnRonda<T extends { empresaId: number; movimiento: any }>(arr: T[]): T[] {
+    return arr.sort((a, b) => {
+      const pa = prioridadEstadoBaja((a.movimiento as any).estado);
+      const pb = prioridadEstadoBaja((b.movimiento as any).estado);
+      if (pa !== pb) return pa - pb;
+      const ta = fechaOrdenBaja(a.movimiento);
+      const tb = fechaOrdenBaja(b.movimiento);
+      if (ta !== tb) return ta - tb;
+      return a.empresaId - b.empresaId;
+    });
   }
 
   private static async eliminarRondasHuerfanasYDuplicadas(tx: Tx, localidadId: number) {
@@ -424,15 +438,7 @@ export class RondaModel {
     }
 
     for (const [rondaNumero, arr] of porRonda) {
-      arr.sort((a, b) => {
-        const pa = prioridadEstadoBaja((a.movimiento as any).estado);
-        const pb = prioridadEstadoBaja((b.movimiento as any).estado);
-        if (pa !== pb) return pa - pb;
-        const ta = fechaOrdenBaja(a.movimiento);
-        const tb = fechaOrdenBaja(b.movimiento);
-        if (ta !== tb) return ta - tb;
-        return a.empresaId - b.empresaId;
-      });
+      this.ordenarBajasPorTiempoEnRonda(arr);
 
       for (let i = 0; i < arr.length; i++) {
         const row = arr[i];
