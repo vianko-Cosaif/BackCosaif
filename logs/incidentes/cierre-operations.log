@@ -374,3 +374,5 @@
 
 
 
+2025-12-18 00:23:19 [ERROR]: cerrar {"service":"IncidenteController","module":"Controllers/Incidente","layer":"HTTP","id":"17","error":{}}
+2025-12-18 00:23:22 [ERROR]: cerrar {"service":"IncidenteController","module":"Controllers/Incidente","layer":"HTTP","id":"17","error":{}}
