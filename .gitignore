@@ -7,5 +7,7 @@ uploads/
 node_modules
 
 .env
+.env.torno
+msTorno/generated
 
 dist
