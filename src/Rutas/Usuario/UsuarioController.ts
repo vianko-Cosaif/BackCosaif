@@ -1,13 +1,12 @@
 // src/controllers/Usuario/usuario.controller.ts
 import { RequestHandler } from 'express';
-import { DeviceType, Rol } from '@prisma/client';
+import { DeviceType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { UsuarioModel } from '../../models/Usuario/usuarioModel';
 import * as tokenService from '../../middlewares/token.service';
 import { registrarIpUsuario, extraerIp } from '../../models/Token/ipUsuario';
 import { usuarioControllerLogger as log } from './usuario.controller.logger';
 import { v4 as uuidv4 } from 'uuid';
-import ms, { StringValue } from 'ms';
 
 const ser = (e:any)=>({
   name: e?.name, message: e?.message, code: e?.code,
@@ -23,23 +22,6 @@ type SafeUser = {
   id: number; nombre: string; email: string; rol: string;
   empresaId: number; localidadId: number;
   empresa?: { nombre: string }; localidad?: { nombre: string; estado: string };
-};
-
-const JWT_TTL: StringValue = (process.env.JWT_EXPIRES_IN ?? '8h') as StringValue;
-const JWT_LONG_TTL: StringValue = (process.env.JWT_LONG_EXPIRES_IN ?? '30d') as StringValue;
-const SLIDING_TTL: StringValue = (process.env.JWT_SLIDING_TTL ?? '3h') as StringValue;
-
-const SLIDING_ROLES = new Set<Rol>([
-  Rol.CLIENTE,
-  Rol.SUPERVISOR,
-  Rol.ADMINISTRADOR,
-  Rol.COORDINADOR,
-]);
-
-const toMs = (v: StringValue, fallback: number): number => {
-  if (typeof v === 'number') return v;
-  const parsed = ms(v);
-  return typeof parsed === 'number' ? parsed : fallback;
 };
 
 export class UsuarioController {
@@ -129,22 +111,16 @@ static login: RequestHandler = async (req, res) => {
     }));
 
     const tSign = Date.now();
-    const isSlidingRole = SLIDING_ROLES.has(user.rol as Rol);
-    const jwtTtl = isSlidingRole ? JWT_LONG_TTL : JWT_TTL;
     const { token, jti, exp } = tokenService.signAccess(
       { id: user.id, nombre: user.nombre, rol: user.rol, tokenVersion: 0 },
-      jwtTtl,
+      undefined,
       { reqId, usuarioId: user.id }
     );
     const signMs = Number((Date.now() - tSign).toFixed(3));
     console.log(JSON.stringify({ level: 'info', msg: 'login:sign:ok', reqId, jti, exp, signMs }));
 
     const issuedAt = new Date();
-    let expiresAt = new Date(exp * 1000);
-    if (isSlidingRole) {
-      const ttlMs = toMs(SLIDING_TTL, 0);
-      if (ttlMs > 0) expiresAt = new Date(issuedAt.getTime() + ttlMs);
-    }
+    const expiresAt = new Date(exp * 1000);
 
     const tPersist = Date.now();
     await tokenService.crearReemplazandoPorPlataforma(
