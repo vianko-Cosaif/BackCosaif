@@ -1,32 +1,35 @@
-// src/cron/revokeEvery2h.ts
+// src/cron/revokeEveryHour.ts
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Rol } from '@prisma/client';
 
 const prisma = new PrismaClient();
 let running = false;
 
 cron.schedule(
-  '0 */2 * * *', // cada 2 horas
+  '0 * * * *', // cada hora
   async () => {
     if (running) return;
     running = true;
 
     try {
-      // 1. rotar versión de token para tumbar JWT viejos
+      // 1. rotar versión de token solo para MAQUINISTA
       await prisma.usuario.updateMany({
-        data: {
-          tokenVersion: { increment: 1 },
-        },
+        where: { rol: Rol.MAQUINISTA },
+        data: { tokenVersion: { increment: 1 } },
       });
 
-      // 2. borrar sesiones (tokens de acceso)
-      const { count: tokenCount } = await prisma.token.deleteMany({});
+      // 2. borrar sesiones (tokens de acceso) solo de MAQUINISTA
+      const { count: tokenCount } = await prisma.token.deleteMany({
+        where: { usuario: { rol: Rol.MAQUINISTA } },
+      });
 
-      // 3. borrar FCM para que no lleguen notificaciones a quien ya no debe
-      const { count: fcmCount } = await prisma.fcmToken.deleteMany({});
+      // 3. borrar FCM solo de MAQUINISTA
+      const { count: fcmCount } = await prisma.fcmToken.deleteMany({
+        where: { usuario: { rol: Rol.MAQUINISTA } },
+      });
 
       console.log(
-        `[revokeEvery2h] usuarios rotados, ${tokenCount} tokens borrados, ${fcmCount} FCM borrados @ ${new Date().toISOString()}`
+        `[revokeEveryHour] maquinistas rotados, ${tokenCount} tokens borrados, ${fcmCount} FCM borrados @ ${new Date().toISOString()}`
       );
     } catch (err) {
       console.error('[revokeEvery2h] error:', err);

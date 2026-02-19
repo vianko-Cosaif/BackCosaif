@@ -10,7 +10,7 @@
  *
  * Nota sobre el cron:
  *  - El import `../Cron/Tokens` no exporta nada, solo registra un job recurrente.
- *  - Ese job se ejecuta cada 2 horas y revoca/borrar tokens y FCM en BD.
+ *  - Ese job se ejecuta cada hora y borra tokens/FCM solo de MAQUINISTA.
  *  - Se hace el import aquí para que se active al levantar el backend,
  *    no cuando alguien consuma una ruta.
  */

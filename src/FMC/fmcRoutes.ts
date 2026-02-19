@@ -1,6 +1,7 @@
 // src/routes/fmc.routes.ts
 import { Router } from 'express';
 import passport from '../middlewares/passport';
+import { renewAccessTokenIfNeeded } from '../middlewares/token.renew';
 import { FmcController } from './FmcController'; // ajusta si tu path difiere
 
 const router = Router();
@@ -9,7 +10,7 @@ const router = Router();
  *  TODAS las rutas requieren JWT, porque el dispositivo ya inició
  *  sesión y obtuvo su token de acceso en /login.
  * --------------------------------------------------------------*/
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
 
 /* GET /fcm                ? Lista global de tokens (sólo admin) */
 router.get('/', FmcController.obtenerTokens);

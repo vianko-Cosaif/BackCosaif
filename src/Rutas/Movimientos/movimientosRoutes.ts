@@ -15,6 +15,7 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
+import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import { MovimientoController } from './MovimientoController'; // <-- asegura que coincide con el nombre real del archivo
 
 const router = Router();
@@ -41,7 +42,7 @@ const router = Router();
  *  - 400 Bad Request: parámetros inválidos
  *  - 500 Internal Server Error
  */
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
 router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendientes);
 
 /**

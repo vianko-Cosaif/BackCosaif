@@ -76,10 +76,11 @@ const normPlatform = (p: PlatformInput): DeviceType => {
 export function signAccess(
   user: SignUser,
   ttl: StringValue = JWT_TTL,
-  ctx?: { reqId?: string | null; usuarioId?: number | null }
+  ctx?: { reqId?: string | null; usuarioId?: number | null },
+  jtiOverride?: string
 ): { token: string; jti: string; exp: number } {
   const t0 = Date.now();
-  const jti = uuidv4();
+  const jti = jtiOverride ?? uuidv4();
 
   const payload = {
     sub: String(user.id),
@@ -115,6 +116,15 @@ export function signAccess(
   }));
 
   return { token, jti, exp };
+}
+
+export function signAccessWithJti(
+  user: SignUser,
+  jti: string,
+  ttl: StringValue = JWT_TTL,
+  ctx?: { reqId?: string | null; usuarioId?: number | null },
+): { token: string; jti: string; exp: number } {
+  return signAccess(user, ttl, ctx, jti);
 }
 
 
@@ -280,6 +290,70 @@ export async function revocarActivasPorPlataforma(usuarioId: number, platform?: 
     usuarioId, platform: plat, count: res.count, ms: dt(t0),
   }, ctx));
   return res.count;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Renovación (mismo jti)                                                    */
+/* -------------------------------------------------------------------------- */
+export async function renovarTokenPorJti(jti: string, newExpiresAt: Date, ctx?: Ctx) {
+  const t0 = now();
+  try {
+    const res = await prisma.token.update({
+      where: { jti },
+      data: { issuedAt: new Date(), expiresAt: newExpiresAt },
+    });
+    tokenLogger.info('token:renew:ok', withCtx({
+      jti,
+      expiresAt: res.expiresAt,
+      ms: dt(t0),
+    }, ctx));
+    return res;
+  } catch (error: any) {
+    tokenLogger.error('token:renew:error', withCtx({
+      jti,
+      code: error?.code ?? null,
+      message: error?.message ?? null,
+      ms: dt(t0),
+    }, ctx));
+    throw new Error('Error al renovar el token');
+  }
+}
+
+export async function renovarTokenSiPorVencer(
+  jti: string,
+  newExpiresAt: Date,
+  windowMs: number,
+  ctx?: Ctx
+) {
+  const t0 = now();
+  try {
+    const limit = new Date(Date.now() + windowMs);
+    const res = await prisma.token.updateMany({
+      where: {
+        jti,
+        revokedAt: null,
+        expiresAt: { lte: limit },
+      },
+      data: { issuedAt: new Date(), expiresAt: newExpiresAt },
+    });
+
+    if (res.count > 0) {
+      tokenLogger.info('token:renew:ok', withCtx({
+        jti,
+        expiresAt: newExpiresAt,
+        ms: dt(t0),
+      }, ctx));
+    }
+    return res.count;
+  } catch (error: any) {
+    tokenLogger.error('token:renew:error', withCtx({
+      jti,
+      code: error?.code ?? null,
+      message: error?.message ?? null,
+      ms: dt(t0),
+    }, ctx));
+    throw new Error('Error al renovar el token');
+  }
 }
 
 /* -------------------------------------------------------------------------- */

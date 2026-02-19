@@ -3,11 +3,12 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
+import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import { MovimientoExcelController } from '../controller/movimientoExcel';
 
 const router = Router();
 
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
 
 /**
  * Montaje:

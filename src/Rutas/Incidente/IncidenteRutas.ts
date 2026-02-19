@@ -2,6 +2,7 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
+import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import {
   IncidenteController,
   uploadImagenes,
@@ -11,7 +12,7 @@ import {
 const router = Router();
 
 // Todas las rutas requieren JWT
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
 
 
 // ——— RUTAS DE CONSULTA ———

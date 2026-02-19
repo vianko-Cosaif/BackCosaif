@@ -3,12 +3,13 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
+import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import { MovimientoPdfController } from '../controller/movimeintoPdf';
 import { AdminReporteriaController } from '../controller/adminController';
 
 const router = Router();
 
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
 
 /**
  * Montaje:

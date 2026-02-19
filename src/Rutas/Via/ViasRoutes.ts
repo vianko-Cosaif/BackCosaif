@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
+import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import { ViaController } from './viaController';
 
 const router = Router();
 
 // Middleware de autenticación JWT para las rutas siguientes
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
 
 // Ruta pública: obtener todas las vías
 router.get('/', ViaController.obtenerVias);
