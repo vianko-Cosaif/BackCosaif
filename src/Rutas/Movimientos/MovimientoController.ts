@@ -541,10 +541,12 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
 
     try {
       const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
-      res.status(200).json(movimientos);
+      if (!res.headersSent) res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId });
-      res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad' });
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad' });
+      }
     }
   };
 

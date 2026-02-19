@@ -341,10 +341,10 @@ static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
 
   try {
     const result = await RondaModel.siguienteInteligente(localidadId, userId);
-    res.status(200).json(result);
+    if (!res.headersSent) res.status(200).json(result);
   } catch (error) {
     logger.error("Error en siguiente inteligente", { error, localidadId, userId });
-    res.status(500).json({ message: "Error al calcular siguiente inteligente" });
+    if (!res.headersSent) res.status(500).json({ message: "Error al calcular siguiente inteligente" });
   }
 };
 
