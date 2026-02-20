@@ -1,15 +1,13 @@
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
-import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import { LocalidadController } from './LocalidadController';
 
 const router = Router();
 // Ruta pública para crear una nueva localidad
-// Middleware de autenticación JWT aplicado a todas las rutas siguientes
-router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
-
-
 router.post('/', LocalidadController.crearLocalidad);
+
+// Middleware de autenticación JWT aplicado a todas las rutas siguientes
+router.use(passport.authenticate('jwt', { session: false }));
 
 
 

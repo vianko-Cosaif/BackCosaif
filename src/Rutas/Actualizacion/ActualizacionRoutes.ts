@@ -25,7 +25,6 @@
 
 import { Router } from 'express';
 import passport from '../../middlewares/passport';
-import { renewAccessTokenIfNeeded } from '../../middlewares/token.renew';
 import { ActualizacionController } from './ActualizacionController';
 
 const router = Router();
@@ -34,7 +33,7 @@ const router = Router();
 // Obtener la última actualización
 router.get('/ultima', ActualizacionController.obtenerUltimaActualizacion);
 // Protege todas las rutas con JWT
-router.use(passport.authenticate('jwt', { session: false }), renewAccessTokenIfNeeded);
+router.use(passport.authenticate('jwt', { session: false }));
 
 // Obtener todas las actualizaciones
 router.get('/', ActualizacionController.obtenerActualizaciones);
