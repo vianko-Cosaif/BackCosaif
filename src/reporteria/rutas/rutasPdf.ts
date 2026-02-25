@@ -5,6 +5,7 @@ import { Router } from 'express';
 import passport from '../../middlewares/passport';
 import { MovimientoPdfController } from '../controller/movimeintoPdf';
 import { AdminReporteriaController } from '../controller/adminController';
+import { LocomotorasPdfController } from '../controller/locomotorasPdf';
 
 const router = Router();
 
@@ -16,9 +17,11 @@ router.use(passport.authenticate('jwt', { session: false }));
  *
  * URLs finales:
  *   GET /reporteria/movimientos/pdf
- *   GET /reporteria/adminnpx tsc 
+ *   GET /reporteria/admin/pdf
+ *   GET /reporteria/locomotoras/pdf
  */
 router.get('/movimientos/pdf', MovimientoPdfController.generar);
 router.get('/admin/pdf', AdminReporteriaController.getPDF);
+router.get('/locomotoras/pdf', LocomotorasPdfController.generar);
 
 export default router;

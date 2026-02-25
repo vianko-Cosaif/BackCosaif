@@ -29,11 +29,12 @@ import passport from '../../middlewares/passport';
 
 const router = Router();
 
-// Ruta para crear una nueva empresa
-router.post('/', EmpresaController.crearEmpresa);
 // Middleware de autenticación aplicado a todas las rutas de este módulo.
 // Protege las rutas usando la estrategia JWT definida en Passport.
 router.use(passport.authenticate('jwt', { session: false }));
+// Ruta para crear una nueva empresa
+router.post('/', EmpresaController.crearEmpresa);
+
 // Ruta para obtener la lista de empresas
 router.get('/', EmpresaController.obtenerEmpresas);
 
