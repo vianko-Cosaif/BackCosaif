@@ -302,6 +302,19 @@ function buildHtml(reporte: EmpresasReporte) {
     { label: 'Otros', value: otros, color: '#fca5a5' },
   ]);
 
+  const viaCounts = new Map<string, number>();
+  for (const m of allMovs) {
+    const via = m.viaDestinoNombre ?? m.viaOrigenNombre;
+    if (!via) continue;
+    viaCounts.set(via, (viaCounts.get(via) ?? 0) + 1);
+  }
+  const topVias = Array.from(viaCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+  const viaBar = topVias.length
+    ? buildBarChart(topVias.map((v) => v[0]), topVias.map((v) => v[1]))
+    : '<div class="meta">Sin datos.</div>';
+
   const topTime = chartEmpresas.slice(0, 6);
   const timeLabels = topTime.map((e) => e.empresa);
   const timeChart = buildGroupedBars(timeLabels, [
@@ -318,6 +331,18 @@ function buildHtml(reporte: EmpresasReporte) {
 
   const cards = reporte.empresas
     .map((e) => {
+      const viaCountsE = new Map<string, number>();
+      for (const mv of e.movimientos) {
+        const via = mv.viaDestinoNombre ?? mv.viaOrigenNombre;
+        if (!via) continue;
+        viaCountsE.set(via, (viaCountsE.get(via) ?? 0) + 1);
+      }
+      const topViasE = Array.from(viaCountsE.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([v, c]) => `${v} (${c})`)
+        .join(', ');
+
       const rows = e.movimientos.length
         ? e.movimientos
             .map((m) => {
@@ -329,6 +354,8 @@ function buildHtml(reporte: EmpresasReporte) {
               const espera = fmtMin(m.esperaMin);
               const duracion = fmtMin(m.duracionMin);
               const total = fmtMin(m.totalMin);
+              const viaOrigen = escapeHtml(m.viaOrigenNombre ?? '—');
+              const viaDestino = escapeHtml(m.viaDestinoNombre ?? '—');
 
               return `
                 <tr>
@@ -347,13 +374,15 @@ function buildHtml(reporte: EmpresasReporte) {
                   <td>${escapeHtml(m.operadorNombre ?? '—')}</td>
                   <td>${escapeHtml(m.solicitadoPor ?? '—')}</td>
                   <td>${escapeHtml(m.localidad ?? '—')}</td>
+                  <td>${viaOrigen}</td>
+                  <td>${viaDestino}</td>
                 </tr>
               `;
             })
             .join('')
         : `
           <tr>
-            <td colspan="15" class="empty">Sin movimientos en el rango</td>
+            <td colspan="17" class="empty">Sin movimientos en el rango</td>
           </tr>
         `;
 
@@ -369,6 +398,7 @@ function buildHtml(reporte: EmpresasReporte) {
             <span class="chip chip-combo">Torno+Lavado: ${escapeHtml(e.totalTornoLavado)}</span>
             <span class="chip chip-sin">Sin TL: ${escapeHtml(e.totalSinTornoLavado)}</span>
           </div>
+          <div class="topline">Top vías: ${escapeHtml(topViasE || '—')}</div>
           <div class="mini">
             <div><span class="label">Prom Espera</span> ${fmtMin(e.promEsperaMin)}</div>
             <div><span class="label">Prom Duración</span> ${fmtMin(e.promDuracionMin)}</div>
@@ -392,6 +422,8 @@ function buildHtml(reporte: EmpresasReporte) {
                 <th>Operador</th>
                 <th>Solicitado por</th>
                 <th>Localidad</th>
+                <th>Vía Origen</th>
+                <th>Vía Destino</th>
               </tr>
             </thead>
             <tbody>
@@ -717,6 +749,12 @@ function buildHtml(reporte: EmpresasReporte) {
             gap: 6px;
             margin: 8px 0 6px;
           }
+          .topline {
+            font-size: 11px;
+            color: #475569;
+            font-weight: 700;
+            margin: 4px 0 6px;
+          }
           .chip {
             font-size: 10px;
             font-weight: 800;
@@ -876,11 +914,20 @@ function buildHtml(reporte: EmpresasReporte) {
           </div>
         </div>
 
+        <div class="grid-2" style="grid-template-columns: 1fr;">
+          <div class="panel">
+            <div class="panel-title">Vías más utilizadas (destino)</div>
+            <div class="panel-sub">Top ${escapeHtml(topVias.length)} vías en el periodo</div>
+            ${viaBar}
+          </div>
+        </div>
+
         <div class="note">
           <strong>Definiciones:</strong>
           TL = Torno + Lavado (ambos servicios en el mismo movimiento).
           <strong>Sin TL</strong> significa que no tuvo ni torno ni lavado.
           Los indicadores de Torno y Lavado muestran si el movimiento incluyó esos servicios.
+          <strong>Vía Origen</strong> es la vía de salida y <strong>Vía Destino</strong> es la vía final del movimiento.
         </div>
 
         <div class="divider"></div>

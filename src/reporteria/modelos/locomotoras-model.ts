@@ -32,6 +32,8 @@ export type LocomotoraMovimientoRow = {
   empresa: string;
   localidad: string;
   solicitadoPor: string;
+  viaOrigenNombre: string | null;
+  viaDestinoNombre: string | null;
 };
 
 export type LocomotoraReporte = {
@@ -164,6 +166,8 @@ export class LocomotorasReporteriaModel {
         creadoPor: { select: { nombre: true } },
         cliente: { select: { nombre: true } },
         operador: { select: { nombre: true } },
+        viaOrigen: { select: { nombre: true } },
+        viaDestino: { select: { nombre: true } },
       },
     });
 
@@ -200,6 +204,8 @@ export class LocomotorasReporteriaModel {
         empresa: m.empresa?.nombre ?? '—',
         localidad: m.localidad?.nombre ?? '—',
         solicitadoPor: m.creadoPor?.nombre ?? '—',
+        viaOrigenNombre: m.viaOrigen?.nombre ?? null,
+        viaDestinoNombre: m.viaDestino?.nombre ?? null,
       };
 
       const bucket = byLoco.get(m.locomotiveNumber) ?? {

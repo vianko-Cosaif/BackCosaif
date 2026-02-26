@@ -117,8 +117,47 @@ function buildHtml(reporte: LocomotorasReporte) {
   const maxDur = Math.max(1, ...chartLocos.map((l) => l.promDuracionMin ?? 0));
   const maxTotal = Math.max(1, ...chartLocos.map((l) => l.promTotalMin ?? 0));
 
+  const viaCounts = new Map<string, number>();
+  for (const m of allMovs) {
+    const via = m.viaDestinoNombre ?? m.viaOrigenNombre;
+    if (!via) continue;
+    viaCounts.set(via, (viaCounts.get(via) ?? 0) + 1);
+  }
+  const topVias = Array.from(viaCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+  const maxVia = Math.max(1, ...topVias.map((v) => v[1]));
+  const viasChart = topVias.length
+    ? topVias
+      .map(([via, count]) => {
+        const pct = Math.max(3, Math.round((count / maxVia) * 100));
+        return `
+          <div class="bar-row">
+            <div class="label">${escapeHtml(via)}</div>
+            <div class="bar">
+              <div class="bar-fill" style="width:${pct}%"></div>
+              <div class="bar-val">${escapeHtml(count)}</div>
+            </div>
+          </div>
+        `;
+      })
+      .join('')
+    : '<div class="meta">Sin datos.</div>';
+
   const cards = reporte.locomotoras
     .map((l) => {
+      const viaCountsL = new Map<string, number>();
+      for (const mv of l.movimientos) {
+        const via = mv.viaDestinoNombre ?? mv.viaOrigenNombre;
+        if (!via) continue;
+        viaCountsL.set(via, (viaCountsL.get(via) ?? 0) + 1);
+      }
+      const topViasL = Array.from(viaCountsL.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([v, c]) => `${v} (${c})`)
+        .join(', ');
+
       const rows = l.movimientos.length
         ? l.movimientos
           .map((m) => {
@@ -137,6 +176,8 @@ function buildHtml(reporte: LocomotorasReporte) {
             const empresa = escapeHtml(m.empresa ?? '—');
             const localidad = escapeHtml(m.localidad ?? '—');
             const solicitado = escapeHtml(m.solicitadoPor ?? '—');
+            const viaOrigen = escapeHtml(m.viaOrigenNombre ?? '—');
+            const viaDestino = escapeHtml(m.viaDestinoNombre ?? '—');
 
             return `
               <tr>
@@ -155,13 +196,15 @@ function buildHtml(reporte: LocomotorasReporte) {
                 <td>${empresa}</td>
                 <td>${localidad}</td>
                 <td>${solicitado}</td>
+                <td>${viaOrigen}</td>
+                <td>${viaDestino}</td>
               </tr>
             `;
           })
           .join('')
         : `
           <tr>
-            <td colspan="15" class="empty">Sin movimientos en el rango</td>
+            <td colspan="17" class="empty">Sin movimientos en el rango</td>
           </tr>
         `;
 
@@ -177,6 +220,7 @@ function buildHtml(reporte: LocomotorasReporte) {
             <span class="chip chip-combo">Torno+Lavado: ${escapeHtml(l.totalTornoLavado)}</span>
             <span class="chip chip-sin">Sin TL: ${escapeHtml(l.totalSinTornoLavado)}</span>
           </div>
+          <div class="topline">Top vías: ${escapeHtml(topViasL || '—')}</div>
           <div class="mini">
             <div><span class="label">Prom Espera</span> ${fmtMin(l.promEsperaMin)}</div>
             <div><span class="label">Prom Duración</span> ${fmtMin(l.promDuracionMin)}</div>
@@ -200,6 +244,8 @@ function buildHtml(reporte: LocomotorasReporte) {
                 <th>Empresa</th>
                 <th>Localidad</th>
                 <th>Solicitado por</th>
+                <th>Vía Origen</th>
+                <th>Vía Destino</th>
               </tr>
             </thead>
             <tbody>
@@ -395,6 +441,12 @@ function buildHtml(reporte: LocomotorasReporte) {
             gap: 6px;
             margin: 8px 0 6px;
           }
+          .topline {
+            font-size: 11px;
+            color: #475569;
+            font-weight: 700;
+            margin: 4px 0 6px;
+          }
           .chip {
             font-size: 10px;
             font-weight: 800;
@@ -540,6 +592,13 @@ function buildHtml(reporte: LocomotorasReporte) {
                 .join('')
               : '<div class="meta">Sin datos.</div>'
             }
+          </div>
+        </div>
+
+        <div class="charts" style="grid-template-columns: 1fr; margin-top: 10px;">
+          <div class="chart">
+            <div class="chart-title">Vías más utilizadas (destino)</div>
+            ${viasChart}
           </div>
         </div>
 

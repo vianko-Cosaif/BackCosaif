@@ -36,6 +36,8 @@ export type EmpresaMovimientoRow = {
   operadorNombre: string | null;
   solicitadoPor: string;
   localidad: string;
+  viaOrigenNombre: string | null;
+  viaDestinoNombre: string | null;
 };
 
 export type EmpresaReporte = {
@@ -159,6 +161,8 @@ export class EmpresasReporteriaModel {
         creadoPor: { select: { nombre: true } },
         cliente: { select: { nombre: true } },
         operador: { select: { nombre: true } },
+        viaOrigen: { select: { nombre: true } },
+        viaDestino: { select: { nombre: true } },
       },
     });
 
@@ -219,6 +223,8 @@ export class EmpresasReporteriaModel {
         operadorNombre: m.operador?.nombre ?? null,
         solicitadoPor: m.creadoPor?.nombre ?? '—',
         localidad: m.localidad?.nombre ?? '—',
+        viaOrigenNombre: m.viaOrigen?.nombre ?? null,
+        viaDestinoNombre: m.viaDestino?.nombre ?? null,
       };
 
       bucket.movimientos.push(row);

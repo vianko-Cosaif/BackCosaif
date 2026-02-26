@@ -162,6 +162,8 @@ function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte) {
         m.operadorNombre ?? '—',
         m.solicitadoPor ?? '—',
         m.localidad ?? '—',
+        m.viaOrigenNombre ?? '—',
+        m.viaDestinoNombre ?? '—',
       ]);
     }
   }
@@ -268,6 +270,11 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
     ws.getCell('K8').value = 'Total';
     ws.getCell('L8').value = 'Grafica';
 
+    ws.getCell('D20').value = 'Top vias';
+    ws.getCell('D21').value = 'Via';
+    ws.getCell('E21').value = 'Movimientos';
+    ws.getCell('F21').value = 'Grafica';
+
     ws.getRow(1).font = { bold: true, size: 14 };
     ws.getRow(7).font = { bold: true };
     ws.getRow(8).font = { bold: true };
@@ -371,6 +378,35 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
       ws.getCell(`K${row}`).numFmt = TIME_FMT;
       ws.getCell(`L${row}`).value = {
         formula: `SPARKLINE(I${row}:K${row}, {\"charttype\",\"column\"})`,
+        result: 0,
+      };
+    });
+
+    // ---- Top vias + sparklines ----
+    const viaCounts = new Map<string, number>();
+    for (const m of allMovs) {
+      const via = m.viaDestinoNombre ?? m.viaOrigenNombre;
+      if (!via) continue;
+      viaCounts.set(via, (viaCounts.get(via) ?? 0) + 1);
+    }
+    const viasTop = Array.from(viaCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+
+    const viaStart = 22;
+    const viaEnd = 29;
+    for (let r = viaStart; r <= viaEnd; r += 1) {
+      ws.getCell(`D${r}`).value = '';
+      ws.getCell(`E${r}`).value = '';
+      ws.getCell(`F${r}`).value = '';
+    }
+
+    viasTop.forEach(([via, count], idx) => {
+      const row = viaStart + idx;
+      ws.getCell(`D${row}`).value = via;
+      ws.getCell(`E${row}`).value = count;
+      ws.getCell(`F${row}`).value = {
+        formula: `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${viaStart}:$E$${viaEnd})})`,
         result: 0,
       };
     });
