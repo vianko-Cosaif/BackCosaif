@@ -1,42 +1,48 @@
-// reporteria/modelos/locomotoras-model.ts
-// Reporte por locomotoras (rango por fechaInicio en TZ local)
-// - Filtra movimientos por locomotiveNumber y fechaInicio (UTC)
+// reporteria/modelos/empresas-model.ts
+// Reporte de movimientos por empresa (rango por fechaSolicitud en TZ local)
 // - Recibe fechas en formato YYYY-MM-DD (TZ MX por default)
+// - Filtra por empresa(s) y localidad (opcional)
 
 import { DateTime } from 'luxon';
 import { PrismaClient } from '@prisma/client';
 
-export type LocomotorasReporteFilters = {
+export type EmpresasReporteFilters = {
   fechaInicio: string; // YYYY-MM-DD (local)
   fechaFin: string; // YYYY-MM-DD (local)
   tz?: string; // default America/Mexico_City
-  locomotoras: number[]; // lista requerida
+  empresaIds?: number[]; // opcional
   localidadId?: number;
-  empresaId?: number;
 };
 
-export type LocomotoraMovimientoRow = {
+export type EmpresaMovimientoRow = {
   movimientoId: number;
+  empresaId: number;
+  empresa: string;
+  locomotiveNumber: number;
+
   fechaSolicitudUTC: string; // ISO UTC
-  fechaInicioUTC: string; // ISO UTC
+  fechaInicioUTC: string | null; // ISO UTC
   fechaFinUTC: string | null; // ISO UTC
   esperaMin: number | null; // solicitud -> inicio
   duracionMin: number | null; // inicio -> fin
   totalMin: number | null; // solicitud -> fin
-  clienteNombre: string | null;
-  operadorNombre: string | null;
+
   estado: string;
   tipoMovimiento: string | null;
   torno: boolean;
   lavado: boolean;
-  empresa: string;
-  localidad: string;
+
+  clienteNombre: string | null;
+  operadorNombre: string | null;
   solicitadoPor: string;
+  localidad: string;
 };
 
-export type LocomotoraReporte = {
-  locomotiveNumber: number;
+export type EmpresaReporte = {
+  empresaId: number;
+  empresa: string;
   totalMovimientos: number;
+  totalLocomotoras: number;
   totalTorno: number;
   totalLavado: number;
   totalTornoLavado: number;
@@ -44,19 +50,19 @@ export type LocomotoraReporte = {
   promEsperaMin: number | null;
   promDuracionMin: number | null;
   promTotalMin: number | null;
-  movimientos: LocomotoraMovimientoRow[];
+  movimientos: EmpresaMovimientoRow[];
 };
 
-export type LocomotorasReporte = {
+export type EmpresasReporte = {
   meta: {
     fechaInicio: string;
     fechaFin: string;
     tz: string;
-    locomotoras: number[];
+    empresaIds?: number[];
     rangoUTC: { desde: string; hastaExclusivo: string };
     rangoLocal: { desde: string; hastaExclusivo: string };
   };
-  locomotoras: LocomotoraReporte[];
+  empresas: EmpresaReporte[];
 };
 
 // Prisma singleton
@@ -102,40 +108,44 @@ function minutesBetween(a?: Date | null, b?: Date | null): number | null {
   return Math.round(ms / 60000);
 }
 
-export class LocomotorasReporteriaModel {
-  static async reportePorFechas(filters: LocomotorasReporteFilters): Promise<LocomotorasReporte> {
+function normalizeIds(xs: any[] | undefined) {
+  return Array.from(
+    new Set(
+      (xs ?? [])
+        .map((n) => Number(n))
+        .filter((n) => Number.isFinite(n))
+    )
+  );
+}
+
+export class EmpresasReporteriaModel {
+  static async reportePorFechas(filters: EmpresasReporteFilters): Promise<EmpresasReporte> {
     const tz = filters.tz ?? 'America/Mexico_City';
+    const empresaIds = normalizeIds(filters.empresaIds);
 
-    // Normaliza la lista de locomotoras (sin duplicados, solo números válidos)
-    const locomotoras = Array.from(new Set((filters.locomotoras ?? [])
-      .map((n) => Number(n))
-      .filter((n) => Number.isFinite(n))));
-
-    if (!locomotoras.length) {
-      throw new Error('Debes enviar al menos una locomotora en la consulta.');
-    }
-
-    // Convierte rango local (MX) a UTC para consultar correctamente en DB
     const { startLocal, endLocal, startUTC, endUTC } = rangoFechasUTC(
       filters.fechaInicio,
       filters.fechaFin,
       tz
     );
 
-    // Movimientos filtrados por fechaInicio (UTC) y locomotora
     const movimientos = await prisma.movimiento.findMany({
       where: {
-        locomotiveNumber: { in: locomotoras },
-        fechaInicio: {
+        ...(empresaIds.length ? { empresaId: { in: empresaIds } } : {}),
+        ...(filters.localidadId ? { localidadId: filters.localidadId } : {}),
+        fechaSolicitud: {
           gte: startUTC.toJSDate(),
           lt: endUTC.toJSDate(),
         },
-        ...(filters.localidadId ? { localidadId: filters.localidadId } : {}),
-        ...(filters.empresaId ? { empresaId: filters.empresaId } : {}),
       },
-      orderBy: [{ locomotiveNumber: 'asc' }, { fechaInicio: 'asc' }, { id: 'asc' }],
+      orderBy: [
+        { empresaId: 'asc' },
+        { fechaSolicitud: 'asc' },
+        { id: 'asc' },
+      ],
       select: {
         id: true,
+        empresaId: true,
         locomotiveNumber: true,
         fechaSolicitud: true,
         fechaInicio: true,
@@ -152,60 +162,63 @@ export class LocomotorasReporteriaModel {
       },
     });
 
-    // Pre-creamos buckets para conservar locomotoras sin movimientos
-    const byLoco = new Map<number, LocomotoraReporte>();
+    const byEmp = new Map<number, EmpresaReporte>();
+    const locoSets = new Map<number, Set<number>>();
     const sums = new Map<number, { espera: number; esperaN: number; dur: number; durN: number; total: number; totalN: number }>();
-    for (const n of locomotoras) {
-      byLoco.set(n, {
-        locomotiveNumber: n,
-        totalMovimientos: 0,
-        totalTorno: 0,
-        totalLavado: 0,
-        totalTornoLavado: 0,
-        totalSinTornoLavado: 0,
-        promEsperaMin: null,
-        promDuracionMin: null,
-        promTotalMin: null,
-        movimientos: [],
-      });
-      sums.set(n, { espera: 0, esperaN: 0, dur: 0, durN: 0, total: 0, totalN: 0 });
-    }
 
-    // Agrupamos movimientos por locomotora
     for (const m of movimientos) {
+      const empId = m.empresaId;
+      const empName = m.empresa?.nombre ?? '—';
+
+      let bucket = byEmp.get(empId);
+      if (!bucket) {
+        bucket = {
+          empresaId: empId,
+          empresa: empName,
+          totalMovimientos: 0,
+          totalLocomotoras: 0,
+          totalTorno: 0,
+          totalLavado: 0,
+          totalTornoLavado: 0,
+          totalSinTornoLavado: 0,
+          promEsperaMin: null,
+          promDuracionMin: null,
+          promTotalMin: null,
+          movimientos: [],
+        };
+        byEmp.set(empId, bucket);
+        locoSets.set(empId, new Set<number>());
+        sums.set(empId, { espera: 0, esperaN: 0, dur: 0, durN: 0, total: 0, totalN: 0 });
+      }
+
       const torno = !!m.torno;
       const lavado = !!m.lavado;
       const esperaMin = minutesBetween(m.fechaSolicitud, m.fechaInicio);
       const duracionMin = minutesBetween(m.fechaInicio, m.fechaFin);
       const totalMin = minutesBetween(m.fechaSolicitud, m.fechaFin);
 
-      const row: LocomotoraMovimientoRow = {
+      const row: EmpresaMovimientoRow = {
         movimientoId: m.id,
+        empresaId: empId,
+        empresa: empName,
+        locomotiveNumber: m.locomotiveNumber,
+
         fechaSolicitudUTC: m.fechaSolicitud.toISOString(),
-        fechaInicioUTC: m.fechaInicio!.toISOString(),
+        fechaInicioUTC: m.fechaInicio ? m.fechaInicio.toISOString() : null,
         fechaFinUTC: m.fechaFin ? m.fechaFin.toISOString() : null,
         esperaMin,
         duracionMin,
         totalMin,
-        clienteNombre: m.cliente?.nombre ?? null,
-        operadorNombre: m.operador?.nombre ?? null,
+
         estado: String(m.estado ?? '—'),
         tipoMovimiento: m.tipoMovimiento ? String(m.tipoMovimiento) : null,
         torno,
         lavado,
-        empresa: m.empresa?.nombre ?? '—',
-        localidad: m.localidad?.nombre ?? '—',
-        solicitadoPor: m.creadoPor?.nombre ?? '—',
-      };
 
-      const bucket = byLoco.get(m.locomotiveNumber) ?? {
-        locomotiveNumber: m.locomotiveNumber,
-        totalMovimientos: 0,
-        totalTorno: 0,
-        totalLavado: 0,
-        totalTornoLavado: 0,
-        totalSinTornoLavado: 0,
-        movimientos: [],
+        clienteNombre: m.cliente?.nombre ?? null,
+        operadorNombre: m.operador?.nombre ?? null,
+        solicitadoPor: m.creadoPor?.nombre ?? '—',
+        localidad: m.localidad?.nombre ?? '—',
       };
 
       bucket.movimientos.push(row);
@@ -214,32 +227,36 @@ export class LocomotorasReporteriaModel {
       if (lavado) bucket.totalLavado += 1;
       if (torno && lavado) bucket.totalTornoLavado += 1;
       if (!torno && !lavado) bucket.totalSinTornoLavado += 1;
-      byLoco.set(m.locomotiveNumber, bucket);
 
-      const acc = sums.get(m.locomotiveNumber)!;
+      const set = locoSets.get(empId)!;
+      set.add(m.locomotiveNumber);
+
+      const acc = sums.get(empId)!;
       if (esperaMin !== null) { acc.espera += esperaMin; acc.esperaN += 1; }
       if (duracionMin !== null) { acc.dur += duracionMin; acc.durN += 1; }
       if (totalMin !== null) { acc.total += totalMin; acc.totalN += 1; }
     }
 
-    // Promedios por locomotora
-    for (const [loco, acc] of sums.entries()) {
-      const bucket = byLoco.get(loco);
-      if (!bucket) continue;
-      bucket.promEsperaMin = acc.esperaN ? Math.round(acc.espera / acc.esperaN) : null;
-      bucket.promDuracionMin = acc.durN ? Math.round(acc.dur / acc.durN) : null;
-      bucket.promTotalMin = acc.totalN ? Math.round(acc.total / acc.totalN) : null;
-    }
+    const empresas = Array.from(byEmp.values()).map((e) => {
+      const set = locoSets.get(e.empresaId) ?? new Set<number>();
+      e.totalLocomotoras = set.size;
+      const acc = sums.get(e.empresaId);
+      if (acc) {
+        e.promEsperaMin = acc.esperaN ? Math.round(acc.espera / acc.esperaN) : null;
+        e.promDuracionMin = acc.durN ? Math.round(acc.dur / acc.durN) : null;
+        e.promTotalMin = acc.totalN ? Math.round(acc.total / acc.totalN) : null;
+      }
+      return e;
+    });
 
-    // Salida final (con meta y arreglo por locomotora)
-    const locomotorasOut = Array.from(byLoco.values());
+    empresas.sort((a, b) => a.empresa.localeCompare(b.empresa));
 
     return {
       meta: {
         fechaInicio: filters.fechaInicio,
         fechaFin: filters.fechaFin,
         tz,
-        locomotoras,
+        empresaIds: empresaIds.length ? empresaIds : undefined,
         rangoUTC: {
           desde: startUTC.toISO()!,
           hastaExclusivo: endUTC.toISO()!,
@@ -249,7 +266,7 @@ export class LocomotorasReporteriaModel {
           hastaExclusivo: endLocal.toISO()!,
         },
       },
-      locomotoras: locomotorasOut,
+      empresas,
     };
   }
 }

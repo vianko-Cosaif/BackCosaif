@@ -1,8 +1,8 @@
-// reporteria/modelos/locomotoras-pdf.ts
-// PDF por locomotoras (tabla por cada locomotora)
+// reporteria/modelos/empresas-pdf.ts
+// PDF por empresa (movimientos en rango)
 
 import * as puppeteer from 'puppeteer';
-import type { LocomotorasReporte } from './locomotoras-model';
+import type { EmpresasReporte } from './empresas-model';
 
 export type PdfFile = {
   filename: string;
@@ -35,7 +35,7 @@ async function getBrowser() {
   return browserSingleton;
 }
 
-export async function closeLocomotorasBrowser() {
+export async function closeEmpresasBrowser() {
   if (browserSingleton) {
     await browserSingleton.close();
     browserSingleton = null;
@@ -53,7 +53,7 @@ function escapeHtml(v: any) {
 }
 
 function safeFilename(name: string) {
-  return String(name || 'Locomotoras')
+  return String(name || 'Empresas')
     .trim()
     .replace(/[^\w.-]+/g, '_')
     .replace(/_+/g, '_')
@@ -76,55 +76,46 @@ function fmtMin(n: number | null | undefined) {
   return `${h}h ${m}m`;
 }
 
-function buildHtml(reporte: LocomotorasReporte) {
+function buildHtml(reporte: EmpresasReporte) {
   const meta = reporte.meta;
-
   const rangoDesde = fmtTZ(meta.rangoUTC.desde, meta.tz);
   const rangoHasta = fmtTZ(meta.rangoUTC.hastaExclusivo, meta.tz);
-  const locomotoras = meta.locomotoras.join(', ');
 
-  const cards = reporte.locomotoras
-    .map((l) => {
-      const rows = l.movimientos.length
-        ? l.movimientos
-          .map((m) => {
-            const solicitud = fmtTZ(m.fechaSolicitudUTC, meta.tz);
-            const inicio = fmtTZ(m.fechaInicioUTC, meta.tz);
-            const fin = fmtTZ(m.fechaFinUTC, meta.tz);
-            const estado = escapeHtml(m.estado ?? '—');
-            const tipo = escapeHtml(m.tipoMovimiento ?? '—');
-            const torno = m.torno ? 'Sí' : 'No';
-            const lavado = m.lavado ? 'Sí' : 'No';
-            const espera = fmtMin(m.esperaMin);
-            const duracion = fmtMin(m.duracionMin);
-            const total = fmtMin(m.totalMin);
-            const cliente = escapeHtml(m.clienteNombre ?? '—');
-            const operador = escapeHtml(m.operadorNombre ?? '—');
-            const empresa = escapeHtml(m.empresa ?? '—');
-            const localidad = escapeHtml(m.localidad ?? '—');
-            const solicitado = escapeHtml(m.solicitadoPor ?? '—');
+  const cards = reporte.empresas
+    .map((e) => {
+      const rows = e.movimientos.length
+        ? e.movimientos
+            .map((m) => {
+              const solicitud = fmtTZ(m.fechaSolicitudUTC, meta.tz);
+              const inicio = fmtTZ(m.fechaInicioUTC, meta.tz);
+              const fin = fmtTZ(m.fechaFinUTC, meta.tz);
+              const torno = m.torno ? 'Sí' : 'No';
+              const lavado = m.lavado ? 'Sí' : 'No';
+              const espera = fmtMin(m.esperaMin);
+              const duracion = fmtMin(m.duracionMin);
+              const total = fmtMin(m.totalMin);
 
-            return `
-              <tr>
-                <td>${solicitud}</td>
-                <td>${inicio}</td>
-                <td>${fin}</td>
-                <td>${espera}</td>
-                <td>${duracion}</td>
-                <td>${total}</td>
-                <td>${estado}</td>
-                <td>${tipo}</td>
-                <td>${torno}</td>
-                <td>${lavado}</td>
-                <td>${cliente}</td>
-                <td>${operador}</td>
-                <td>${empresa}</td>
-                <td>${localidad}</td>
-                <td>${solicitado}</td>
-              </tr>
-            `;
-          })
-          .join('')
+              return `
+                <tr>
+                  <td>${solicitud}</td>
+                  <td>${inicio}</td>
+                  <td>${fin}</td>
+                  <td>${espera}</td>
+                  <td>${duracion}</td>
+                  <td>${total}</td>
+                  <td>${escapeHtml(m.locomotiveNumber)}</td>
+                  <td>${escapeHtml(m.estado)}</td>
+                  <td>${escapeHtml(m.tipoMovimiento ?? '—')}</td>
+                  <td>${torno}</td>
+                  <td>${lavado}</td>
+                  <td>${escapeHtml(m.clienteNombre ?? '—')}</td>
+                  <td>${escapeHtml(m.operadorNombre ?? '—')}</td>
+                  <td>${escapeHtml(m.solicitadoPor ?? '—')}</td>
+                  <td>${escapeHtml(m.localidad ?? '—')}</td>
+                </tr>
+              `;
+            })
+            .join('')
         : `
           <tr>
             <td colspan="15" class="empty">Sin movimientos en el rango</td>
@@ -134,17 +125,18 @@ function buildHtml(reporte: LocomotorasReporte) {
       return `
         <section class="card">
           <div class="card-head">
-            <div class="card-title">Locomotora ${escapeHtml(l.locomotiveNumber)}</div>
-            <div class="card-sub">Total movimientos: ${escapeHtml(l.totalMovimientos)}</div>
+            <div class="card-title">${escapeHtml(e.empresa)}</div>
+            <div class="card-sub">Total movimientos: ${escapeHtml(e.totalMovimientos)}</div>
           </div>
           <div class="mini">
-            <div><span class="label">Torno</span> ${escapeHtml(l.totalTorno)}</div>
-            <div><span class="label">Lavado</span> ${escapeHtml(l.totalLavado)}</div>
-            <div><span class="label">Torno+Lavado</span> ${escapeHtml(l.totalTornoLavado)}</div>
-            <div><span class="label">Sin TL</span> ${escapeHtml(l.totalSinTornoLavado)}</div>
-            <div><span class="label">Prom Espera</span> ${fmtMin(l.promEsperaMin)}</div>
-            <div><span class="label">Prom Duración</span> ${fmtMin(l.promDuracionMin)}</div>
-            <div><span class="label">Prom Total</span> ${fmtMin(l.promTotalMin)}</div>
+            <div><span class="label">Locomotoras</span> ${escapeHtml(e.totalLocomotoras)}</div>
+            <div><span class="label">Torno</span> ${escapeHtml(e.totalTorno)}</div>
+            <div><span class="label">Lavado</span> ${escapeHtml(e.totalLavado)}</div>
+            <div><span class="label">Torno+Lavado</span> ${escapeHtml(e.totalTornoLavado)}</div>
+            <div><span class="label">Sin TL</span> ${escapeHtml(e.totalSinTornoLavado)}</div>
+            <div><span class="label">Prom Espera</span> ${fmtMin(e.promEsperaMin)}</div>
+            <div><span class="label">Prom Duración</span> ${fmtMin(e.promDuracionMin)}</div>
+            <div><span class="label">Prom Total</span> ${fmtMin(e.promTotalMin)}</div>
           </div>
           <table>
             <thead>
@@ -155,15 +147,15 @@ function buildHtml(reporte: LocomotorasReporte) {
                 <th>Espera</th>
                 <th>Duración</th>
                 <th>Total</th>
+                <th>Locomotora</th>
                 <th>Estado</th>
                 <th>Tipo</th>
                 <th>Torno</th>
                 <th>Lavado</th>
                 <th>Cliente</th>
                 <th>Operador</th>
-                <th>Empresa</th>
-                <th>Localidad</th>
                 <th>Solicitado por</th>
+                <th>Localidad</th>
               </tr>
             </thead>
             <tbody>
@@ -184,12 +176,12 @@ function buildHtml(reporte: LocomotorasReporte) {
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            padding: 28px 30px 40px;
+            padding: 20px 24px 32px;
             font-family: "Helvetica Neue", Arial, sans-serif;
             color: #0f172a;
           }
           .title {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 800;
             margin-bottom: 6px;
           }
@@ -201,13 +193,13 @@ function buildHtml(reporte: LocomotorasReporte) {
           .divider {
             height: 1px;
             background: #e2e8f0;
-            margin: 16px 0 18px;
+            margin: 12px 0 16px;
           }
           .card {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
-            padding: 14px 14px 10px;
-            margin-bottom: 16px;
+            padding: 12px 12px 8px;
+            margin-bottom: 14px;
             page-break-inside: avoid;
           }
           .card-head {
@@ -215,10 +207,10 @@ function buildHtml(reporte: LocomotorasReporte) {
             justify-content: space-between;
             align-items: baseline;
             gap: 12px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
           }
           .card-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
           }
           .card-sub {
@@ -227,7 +219,7 @@ function buildHtml(reporte: LocomotorasReporte) {
           }
           .mini {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 8px;
             font-size: 11px;
             color: #475569;
@@ -250,41 +242,39 @@ function buildHtml(reporte: LocomotorasReporte) {
             font-weight: 700;
             color: #1e293b;
             border-bottom: 1px solid #e2e8f0;
-            padding: 5px 6px 5px 0;
+            padding: 4px 6px 4px 0;
           }
           td {
-            padding: 5px 6px 5px 0;
+            padding: 4px 6px 4px 0;
             border-bottom: 1px solid #f1f5f9;
           }
           .empty {
             text-align: center;
             color: #94a3b8;
-            padding: 12px 0;
+            padding: 10px 0;
           }
           .footer {
-            margin-top: 16px;
-            font-size: 11px;
+            margin-top: 14px;
+            font-size: 10px;
             color: #64748b;
           }
         </style>
       </head>
       <body>
-        <div class="title">Reporte de Locomotoras</div>
+        <div class="title">Reporte de Movimientos por Empresa</div>
         <div class="meta">Rango (MX): ${escapeHtml(rangoDesde)} → ${escapeHtml(rangoHasta)}</div>
-        <div class="meta">Locomotoras: ${escapeHtml(locomotoras || '—')}</div>
         <div class="meta">Zona horaria: ${escapeHtml(meta.tz)}</div>
-
         <div class="divider"></div>
 
         ${cards}
 
-        <div class="footer">Generado por Reportería · Locomotoras</div>
+        <div class="footer">Generado por Reportería · Empresas</div>
       </body>
     </html>
   `;
 }
 
-export async function exportarReporteLocomotorasPDF(reporte: LocomotorasReporte): Promise<PdfFile> {
+export async function exportarReporteEmpresasPDF(reporte: EmpresasReporte): Promise<PdfFile> {
   const browser = await getBrowser();
   const page = await browser.newPage();
 
@@ -294,12 +284,12 @@ export async function exportarReporteLocomotorasPDF(reporte: LocomotorasReporte)
     format: 'A4',
     landscape: true,
     printBackground: true,
-    margin: { top: '18mm', bottom: '18mm', left: '12mm', right: '12mm' },
+    margin: { top: '12mm', bottom: '12mm', left: '10mm', right: '10mm' },
   });
 
   await page.close();
 
-  const filename = `Reporte_Locomotoras_${safeFilename(`${reporte.meta.fechaInicio}_${reporte.meta.fechaFin}`)}.pdf`;
+  const filename = `Reporte_Empresas_${safeFilename(`${reporte.meta.fechaInicio}_${reporte.meta.fechaFin}`)}.pdf`;
 
   return {
     filename,

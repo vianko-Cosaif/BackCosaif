@@ -1,15 +1,14 @@
-// reporteria/modelos/locomotoras-excel.ts
-// Genera .xlsx para reporte de locomotoras desde plantilla.
+// reporteria/modelos/empresas-excel.ts
+// Genera .xlsx para reporte por empresa desde plantilla.
 //
 // Estrategia (sin SheetJS Pro):
 // - La plantilla trae tablas/estilos/gráficas creadas manualmente en Excel.
 // - Este código solo rellena las hojas de datos.
-// - Las gráficas se refrescan al abrir el archivo.
 
 import path from 'path';
 import fs from 'fs';
 import ExcelJS from 'exceljs';
-import { LocomotorasReporteriaModel, type LocomotorasReporte } from './locomotoras-model';
+import { EmpresasReporteriaModel, type EmpresasReporte } from './empresas-model';
 
 export type ExcelFile = {
   filename: string;
@@ -31,8 +30,17 @@ function parseIntOpt(v: any): number | undefined {
   return Number.isFinite(n) ? Math.trunc(n) : undefined;
 }
 
+function parseEmpresaIds(input: any): number[] {
+  if (!input) return [];
+  if (Array.isArray(input)) input = input.join(',');
+  return String(input)
+    .split(/[,\s]+/)
+    .map((s) => Number(String(s).trim()))
+    .filter((n) => Number.isFinite(n));
+}
+
 function safeFilename(name: string) {
-  return String(name || 'Locomotoras')
+  return String(name || 'Empresas')
     .trim()
     .replace(/[^\w.-]+/g, '_')
     .replace(/_+/g, '_')
@@ -41,10 +49,10 @@ function safeFilename(name: string) {
 
 function findTemplatePath() {
   const candidates = [
-    path.join(process.cwd(), 'reporteria', 'plantillas', 'Locomotoras_Reporteria.xlsx'),
-    path.join(process.cwd(), 'src', 'reporteria', 'plantillas', 'Locomotoras_Reporteria.xlsx'),
-    path.resolve(__dirname, '..', 'plantillas', 'Locomotoras_Reporteria.xlsx'),
-    path.resolve(__dirname, '..', '..', 'reporteria', 'plantillas', 'Locomotoras_Reporteria.xlsx'),
+    path.join(process.cwd(), 'reporteria', 'plantillas', 'Empresas_Reporteria.xlsx'),
+    path.join(process.cwd(), 'src', 'reporteria', 'plantillas', 'Empresas_Reporteria.xlsx'),
+    path.resolve(__dirname, '..', 'plantillas', 'Empresas_Reporteria.xlsx'),
+    path.resolve(__dirname, '..', '..', 'reporteria', 'plantillas', 'Empresas_Reporteria.xlsx'),
   ];
 
   for (const p of candidates) {
@@ -56,7 +64,7 @@ function findTemplatePath() {
   }
 
   throw new Error(
-    `File not found: no se encontró la plantilla Locomotoras_Reporteria.xlsx. Probé: ${candidates.join(' | ')}`
+    `File not found: no se encontró la plantilla Empresas_Reporteria.xlsx. Probé: ${candidates.join(' | ')}`
   );
 }
 
@@ -107,7 +115,6 @@ function setAutoFilterOnHeader(ws: ExcelJS.Worksheet) {
 }
 
 function sheetRef(name: string) {
-  // Excel requiere comillas simples si el nombre tiene espacios
   return `'${String(name).replace(/'/g, "''")}'`;
 }
 
@@ -119,16 +126,16 @@ function fmtTZ(iso: string | null, tz: string) {
   return s.length >= 16 ? s.slice(0, 16) : s;
 }
 
-function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte) {
+function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
 
-  // Cada movimiento real genera una fila. Si no hay movimientos, no se agrega placeholder
-  // para no afectar fórmulas de conteo en la hoja Resumen.
-  for (const loco of data.locomotoras) {
-    for (const m of loco.movimientos) {
+  for (const emp of data.empresas) {
+    for (const m of emp.movimientos) {
       ws.addRow([
-        loco.locomotiveNumber,
+        m.empresaId,
+        m.empresa,
+        m.locomotiveNumber,
         fmtTZ(m.fechaSolicitudUTC, data.meta.tz),
         fmtTZ(m.fechaInicioUTC, data.meta.tz),
         fmtTZ(m.fechaFinUTC, data.meta.tz),
@@ -141,25 +148,26 @@ function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte) {
         m.lavado ? 'SI' : 'NO',
         m.clienteNombre ?? '—',
         m.operadorNombre ?? '—',
-        m.empresa ?? '—',
-        m.localidad ?? '—',
         m.solicitadoPor ?? '—',
+        m.localidad ?? '—',
       ]);
     }
   }
 }
 
-function fillResumenSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte, movSheetName: string) {
+function fillResumenSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte, movSheetName: string) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
 
   const movRef = sheetRef(movSheetName);
-  let rowIndex = 2; // fila 1 = header
+  let rowIndex = 2;
 
-  for (const loco of data.locomotoras) {
+  for (const emp of data.empresas) {
     const row = ws.addRow([
-      loco.locomotiveNumber,
+      emp.empresaId,
+      emp.empresa,
       null,
+      emp.totalLocomotoras,
       null,
       null,
       null,
@@ -169,89 +177,81 @@ function fillResumenSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte, movSh
       null,
     ]);
 
-    // Fórmulas (con resultados precargados) para refresco automático en Excel
-    row.getCell(2).value = {
-      formula: `COUNTIF(${movRef}!$A:$A, A${rowIndex})`,
-      result: loco.totalMovimientos,
-    };
+    // Fórmulas con resultados precargados
     row.getCell(3).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$J:$J, "SI")`,
-      result: loco.totalTorno,
-    };
-    row.getCell(4).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$K:$K, "SI")`,
-      result: loco.totalLavado,
+      formula: `COUNTIF(${movRef}!$A:$A, A${rowIndex})`,
+      result: emp.totalMovimientos,
     };
     row.getCell(5).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$J:$J, "SI", ${movRef}!$K:$K, "SI")`,
-      result: loco.totalTornoLavado,
+      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "SI")`,
+      result: emp.totalTorno,
     };
     row.getCell(6).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$J:$J, "NO", ${movRef}!$K:$K, "NO")`,
-      result: loco.totalSinTornoLavado,
+      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$M:$M, "SI")`,
+      result: emp.totalLavado,
     };
     row.getCell(7).value = {
-      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$E:$E)`,
-      result: loco.promEsperaMin ?? null,
+      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "SI", ${movRef}!$M:$M, "SI")`,
+      result: emp.totalTornoLavado,
     };
     row.getCell(8).value = {
-      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$F:$F)`,
-      result: loco.promDuracionMin ?? null,
+      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "NO", ${movRef}!$M:$M, "NO")`,
+      result: emp.totalSinTornoLavado,
     };
     row.getCell(9).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`,
-      result: loco.promTotalMin ?? null,
+      result: emp.promEsperaMin ?? null,
+    };
+    row.getCell(10).value = {
+      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$H:$H)`,
+      result: emp.promDuracionMin ?? null,
+    };
+    row.getCell(11).value = {
+      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$I:$I)`,
+      result: emp.promTotalMin ?? null,
     };
 
     rowIndex += 1;
   }
 }
 
-function tryWriteDashboard(wb: ExcelJS.Workbook, data: LocomotorasReporte) {
+function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
   const ws = wsByNameLoose(wb, 'Dashboard');
   if (!ws) return;
 
   try {
     ws.getCell('B2').value = `${data.meta.fechaInicio} → ${data.meta.fechaFin}`;
     ws.getCell('B3').value = data.meta.tz;
-    ws.getCell('B4').value = data.meta.locomotoras.join(', ');
+    ws.getCell('B4').value = data.meta.empresaIds?.length
+      ? data.meta.empresaIds.join(', ')
+      : 'Todas';
     ws.getCell('B5').value = `${data.meta.rangoLocal.desde} → ${data.meta.rangoLocal.hastaExclusivo}`;
   } catch {
     // noop
   }
 }
 
-export async function exportarReporteLocomotorasExcel(params: {
+export async function exportarReporteEmpresasExcel(params: {
   fechaInicio: any;
   fechaFin: any;
   tz?: any;
-  locomotoras: any[];
+  empresaIds?: any;
   localidadId?: any;
-  empresaId?: any;
 }): Promise<ExcelFile> {
   const tz = String(params.tz ?? 'America/Mexico_City').trim() || 'America/Mexico_City';
   const fechaInicio = assertYYYYMMDD(params.fechaInicio);
   const fechaFin = assertYYYYMMDD(params.fechaFin);
 
-  const locomotoras = Array.from(new Set((params.locomotoras ?? [])
-    .map((n) => Number(n))
-    .filter((n) => Number.isFinite(n))));
-
-  if (!locomotoras.length) {
-    throw new Error('Debes enviar al menos una locomotora en la consulta.');
-  }
-
+  const empresaIds = parseEmpresaIds(params.empresaIds);
   const localidadId = parseIntOpt(params.localidadId);
-  const empresaId = parseIntOpt(params.empresaId);
 
-  // 1) Data (ya hace conversión a UTC por fechaInicio local)
-  const data = await LocomotorasReporteriaModel.reportePorFechas({
+  // 1) Data
+  const data = await EmpresasReporteriaModel.reportePorFechas({
     fechaInicio,
     fechaFin,
     tz,
-    locomotoras,
+    empresaIds,
     localidadId,
-    empresaId,
   });
 
   // 2) Plantilla
@@ -261,13 +261,13 @@ export async function exportarReporteLocomotorasExcel(params: {
 
   // 3) Hojas base
   const wsMov = wsOrThrow(wb, 'Movimientos', ['MOVIMIENTOS', 'Movimiento', 'MOVIMIENTO']);
-  const wsRes = wsOrThrow(wb, 'Resumen', ['RESUMEN', 'Summary', 'RESUMEN_LOCOMOTORAS']);
+  const wsRes = wsOrThrow(wb, 'Resumen', ['RESUMEN', 'Summary', 'RESUMEN_EMPRESAS']);
 
   fillMovimientosSheet(wsMov, data);
   fillResumenSheet(wsRes, data, wsMov.name);
   tryWriteDashboard(wb, data);
 
-  const etiqueta = `Locomotoras_${data.meta.fechaInicio}_${data.meta.fechaFin}`;
+  const etiqueta = `Empresas_${data.meta.fechaInicio}_${data.meta.fechaFin}`;
   const filename = `Reporte_${safeFilename(etiqueta)}.xlsx`;
 
   const buffer = await wb.xlsx.writeBuffer();
