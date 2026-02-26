@@ -212,10 +212,135 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: LocomotorasReporte) {
   if (!ws) return;
 
   try {
+    // ---- Preparar layout base ----
+    ws.getCell('A1').value = 'Dashboard';
+    ws.getCell('A2').value = 'Rango (MX):';
+    ws.getCell('A3').value = 'TZ:';
+    ws.getCell('A4').value = 'Locomotoras:';
+    ws.getCell('A5').value = 'Rango Local ISO:';
+
+    ws.getCell('A7').value = 'KPIs';
+    ws.getCell('A8').value = 'Total locomotoras';
+    ws.getCell('A9').value = 'Total movimientos';
+    ws.getCell('A10').value = 'Torno';
+    ws.getCell('A11').value = 'Lavado';
+    ws.getCell('A12').value = 'Torno + Lavado';
+    ws.getCell('A13').value = 'Sin TL';
+    ws.getCell('A14').value = 'Prom Espera (min)';
+    ws.getCell('A15').value = 'Prom Duración (min)';
+    ws.getCell('A16').value = 'Prom Total (min)';
+
+    ws.getCell('D7').value = 'Top movimientos';
+    ws.getCell('D8').value = 'Locomotora';
+    ws.getCell('E8').value = 'Movimientos';
+    ws.getCell('F8').value = 'Grafica';
+
+    ws.getCell('H7').value = 'Tiempos promedio (min)';
+    ws.getCell('H8').value = 'Locomotora';
+    ws.getCell('I8').value = 'Espera';
+    ws.getCell('J8').value = 'Duración';
+    ws.getCell('K8').value = 'Total';
+    ws.getCell('L8').value = 'Grafica';
+
+    // Estilos básicos
+    ws.getRow(1).font = { bold: true, size: 14 };
+    ws.getRow(7).font = { bold: true };
+    ws.getRow(8).font = { bold: true };
+    ws.getRow(8).height = 18;
+    ws.getColumn('A').width = 22;
+    ws.getColumn('B').width = 34;
+    ws.getColumn('D').width = 14;
+    ws.getColumn('E').width = 16;
+    ws.getColumn('F').width = 22;
+    ws.getColumn('H').width = 14;
+    ws.getColumn('I').width = 14;
+    ws.getColumn('J').width = 14;
+    ws.getColumn('K').width = 14;
+    ws.getColumn('L').width = 22;
+
+    // ---- Valores base ----
     ws.getCell('B2').value = `${data.meta.fechaInicio} → ${data.meta.fechaFin}`;
     ws.getCell('B3').value = data.meta.tz;
     ws.getCell('B4').value = data.meta.locomotoras.join(', ');
     ws.getCell('B5').value = `${data.meta.rangoLocal.desde} → ${data.meta.rangoLocal.hastaExclusivo}`;
+
+    const allMovs = data.locomotoras.flatMap((l) => l.movimientos);
+    const totalLocos = data.locomotoras.length;
+    const totalMovs = allMovs.length;
+    const totalTorno = data.locomotoras.reduce((acc, l) => acc + l.totalTorno, 0);
+    const totalLavado = data.locomotoras.reduce((acc, l) => acc + l.totalLavado, 0);
+    const totalTornoLavado = data.locomotoras.reduce((acc, l) => acc + l.totalTornoLavado, 0);
+    const totalSinTL = data.locomotoras.reduce((acc, l) => acc + l.totalSinTornoLavado, 0);
+
+    let esperaSum = 0;
+    let esperaN = 0;
+    let durSum = 0;
+    let durN = 0;
+    let totalSum = 0;
+    let totalN = 0;
+    for (const m of allMovs) {
+      if (m.esperaMin !== null && m.esperaMin !== undefined) {
+        esperaSum += m.esperaMin;
+        esperaN += 1;
+      }
+      if (m.duracionMin !== null && m.duracionMin !== undefined) {
+        durSum += m.duracionMin;
+        durN += 1;
+      }
+      if (m.totalMin !== null && m.totalMin !== undefined) {
+        totalSum += m.totalMin;
+        totalN += 1;
+      }
+    }
+    const promEspera = esperaN ? Math.round(esperaSum / esperaN) : null;
+    const promDuracion = durN ? Math.round(durSum / durN) : null;
+    const promTotal = totalN ? Math.round(totalSum / totalN) : null;
+
+    ws.getCell('B8').value = totalLocos;
+    ws.getCell('B9').value = totalMovs;
+    ws.getCell('B10').value = totalTorno;
+    ws.getCell('B11').value = totalLavado;
+    ws.getCell('B12').value = totalTornoLavado;
+    ws.getCell('B13').value = totalSinTL;
+    ws.getCell('B14').value = promEspera ?? '';
+    ws.getCell('B15').value = promDuracion ?? '';
+    ws.getCell('B16').value = promTotal ?? '';
+
+    // ---- Top movimientos + sparklines ----
+    const top = [...data.locomotoras].sort((a, b) => b.totalMovimientos - a.totalMovimientos).slice(0, 10);
+    const startRow = 9;
+    const endRow = 18;
+
+    // limpia area anterior
+    for (let r = startRow; r <= endRow; r += 1) {
+      ws.getCell(`D${r}`).value = '';
+      ws.getCell(`E${r}`).value = '';
+      ws.getCell(`F${r}`).value = '';
+      ws.getCell(`H${r}`).value = '';
+      ws.getCell(`I${r}`).value = '';
+      ws.getCell(`J${r}`).value = '';
+      ws.getCell(`K${r}`).value = '';
+      ws.getCell(`L${r}`).value = '';
+    }
+
+    top.forEach((l, idx) => {
+      const row = startRow + idx;
+      ws.getCell(`D${row}`).value = l.locomotiveNumber;
+      ws.getCell(`E${row}`).value = l.totalMovimientos;
+      ws.getCell(`F${row}`).value = {
+        formula: `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${startRow}:$E$${endRow})})`,
+        result: 0,
+      };
+
+      ws.getCell(`H${row}`).value = l.locomotiveNumber;
+      ws.getCell(`I${row}`).value = l.promEsperaMin ?? null;
+      ws.getCell(`J${row}`).value = l.promDuracionMin ?? null;
+      ws.getCell(`K${row}`).value = l.promTotalMin ?? null;
+      ws.getCell(`L${row}`).value = {
+        formula: `SPARKLINE(I${row}:K${row}, {\"charttype\",\"column\"})`,
+        result: 0,
+      };
+    });
   } catch {
     // noop
   }
