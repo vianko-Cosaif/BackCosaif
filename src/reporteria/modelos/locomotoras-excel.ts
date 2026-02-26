@@ -119,9 +119,21 @@ function fmtTZ(iso: string | null, tz: string) {
   return s.length >= 16 ? s.slice(0, 16) : s;
 }
 
+const TIME_FMT = '[h]"h" mm"m"';
+
+function toExcelTime(min: number | null | undefined) {
+  if (min === null || min === undefined || !Number.isFinite(min)) return null;
+  return min / 1440; // Excel time serial (days)
+}
+
 function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
+
+  // Formato humano para tiempos
+  ws.getColumn(5).numFmt = TIME_FMT; // Espera
+  ws.getColumn(6).numFmt = TIME_FMT; // Duración
+  ws.getColumn(7).numFmt = TIME_FMT; // Total
 
   // Cada movimiento real genera una fila. Si no hay movimientos, no se agrega placeholder
   // para no afectar fórmulas de conteo en la hoja Resumen.
@@ -132,9 +144,9 @@ function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte) {
         fmtTZ(m.fechaSolicitudUTC, data.meta.tz),
         fmtTZ(m.fechaInicioUTC, data.meta.tz),
         fmtTZ(m.fechaFinUTC, data.meta.tz),
-        m.esperaMin ?? null,
-        m.duracionMin ?? null,
-        m.totalMin ?? null,
+        toExcelTime(m.esperaMin),
+        toExcelTime(m.duracionMin),
+        toExcelTime(m.totalMin),
         m.estado,
         m.tipoMovimiento ?? '—',
         m.torno ? 'SI' : 'NO',
@@ -152,6 +164,11 @@ function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte) {
 function fillResumenSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte, movSheetName: string) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
+
+  // Formato humano para promedios
+  ws.getColumn(7).numFmt = TIME_FMT;
+  ws.getColumn(8).numFmt = TIME_FMT;
+  ws.getColumn(9).numFmt = TIME_FMT;
 
   const movRef = sheetRef(movSheetName);
   let rowIndex = 2; // fila 1 = header
@@ -192,15 +209,15 @@ function fillResumenSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte, movSh
     };
     row.getCell(7).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$E:$E)`,
-      result: loco.promEsperaMin ?? undefined,
+      result: toExcelTime(loco.promEsperaMin) ?? undefined,
     };
     row.getCell(8).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$F:$F)`,
-      result: loco.promDuracionMin ?? undefined,
+      result: toExcelTime(loco.promDuracionMin) ?? undefined,
     };
     row.getCell(9).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`,
-      result: loco.promTotalMin ?? undefined,
+      result: toExcelTime(loco.promTotalMin) ?? undefined,
     };
 
     rowIndex += 1;
@@ -302,9 +319,12 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: LocomotorasReporte) {
     ws.getCell('B11').value = totalLavado;
     ws.getCell('B12').value = totalTornoLavado;
     ws.getCell('B13').value = totalSinTL;
-    ws.getCell('B14').value = promEspera ?? '';
-    ws.getCell('B15').value = promDuracion ?? '';
-    ws.getCell('B16').value = promTotal ?? '';
+    ws.getCell('B14').value = toExcelTime(promEspera ?? null) ?? '';
+    ws.getCell('B15').value = toExcelTime(promDuracion ?? null) ?? '';
+    ws.getCell('B16').value = toExcelTime(promTotal ?? null) ?? '';
+    ws.getCell('B14').numFmt = TIME_FMT;
+    ws.getCell('B15').numFmt = TIME_FMT;
+    ws.getCell('B16').numFmt = TIME_FMT;
 
     // ---- Top movimientos + sparklines ----
     const top = [...data.locomotoras].sort((a, b) => b.totalMovimientos - a.totalMovimientos).slice(0, 10);
@@ -333,9 +353,12 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: LocomotorasReporte) {
       };
 
       ws.getCell(`H${row}`).value = l.locomotiveNumber;
-      ws.getCell(`I${row}`).value = l.promEsperaMin ?? null;
-      ws.getCell(`J${row}`).value = l.promDuracionMin ?? null;
-      ws.getCell(`K${row}`).value = l.promTotalMin ?? null;
+      ws.getCell(`I${row}`).value = toExcelTime(l.promEsperaMin);
+      ws.getCell(`J${row}`).value = toExcelTime(l.promDuracionMin);
+      ws.getCell(`K${row}`).value = toExcelTime(l.promTotalMin);
+      ws.getCell(`I${row}`).numFmt = TIME_FMT;
+      ws.getCell(`J${row}`).numFmt = TIME_FMT;
+      ws.getCell(`K${row}`).numFmt = TIME_FMT;
       ws.getCell(`L${row}`).value = {
         formula: `SPARKLINE(I${row}:K${row}, {\"charttype\",\"column\"})`,
         result: 0,
