@@ -410,6 +410,19 @@ function buildHtml(reporte: EmpresasReporte) {
             border-radius: 999px;
             display: inline-block;
           }
+          .note {
+            margin-top: 12px;
+            background: #f1f5f9;
+            border: 1px dashed #cbd5f5;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 11px;
+            color: #475569;
+            line-height: 1.5;
+          }
+          .note strong {
+            color: #0f172a;
+          }
           .card {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
@@ -635,6 +648,13 @@ function buildHtml(reporte: EmpresasReporte) {
               <span><i class="dot seg-otros"></i> Otros</span>
             </div>
           </div>
+        </div>
+
+        <div class="note">
+          <strong>Definiciones:</strong>
+          TL = Torno + Lavado (ambos servicios en el mismo movimiento).
+          <strong>Sin TL</strong> significa que no tuvo ni torno ni lavado.
+          Los indicadores de Torno y Lavado muestran si el movimiento incluyó esos servicios.
         </div>
 
         <div class="divider"></div>
