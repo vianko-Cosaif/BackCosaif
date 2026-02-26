@@ -83,6 +83,40 @@ function buildHtml(reporte: LocomotorasReporte) {
   const rangoHasta = fmtTZ(meta.rangoUTC.hastaExclusivo, meta.tz);
   const locomotoras = meta.locomotoras.join(', ');
 
+  const allMovs = reporte.locomotoras.flatMap((l) => l.movimientos);
+  const totalLocos = reporte.locomotoras.length;
+  const totalMovs = allMovs.length;
+  const totalTorno = reporte.locomotoras.reduce((acc, l) => acc + l.totalTorno, 0);
+  const totalLavado = reporte.locomotoras.reduce((acc, l) => acc + l.totalLavado, 0);
+  const totalTornoLavado = reporte.locomotoras.reduce((acc, l) => acc + l.totalTornoLavado, 0);
+  const totalSinTL = reporte.locomotoras.reduce((acc, l) => acc + l.totalSinTornoLavado, 0);
+
+  const sumAvg = (key: 'esperaMin' | 'duracionMin' | 'totalMin') => {
+    let sum = 0;
+    let n = 0;
+    for (const m of allMovs) {
+      const v = m[key];
+      if (v !== null && v !== undefined && Number.isFinite(v)) {
+        sum += v;
+        n += 1;
+      }
+    }
+    return n ? Math.round(sum / n) : null;
+  };
+
+  const promEspera = sumAvg('esperaMin');
+  const promDuracion = sumAvg('duracionMin');
+  const promTotal = sumAvg('totalMin');
+
+  const chartLocos = [...reporte.locomotoras]
+    .sort((a, b) => b.totalMovimientos - a.totalMovimientos)
+    .slice(0, 10);
+  const maxMov = Math.max(1, ...chartLocos.map((l) => l.totalMovimientos));
+
+  const maxEspera = Math.max(1, ...chartLocos.map((l) => l.promEsperaMin ?? 0));
+  const maxDur = Math.max(1, ...chartLocos.map((l) => l.promDuracionMin ?? 0));
+  const maxTotal = Math.max(1, ...chartLocos.map((l) => l.promTotalMin ?? 0));
+
   const cards = reporte.locomotoras
     .map((l) => {
       const rows = l.movimientos.length
@@ -135,13 +169,15 @@ function buildHtml(reporte: LocomotorasReporte) {
         <section class="card">
           <div class="card-head">
             <div class="card-title">Locomotora ${escapeHtml(l.locomotiveNumber)}</div>
-            <div class="card-sub">Total movimientos: ${escapeHtml(l.totalMovimientos)}</div>
+            <div class="card-sub">Movimientos: ${escapeHtml(l.totalMovimientos)}</div>
+          </div>
+          <div class="chips">
+            <span class="chip chip-torno">Torno: ${escapeHtml(l.totalTorno)}</span>
+            <span class="chip chip-lavado">Lavado: ${escapeHtml(l.totalLavado)}</span>
+            <span class="chip chip-combo">Torno+Lavado: ${escapeHtml(l.totalTornoLavado)}</span>
+            <span class="chip chip-sin">Sin TL: ${escapeHtml(l.totalSinTornoLavado)}</span>
           </div>
           <div class="mini">
-            <div><span class="label">Torno</span> ${escapeHtml(l.totalTorno)}</div>
-            <div><span class="label">Lavado</span> ${escapeHtml(l.totalLavado)}</div>
-            <div><span class="label">Torno+Lavado</span> ${escapeHtml(l.totalTornoLavado)}</div>
-            <div><span class="label">Sin TL</span> ${escapeHtml(l.totalSinTornoLavado)}</div>
             <div><span class="label">Prom Espera</span> ${fmtMin(l.promEsperaMin)}</div>
             <div><span class="label">Prom Duración</span> ${fmtMin(l.promDuracionMin)}</div>
             <div><span class="label">Prom Total</span> ${fmtMin(l.promTotalMin)}</div>
@@ -181,12 +217,29 @@ function buildHtml(reporte: LocomotorasReporte) {
       <head>
         <meta charset="utf-8" />
         <style>
+          :root {
+            --ink: #0f172a;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --bg: #f8fafc;
+            --brand: #0ea5e9;
+            --brand-2: #22c55e;
+            --brand-3: #f59e0b;
+            --chip: #e2e8f0;
+          }
           * { box-sizing: border-box; }
           body {
             margin: 0;
-            padding: 28px 30px 40px;
+            padding: 26px 28px 36px;
             font-family: "Helvetica Neue", Arial, sans-serif;
-            color: #0f172a;
+            color: var(--ink);
+            background: var(--bg);
+          }
+          .hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0ea5e9 140%);
+            color: white;
+            padding: 18px 20px;
+            border-radius: 14px;
           }
           .title {
             font-size: 22px;
@@ -195,20 +248,131 @@ function buildHtml(reporte: LocomotorasReporte) {
           }
           .meta {
             font-size: 12px;
-            color: #334155;
+            color: rgba(255,255,255,0.85);
             line-height: 1.5;
           }
           .divider {
             height: 1px;
-            background: #e2e8f0;
+            background: var(--line);
             margin: 16px 0 18px;
           }
+          .section-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--ink);
+            margin: 14px 0 8px;
+          }
+          .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+          }
+          .kpi {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+          }
+          .kpi .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: var(--muted);
+            font-weight: 700;
+          }
+          .kpi .value {
+            font-size: 18px;
+            font-weight: 800;
+            margin-top: 4px;
+          }
+          .charts {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+          }
+          .chart {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+          }
+          .chart-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--ink);
+            margin-bottom: 8px;
+          }
+          .bar-row {
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 6px;
+          }
+          .bar-row .label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 700;
+          }
+          .bar {
+            position: relative;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+          }
+          .bar-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+          }
+          .bar-val {
+            position: absolute;
+            right: 6px;
+            top: -4px;
+            font-size: 10px;
+            color: #1e293b;
+            font-weight: 700;
+          }
+          .time-row {
+            display: grid;
+            grid-template-columns: 70px 1fr;
+            gap: 10px;
+            align-items: start;
+            margin-bottom: 8px;
+          }
+          .time-bars {
+            display: grid;
+            gap: 4px;
+          }
+          .time-bar {
+            height: 10px;
+            border-radius: 999px;
+            position: relative;
+          }
+          .time-bar span {
+            position: absolute;
+            right: 6px;
+            top: -4px;
+            font-size: 10px;
+            color: #1e293b;
+            font-weight: 700;
+          }
+          .time-espera { background: #fde68a; }
+          .time-duracion { background: #86efac; }
+          .time-total { background: #93c5fd; }
           .card {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
             padding: 14px 14px 10px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             page-break-inside: avoid;
+            background: white;
           }
           .card-head {
             display: flex;
@@ -225,10 +389,28 @@ function buildHtml(reporte: LocomotorasReporte) {
             font-size: 12px;
             color: #475569;
           }
+          .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0 6px;
+          }
+          .chip {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--chip);
+            color: #0f172a;
+          }
+          .chip-torno { background: #dbeafe; color: #1e3a8a; }
+          .chip-lavado { background: #dcfce7; color: #166534; }
+          .chip-combo { background: #fef3c7; color: #92400e; }
+          .chip-sin { background: #f1f5f9; color: #334155; }
           .mini {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 6px;
             font-size: 11px;
             color: #475569;
             margin: 6px 0 10px;
@@ -269,10 +451,97 @@ function buildHtml(reporte: LocomotorasReporte) {
         </style>
       </head>
       <body>
-        <div class="title">Reporte de Locomotoras</div>
-        <div class="meta">Rango (MX): ${escapeHtml(rangoDesde)} → ${escapeHtml(rangoHasta)}</div>
-        <div class="meta">Locomotoras: ${escapeHtml(locomotoras || '—')}</div>
-        <div class="meta">Zona horaria: ${escapeHtml(meta.tz)}</div>
+        <div class="hero">
+          <div class="title">Reporte de Locomotoras</div>
+          <div class="meta">Rango (MX): ${escapeHtml(rangoDesde)} → ${escapeHtml(rangoHasta)}</div>
+          <div class="meta">Locomotoras: ${escapeHtml(locomotoras || '—')}</div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="label">Locomotoras</div>
+            <div class="value">${escapeHtml(totalLocos)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Movimientos</div>
+            <div class="value">${escapeHtml(totalMovs)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Torno</div>
+            <div class="value">${escapeHtml(totalTorno)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Lavado</div>
+            <div class="value">${escapeHtml(totalLavado)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Torno + Lavado</div>
+            <div class="value">${escapeHtml(totalTornoLavado)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Sin TL</div>
+            <div class="value">${escapeHtml(totalSinTL)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Prom Espera</div>
+            <div class="value">${fmtMin(promEspera)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Prom Duracion</div>
+            <div class="value">${fmtMin(promDuracion)}</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Prom Total</div>
+            <div class="value">${fmtMin(promTotal)}</div>
+          </div>
+        </div>
+
+        <div class="section-title">Graficas</div>
+        <div class="charts">
+          <div class="chart">
+            <div class="chart-title">Movimientos por locomotora (Top ${escapeHtml(chartLocos.length)})</div>
+            ${chartLocos.length
+              ? chartLocos
+                .map((l) => {
+                  const pct = Math.max(3, Math.round((l.totalMovimientos / maxMov) * 100));
+                  return `
+                    <div class="bar-row">
+                      <div class="label">L-${escapeHtml(l.locomotiveNumber)}</div>
+                      <div class="bar">
+                        <div class="bar-fill" style="width:${pct}%"></div>
+                        <div class="bar-val">${escapeHtml(l.totalMovimientos)}</div>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join('')
+              : '<div class="meta">Sin datos.</div>'
+            }
+          </div>
+          <div class="chart">
+            <div class="chart-title">Tiempos promedio por locomotora (min)</div>
+            ${chartLocos.length
+              ? chartLocos
+                .map((l) => {
+                  const esperaPct = Math.max(2, Math.round(((l.promEsperaMin ?? 0) / maxEspera) * 100));
+                  const durPct = Math.max(2, Math.round(((l.promDuracionMin ?? 0) / maxDur) * 100));
+                  const totalPct = Math.max(2, Math.round(((l.promTotalMin ?? 0) / maxTotal) * 100));
+                  return `
+                    <div class="time-row">
+                      <div class="label">L-${escapeHtml(l.locomotiveNumber)}</div>
+                      <div class="time-bars">
+                        <div class="time-bar time-espera" style="width:${esperaPct}%"><span>${fmtMin(l.promEsperaMin)}</span></div>
+                        <div class="time-bar time-duracion" style="width:${durPct}%"><span>${fmtMin(l.promDuracionMin)}</span></div>
+                        <div class="time-bar time-total" style="width:${totalPct}%"><span>${fmtMin(l.promTotalMin)}</span></div>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join('')
+              : '<div class="meta">Sin datos.</div>'
+            }
+          </div>
+        </div>
 
         <div class="divider"></div>
 
