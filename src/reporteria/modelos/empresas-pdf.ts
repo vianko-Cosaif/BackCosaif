@@ -76,6 +76,159 @@ function fmtMin(n: number | null | undefined) {
   return `${h}h ${m}m`;
 }
 
+function localDateKey(iso: string | null, tz: string) {
+  if (!iso) return null;
+  const d = new Date(String(iso));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('sv-SE', { timeZone: tz });
+}
+
+function buildLineChart(labels: string[], values: number[]) {
+  const w = 540;
+  const h = 160;
+  const padX = 26;
+  const padY = 18;
+  const max = Math.max(1, ...values);
+  const stepX = labels.length > 1 ? (w - padX * 2) / (labels.length - 1) : 0;
+  const scaleY = (h - padY * 2) / max;
+
+  const points = values.map((v, i) => {
+    const x = padX + stepX * i;
+    const y = h - padY - v * scaleY;
+    return `${x},${y}`;
+  });
+
+  const path = points.length ? `M ${points.join(' L ')}` : '';
+  const area = points.length
+    ? `M ${padX},${h - padY} L ${points.join(' L ')} L ${padX + stepX * (points.length - 1)},${h - padY} Z`
+    : '';
+
+  const gridLines = [0.25, 0.5, 0.75].map((p, idx) => {
+    const y = h - padY - (h - padY * 2) * p;
+    return `<line x1="${padX}" y1="${y}" x2="${w - padX}" y2="${y}" stroke="#e2e8f0" stroke-width="1" />`;
+  }).join('');
+
+  const lastVal = values.length ? values[values.length - 1] : 0;
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="160" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lineArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${gridLines}
+      ${area ? `<path d="${area}" fill="url(#lineArea)" />` : ''}
+      ${path ? `<path d="${path}" fill="none" stroke="#14b8a6" stroke-width="2.5" />` : ''}
+      ${points.length ? `<circle cx="${points[points.length - 1].split(',')[0]}" cy="${points[points.length - 1].split(',')[1]}" r="3.5" fill="#0f172a" />` : ''}
+      <text x="${w - padX}" y="${padY}" text-anchor="end" font-size="10" fill="#64748b">Max ${max}</text>
+      <text x="${w - padX}" y="${h - 4}" text-anchor="end" font-size="10" fill="#0f172a">Último: ${lastVal}</text>
+    </svg>
+  `;
+}
+
+function buildDonut(segments: { label: string; value: number; color: string }[]) {
+  const size = 180;
+  const r = 62;
+  const c = 2 * Math.PI * r;
+  const total = segments.reduce((acc, s) => acc + s.value, 0) || 1;
+
+  let offset = 0;
+  const circles = segments
+    .filter((s) => s.value > 0)
+    .map((s) => {
+      const dash = (s.value / total) * c;
+      const circle = `
+        <circle cx="90" cy="90" r="${r}" fill="transparent"
+          stroke="${s.color}" stroke-width="16"
+          stroke-dasharray="${dash} ${c - dash}"
+          stroke-dashoffset="${-offset}" />
+      `;
+      offset += dash;
+      return circle;
+    })
+    .join('');
+
+  return `
+    <svg viewBox="0 0 ${size} ${size}" width="180" height="180">
+      <circle cx="90" cy="90" r="${r}" fill="transparent" stroke="#e2e8f0" stroke-width="16" />
+      ${circles}
+      <text x="90" y="94" text-anchor="middle" font-size="16" font-weight="700" fill="#0f172a">${Math.round(total)}</text>
+      <text x="90" y="110" text-anchor="middle" font-size="10" fill="#64748b">movs</text>
+    </svg>
+  `;
+}
+
+function buildBarChart(labels: string[], values: number[]) {
+  const w = 520;
+  const h = 180;
+  const padX = 110;
+  const padY = 16;
+  const max = Math.max(1, ...values);
+  const barH = 12;
+  const gap = 10;
+
+  const rows = labels.map((label, i) => {
+    const y = padY + i * (barH + gap);
+    const barW = Math.max(8, Math.round(((values[i] || 0) / max) * (w - padX - 16)));
+    return `
+      <text x="0" y="${y + barH - 2}" font-size="10" fill="#64748b">${escapeHtml(label)}</text>
+      <rect x="${padX}" y="${y}" width="${barW}" height="${barH}" rx="6" fill="#14b8a6"></rect>
+      <text x="${padX + barW + 6}" y="${y + barH - 2}" font-size="10" fill="#0f172a">${values[i] ?? 0}</text>
+    `;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}">
+      ${rows}
+    </svg>
+  `;
+}
+
+function buildGroupedBars(labels: string[], series: { name: string; color: string; values: number[] }[]) {
+  const w = 520;
+  const h = 190;
+  const padX = 80;
+  const padY = 22;
+  const max = Math.max(1, ...series.flatMap((s) => s.values));
+  const groupWidth = (w - padX - 20) / Math.max(1, labels.length);
+  const barW = Math.max(6, Math.min(14, groupWidth / (series.length + 0.5)));
+
+  const bars = labels.map((label, i) => {
+    const x0 = padX + i * groupWidth;
+    const labelX = x0 + groupWidth / 2;
+    const labelText = String(label).length > 10 ? `${String(label).slice(0, 10)}…` : String(label);
+    const groupBars = series.map((s, j) => {
+      const v = s.values[i] ?? 0;
+      const barH = Math.round((v / max) * (h - padY * 2));
+      const x = x0 + j * (barW + 6);
+      const y = h - padY - barH;
+      return `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${s.color}"></rect>`;
+    }).join('');
+
+    return `
+      ${groupBars}
+      <text x="${labelX}" y="${h - 6}" text-anchor="middle" font-size="9" fill="#64748b">${escapeHtml(labelText)}</text>
+    `;
+  }).join('');
+
+  const legend = series.map((s, idx) => {
+    const x = padX + idx * 90;
+    return `
+      <rect x="${x}" y="4" width="10" height="10" rx="2" fill="${s.color}"></rect>
+      <text x="${x + 16}" y="13" font-size="10" fill="#475569">${escapeHtml(s.name)}</text>
+    `;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}">
+      ${legend}
+      ${bars}
+    </svg>
+  `;
+}
+
 function buildHtml(reporte: EmpresasReporte) {
   const meta = reporte.meta;
   const rangoDesde = fmtTZ(meta.rangoUTC.desde, meta.tz);
@@ -121,6 +274,47 @@ function buildHtml(reporte: EmpresasReporte) {
   const maxEspera = Math.max(1, ...chartEmpresas.map((e) => e.promEsperaMin ?? 0));
   const maxDur = Math.max(1, ...chartEmpresas.map((e) => e.promDuracionMin ?? 0));
   const maxTot = Math.max(1, ...chartEmpresas.map((e) => e.promTotalMin ?? 0));
+
+  const dailyMap = new Map<string, number>();
+  for (const m of allMovs) {
+    const key = localDateKey(m.fechaSolicitudUTC, meta.tz);
+    if (!key) continue;
+    dailyMap.set(key, (dailyMap.get(key) ?? 0) + 1);
+  }
+  const dailyLabels = Array.from(dailyMap.keys()).sort();
+  const dailyValues = dailyLabels.map((k) => dailyMap.get(k) ?? 0);
+
+  const lineChart = buildLineChart(dailyLabels, dailyValues);
+  const topLabels = chartEmpresas.map((e) => e.empresa);
+  const topValues = chartEmpresas.map((e) => e.totalMovimientos);
+  const barChart = buildBarChart(topLabels, topValues);
+
+  const combo = totalTornoLavado;
+  const tornoOnly = Math.max(0, totalTorno - combo);
+  const lavadoOnly = Math.max(0, totalLavado - combo);
+  const sin = Math.max(0, totalSinTL);
+  const otros = Math.max(0, totalMovs - (tornoOnly + lavadoOnly + combo + sin));
+  const donut = buildDonut([
+    { label: 'Torno', value: tornoOnly, color: '#60a5fa' },
+    { label: 'Lavado', value: lavadoOnly, color: '#34d399' },
+    { label: 'Ambos', value: combo, color: '#fbbf24' },
+    { label: 'Sin TL', value: sin, color: '#94a3b8' },
+    { label: 'Otros', value: otros, color: '#fca5a5' },
+  ]);
+
+  const topTime = chartEmpresas.slice(0, 6);
+  const timeLabels = topTime.map((e) => e.empresa);
+  const timeChart = buildGroupedBars(timeLabels, [
+    { name: 'Espera', color: '#fde68a', values: topTime.map((e) => e.promEsperaMin ?? 0) },
+    { name: 'Duración', color: '#86efac', values: topTime.map((e) => e.promDuracionMin ?? 0) },
+    { name: 'Total', color: '#93c5fd', values: topTime.map((e) => e.promTotalMin ?? 0) },
+  ]);
+
+  const topEmpresa = chartEmpresas[0];
+  const busiest = dailyLabels.length
+    ? dailyLabels.reduce((best, cur) => (dailyMap.get(cur)! > (dailyMap.get(best) ?? 0) ? cur : best), dailyLabels[0])
+    : null;
+  const busiestCount = busiest ? dailyMap.get(busiest) ?? 0 : 0;
 
   const cards = reporte.empresas
     .map((e) => {
@@ -284,6 +478,77 @@ function buildHtml(reporte: EmpresasReporte) {
             font-size: 18px;
             font-weight: 800;
             margin-top: 4px;
+          }
+          .insights {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+          }
+          .insight {
+            background: #0f172a;
+            color: white;
+            border-radius: 12px;
+            padding: 10px 12px;
+          }
+          .insight .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            opacity: .7;
+            font-weight: 700;
+          }
+          .insight .value {
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 4px;
+          }
+          .insight .sub {
+            font-size: 11px;
+            margin-top: 2px;
+            opacity: .75;
+          }
+          .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+          }
+          .panel {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+          }
+          .panel-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--ink);
+            margin-bottom: 4px;
+          }
+          .panel-sub {
+            font-size: 10px;
+            color: var(--muted);
+            margin-bottom: 8px;
+          }
+          .donut-wrap {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 12px;
+            align-items: center;
+          }
+          .donut-legend {
+            display: grid;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--muted);
+          }
+          .donut-legend div {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
           }
           .charts {
             display: grid;
@@ -557,96 +822,57 @@ function buildHtml(reporte: EmpresasReporte) {
           </div>
         </div>
 
-        <div class="section-title">Graficas</div>
-        <div class="charts">
-          <div class="chart">
-            <div class="chart-title">Movimientos por empresa (Top ${escapeHtml(chartEmpresas.length)})</div>
-            ${chartEmpresas.length
-              ? chartEmpresas
-                .map((e) => {
-                  const pct = Math.max(3, Math.round((e.totalMovimientos / maxMov) * 100));
-                  return `
-                    <div class="bar-row">
-                      <div class="label">${escapeHtml(e.empresa)}</div>
-                      <div class="bar">
-                        <div class="bar-fill" style="width:${pct}%"></div>
-                        <div class="bar-val">${escapeHtml(e.totalMovimientos)}</div>
-                      </div>
-                    </div>
-                  `;
-                })
-                .join('')
-              : '<div class="meta">Sin datos.</div>'
-            }
+        <div class="insights">
+          <div class="insight">
+            <div class="label">Empresa líder</div>
+            <div class="value">${escapeHtml(topEmpresa?.empresa ?? '—')}</div>
+            <div class="sub">Movimientos: ${escapeHtml(topEmpresa?.totalMovimientos ?? 0)}</div>
           </div>
-          <div class="chart">
-            <div class="chart-title">Tiempos promedio por empresa</div>
-            ${chartEmpresas.length
-              ? chartEmpresas
-                .map((e) => {
-                  const esperaPct = Math.max(2, Math.round(((e.promEsperaMin ?? 0) / maxEspera) * 100));
-                  const durPct = Math.max(2, Math.round(((e.promDuracionMin ?? 0) / maxDur) * 100));
-                  const totPct = Math.max(2, Math.round(((e.promTotalMin ?? 0) / maxTot) * 100));
-                  return `
-                    <div class="time-row">
-                      <div class="label">${escapeHtml(e.empresa)}</div>
-                      <div class="time-bars">
-                        <div class="time-bar time-espera" style="width:${esperaPct}%"><span>${fmtMin(e.promEsperaMin)}</span></div>
-                        <div class="time-bar time-duracion" style="width:${durPct}%"><span>${fmtMin(e.promDuracionMin)}</span></div>
-                        <div class="time-bar time-total" style="width:${totPct}%"><span>${fmtMin(e.promTotalMin)}</span></div>
-                      </div>
-                    </div>
-                  `;
-                })
-                .join('')
-              : '<div class="meta">Sin datos.</div>'
-            }
+          <div class="insight">
+            <div class="label">Día más activo</div>
+            <div class="value">${escapeHtml(busiest ?? '—')}</div>
+            <div class="sub">Movimientos: ${escapeHtml(busiestCount)}</div>
+          </div>
+          <div class="insight">
+            <div class="label">Promedio total</div>
+            <div class="value">${fmtMin(promTotal)}</div>
+            <div class="sub">Tiempo total por movimiento</div>
           </div>
         </div>
 
-        <div class="charts" style="grid-template-columns: 1fr;">
-          <div class="chart">
-            <div class="chart-title">Mix de servicio (Torno / Lavado / Ambos / Sin TL)</div>
-            ${chartEmpresas.length
-              ? chartEmpresas
-                .map((e) => {
-                  const total = e.totalMovimientos || 0;
-                  const combo = e.totalTornoLavado || 0;
-                  const tornoOnly = Math.max(0, (e.totalTorno || 0) - combo);
-                  const lavadoOnly = Math.max(0, (e.totalLavado || 0) - combo);
-                  const sin = Math.max(0, e.totalSinTornoLavado || 0);
-                  const counted = tornoOnly + lavadoOnly + combo + sin;
-                  const otros = Math.max(0, total - counted);
-                  const toPct = (v: number) => (total ? Math.max(2, Math.round((v / total) * 100)) : 0);
-                  const tornoPct = total ? toPct(tornoOnly) : 0;
-                  const lavadoPct = total ? toPct(lavadoOnly) : 0;
-                  const comboPct = total ? toPct(combo) : 0;
-                  const sinPct = total ? toPct(sin) : 0;
-                  const otrosPct = total ? toPct(otros) : 0;
-
-                  return `
-                    <div class="stack-row">
-                      <div class="label">${escapeHtml(e.empresa)}</div>
-                      <div class="stack">
-                        ${tornoOnly ? `<div class="seg seg-torno" style="width:${tornoPct}%"></div>` : ''}
-                        ${lavadoOnly ? `<div class="seg seg-lavado" style="width:${lavadoPct}%"></div>` : ''}
-                        ${combo ? `<div class="seg seg-combo" style="width:${comboPct}%"></div>` : ''}
-                        ${sin ? `<div class="seg seg-sin" style="width:${sinPct}%"></div>` : ''}
-                        ${otros ? `<div class="seg seg-otros" style="width:${otrosPct}%"></div>` : ''}
-                      </div>
-                    </div>
-                  `;
-                })
-                .join('')
-              : '<div class="meta">Sin datos.</div>'
-            }
-            <div class="legend">
-              <span><i class="dot seg-torno"></i> Torno</span>
-              <span><i class="dot seg-lavado"></i> Lavado</span>
-              <span><i class="dot seg-combo"></i> Ambos</span>
-              <span><i class="dot seg-sin"></i> Sin TL</span>
-              <span><i class="dot seg-otros"></i> Otros</span>
+        <div class="section-title">Panel Analítico</div>
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Tendencia diaria de movimientos</div>
+            <div class="panel-sub">Rango completo del periodo</div>
+            ${lineChart}
+          </div>
+          <div class="panel">
+            <div class="panel-title">Mix de servicio</div>
+            <div class="panel-sub">Torno / Lavado / Ambos / Sin TL</div>
+            <div class="donut-wrap">
+              ${donut}
+              <div class="donut-legend">
+                <div><span class="dot seg-torno"></span> Torno</div>
+                <div><span class="dot seg-lavado"></span> Lavado</div>
+                <div><span class="dot seg-combo"></span> Ambos</div>
+                <div><span class="dot seg-sin"></span> Sin TL</div>
+                <div><span class="dot seg-otros"></span> Otros</div>
+              </div>
             </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Top empresas por movimientos</div>
+            <div class="panel-sub">Ranking operativo del periodo</div>
+            ${barChart}
+          </div>
+          <div class="panel">
+            <div class="panel-title">Tiempos promedio por empresa</div>
+            <div class="panel-sub">Top ${escapeHtml(timeLabels.length)} empresas</div>
+            ${timeChart}
           </div>
         </div>
 
