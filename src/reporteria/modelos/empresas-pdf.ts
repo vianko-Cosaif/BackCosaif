@@ -287,7 +287,7 @@ function buildHtml(reporte: EmpresasReporte) {
           }
           .charts {
             display: grid;
-            grid-template-columns: 1.15fr 1fr;
+            grid-template-columns: 1.1fr 1fr;
             gap: 12px;
             margin-top: 10px;
           }
@@ -367,6 +367,49 @@ function buildHtml(reporte: EmpresasReporte) {
           .time-espera { background: #fde68a; }
           .time-duracion { background: #86efac; }
           .time-total { background: #93c5fd; }
+          .stack-row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+          }
+          .stack {
+            position: relative;
+            display: flex;
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+          }
+          .seg {
+            height: 100%;
+          }
+          .seg-torno { background: #60a5fa; }
+          .seg-lavado { background: #34d399; }
+          .seg-combo { background: #fbbf24; }
+          .seg-sin { background: #94a3b8; }
+          .seg-otros { background: #fca5a5; }
+          .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 10px;
+            color: #475569;
+            margin-top: 8px;
+          }
+          .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+          }
+          .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            display: inline-block;
+          }
           .card {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
@@ -545,6 +588,52 @@ function buildHtml(reporte: EmpresasReporte) {
                 .join('')
               : '<div class="meta">Sin datos.</div>'
             }
+          </div>
+        </div>
+
+        <div class="charts" style="grid-template-columns: 1fr;">
+          <div class="chart">
+            <div class="chart-title">Mix de servicio (Torno / Lavado / Ambos / Sin TL)</div>
+            ${chartEmpresas.length
+              ? chartEmpresas
+                .map((e) => {
+                  const total = e.totalMovimientos || 0;
+                  const combo = e.totalTornoLavado || 0;
+                  const tornoOnly = Math.max(0, (e.totalTorno || 0) - combo);
+                  const lavadoOnly = Math.max(0, (e.totalLavado || 0) - combo);
+                  const sin = Math.max(0, e.totalSinTornoLavado || 0);
+                  const counted = tornoOnly + lavadoOnly + combo + sin;
+                  const otros = Math.max(0, total - counted);
+                  const toPct = (v: number) => (total ? Math.max(2, Math.round((v / total) * 100)) : 0);
+                  const tornoPct = total ? toPct(tornoOnly) : 0;
+                  const lavadoPct = total ? toPct(lavadoOnly) : 0;
+                  const comboPct = total ? toPct(combo) : 0;
+                  const sinPct = total ? toPct(sin) : 0;
+                  const otrosPct = total ? toPct(otros) : 0;
+
+                  return `
+                    <div class="stack-row">
+                      <div class="label">${escapeHtml(e.empresa)}</div>
+                      <div class="stack">
+                        ${tornoOnly ? `<div class="seg seg-torno" style="width:${tornoPct}%"></div>` : ''}
+                        ${lavadoOnly ? `<div class="seg seg-lavado" style="width:${lavadoPct}%"></div>` : ''}
+                        ${combo ? `<div class="seg seg-combo" style="width:${comboPct}%"></div>` : ''}
+                        ${sin ? `<div class="seg seg-sin" style="width:${sinPct}%"></div>` : ''}
+                        ${otros ? `<div class="seg seg-otros" style="width:${otrosPct}%"></div>` : ''}
+                      </div>
+                    </div>
+                  `;
+                })
+                .join('')
+              : '<div class="meta">Sin datos.</div>'
+            }
+            <div class="legend">
+              <span><i class="dot seg-torno"></i> Torno</span>
+              <span><i class="dot seg-lavado"></i> Lavado</span>
+              <span><i class="dot seg-combo"></i> Ambos</span>
+              <span><i class="dot seg-sin"></i> Sin TL</span>
+              <span><i class="dot seg-otros"></i> Otros</span>
+            </div>
           </div>
         </div>
 
