@@ -126,9 +126,21 @@ function fmtTZ(iso: string | null, tz: string) {
   return s.length >= 16 ? s.slice(0, 16) : s;
 }
 
+const TIME_FMT = '[h]"h" mm"m"';
+
+function toExcelTime(min: number | null | undefined) {
+  if (min === null || min === undefined || !Number.isFinite(min)) return null;
+  return min / 1440;
+}
+
 function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
+
+  // Formato humano para tiempos
+  ws.getColumn(7).numFmt = TIME_FMT; // Espera
+  ws.getColumn(8).numFmt = TIME_FMT; // Duración
+  ws.getColumn(9).numFmt = TIME_FMT; // Total
 
   for (const emp of data.empresas) {
     for (const m of emp.movimientos) {
@@ -139,9 +151,9 @@ function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte) {
         fmtTZ(m.fechaSolicitudUTC, data.meta.tz),
         fmtTZ(m.fechaInicioUTC, data.meta.tz),
         fmtTZ(m.fechaFinUTC, data.meta.tz),
-        m.esperaMin ?? null,
-        m.duracionMin ?? null,
-        m.totalMin ?? null,
+        toExcelTime(m.esperaMin),
+        toExcelTime(m.duracionMin),
+        toExcelTime(m.totalMin),
         m.estado,
         m.tipoMovimiento ?? '—',
         m.torno ? 'SI' : 'NO',
@@ -158,6 +170,11 @@ function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte) {
 function fillResumenSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte, movSheetName: string) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
+
+  // Formato humano para promedios
+  ws.getColumn(9).numFmt = TIME_FMT;
+  ws.getColumn(10).numFmt = TIME_FMT;
+  ws.getColumn(11).numFmt = TIME_FMT;
 
   const movRef = sheetRef(movSheetName);
   let rowIndex = 2;
@@ -200,15 +217,15 @@ function fillResumenSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte, movSheet
     };
     row.getCell(9).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`,
-      result: emp.promEsperaMin ?? undefined,
+      result: toExcelTime(emp.promEsperaMin) ?? undefined,
     };
     row.getCell(10).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$H:$H)`,
-      result: emp.promDuracionMin ?? undefined,
+      result: toExcelTime(emp.promDuracionMin) ?? undefined,
     };
     row.getCell(11).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$I:$I)`,
-      result: emp.promTotalMin ?? undefined,
+      result: toExcelTime(emp.promTotalMin) ?? undefined,
     };
 
     rowIndex += 1;
@@ -220,12 +237,143 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
   if (!ws) return;
 
   try {
+    // ---- Layout base ----
+    ws.getCell('A1').value = 'Dashboard';
+    ws.getCell('A2').value = 'Rango (MX):';
+    ws.getCell('A3').value = 'TZ:';
+    ws.getCell('A4').value = 'Empresas:';
+    ws.getCell('A5').value = 'Rango Local ISO:';
+
+    ws.getCell('A7').value = 'KPIs';
+    ws.getCell('A8').value = 'Total empresas';
+    ws.getCell('A9').value = 'Total movimientos';
+    ws.getCell('A10').value = 'Locomotoras únicas';
+    ws.getCell('A11').value = 'Torno';
+    ws.getCell('A12').value = 'Lavado';
+    ws.getCell('A13').value = 'Torno + Lavado';
+    ws.getCell('A14').value = 'Sin TL';
+    ws.getCell('A15').value = 'Prom Espera (min)';
+    ws.getCell('A16').value = 'Prom Duración (min)';
+    ws.getCell('A17').value = 'Prom Total (min)';
+
+    ws.getCell('D7').value = 'Top movimientos';
+    ws.getCell('D8').value = 'Empresa';
+    ws.getCell('E8').value = 'Movimientos';
+    ws.getCell('F8').value = 'Grafica';
+
+    ws.getCell('H7').value = 'Tiempos promedio (min)';
+    ws.getCell('H8').value = 'Empresa';
+    ws.getCell('I8').value = 'Espera';
+    ws.getCell('J8').value = 'Duración';
+    ws.getCell('K8').value = 'Total';
+    ws.getCell('L8').value = 'Grafica';
+
+    ws.getRow(1).font = { bold: true, size: 14 };
+    ws.getRow(7).font = { bold: true };
+    ws.getRow(8).font = { bold: true };
+    ws.getColumn('A').width = 24;
+    ws.getColumn('B').width = 34;
+    ws.getColumn('D').width = 22;
+    ws.getColumn('E').width = 16;
+    ws.getColumn('F').width = 22;
+    ws.getColumn('H').width = 22;
+    ws.getColumn('I').width = 14;
+    ws.getColumn('J').width = 14;
+    ws.getColumn('K').width = 14;
+    ws.getColumn('L').width = 22;
+
+    // ---- Valores base ----
     ws.getCell('B2').value = `${data.meta.fechaInicio} → ${data.meta.fechaFin}`;
     ws.getCell('B3').value = data.meta.tz;
     ws.getCell('B4').value = data.meta.empresaIds?.length
       ? data.meta.empresaIds.join(', ')
       : 'Todas';
     ws.getCell('B5').value = `${data.meta.rangoLocal.desde} → ${data.meta.rangoLocal.hastaExclusivo}`;
+
+    const allMovs = data.empresas.flatMap((e) => e.movimientos);
+    const totalEmpresas = data.empresas.length;
+    const totalMovs = allMovs.length;
+    const uniqueLocos = new Set(allMovs.map((m) => m.locomotiveNumber)).size;
+    const totalTorno = data.empresas.reduce((acc, e) => acc + e.totalTorno, 0);
+    const totalLavado = data.empresas.reduce((acc, e) => acc + e.totalLavado, 0);
+    const totalTornoLavado = data.empresas.reduce((acc, e) => acc + e.totalTornoLavado, 0);
+    const totalSinTL = data.empresas.reduce((acc, e) => acc + e.totalSinTornoLavado, 0);
+
+    let esperaSum = 0;
+    let esperaN = 0;
+    let durSum = 0;
+    let durN = 0;
+    let totalSum = 0;
+    let totalN = 0;
+    for (const m of allMovs) {
+      if (m.esperaMin !== null && m.esperaMin !== undefined) {
+        esperaSum += m.esperaMin;
+        esperaN += 1;
+      }
+      if (m.duracionMin !== null && m.duracionMin !== undefined) {
+        durSum += m.duracionMin;
+        durN += 1;
+      }
+      if (m.totalMin !== null && m.totalMin !== undefined) {
+        totalSum += m.totalMin;
+        totalN += 1;
+      }
+    }
+    const promEspera = esperaN ? Math.round(esperaSum / esperaN) : null;
+    const promDuracion = durN ? Math.round(durSum / durN) : null;
+    const promTotal = totalN ? Math.round(totalSum / totalN) : null;
+
+    ws.getCell('B8').value = totalEmpresas;
+    ws.getCell('B9').value = totalMovs;
+    ws.getCell('B10').value = uniqueLocos;
+    ws.getCell('B11').value = totalTorno;
+    ws.getCell('B12').value = totalLavado;
+    ws.getCell('B13').value = totalTornoLavado;
+    ws.getCell('B14').value = totalSinTL;
+    ws.getCell('B15').value = toExcelTime(promEspera ?? null) ?? '';
+    ws.getCell('B16').value = toExcelTime(promDuracion ?? null) ?? '';
+    ws.getCell('B17').value = toExcelTime(promTotal ?? null) ?? '';
+    ws.getCell('B15').numFmt = TIME_FMT;
+    ws.getCell('B16').numFmt = TIME_FMT;
+    ws.getCell('B17').numFmt = TIME_FMT;
+
+    // ---- Top movimientos + sparklines ----
+    const top = [...data.empresas].sort((a, b) => b.totalMovimientos - a.totalMovimientos).slice(0, 10);
+    const startRow = 9;
+    const endRow = 18;
+
+    for (let r = startRow; r <= endRow; r += 1) {
+      ws.getCell(`D${r}`).value = '';
+      ws.getCell(`E${r}`).value = '';
+      ws.getCell(`F${r}`).value = '';
+      ws.getCell(`H${r}`).value = '';
+      ws.getCell(`I${r}`).value = '';
+      ws.getCell(`J${r}`).value = '';
+      ws.getCell(`K${r}`).value = '';
+      ws.getCell(`L${r}`).value = '';
+    }
+
+    top.forEach((e, idx) => {
+      const row = startRow + idx;
+      ws.getCell(`D${row}`).value = e.empresa;
+      ws.getCell(`E${row}`).value = e.totalMovimientos;
+      ws.getCell(`F${row}`).value = {
+        formula: `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${startRow}:$E$${endRow})})`,
+        result: 0,
+      };
+
+      ws.getCell(`H${row}`).value = e.empresa;
+      ws.getCell(`I${row}`).value = toExcelTime(e.promEsperaMin);
+      ws.getCell(`J${row}`).value = toExcelTime(e.promDuracionMin);
+      ws.getCell(`K${row}`).value = toExcelTime(e.promTotalMin);
+      ws.getCell(`I${row}`).numFmt = TIME_FMT;
+      ws.getCell(`J${row}`).numFmt = TIME_FMT;
+      ws.getCell(`K${row}`).numFmt = TIME_FMT;
+      ws.getCell(`L${row}`).value = {
+        formula: `SPARKLINE(I${row}:K${row}, {\"charttype\",\"column\"})`,
+        result: 0,
+      };
+    });
   } catch {
     // noop
   }
