@@ -102,6 +102,21 @@ function minutesBetween(a?: Date | null, b?: Date | null): number | null {
   return Math.round(ms / 60000);
 }
 
+function buildLocoBucket(locomotiveNumber: number): LocomotoraReporte {
+  return {
+    locomotiveNumber,
+    totalMovimientos: 0,
+    totalTorno: 0,
+    totalLavado: 0,
+    totalTornoLavado: 0,
+    totalSinTornoLavado: 0,
+    promEsperaMin: null,
+    promDuracionMin: null,
+    promTotalMin: null,
+    movimientos: [],
+  };
+}
+
 export class LocomotorasReporteriaModel {
   static async reportePorFechas(filters: LocomotorasReporteFilters): Promise<LocomotorasReporte> {
     const tz = filters.tz ?? 'America/Mexico_City';
@@ -156,18 +171,7 @@ export class LocomotorasReporteriaModel {
     const byLoco = new Map<number, LocomotoraReporte>();
     const sums = new Map<number, { espera: number; esperaN: number; dur: number; durN: number; total: number; totalN: number }>();
     for (const n of locomotoras) {
-      byLoco.set(n, {
-        locomotiveNumber: n,
-        totalMovimientos: 0,
-        totalTorno: 0,
-        totalLavado: 0,
-        totalTornoLavado: 0,
-        totalSinTornoLavado: 0,
-        promEsperaMin: null,
-        promDuracionMin: null,
-        promTotalMin: null,
-        movimientos: [],
-      });
+      byLoco.set(n, buildLocoBucket(n));
       sums.set(n, { espera: 0, esperaN: 0, dur: 0, durN: 0, total: 0, totalN: 0 });
     }
 
@@ -199,13 +203,7 @@ export class LocomotorasReporteriaModel {
       };
 
       const bucket = byLoco.get(m.locomotiveNumber) ?? {
-        locomotiveNumber: m.locomotiveNumber,
-        totalMovimientos: 0,
-        totalTorno: 0,
-        totalLavado: 0,
-        totalTornoLavado: 0,
-        totalSinTornoLavado: 0,
-        movimientos: [],
+        ...buildLocoBucket(m.locomotiveNumber),
       };
 
       bucket.movimientos.push(row);

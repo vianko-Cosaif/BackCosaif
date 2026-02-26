@@ -200,15 +200,15 @@ function fillResumenSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte, movSheet
     };
     row.getCell(9).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`,
-      result: emp.promEsperaMin ?? null,
+      result: emp.promEsperaMin ?? undefined,
     };
     row.getCell(10).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$H:$H)`,
-      result: emp.promDuracionMin ?? null,
+      result: emp.promDuracionMin ?? undefined,
     };
     row.getCell(11).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$I:$I)`,
-      result: emp.promTotalMin ?? null,
+      result: emp.promTotalMin ?? undefined,
     };
 
     rowIndex += 1;

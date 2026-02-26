@@ -192,15 +192,15 @@ function fillResumenSheet(ws: ExcelJS.Worksheet, data: LocomotorasReporte, movSh
     };
     row.getCell(7).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$E:$E)`,
-      result: loco.promEsperaMin ?? null,
+      result: loco.promEsperaMin ?? undefined,
     };
     row.getCell(8).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$F:$F)`,
-      result: loco.promDuracionMin ?? null,
+      result: loco.promDuracionMin ?? undefined,
     };
     row.getCell(9).value = {
       formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`,
-      result: loco.promTotalMin ?? null,
+      result: loco.promTotalMin ?? undefined,
     };
 
     rowIndex += 1;
