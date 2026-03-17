@@ -38,6 +38,7 @@ import actualizacionRoutes from "../Rutas/Actualizacion/ActualizacionRoutes";
 import Secciones from "../Rutas/Via/Secciones/SeccionRoutes";
 import Reporte from "../reporteria/rutas/rutasPdf";
 import Excel from "../reporteria/rutas/rutasExcel";
+import bannerRoutes from "../Rutas/Banner/BannerRoutes";
 // Carga variables de entorno
 dotenv.config();
 
@@ -83,6 +84,7 @@ export function iniciarServidor(): void {
     app.use("/secciones", Secciones);
     app.use("/reporteria", Reporte);
     app.use("/reporterias", Excel);
+    app.use("/banner", bannerRoutes);
 
     // ---------------- Arranque del servidor ----------------
     app.listen(PORT, () => {
