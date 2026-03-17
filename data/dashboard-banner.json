@@ -1,530 +1,156 @@
 {
   "version": "multi-banner-v1",
-  "exportedAt": "2026-03-17T19:54:12.443Z",
-  "activeBannerId": "vprj-1773765056023",
+  "exportedAt": "2026-03-17T23:38:41.363Z",
+  "activeBannerId": "vprj-1773789154733-57894",
   "bannerTools": {
     "mode": "auto",
     "autoplay": true,
-    "intervalMs": 10000,
-    "transition": "zoom"
+    "intervalMs": 8000,
+    "transition": "slide"
   },
   "banner": {
-    "id": "vprj-1773765056023",
+    "id": "vprj-1773789154733-57894",
     "width": "100%",
-    "height": "220px",
-    "designWidth": 1200,
-    "designHeight": 220,
-    "aspectRatio": 5.454545454545454,
+    "height": "120px",
+    "designWidth": 800,
+    "designHeight": 120,
+    "aspectRatio": 6.666666666666667,
     "actionUrl": "/dashboard",
     "background": {
       "type": "image",
       "bgType": "image",
-      "value": "/banner/assets/01-background.webp",
-      "image": "/banner/assets/01-background.webp"
+      "value": "/banner/assets/marzo.webp",
+      "image": "/banner/assets/marzo.webp"
     },
     "styles": {
-      "borderRadius": "21px",
+      "borderRadius": "0px",
       "position": "relative",
       "overflow": "hidden"
     },
     "nativeStyles": {
       "overflow": "hidden"
     },
-    "layers": [
-      {
-        "type": "image",
-        "id": "l-1773765058032",
-        "visible": true,
-        "fit": "contain",
-        "animation": {
-          "duration": "1s",
-          "delay": "0s",
-          "timingFunction": "ease",
-          "iterationCount": 1
-        },
-        "src": "/banner/assets/l-1773765058032-image.webp",
-        "styles": {
-          "position": "absolute",
-          "top": "-20px",
-          "left": "-11px",
-          "width": "270px",
-          "height": "270px",
-          "transform": "rotate(0deg)",
-          "opacity": "0.24"
-        },
-        "value": "/banner/assets/l-1773765058032-image.webp",
-        "source": "/banner/assets/l-1773765058032-image.webp"
-      },
-      {
-        "type": "image",
-        "id": "l-1773765069262",
-        "visible": true,
-        "fit": "contain",
-        "animation": {
-          "duration": "1s",
-          "delay": "0s",
-          "timingFunction": "ease",
-          "iterationCount": 1
-        },
-        "src": "/banner/assets/l-1773765069262-image.webp",
-        "styles": {
-          "position": "absolute",
-          "top": "-10px",
-          "left": "851px",
-          "width": "352px",
-          "height": "352px",
-          "transform": "rotate(0deg)",
-          "opacity": 1
-        },
-        "value": "/banner/assets/l-1773765069262-image.webp",
-        "source": "/banner/assets/l-1773765069262-image.webp"
-      },
-      {
-        "type": "text",
-        "id": "l-1773769961528",
-        "visible": true,
-        "tag": "div",
-        "animation": {
-          "name": "slideAcrossRight",
-          "duration": "15s",
-          "delay": "0s",
-          "timingFunction": "ease",
-          "iterationCount": 1
-        },
-        "content": "BIENVENIDOS",
-        "styles": {
-          "position": "absolute",
-          "top": "48px",
-          "left": "321px",
-          "width": "559px",
-          "height": "98px",
-          "transform": "rotate(0deg)",
-          "opacity": "0.67",
-          "color": "#283928",
-          "fontSize": "80px",
-          "fontWeight": "800",
-          "fontFamily": "Outfit, sans-serif",
-          "fontStyle": "normal",
-          "textAlign": "left",
-          "lineHeight": "1.2",
-          "whiteSpace": "pre-wrap",
-          "textShadow": "0 4px 12px rgba(0,0,0,0.35)",
-          "WebkitTextStrokeWidth": "0px",
-          "WebkitTextStrokeColor": "transparent",
-          "filter": "none"
-        }
-      }
-    ]
+    "layers": []
   },
   "banners": [
     {
-      "id": "vprj-1773765056023",
+      "id": "vprj-1773789154733-57894",
       "width": "100%",
-      "height": "220px",
-      "designWidth": 1200,
-      "designHeight": 220,
-      "aspectRatio": 5.454545454545454,
+      "height": "120px",
+      "designWidth": 800,
+      "designHeight": 120,
+      "aspectRatio": 6.666666666666667,
       "actionUrl": "/dashboard",
       "background": {
         "type": "image",
         "bgType": "image",
-        "value": "/banner/assets/01-background.webp",
-        "image": "/banner/assets/01-background.webp"
+        "value": "/banner/assets/marzo.webp",
+        "image": "/banner/assets/marzo.webp"
       },
       "styles": {
-        "borderRadius": "21px",
+        "borderRadius": "0px",
         "position": "relative",
         "overflow": "hidden"
       },
       "nativeStyles": {
         "overflow": "hidden"
       },
-      "layers": [
-        {
-          "type": "image",
-          "id": "l-1773765058032",
-          "visible": true,
-          "fit": "contain",
-          "animation": {
-            "duration": "1s",
-            "delay": "0s",
-            "timingFunction": "ease",
-            "iterationCount": 1
-          },
-          "src": "/banner/assets/l-1773765058032-image.webp",
-          "styles": {
-            "position": "absolute",
-            "top": "-20px",
-            "left": "-11px",
-            "width": "270px",
-            "height": "270px",
-            "transform": "rotate(0deg)",
-            "opacity": "0.24"
-          },
-          "value": "/banner/assets/l-1773765058032-image.webp",
-          "source": "/banner/assets/l-1773765058032-image.webp"
-        },
-        {
-          "type": "image",
-          "id": "l-1773765069262",
-          "visible": true,
-          "fit": "contain",
-          "animation": {
-            "duration": "1s",
-            "delay": "0s",
-            "timingFunction": "ease",
-            "iterationCount": 1
-          },
-          "src": "/banner/assets/l-1773765069262-image.webp",
-          "styles": {
-            "position": "absolute",
-            "top": "-10px",
-            "left": "851px",
-            "width": "352px",
-            "height": "352px",
-            "transform": "rotate(0deg)",
-            "opacity": 1
-          },
-          "value": "/banner/assets/l-1773765069262-image.webp",
-          "source": "/banner/assets/l-1773765069262-image.webp"
-        },
-        {
-          "type": "text",
-          "id": "l-1773769961528",
-          "visible": true,
-          "tag": "div",
-          "animation": {
-            "name": "slideAcrossRight",
-            "duration": "15s",
-            "delay": "0s",
-            "timingFunction": "ease",
-            "iterationCount": 1
-          },
-          "content": "BIENVENIDOS",
-          "styles": {
-            "position": "absolute",
-            "top": "48px",
-            "left": "321px",
-            "width": "559px",
-            "height": "98px",
-            "transform": "rotate(0deg)",
-            "opacity": "0.67",
-            "color": "#283928",
-            "fontSize": "80px",
-            "fontWeight": "800",
-            "fontFamily": "Outfit, sans-serif",
-            "fontStyle": "normal",
-            "textAlign": "left",
-            "lineHeight": "1.2",
-            "whiteSpace": "pre-wrap",
-            "textShadow": "0 4px 12px rgba(0,0,0,0.35)",
-            "WebkitTextStrokeWidth": "0px",
-            "WebkitTextStrokeColor": "transparent",
-            "filter": "none"
-          }
-        }
-      ]
+      "layers": []
     },
     {
-      "id": "vprj-1773770901135-81953",
+      "id": "vprj-1773789307329-92085",
       "width": "100%",
-      "height": "220px",
-      "designWidth": 1200,
-      "designHeight": 220,
-      "aspectRatio": 5.454545454545454,
+      "height": "120px",
+      "designWidth": 800,
+      "designHeight": 120,
+      "aspectRatio": 6.666666666666667,
       "actionUrl": "/dashboard",
       "background": {
         "type": "image",
         "bgType": "image",
-        "value": "/banner/assets/image_1263a114.webp",
-        "image": "/banner/assets/image_1263a114.webp"
+        "value": "/banner/assets/abril.webp",
+        "image": "/banner/assets/abril.webp"
       },
       "styles": {
-        "borderRadius": "21px",
+        "borderRadius": "0px",
         "position": "relative",
         "overflow": "hidden"
       },
       "nativeStyles": {
         "overflow": "hidden"
       },
-      "layers": [
-        {
-          "type": "image",
-          "id": "l-1773765058032",
-          "visible": true,
-          "fit": "contain",
-          "animation": {
-            "name": "slideInRight",
-            "duration": "1s",
-            "delay": "0s",
-            "timingFunction": "ease",
-            "iterationCount": 1
-          },
-          "src": "/banner/assets/l-1773765058032-image.webp",
-          "styles": {
-            "position": "absolute",
-            "top": "-30px",
-            "left": "917px",
-            "width": "272px",
-            "height": "272px",
-            "transform": "rotate(0deg)",
-            "opacity": "0.8"
-          },
-          "value": "/banner/assets/l-1773765058032-image.webp",
-          "source": "/banner/assets/l-1773765058032-image.webp"
-        },
-        {
-          "type": "text",
-          "id": "l-1773770967689",
-          "visible": true,
-          "tag": "div",
-          "animation": {
-            "name": "fadeIn",
-            "duration": "20s",
-            "delay": "0s",
-            "timingFunction": "ease",
-            "iterationCount": 1
-          },
-          "content": "Feliz mes de Marzo",
-          "styles": {
-            "position": "absolute",
-            "top": "65px",
-            "left": "230px",
-            "width": "788px",
-            "height": "111px",
-            "transform": "rotate(0deg)",
-            "opacity": "0.87",
-            "color": "#ffffff",
-            "fontSize": "60px",
-            "fontWeight": "800",
-            "fontFamily": "Outfit, sans-serif",
-            "fontStyle": "normal",
-            "textAlign": "left",
-            "lineHeight": "1.2",
-            "whiteSpace": "pre-wrap",
-            "textShadow": "",
-            "WebkitTextStrokeWidth": "0px",
-            "WebkitTextStrokeColor": "#eee3e3",
-            "filter": "none"
-          }
-        }
-      ]
+      "layers": []
     }
   ],
   "availableBanners": [
     {
-      "id": "vprj-1773765056023",
-      "name": "Nuevo Banner",
+      "id": "vprj-1773789154733-57894",
+      "name": "Banner 2",
       "order": 0
     },
     {
-      "id": "vprj-1773770901135-81953",
-      "name": "Nuevo Banner copia",
+      "id": "vprj-1773789307329-92085",
+      "name": "Banner 2",
       "order": 1
     }
   ],
   "bannerItems": [
     {
-      "id": "vprj-1773765056023",
-      "name": "Nuevo Banner",
+      "id": "vprj-1773789154733-57894",
+      "name": "Banner 2",
       "order": 0,
       "banner": {
-        "id": "vprj-1773765056023",
+        "id": "vprj-1773789154733-57894",
         "width": "100%",
-        "height": "220px",
-        "designWidth": 1200,
-        "designHeight": 220,
-        "aspectRatio": 5.454545454545454,
+        "height": "120px",
+        "designWidth": 800,
+        "designHeight": 120,
+        "aspectRatio": 6.666666666666667,
         "actionUrl": "/dashboard",
         "background": {
           "type": "image",
           "bgType": "image",
-          "value": "/banner/assets/01-background.webp",
-          "image": "/banner/assets/01-background.webp"
+          "value": "/banner/assets/marzo.webp",
+          "image": "/banner/assets/marzo.webp"
         },
         "styles": {
-          "borderRadius": "21px",
+          "borderRadius": "0px",
           "position": "relative",
           "overflow": "hidden"
         },
         "nativeStyles": {
           "overflow": "hidden"
         },
-        "layers": [
-          {
-            "type": "image",
-            "id": "l-1773765058032",
-            "visible": true,
-            "fit": "contain",
-            "animation": {
-              "duration": "1s",
-              "delay": "0s",
-              "timingFunction": "ease",
-              "iterationCount": 1
-            },
-            "src": "/banner/assets/l-1773765058032-image.webp",
-            "styles": {
-              "position": "absolute",
-              "top": "-20px",
-              "left": "-11px",
-              "width": "270px",
-              "height": "270px",
-              "transform": "rotate(0deg)",
-              "opacity": "0.24"
-            },
-            "value": "/banner/assets/l-1773765058032-image.webp",
-            "source": "/banner/assets/l-1773765058032-image.webp"
-          },
-          {
-            "type": "image",
-            "id": "l-1773765069262",
-            "visible": true,
-            "fit": "contain",
-            "animation": {
-              "duration": "1s",
-              "delay": "0s",
-              "timingFunction": "ease",
-              "iterationCount": 1
-            },
-            "src": "/banner/assets/l-1773765069262-image.webp",
-            "styles": {
-              "position": "absolute",
-              "top": "-10px",
-              "left": "851px",
-              "width": "352px",
-              "height": "352px",
-              "transform": "rotate(0deg)",
-              "opacity": 1
-            },
-            "value": "/banner/assets/l-1773765069262-image.webp",
-            "source": "/banner/assets/l-1773765069262-image.webp"
-          },
-          {
-            "type": "text",
-            "id": "l-1773769961528",
-            "visible": true,
-            "tag": "div",
-            "animation": {
-              "name": "slideAcrossRight",
-              "duration": "15s",
-              "delay": "0s",
-              "timingFunction": "ease",
-              "iterationCount": 1
-            },
-            "content": "BIENVENIDOS",
-            "styles": {
-              "position": "absolute",
-              "top": "48px",
-              "left": "321px",
-              "width": "559px",
-              "height": "98px",
-              "transform": "rotate(0deg)",
-              "opacity": "0.67",
-              "color": "#283928",
-              "fontSize": "80px",
-              "fontWeight": "800",
-              "fontFamily": "Outfit, sans-serif",
-              "fontStyle": "normal",
-              "textAlign": "left",
-              "lineHeight": "1.2",
-              "whiteSpace": "pre-wrap",
-              "textShadow": "0 4px 12px rgba(0,0,0,0.35)",
-              "WebkitTextStrokeWidth": "0px",
-              "WebkitTextStrokeColor": "transparent",
-              "filter": "none"
-            }
-          }
-        ]
+        "layers": []
       }
     },
     {
-      "id": "vprj-1773770901135-81953",
-      "name": "Nuevo Banner copia",
+      "id": "vprj-1773789307329-92085",
+      "name": "Banner 2",
       "order": 1,
       "banner": {
-        "id": "vprj-1773770901135-81953",
+        "id": "vprj-1773789307329-92085",
         "width": "100%",
-        "height": "220px",
-        "designWidth": 1200,
-        "designHeight": 220,
-        "aspectRatio": 5.454545454545454,
+        "height": "120px",
+        "designWidth": 800,
+        "designHeight": 120,
+        "aspectRatio": 6.666666666666667,
         "actionUrl": "/dashboard",
         "background": {
           "type": "image",
           "bgType": "image",
-          "value": "/banner/assets/image_1263a114.webp",
-          "image": "/banner/assets/image_1263a114.webp"
+          "value": "/banner/assets/abril.webp",
+          "image": "/banner/assets/abril.webp"
         },
         "styles": {
-          "borderRadius": "21px",
+          "borderRadius": "0px",
           "position": "relative",
           "overflow": "hidden"
         },
         "nativeStyles": {
           "overflow": "hidden"
         },
-        "layers": [
-          {
-            "type": "image",
-            "id": "l-1773765058032",
-            "visible": true,
-            "fit": "contain",
-            "animation": {
-              "name": "slideInRight",
-              "duration": "1s",
-              "delay": "0s",
-              "timingFunction": "ease",
-              "iterationCount": 1
-            },
-            "src": "/banner/assets/l-1773765058032-image.webp",
-            "styles": {
-              "position": "absolute",
-              "top": "-30px",
-              "left": "917px",
-              "width": "272px",
-              "height": "272px",
-              "transform": "rotate(0deg)",
-              "opacity": "0.8"
-            },
-            "value": "/banner/assets/l-1773765058032-image.webp",
-            "source": "/banner/assets/l-1773765058032-image.webp"
-          },
-          {
-            "type": "text",
-            "id": "l-1773770967689",
-            "visible": true,
-            "tag": "div",
-            "animation": {
-              "name": "fadeIn",
-              "duration": "20s",
-              "delay": "0s",
-              "timingFunction": "ease",
-              "iterationCount": 1
-            },
-            "content": "Feliz mes de Marzo",
-            "styles": {
-              "position": "absolute",
-              "top": "65px",
-              "left": "230px",
-              "width": "788px",
-              "height": "111px",
-              "transform": "rotate(0deg)",
-              "opacity": "0.87",
-              "color": "#ffffff",
-              "fontSize": "60px",
-              "fontWeight": "800",
-              "fontFamily": "Outfit, sans-serif",
-              "fontStyle": "normal",
-              "textAlign": "left",
-              "lineHeight": "1.2",
-              "whiteSpace": "pre-wrap",
-              "textShadow": "",
-              "WebkitTextStrokeWidth": "0px",
-              "WebkitTextStrokeColor": "#eee3e3",
-              "filter": "none"
-            }
-          }
-        ]
+        "layers": []
       }
     }
   ]
