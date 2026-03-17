@@ -1,7 +1,7 @@
 // src/routes/IncidenteRoutes.ts
 
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import {
   IncidenteController,
   uploadImagenes,
@@ -11,7 +11,7 @@ import {
 const router = Router();
 
 // Todas las rutas requieren JWT
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 
 
 // ——— RUTAS DE CONSULTA ———

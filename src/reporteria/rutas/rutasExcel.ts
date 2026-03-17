@@ -2,7 +2,7 @@
 // Centraliza EXCEL bajo /reporteria (si lo montas con app.use('/reporteria', rutasExcel))
 
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import { MovimientoExcelController } from '../controller/movimientoExcel';
 import { LocomotorasExcelController } from '../controller/locomotorasExcel';
 import { EmpresasExcelController } from '../controller/empresasExcel';
@@ -10,7 +10,7 @@ import { BonosExcelController } from '../controller/bonosExcel';
 
 const router = Router();
 
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 
 /**
  * Montaje:

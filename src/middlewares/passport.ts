@@ -7,26 +7,17 @@ import {
   type StrategyOptions,
   type VerifiedCallback,
 } from 'passport-jwt';
-import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
-// tu tipo original
-import type { JwtPayload as BaseJwtPayload } from '../types/auth';
+import type { AuthenticatedUser, JwtPayload } from '../types/auth';
 import * as tokenService from './token.service';
+import { prisma } from '../lib/prisma';
 
-const { JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE, NODE_ENV } = process.env;
+const { JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE } = process.env;
 
 if (!JWT_SECRET) {
   logger.error('JWT_SECRET no está definido en .env');
   throw new Error('JWT_SECRET no está definido en .env');
 }
-
-// extendemos aquí para evitar tocar tu ../types/auth
-type JwtPayload = BaseJwtPayload & {
-  sub?: string;        // lo que sí firma tu login
-  userId?: number;     // por si algún día firmas así
-};
-
-const prisma = new PrismaClient();
 
 const opts: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -34,7 +25,8 @@ const opts: StrategyOptions = {
   issuer: JWT_ISSUER,
   audience: JWT_AUDIENCE,
   algorithms: ['HS256'],
-  ignoreExpiration: NODE_ENV === 'development',
+  // La expiración efectiva vive en la tabla Token para permitir renovación por petición.
+  ignoreExpiration: true,
 };
 
 passport.use(
@@ -71,6 +63,7 @@ passport.use(
           id: true,
           nombre: true,
           rol: true,
+          tokenVersion: true,
           empresa: { select: { id: true, nombre: true } },
           localidad: { select: { id: true, nombre: true, estado: true } },
         },
@@ -81,12 +74,24 @@ passport.use(
         return done(null, false, { message: 'Usuario no encontrado' });
       }
 
-      const safeUser = {
+      const tokenVersion = typeof jwtPayload.v === 'number' ? jwtPayload.v : 0;
+      if (tokenVersion !== user.tokenVersion) {
+        logger.info('Token desactualizado por version', { userId: user.id, tokenVersion, currentVersion: user.tokenVersion });
+        return done(null, false, { message: 'Token desactualizado' });
+      }
+
+      const safeUser: AuthenticatedUser = {
         id: user.id,
         nombre: user.nombre,
         rol: user.rol,
         empresa: user.empresa,
         localidad: user.localidad,
+        auth: {
+          jti: jwtPayload.jti,
+          iat: jwtPayload.iat,
+          exp: jwtPayload.exp,
+          v: tokenVersion,
+        },
       };
 
       logger.info('JWT válido, usuario autenticado', { userId: user.id });

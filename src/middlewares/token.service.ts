@@ -2,14 +2,13 @@
 // Sesiones por JWT (ACCESS) con control por jti. No se guarda el JWT.
 
 import 'dotenv/config';
-import { PrismaClient, Token as TokenModel, DeviceType, TokenTipo } from '@prisma/client';
+import { Token as TokenModel, DeviceType, TokenTipo } from '@prisma/client';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import ms, { StringValue } from 'ms';
 import { NotificadorFCM } from '../services/NotificadorFCM';
 import { logger as tokenLogger } from '../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 /* -------------------------------------------------------------------------- */
 /*  Config                                                                    */
@@ -369,6 +368,32 @@ export async function getTokenOwner(jti: string, ctx?: Ctx): Promise<number | nu
   const t = await prisma.token.findUnique({ where: { jti }, select: { usuarioId: true } });
   tokenLogger.info('token:owner', withCtx({ jti, usuarioId: t?.usuarioId ?? null, ms: dt(t0) }, ctx));
   return t?.usuarioId ?? null;
+}
+
+export async function extenderSesionPorJti(jti: string, ttl: StringValue = JWT_TTL, ctx?: Ctx): Promise<Date> {
+  const t0 = now();
+  const ttlMs = typeof ttl === 'string' ? ms(ttl) : Number(ttl);
+  const expiresAt = new Date(Date.now() + ttlMs);
+
+  try {
+    const updated = await prisma.token.update({
+      where: { jti },
+      data: {
+        expiresAt,
+        revokedAt: null,
+        reason: null,
+      },
+      select: { expiresAt: true },
+    });
+
+    tokenLogger.info('token:extend:ok', withCtx({ jti, expiresAt: updated.expiresAt.toISOString(), ms: dt(t0) }, ctx));
+    return updated.expiresAt;
+  } catch (error: any) {
+    tokenLogger.error('token:extend:error', withCtx({
+      jti, code: error?.code ?? null, message: error?.message ?? null, ms: dt(t0),
+    }, ctx));
+    throw new Error('No se pudo extender la sesión');
+  }
 }
 
 /* -------------------------------------------------------------------------- */

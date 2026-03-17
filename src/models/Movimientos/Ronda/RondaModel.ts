@@ -34,7 +34,8 @@ async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
 // ================== CONSTANTES / GUARDAS ==================
 const MAX_GUARD_ITERS = 1000;
 const MAX_SCAN_ROUNDS = 500;
-const TIMEOUT_EN_PROCESO_MS = 60 * 60 * 1000; // 60 minutos
+const AUTO_CIERRE_EN_PROCESO_MS = 2 * 60 * 60 * 1000; // 2 horas
+const AUTO_CIERRE_DURACION_MS = 30 * 60 * 1000; // 30 minutos
 
 // Movimiento bloqueado al operador que lo inició por 30 min
 const BLOQUEO_OPERADOR_MS = 30 * 60 * 1000; // 30 minutos
@@ -104,37 +105,134 @@ function necesitaReequilibrarBajas(rondas: any[]): boolean {
 export class RondaModel {
   // ---------- HELPERS INTERNOS (SIN CRON) ----------
 
-
   /**
-   * Libera movimientos EN_PROCESO que llevan más de TIMEOUT_EN_PROCESO_MS
-   * con operador asignado, dejándolos con operadorId = null.
-   * Se ejecuta "perezoso" cuando un maquinista pide siguiente.
+   * Corrige movimientos trabados:
+   * si ya tienen fechaFin pero siguen en EN_PROCESO, se concluyen de inmediato.
    */
-  private static async liberarMovimientosEnProcesoPorTimeout(
+  private static async cerrarMovimientosEnProcesoConFechaFin(
     tx: Tx,
     localidadId: number
   ) {
-    const limite = new Date(Date.now() - TIMEOUT_EN_PROCESO_MS);
+    const movimientosTrabados = await tx.movimiento.findMany({
+      where: {
+        localidadId,
+        estado: 'EN_PROCESO',
+        fechaFin: { not: null },
+      },
+      select: {
+        id: true,
+        fechaFin: true,
+        ronda: { select: { id: true } },
+      },
+    });
 
-    const { count } = await tx.movimiento.updateMany({
+    if (!movimientosTrabados.length) return;
+
+    for (const movimiento of movimientosTrabados) {
+      await tx.movimiento.update({
+        where: { id: movimiento.id },
+        data: {
+          estado: 'CONCLUIDO',
+          finalizado: true,
+          updatedAt: new Date(),
+          incidenteGlobal: false,
+        },
+      });
+
+      if (movimiento.ronda) {
+        await tx.ronda.update({
+          where: { id: movimiento.ronda.id },
+          data: { concluido: true, updatedAt: new Date() },
+        });
+      }
+    }
+
+    await this.recomponerRondasLocalidad(localidadId, tx);
+
+    movimientoError.warn('Movimientos corregidos por fechaFin existente', {
+      localidadId,
+      cantidad: movimientosTrabados.length,
+      movimientos: movimientosTrabados.map((movimiento) => movimiento.id),
+    });
+  }
+
+
+  /**
+   * Cierra movimientos EN_PROCESO que llevan más de AUTO_CIERRE_EN_PROCESO_MS.
+   * El cierre es "perezoso": ocurre cuando se consulta la ronda/localidad.
+   *
+   * Regla de negocio:
+   * - Si el movimiento inició a las 12:30, su fechaFin automática será 13:00.
+   * - No usa la hora actual de autocierre como fechaFin operativa.
+   */
+  private static async cerrarMovimientosEnProcesoPorTimeout(
+    tx: Tx,
+    localidadId: number
+  ) {
+    const limite = new Date(Date.now() - AUTO_CIERRE_EN_PROCESO_MS);
+    const movimientosVencidos = await tx.movimiento.findMany({
       where: {
         localidadId,
         estado: 'EN_PROCESO',
         finalizado: false,
-        operadorId: { not: null },
-        // Campo que marca el inicio real del movimiento en proceso
-        fechaInicio: { lte: limite },
+        fechaInicio: { not: null, lte: limite },
       },
-      data: {
-        operadorId: null,
+      select: {
+        id: true,
+        fechaInicio: true,
+        localidadId: true,
+        ronda: { select: { id: true } },
       },
     });
 
-    if (count > 0) {
-      movimientoError.error('Movimientos liberados por timeout EN_PROCESO', {
+    if (!movimientosVencidos.length) return;
+
+    for (const movimiento of movimientosVencidos) {
+      const fechaInicio = movimiento.fechaInicio;
+      if (!fechaInicio) continue;
+
+      const fechaFinAutomatica = new Date(fechaInicio.getTime() + AUTO_CIERRE_DURACION_MS);
+
+      await tx.movimiento.update({
+        where: { id: movimiento.id },
+        data: {
+          estado: 'CONCLUIDO',
+          finalizado: true,
+          fechaFin: fechaFinAutomatica,
+          updatedAt: new Date(),
+          incidenteGlobal: false,
+        },
+      });
+
+      if (movimiento.ronda) {
+        await tx.ronda.update({
+          where: { id: movimiento.ronda.id },
+          data: { concluido: true, updatedAt: new Date() },
+        });
+      }
+    }
+
+    await this.recomponerRondasLocalidad(localidadId, tx);
+
+    movimientoError.warn('Movimientos autocerrados por timeout EN_PROCESO', {
+      localidadId,
+      timeoutMs: AUTO_CIERRE_EN_PROCESO_MS,
+      duracionOperativaMs: AUTO_CIERRE_DURACION_MS,
+      cantidad: movimientosVencidos.length,
+      movimientos: movimientosVencidos.map((movimiento) => movimiento.id),
+    });
+  }
+
+  private static async normalizarMovimientosEnProceso(localidadId: number, tx: Tx = prisma) {
+    try {
+      await this.cerrarMovimientosEnProcesoConFechaFin(tx, localidadId);
+      await this.cerrarMovimientosEnProcesoPorTimeout(tx, localidadId);
+    } catch (error: any) {
+      movimientoError.error('Error al normalizar movimientos EN_PROCESO', {
         localidadId,
-        timeoutMs: TIMEOUT_EN_PROCESO_MS,
-        cantidad: count,
+        errName: error?.name,
+        errMsg: error?.message,
+        errStack: error?.stack,
       });
     }
   }
@@ -252,6 +350,28 @@ export class RondaModel {
     });
   }
 
+  // Evita que la última empresa de una ronda sea la primera de la siguiente,
+  // salvo que en la ronda siguiente no exista alternativa.
+  private static equilibrarBordeEntreRondas<T extends { empresaId: number }>(
+    rondasOrdenadas: Array<[number, T[]]>
+  ) {
+    let ultimaEmpresaRondaAnterior: number | null = null;
+
+    for (const [, arr] of rondasOrdenadas) {
+      if (!arr.length) continue;
+
+      if (ultimaEmpresaRondaAnterior != null && arr.length > 1 && arr[0].empresaId === ultimaEmpresaRondaAnterior) {
+        const idxAlterno = arr.findIndex((row) => row.empresaId !== ultimaEmpresaRondaAnterior);
+        if (idxAlterno > 0) {
+          const [alterno] = arr.splice(idxAlterno, 1);
+          arr.unshift(alterno);
+        }
+      }
+
+      ultimaEmpresaRondaAnterior = arr[arr.length - 1]?.empresaId ?? ultimaEmpresaRondaAnterior;
+    }
+  }
+
   // Elimina duplicados (misma movimientoId) sin borrar movimientos concluidos.
   private static async eliminarRondasHuerfanasYDuplicadas(tx: Tx, localidadId: number) {
     const filas = await tx.ronda.findMany({
@@ -271,10 +391,25 @@ export class RondaModel {
     }
   }
 
-  // Borra rondas cuando TODOS sus movimientos ya terminaron.
+  // Saca de la cola operativa movimientos detenidos por incidente abierto.
+  private static async eliminarRondasDetenidasZombie(tx: Tx, localidadId: number) {
+    await tx.ronda.deleteMany({
+      where: {
+        localidadId,
+        concluido: false,
+        movimiento: {
+          estado: 'DETENIDO',
+          finalizado: false,
+          incidenteGlobal: true,
+        },
+      },
+    });
+  }
+
+  // Borra solo rondas activas cuya carga ya terminó por completo.
   private static async eliminarRondasCompletadas(tx: Tx, localidadId: number) {
     const grupos = await tx.ronda.findMany({
-      where: { localidadId },
+      where: { localidadId, concluido: false },
       select: { rondaNumero: true },
       distinct: ['rondaNumero'],
       orderBy: { rondaNumero: 'asc' },
@@ -284,22 +419,24 @@ export class RondaModel {
       const activos = await tx.ronda.count({
         where: {
           localidadId,
+          concluido: false,
           rondaNumero: g.rondaNumero,
           movimiento: {
+            finalizado: false,
             estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] as any },
           },
         },
       });
       if (activos === 0) {
-        await tx.ronda.deleteMany({ where: { localidadId, rondaNumero: g.rondaNumero } });
+        await tx.ronda.deleteMany({ where: { localidadId, concluido: false, rondaNumero: g.rondaNumero } });
       }
     }
   }
 
-  // Renumera rondas a 1..N y compacta órdenes.
+  // Renumera solo rondas activas a 1..N y compacta órdenes.
   private static async renumerarRondas(tx: Tx, localidadId: number) {
     const grupos = await tx.ronda.findMany({
-      where: { localidadId },
+      where: { localidadId, concluido: false },
       select: { rondaNumero: true },
       distinct: ['rondaNumero'],
       orderBy: { rondaNumero: 'asc' },
@@ -309,7 +446,7 @@ export class RondaModel {
     for (const g of grupos) {
       if (g.rondaNumero !== idx) {
         await tx.ronda.updateMany({
-          where: { localidadId, rondaNumero: g.rondaNumero },
+          where: { localidadId, concluido: false, rondaNumero: g.rondaNumero },
           data: { rondaNumero: idx },
         });
       }
@@ -444,14 +581,21 @@ export class RondaModel {
       porRonda.set(r.rondaNumero, arr);
     }
 
-    for (const [rondaNumero, arr] of porRonda) {
-      this.ordenarBajasPorTiempoEnRonda(arr);
+    const rondasOrdenadas = Array.from(porRonda.entries()).sort((a, b) => a[0] - b[0]);
 
+    for (const [, arr] of rondasOrdenadas) {
+      this.ordenarBajasPorTiempoEnRonda(arr);
+    }
+
+    this.equilibrarBordeEntreRondas(rondasOrdenadas);
+
+    for (const [rondaNumero, arr] of rondasOrdenadas) {
       for (let i = 0; i < arr.length; i++) {
         const row = arr[i];
         const nuevoOrden = i + 1;
         if (row.orden !== nuevoOrden) {
           await tx.ronda.update({ where: { id: row.id }, data: { orden: nuevoOrden } });
+          row.orden = nuevoOrden;
         }
       }
 
@@ -464,6 +608,9 @@ export class RondaModel {
   public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
     // 0) Limpiar duplicadas (no borrar concluidas aquí)
     await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
+
+    // 0.1) Sacar detenidos zombi de la cola operativa
+    await this.eliminarRondasDetenidasZombie(tx, localidadId);
 
     // 1) Eliminar rondas COMPLETADAS (todas sus movimientos ya terminaron)
     await this.eliminarRondasCompletadas(tx, localidadId);
@@ -935,7 +1082,7 @@ export class RondaModel {
   static async siguienteParaMaquinista(localidadId: number, usuarioId?: number) {
     return prisma.$transaction(async (tx) => {
       // 0. Limpieza perezosa de EN_PROCESO viejos
-      await this.liberarMovimientosEnProcesoPorTimeout(tx, localidadId);
+      await this.normalizarMovimientosEnProceso(localidadId, tx);
 
       // 1. Traer TODA la R1
       const r1 = await tx.ronda.findMany({
@@ -947,6 +1094,7 @@ export class RondaModel {
               empresaId: true,
               prioridad: true,
               estado: true,
+              incidenteGlobal: true,
               locomotiveNumber: true,
               lavado: true,
               torno: true,
@@ -960,14 +1108,15 @@ export class RondaModel {
       // 2. Buscar el primer slot de R1 que:
       //    - no esté en proceso, o
       //    - esté en proceso PERO:
-      //        a) no tiene operador (fue liberado por timeout), o
+      //        a) no tiene operador (estado recuperable/inconsistente), o
       //        b) lo atiende el mismo usuario
       const candidatoR1 = r1.find((row) => {
         const m = row.movimiento;
         if (!m) return false;
+        if (m.estado === 'DETENIDO' && m.incidenteGlobal) return false;
 
         if (m.estado === 'EN_PROCESO') {
-          // EN_PROCESO sin operador → se liberó por timeout, es libre
+          // EN_PROCESO sin operador → se considera recuperable
           if (!m.operadorId) return true;
 
           // EN_PROCESO con el mismo operador → se lo puede regresar
@@ -1007,6 +1156,7 @@ export class RondaModel {
               empresaId: true,
               prioridad: true,
               estado: true,
+              incidenteGlobal: true,
               locomotiveNumber: true,
               lavado: true,
               torno: true,
@@ -1020,9 +1170,10 @@ export class RondaModel {
       const candidato = resto.find((row) => {
         const m = row.movimiento;
         if (!m) return false;
+        if (m.estado === 'DETENIDO' && m.incidenteGlobal) return false;
 
         if (m.estado === 'EN_PROCESO') {
-          // EN_PROCESO sin operador → se liberó por timeout, es libre
+          // EN_PROCESO sin operador → se considera recuperable
           if (!m.operadorId) return true;
 
           // EN_PROCESO con el mismo operador → sí
@@ -1057,6 +1208,8 @@ export class RondaModel {
 
 
 static async siguienteInteligente(localidadId: number, userId?: number) {
+  await this.normalizarMovimientosEnProceso(localidadId);
+
   let rondas = await prisma.ronda.findMany({
     where: {
       localidadId,
@@ -1136,6 +1289,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     for (const r of rondas) {
       const mov = r.movimiento as any;
       if (!mov) continue;
+      if (mov.estado === 'DETENIDO' && mov.incidenteGlobal) continue;
 
       const esServicio = !!(mov.lavado || mov.torno);
       const esReasignable = mov.estado === 'EN_PROCESO' && esReasignablePorTiempo(mov);

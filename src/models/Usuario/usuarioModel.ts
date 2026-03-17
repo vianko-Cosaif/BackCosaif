@@ -1,9 +1,8 @@
 // src/models/Usuario/usuarioModel.ts
-import { PrismaClient, Rol } from '@prisma/client';
+import { Rol } from '@prisma/client';
 import argon2 from 'argon2';
 import { logger as log } from '../../utils/logger';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../lib/prisma';
 const normalizeEmail = (e: string) => e.trim().toLowerCase();
 const dt = (t0: bigint)=> Number(process.hrtime.bigint() - t0)/1e6;
 const serPrisma = (e:any)=>({ name:e?.name, code:e?.code, clientVersion:e?.clientVersion, meta:e?.meta, message:e?.message, stack:e?.stack });
@@ -101,7 +100,7 @@ export class UsuarioModel {
         where: { nombre },
         select: {
           id: true, nombre: true, email: true, contrasena: true,
-          empresaId: true, localidadId: true, rol: true,
+          empresaId: true, localidadId: true, rol: true, tokenVersion: true,
         },
       });
       const findMs = dt(tFind);
@@ -123,7 +122,7 @@ export class UsuarioModel {
         where: { id: usuario.id },
         data: { activo: true },
         select: {
-          id: true, nombre: true, email: true, empresaId: true, localidadId: true, rol: true,
+          id: true, nombre: true, email: true, empresaId: true, localidadId: true, rol: true, tokenVersion: true,
           empresa: { select: { nombre: true } },
           localidad: { select: { nombre: true, estado: true } },
         },

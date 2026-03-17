@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import { UsuarioController } from './UsuarioController';
 
 const router = Router();
@@ -10,7 +10,7 @@ router.post('/login', UsuarioController.login);
 // Crear nuevo usuario
 // Middleware de autenticación JWT aplicado a todas las rutas siguientes
 
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 
 router.post('/', UsuarioController.crearUsuario);
 

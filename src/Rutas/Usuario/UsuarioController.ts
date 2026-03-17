@@ -7,6 +7,7 @@ import * as tokenService from '../../middlewares/token.service';
 import { registrarIpUsuario, extraerIp } from '../../models/Token/ipUsuario';
 import { usuarioControllerLogger as log } from './usuario.controller.logger';
 import { v4 as uuidv4 } from 'uuid';
+import { getAccessTtlForRole } from '../../auth/sessionPolicy';
 
 const ser = (e:any)=>({
   name: e?.name, message: e?.message, code: e?.code,
@@ -21,6 +22,7 @@ const toDeviceType = (v?: string): DeviceType => {
 type SafeUser = {
   id: number; nombre: string; email: string; rol: string;
   empresaId: number; localidadId: number;
+  tokenVersion?: number;
   empresa?: { nombre: string }; localidad?: { nombre: string; estado: string };
 };
 
@@ -111,13 +113,14 @@ static login: RequestHandler = async (req, res) => {
     }));
 
     const tSign = Date.now();
+    const ttl = getAccessTtlForRole(user.rol);
     const { token, jti, exp } = tokenService.signAccess(
-      { id: user.id, nombre: user.nombre, rol: user.rol, tokenVersion: 0 },
-      undefined,
+      { id: user.id, nombre: user.nombre, rol: user.rol, tokenVersion: user.tokenVersion ?? 0 },
+      ttl,
       { reqId, usuarioId: user.id }
     );
     const signMs = Number((Date.now() - tSign).toFixed(3));
-    console.log(JSON.stringify({ level: 'info', msg: 'login:sign:ok', reqId, jti, exp, signMs }));
+    console.log(JSON.stringify({ level: 'info', msg: 'login:sign:ok', reqId, jti, exp, ttl, signMs }));
 
     const issuedAt = new Date();
     const expiresAt = new Date(exp * 1000);
@@ -172,6 +175,7 @@ static login: RequestHandler = async (req, res) => {
 
     return res.json({
       token,
+      expiresAt: new Date(exp * 1000).toISOString(),
       user: {
         id: user.id,
         nombre: user.nombre,
