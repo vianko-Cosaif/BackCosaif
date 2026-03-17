@@ -2,7 +2,7 @@
 // Centraliza PDFs bajo /reporteria (si lo montas con app.use('/reporteria', rutasPdf))
 
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import { MovimientoPdfController } from '../controller/movimeintoPdf';
 import { AdminReporteriaController } from '../controller/adminController';
 import { LocomotorasPdfController } from '../controller/locomotorasPdf';
@@ -11,7 +11,7 @@ import { BonosPdfController } from '../controller/bonosPdf';
 
 const router = Router();
 
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 
 /**
  * Montaje:

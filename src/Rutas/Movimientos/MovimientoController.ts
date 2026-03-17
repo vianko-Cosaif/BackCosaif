@@ -26,7 +26,9 @@
 
 import { RequestHandler } from 'express';
 import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
+import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
+import { readMovimientoPagination } from './movimiento.pagination';
 
 /** ------------------------------------------------------------------------
  * Helpers META
@@ -34,46 +36,6 @@ import { movimientoControllerLogger as log } from './movimiento.controller.logge
  * (o el maquinista) actúe **al CONCLUIR**.
  * Formato: [META DESTINO:123|SECCION:2|LIBERAR]
  * ------------------------------------------------------------------------ */
-
-/**
- * Construye la etiqueta META a inyectar en `instrucciones`.
- * - DESTINO:n   → viaDestinoId
- * - SECCION:n   → número de sección deseada (solo intención, no se persiste como columna)
- * - LIBERAR     → liberar vía origen al concluir
- */
-function buildMetaTag(opts: {
-  viaDestinoId?: number;
-  numeroSeccion?: number;
-  liberarOrigen?: boolean;
-}) {
-  const parts: string[] = [];
-  if (opts.viaDestinoId) parts.push(`DESTINO:${Number(opts.viaDestinoId)}`);
-  if (opts.numeroSeccion != null) parts.push(`SECCION:${Number(opts.numeroSeccion)}`);
-  if (opts.liberarOrigen) parts.push('LIBERAR');
-  return parts.length ? `[META ${parts.join('|')}] ` : '';
-}
-
-/**
- * Extrae la intención operativa desde `instrucciones` si existe.
- * Retorna { destinoId?, seccion?, liberar:boolean }.
- */
-function parseMetaFromInstrucciones(instr?: string) {
-  const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
-  if (!instr) return meta;
-  const m = instr.match(/\[META ([^\]]+)\]/i);
-  if (!m) return meta;
-  const tokens = m[1].split('|').map(s => s.trim().toUpperCase());
-  for (const t of tokens) {
-    if (t === 'LIBERAR') meta.liberar = true;
-    if (t.startsWith('DESTINO:')) {
-      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) meta.destinoId = v;
-    }
-    if (t.startsWith('SECCION:')) {
-      const s = Number(t.split(':')[1]); if (!Number.isNaN(s)) meta.seccion = s;
-    }
-  }
-  return meta;
-}
 
 export class MovimientoController {
   /**
@@ -83,12 +45,17 @@ export class MovimientoController {
    * @auth Requiere JWT.
    * @returns 200 [Movimiento] | 500
    */
-  static obtenerMovimientos: RequestHandler = async (_req, res) => {
+  static obtenerMovimientos: RequestHandler = async (req, res) => {
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientos();
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerMovimientosPaginados(pagination)
+        : await MovimientoModel.obtenerMovimientos();
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos', { error });
+      log.error('Error al obtener movimientos', { error, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos' });
     }
   };
@@ -200,8 +167,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
     try {
-      const todos = await MovimientoModel.obtenerMovimientos();
-      const mov = todos.find((m: { id: number }) => m.id === id);
+      const mov = await MovimientoModel.obtenerMovimientoPorId(id);
       if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       const meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
@@ -458,12 +424,17 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    * @auth Requiere JWT.
    * @returns 200 [Movimiento] | 500
    */
-  static obtenerMovimientosPendientes: RequestHandler = async (_req, res) => {
+  static obtenerMovimientosPendientes: RequestHandler = async (req, res) => {
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientes();
+      const pendientes = pagination
+        ? await MovimientoModel.obtenerMovimientosPendientesPaginados(pagination)
+        : await MovimientoModel.obtenerMovimientosPendientes();
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes', { error });
+      log.error('Error al obtener movimientos pendientes', { error, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos pendientes' });
     }
   };
@@ -480,11 +451,16 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
 
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresa(empresaId);
+      const pendientes = pagination
+        ? await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination)
+        : await MovimientoModel.obtenerMovimientosPendientesPorEmpresa(empresaId);
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId });
+      log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos pendientes por empresa' });
     }
   };
@@ -496,12 +472,17 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    * @auth Requiere JWT.
    * @returns 200 [Movimiento] | 500
    */
-  static obtenerTodosLosMovimientos: RequestHandler = async (_req, res) => {
+  static obtenerTodosLosMovimientos: RequestHandler = async (req, res) => {
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerTodosLosMovimientos();
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerTodosLosMovimientosPaginados(pagination)
+        : await MovimientoModel.obtenerTodosLosMovimientos();
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener todos los movimientos', { error });
+      log.error('Error al obtener todos los movimientos', { error, query: req.query });
       res.status(500).json({ message: 'Error al obtener todos los movimientos' });
     }
   };
@@ -518,11 +499,16 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
 
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresa(empresaId);
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination)
+        : await MovimientoModel.obtenerMovimientosPorEmpresa(empresaId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por empresa', { error, empresaId });
+      log.error('Error al obtener movimientos por empresa', { error, empresaId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos por empresa' });
     }
   };
@@ -539,11 +525,16 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
 
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId });
+      log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad' });
     }
   };
@@ -560,11 +551,16 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
 
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidad(localidadId);
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination)
+        : await MovimientoModel.obtenerTodosMovimientosPorLocalidad(localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener todos los movimientos por localidad', { error, localidadId });
+      log.error('Error al obtener todos los movimientos por localidad', { error, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener todos los movimientos por localidad' });
     }
   };
@@ -584,11 +580,17 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!Number.isInteger(localidadId) || !Number.isInteger(empresaId)) {
       return res.status(400).json({ message: 'ID de localidad o empresa inválido' });
     }
+
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorLocalidadEmpresa(localidadId, empresaId);
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerMovimientosPorLocalidadEmpresaPaginados(localidadId, empresaId, pagination)
+        : await MovimientoModel.obtenerMovimientosPorLocalidadEmpresa(localidadId, empresaId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId });
+      log.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos por localidad y empresa' });
     }
   };
@@ -608,11 +610,17 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
       return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
     }
+
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidad(empresaId, localidadId);
+      const movimientos = pagination
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidad(empresaId, localidadId);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId });
+      log.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos por empresa y localidad' });
     }
   };
@@ -632,11 +640,17 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
       return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
     }
+
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) return res.status(400).json({ message: error });
+
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId, localidadId);
+      const pendientes = pagination
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId, localidadId);
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId });
+      log.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos no concluidos por empresa y localidad' });
     }
   };

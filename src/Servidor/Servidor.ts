@@ -6,24 +6,13 @@
  * 2. Registrar middlewares globales (JSON, CORS, Passport-JWT).
  * 3. Montar las rutas de cada módulo de negocio.
  * 4. Iniciar el servidor en el puerto indicado.
- * 5. IMPORTANTE: inicializar tareas en background (cron) al inicio del proceso.
- *
- * Nota sobre el cron:
- *  - El import `../Cron/Tokens` no exporta nada, solo registra un job recurrente.
- *  - Ese job se ejecuta cada 2 horas y revoca/borrar tokens y FCM en BD.
- *  - Se hace el import aquí para que se active al levantar el backend,
- *    no cuando alguien consuma una ruta.
  */
 
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import passport from "../middlewares/passport";
-
-// --------------- Cron de limpieza/revocación ---------------
-// Este import evalúa el archivo y registra el cron con node-cron.
-// No quitar: si se elimina, el job deja de ejecutarse.
-import "../Cron/Tokens";
+import { traceLoginTraffic } from "../auth/loginProbe";
 
 // --------------- Rutas de dominio ---------------
 import localidadRoutes from "../Rutas/Localidad/LocalidadRutas";
@@ -44,6 +33,7 @@ dotenv.config();
 
 // Puerto de escucha
 const PORT = process.env.PORT;
+const HOST = process.env.HOST || '0.0.0.0';
 
 /**
  * Inicializa y arranca el servidor Express.
@@ -54,6 +44,7 @@ export function iniciarServidor(): void {
     const app: Express = express();
 
     // ---------------- Middlewares globales ----------------
+    app.use(traceLoginTraffic);
 
     // Parseo de JSON para todo el API
     app.use(express.json());
@@ -87,9 +78,9 @@ export function iniciarServidor(): void {
     app.use("/banner", bannerRoutes);
 
     // ---------------- Arranque del servidor ----------------
-    app.listen(PORT, () => {
-      console.log(`Servidor corriendo en puerto ${PORT}`);
-      console.log(`Cron de tokens y FCM cargado (src/Cron/Tokens.ts)`);
+    app.listen(Number(PORT), HOST, () => {
+      console.log(`Servidor corriendo en ${HOST}:${PORT}`);
+      console.log('Autenticacion por sesion cargada con renovacion por rol');
     });
   } catch (error) {
     // Error crítico al iniciar el server: se termina el proceso
