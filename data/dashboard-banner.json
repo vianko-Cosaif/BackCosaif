@@ -1,6 +1,6 @@
 {
   "version": "multi-banner-v1",
-  "exportedAt": "2026-03-17T23:38:41.363Z",
+  "exportedAt": "2026-03-17T23:38:41.365Z",
   "activeBannerId": "vprj-1773789154733-57894",
   "bannerTools": {
     "mode": "auto",
@@ -15,7 +15,6 @@
     "designWidth": 800,
     "designHeight": 120,
     "aspectRatio": 6.666666666666667,
-    "actionUrl": "/dashboard",
     "background": {
       "type": "image",
       "bgType": "image",
@@ -40,7 +39,6 @@
       "designWidth": 800,
       "designHeight": 120,
       "aspectRatio": 6.666666666666667,
-      "actionUrl": "/dashboard",
       "background": {
         "type": "image",
         "bgType": "image",
@@ -64,7 +62,6 @@
       "designWidth": 800,
       "designHeight": 120,
       "aspectRatio": 6.666666666666667,
-      "actionUrl": "/dashboard",
       "background": {
         "type": "image",
         "bgType": "image",
@@ -106,7 +103,6 @@
         "designWidth": 800,
         "designHeight": 120,
         "aspectRatio": 6.666666666666667,
-        "actionUrl": "/dashboard",
         "background": {
           "type": "image",
           "bgType": "image",
@@ -135,7 +131,6 @@
         "designWidth": 800,
         "designHeight": 120,
         "aspectRatio": 6.666666666666667,
-        "actionUrl": "/dashboard",
         "background": {
           "type": "image",
           "bgType": "image",

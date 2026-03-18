@@ -106,7 +106,6 @@ const defaultBannerConfig: DashboardBannerConfig = {
     designWidth: DEFAULT_DESIGN_WIDTH,
     designHeight: DEFAULT_DESIGN_HEIGHT,
     aspectRatio: DEFAULT_DESIGN_WIDTH / DEFAULT_DESIGN_HEIGHT,
-    actionUrl: "/dashboard",
     background: {
       type: "color",
       value: "#154562",
