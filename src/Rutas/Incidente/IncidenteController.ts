@@ -5,9 +5,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import {
   IncidenteModel,
-  EstadoFiltro,
+  type EstadoFiltro,
   listarIncidentesPaginados,
-} from '../../models/Incidente/IncidenteModel';
+} from '../../models/Incidente';
 import { incidenteControllerLogger } from './incidente.controller.logger';
 
 /**
@@ -356,5 +356,4 @@ export class IncidenteController {
     }
   };
 }
-
 

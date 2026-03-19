@@ -43373,3 +43373,15 @@
   message: 'Movimiento reactivado tras resolución de incidente',
   timestamp: '2025-12-18 01:41:04'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  rid: 'mmwdggo0-lx8flz',
+  incidenteId: 12,
+  movimientoId: 23,
+  locomotiveNumber: 889,
+  totalIncidentesLocomotora: 3,
+  level: 'warn',
+  message: 'Movimiento cancelado por límite de incidentes en locomotora',
+  timestamp: '2026-03-18 12:25:42'
+}

@@ -9494,3 +9494,183 @@
   message: 'crear.close',
   timestamp: '2026-03-13 17:25:58'
 }
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 200,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 09:39:48'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 201,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 09:39:48'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 237,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 09:40:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 237,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 09:40:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 167,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 09:42:27'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 167,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 09:42:27'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 745,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 12:23:32'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 749,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 12:23:32'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 660,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 12:25:42'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 664,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 12:25:42'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 164,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 12:27:14'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 165,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 12:27:14'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 256,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 12:34:31'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 256,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 12:34:31'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 229,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 18:04:41'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 230,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 18:04:41'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 140,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-03-18 18:11:53'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 140,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-03-18 18:11:53'
+}

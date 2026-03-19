@@ -14,29 +14,8 @@ type MovimientoPageMeta = {
   hasPreviousPage: boolean;
 };
 
-const MOVIMIENTOS_ORDER_DESC = [
-  { createdAt: 'desc' },
-  { id: 'desc' },
-] satisfies Prisma.MovimientoOrderByWithRelationInput[];
-
-const MOVIMIENTOS_ORDER_PENDIENTES = [
-  { prioridad: 'desc' },
-  { createdAt: 'asc' },
-  { id: 'asc' },
-] satisfies Prisma.MovimientoOrderByWithRelationInput[];
-
-const MOVIMIENTO_LIST_INCLUDE = {
-  empresa: true,
-  creadoPor: true,
-  localidad: true,
-  viaOrigen: true,
-  viaDestino: true,
-  incidentes: true,
-  ronda: true,
-} satisfies Prisma.MovimientoInclude;
-
 type MovimientoListado = Prisma.MovimientoGetPayload<{
-  include: typeof MOVIMIENTO_LIST_INCLUDE;
+  include: typeof MovimientoReadModel.MOVIMIENTO_LIST_INCLUDE;
 }>;
 
 type MovimientoListadoPaginado = {
@@ -44,19 +23,70 @@ type MovimientoListadoPaginado = {
   meta: MovimientoPageMeta;
 };
 
+type MovimientoBusquedaParams = {
+  q?: string;
+  locomotivePrefix?: string;
+  locomotiveNumber?: number;
+  empresaId?: number;
+  localidadId?: number;
+  estados?: string[];
+  prioridad?: 'ALTA' | 'BAJA';
+  finalizado?: boolean;
+  fechaCampo?: 'solicitud' | 'inicio' | 'fin' | 'creacion';
+  fechaDesde?: Date;
+  fechaHasta?: Date;
+  pagination: MovimientoPagination;
+};
+
 export class MovimientoReadModel {
+  private static readonly MAX_LOCOMOTIVE_PREFIX_DIGITS = 6;
+
+  private static buildLocomotivePrefixRanges(prefix: string) {
+    if (!/^\d+$/.test(prefix)) return [];
+    const len = prefix.length;
+    const p = Number(prefix);
+    const maxDigits = this.MAX_LOCOMOTIVE_PREFIX_DIGITS;
+    const maxPow = Math.max(0, maxDigits - len);
+    const ranges: Prisma.MovimientoWhereInput[] = [];
+    for (let k = 0; k <= maxPow; k++) {
+      const base = p * 10 ** k;
+      const end = (p + 1) * 10 ** k - 1;
+      ranges.push({ locomotiveNumber: { gte: base, lte: end } });
+    }
+    return ranges;
+  }
+  private static readonly MOVIMIENTOS_ORDER_DESC = [
+    { createdAt: 'desc' },
+    { id: 'desc' },
+  ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
+
+  private static readonly MOVIMIENTOS_ORDER_PENDIENTES = [
+    { prioridad: 'desc' },
+    { createdAt: 'asc' },
+    { id: 'asc' },
+  ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
+
+  public static readonly MOVIMIENTO_LIST_INCLUDE = {
+    empresa: true,
+    creadoPor: true,
+    localidad: true,
+    viaOrigen: true,
+    viaDestino: true,
+    incidentes: true,
+    ronda: true,
+  } satisfies Prisma.MovimientoInclude;
   private static async listarMovimientosColeccion(args: {
     where?: Prisma.MovimientoWhereInput;
     orderBy?: Prisma.MovimientoOrderByWithRelationInput[];
     pagination: MovimientoPagination;
   }): Promise<MovimientoListadoPaginado> {
-    const { where = {}, orderBy = MOVIMIENTOS_ORDER_DESC, pagination } = args;
+    const { where = {}, orderBy = this.MOVIMIENTOS_ORDER_DESC, pagination } = args;
     const skip = (pagination.page - 1) * pagination.pageSize;
 
     const [data, total] = await Promise.all([
       prisma.movimiento.findMany({
         where,
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy,
         skip,
         take: pagination.pageSize,
@@ -81,7 +111,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
       });
     } catch (error: any) {
       movimientoError.error('Error al obtener movimiento por id', {
@@ -95,7 +125,7 @@ export class MovimientoReadModel {
   static async obtenerMovimientos() {
     try {
       return await prisma.movimiento.findMany({
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
       });
     } catch (error: any) {
       movimientoError.error('Error al obtener movimientos', {
@@ -107,13 +137,103 @@ export class MovimientoReadModel {
 
   static async obtenerMovimientosPaginados(pagination: MovimientoPagination) {
     try {
-      return await this.listarMovimientosColeccion({ pagination, orderBy: MOVIMIENTOS_ORDER_DESC });
+      return await this.listarMovimientosColeccion({ pagination, orderBy: this.MOVIMIENTOS_ORDER_DESC });
     } catch (error: any) {
       movimientoError.error('Error al obtener movimientos paginados', {
         pagination,
         errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
       });
       throw new Error('Error al obtener movimientos');
+    }
+  }
+
+  static async buscarMovimientos(params: MovimientoBusquedaParams) {
+    try {
+      const {
+        q,
+        locomotivePrefix,
+        locomotiveNumber,
+        empresaId,
+        localidadId,
+        estados,
+        prioridad,
+        finalizado,
+        fechaCampo = 'solicitud',
+        fechaDesde,
+        fechaHasta,
+        pagination,
+      } = params;
+      const where: Prisma.MovimientoWhereInput = {};
+
+      if (locomotiveNumber !== undefined) where.locomotiveNumber = locomotiveNumber;
+      if (empresaId !== undefined) where.empresaId = empresaId;
+      if (localidadId !== undefined) where.localidadId = localidadId;
+      if (prioridad) where.prioridad = prioridad as any;
+      if (finalizado !== undefined) where.finalizado = finalizado;
+      if (estados && estados.length) {
+        where.estado = { in: estados as any };
+      }
+
+      if (fechaDesde || fechaHasta) {
+        const rango: { gte?: Date; lte?: Date } = {};
+        if (fechaDesde) rango.gte = fechaDesde;
+        if (fechaHasta) rango.lte = fechaHasta;
+        const field =
+          fechaCampo === 'inicio'
+            ? 'fechaInicio'
+            : fechaCampo === 'fin'
+            ? 'fechaFin'
+            : fechaCampo === 'creacion'
+            ? 'createdAt'
+            : 'fechaSolicitud';
+        (where as any)[field] = rango;
+      }
+
+      const term = String(q ?? '').trim();
+      if (term) {
+        const or: Prisma.MovimientoWhereInput[] = [
+          { instrucciones: { contains: term, mode: 'insensitive' } },
+          { tipoMovimiento: { contains: term, mode: 'insensitive' } as any },
+          { posicionCabina: { contains: term, mode: 'insensitive' } as any },
+          { posicionChimenea: { contains: term, mode: 'insensitive' } as any },
+          { direccionEmpuje: { contains: term, mode: 'insensitive' } as any },
+          { empresa: { nombre: { contains: term, mode: 'insensitive' } } },
+          { localidad: { nombre: { contains: term, mode: 'insensitive' } } },
+          { viaOrigen: { nombre: { contains: term, mode: 'insensitive' } } },
+          { viaDestino: { nombre: { contains: term, mode: 'insensitive' } } },
+          { creadoPor: { nombre: { contains: term, mode: 'insensitive' } } },
+          { cliente: { nombre: { contains: term, mode: 'insensitive' } } },
+          { supervisor: { nombre: { contains: term, mode: 'insensitive' } } },
+          { coordinador: { nombre: { contains: term, mode: 'insensitive' } } },
+          { operador: { nombre: { contains: term, mode: 'insensitive' } } },
+        ];
+
+        if (/^\d+$/.test(term)) {
+          const num = Number(term);
+          or.push({ id: num }, { locomotiveNumber: num });
+        }
+
+        where.AND = [...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []), { OR: or }];
+      }
+
+      if (locomotivePrefix) {
+        const ranges = this.buildLocomotivePrefixRanges(locomotivePrefix);
+        if (ranges.length) {
+          where.AND = [...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []), { OR: ranges }];
+        }
+      }
+
+      return await this.listarMovimientosColeccion({
+        where,
+        orderBy: locomotivePrefix ? [{ locomotiveNumber: 'desc' }, { id: 'desc' }] : this.MOVIMIENTOS_ORDER_DESC,
+        pagination,
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al buscar movimientos', {
+        params,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error('Error al buscar movimientos');
     }
   }
 
@@ -151,7 +271,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { finalizado: false, estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
       });
     } catch (error: any) {
       movimientoError.error('Error al obtener movimientos pendientes', {
@@ -165,7 +285,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { finalizado: false, estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
-        orderBy: MOVIMIENTOS_ORDER_PENDIENTES,
+        orderBy: this.MOVIMIENTOS_ORDER_PENDIENTES,
         pagination,
       });
     } catch (error: any) {
@@ -181,7 +301,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { empresaId, finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
       });
     } catch (error: any) {
       movimientoError.error('Error al obtener movimientos pendientes por empresa', {
@@ -196,7 +316,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { empresaId, finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
-        orderBy: MOVIMIENTOS_ORDER_PENDIENTES,
+        orderBy: this.MOVIMIENTOS_ORDER_PENDIENTES,
         pagination,
       });
     } catch (error: any) {
@@ -211,7 +331,7 @@ export class MovimientoReadModel {
   static async obtenerTodosLosMovimientos() {
     try {
       return await prisma.movimiento.findMany({
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: any) {
@@ -224,7 +344,7 @@ export class MovimientoReadModel {
 
   static async obtenerTodosLosMovimientosPaginados(pagination: MovimientoPagination) {
     try {
-      return await this.listarMovimientosColeccion({ pagination, orderBy: MOVIMIENTOS_ORDER_DESC });
+      return await this.listarMovimientosColeccion({ pagination, orderBy: this.MOVIMIENTOS_ORDER_DESC });
     } catch (error: any) {
       movimientoError.error('Error al obtener todos los movimientos paginados', {
         pagination,
@@ -238,7 +358,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { empresaId },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: any) {
@@ -254,7 +374,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { empresaId },
-        orderBy: MOVIMIENTOS_ORDER_DESC,
+        orderBy: this.MOVIMIENTOS_ORDER_DESC,
         pagination,
       });
     } catch (error: any) {
@@ -270,7 +390,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { localidadId, finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'asc' },
       });
     } catch (error: any) {
@@ -286,7 +406,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { localidadId, finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
-        orderBy: MOVIMIENTOS_ORDER_PENDIENTES,
+        orderBy: this.MOVIMIENTOS_ORDER_PENDIENTES,
         pagination,
       });
     } catch (error: any) {
@@ -302,7 +422,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { localidadId },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: any) {
@@ -318,7 +438,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { localidadId },
-        orderBy: MOVIMIENTOS_ORDER_DESC,
+        orderBy: this.MOVIMIENTOS_ORDER_DESC,
         pagination,
       });
     } catch (error: any) {
@@ -334,7 +454,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { localidadId, empresaId },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: any) {
@@ -350,7 +470,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { localidadId, empresaId },
-        orderBy: MOVIMIENTOS_ORDER_DESC,
+        orderBy: this.MOVIMIENTOS_ORDER_DESC,
         pagination,
       });
     } catch (error: any) {
@@ -366,7 +486,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { empresaId, localidadId },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: any) {
@@ -382,7 +502,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { empresaId, localidadId },
-        orderBy: MOVIMIENTOS_ORDER_DESC,
+        orderBy: this.MOVIMIENTOS_ORDER_DESC,
         pagination,
       });
     } catch (error: any) {
@@ -398,7 +518,7 @@ export class MovimientoReadModel {
     try {
       return await prisma.movimiento.findMany({
         where: { empresaId, localidadId, finalizado: false },
-        include: MOVIMIENTO_LIST_INCLUDE,
+        include: this.MOVIMIENTO_LIST_INCLUDE,
         orderBy: { createdAt: 'desc' },
       });
     } catch (error: any) {
@@ -418,7 +538,7 @@ export class MovimientoReadModel {
     try {
       return await this.listarMovimientosColeccion({
         where: { empresaId, localidadId, finalizado: false },
-        orderBy: MOVIMIENTOS_ORDER_DESC,
+        orderBy: this.MOVIMIENTOS_ORDER_DESC,
         pagination,
       });
     } catch (error: any) {

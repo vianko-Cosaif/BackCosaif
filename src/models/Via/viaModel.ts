@@ -17,6 +17,47 @@ export class ViaOcupadaPorOtroError extends ConflictError {
 }
 
 export class ViaModel {
+  private static readonly CACHE_TTL_MS = 60 * 1000;
+  private static viasLiteCache: { data: Array<{ id: number; nombre: string; numero: number; localidadId: number; ocupada: boolean }>; exp: number } | null = null;
+  private static viasLitePorLocalidadCache = new Map<number, { data: Array<{ id: number; nombre: string; numero: number; localidadId: number; ocupada: boolean }>; exp: number }>();
+
+  private static getViasLiteCache() {
+    if (!this.viasLiteCache) return null;
+    if (Date.now() > this.viasLiteCache.exp) {
+      this.viasLiteCache = null;
+      return null;
+    }
+    return this.viasLiteCache.data;
+  }
+
+  private static getViasLitePorLocalidadCache(localidadId: number) {
+    const cached = this.viasLitePorLocalidadCache.get(localidadId);
+    if (!cached) return null;
+    if (Date.now() > cached.exp) {
+      this.viasLitePorLocalidadCache.delete(localidadId);
+      return null;
+    }
+    return cached.data;
+  }
+
+  private static setViasLiteCache(
+    data: Array<{ id: number; nombre: string; numero: number; localidadId: number; ocupada: boolean }>
+  ) {
+    this.viasLiteCache = { data, exp: Date.now() + this.CACHE_TTL_MS };
+  }
+
+  private static setViasLitePorLocalidadCache(
+    localidadId: number,
+    data: Array<{ id: number; nombre: string; numero: number; localidadId: number; ocupada: boolean }>
+  ) {
+    this.viasLitePorLocalidadCache.set(localidadId, { data, exp: Date.now() + this.CACHE_TTL_MS });
+  }
+
+  private static clearViasLiteCache() {
+    this.viasLiteCache = null;
+    this.viasLitePorLocalidadCache.clear();
+  }
+
   // -------------------- Helpers --------------------
   private static async contarSecciones(viaId: number, tx?: Prisma.TransactionClient) {
     const db = tx ?? prisma;
@@ -164,9 +205,46 @@ export class ViaModel {
     }
   }
 
+  static async obtenerViasLite() {
+    const cached = this.getViasLiteCache();
+    if (cached) return cached;
+
+    try {
+      const data = await prisma.via.findMany({
+        orderBy: [{ localidadId: 'asc' }, { numero: 'asc' }],
+        select: { id: true, nombre: true, numero: true, localidadId: true, ocupada: true },
+      });
+      this.setViasLiteCache(data);
+      return data;
+    } catch (error: any) {
+      viaError.error('Error al obtener vías lite', { error });
+      throw error;
+    }
+  }
+
+  static async obtenerViasLitePorLocalidad(localidadId: number) {
+    const cached = this.getViasLitePorLocalidadCache(localidadId);
+    if (cached) return cached;
+
+    try {
+      const data = await prisma.via.findMany({
+        where: { localidadId },
+        orderBy: [{ numero: 'asc' }],
+        select: { id: true, nombre: true, numero: true, localidadId: true, ocupada: true },
+      });
+      this.setViasLitePorLocalidadCache(localidadId, data);
+      return data;
+    } catch (error: any) {
+      viaError.error('Error al obtener vías lite por localidad', { error, localidadId });
+      throw error;
+    }
+  }
+
   static async crearVia(numero: number, nombre: string, localidadId: number) {
     try {
-      return await prisma.via.create({ data: { numero, nombre, localidadId } });
+      const created = await prisma.via.create({ data: { numero, nombre, localidadId } });
+      this.clearViasLiteCache();
+      return created;
     } catch (error: any) {
       viaError.error('Error al crear vía', { error, numero, nombre, localidadId });
       throw error;
@@ -184,7 +262,9 @@ export class ViaModel {
         if ('ocupada' in payload) delete (payload as any).ocupada;
         if ('movimientoId' in payload) delete (payload as any).movimientoId;
       }
-      return await prisma.via.update({ where: { id }, data: payload });
+      const updated = await prisma.via.update({ where: { id }, data: payload });
+      this.clearViasLiteCache();
+      return updated;
     } catch (error: any) {
       viaError.error('Error al editar vía', { error, id, data });
       throw error;
@@ -193,7 +273,9 @@ export class ViaModel {
 
   static async eliminarVia(id: number) {
     try {
-      return await prisma.via.delete({ where: { id } });
+      const deleted = await prisma.via.delete({ where: { id } });
+      this.clearViasLiteCache();
+      return deleted;
     } catch (error: any) {
       viaError.error('Error al eliminar vía', { error, id });
       throw error;

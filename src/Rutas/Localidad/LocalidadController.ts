@@ -17,13 +17,9 @@
  */
 
 import { Request, Response, RequestHandler } from 'express';
-import { 
-  obtenerLocalidades, 
-  crearLocalidad, 
-  buscarLocalidadPorId, 
-  buscarLocalidadPorNombre 
-} from '../../models/Locolidad/localidadModel';
+import { LocalidadModel } from '../../models/Locolidad';
 import { localidadControllerLogger } from './Localidad.logger';
+import { ok, fail } from '../../utils/http';
 
 export class LocalidadController {
   /**
@@ -33,11 +29,26 @@ export class LocalidadController {
    */
   static obtenerLocalidades: RequestHandler = async (req: Request, res: Response) => {
     try {
-      const localidades = await obtenerLocalidades();
-      res.json(localidades);
+      const localidades = await LocalidadModel.obtenerLocalidades();
+      ok(res, localidades);
     } catch (error) {
         localidadControllerLogger.error('Error al obtener localidades', { error });
-      res.status(500).json({ error: 'Error al obtener localidades', details: error });
+      fail(res, 500, 'Error al obtener localidades', { error: error as any });
+    }
+  };
+
+  /**
+   * GET /localidades/lite
+   *
+   * Devuelve localidades ligeras (id, nombre, estado).
+   */
+  static obtenerLocalidadesLite: RequestHandler = async (_req: Request, res: Response) => {
+    try {
+      const localidades = await LocalidadModel.obtenerLocalidadesLite();
+      ok(res, localidades);
+    } catch (error) {
+      localidadControllerLogger.error('Error al obtener localidades lite', { error });
+      fail(res, 500, 'Error al obtener localidades', { error: error as any });
     }
   };
 
@@ -50,16 +61,17 @@ export class LocalidadController {
     const { nombre, estado } = req.body;
 
     if (!nombre || typeof nombre !== 'string' || !estado || typeof estado !== 'string') {
-      res.status(400).json({ error: 'Los campos nombre y estado son obligatorios y deben ser de tipo texto' });
+      fail(res, 400, 'Los campos nombre y estado son obligatorios y deben ser de tipo texto');
       return;
     }
 
     try {
-      const nuevaLocalidad = await crearLocalidad(nombre, estado);
-      res.status(201).json(nuevaLocalidad);
+      const nuevaLocalidad = await LocalidadModel.crearLocalidad(nombre, estado);
+      res.status(201);
+      ok(res, nuevaLocalidad);
     } catch (error) {
         localidadControllerLogger.error('Error al crear localidad', { error });
-      res.status(500).json({ error: 'Error al crear localidad', details: error });
+      fail(res, 500, 'Error al crear localidad', { error: error as any });
     }
   };
 
@@ -72,20 +84,20 @@ export class LocalidadController {
     const id = parseInt(req.params.id);
 
     if (isNaN(id)) {
-      res.status(400).json({ error: 'ID inválido. Debe ser un número válido.' });
+      fail(res, 400, 'ID inválido. Debe ser un número válido.');
       return;
     }
 
     try {
-      const localidad = await buscarLocalidadPorId(id);
+      const localidad = await LocalidadModel.buscarLocalidadPorId(id);
       if (!localidad) {
-        res.status(404).json({ error: 'Localidad no encontrada' });
+        fail(res, 404, 'Localidad no encontrada');
       } else {
-        res.json(localidad);
+        ok(res, localidad);
       }
     } catch (error) {
         localidadControllerLogger.error(`Error al obtener localidad con ID ${id}`, { error });
-      res.status(500).json({ error: 'Error al obtener localidad', details: error });
+      fail(res, 500, 'Error al obtener localidad', { error: error as any });
     }
   };
 
@@ -98,20 +110,20 @@ export class LocalidadController {
     const { nombre } = req.query;
 
     if (!nombre || typeof nombre !== 'string') {
-      res.status(400).json({ error: 'El parámetro de consulta "nombre" es obligatorio y debe ser de tipo texto' });
+      fail(res, 400, 'El parámetro de consulta "nombre" es obligatorio y debe ser de tipo texto');
       return;
     }
 
     try {
-      const localidad = await buscarLocalidadPorNombre(nombre);
+      const localidad = await LocalidadModel.buscarLocalidadPorNombre(nombre);
       if (!localidad) {
-        res.status(404).json({ error: 'Localidad no encontrada' });
+        fail(res, 404, 'Localidad no encontrada');
       } else {
-        res.json(localidad);
+        ok(res, localidad);
       }
     } catch (error) {
         localidadControllerLogger.error(`Error al buscar localidad con nombre ${nombre}`, { error });
-      res.status(500).json({ error: 'Error al buscar localidad', details: error });
+      fail(res, 500, 'Error al buscar localidad', { error: error as any });
     }
   };
 }

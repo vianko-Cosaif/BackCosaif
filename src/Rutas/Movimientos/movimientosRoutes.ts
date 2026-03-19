@@ -77,6 +77,12 @@ router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServi
 router.get('/', MovimientoController.obtenerMovimientos);
 
 /**
+ * GET /movimientos/buscar
+ * Búsqueda server-side con filtros y paginación obligatoria.
+ */
+router.get('/buscar', MovimientoController.buscarMovimientos);
+
+/**
  * GET /movimientos/all
  * Lista *todos* los movimientos (sin filtros). 
  * Efecto: solo lectura.

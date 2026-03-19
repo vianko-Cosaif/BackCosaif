@@ -718,3 +718,438 @@
   module: 'Movimientos/Incidente',
   timestamp: '2025-07-24 16:40:36'
 }
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+      at listenInCluster (node:net:1965:12)
+      at doListen (node:net:2139:7)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  exception: true,
+  date: 'Wed Mar 18 2026 12:30:26 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 23193,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 131317760,
+      heapTotal: 72384512,
+      heapUsed: 51939528,
+      external: 2659077,
+      arrayBuffers: 63431
+    }
+  },
+  os: {
+    loadavg: [ 3.1640625, 3.1103515625, 7.60791015625 ],
+    uptime: 15414
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1908,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1965,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: 'doListen',
+      line: 2139,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 83,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-03-18 12:30:26'
+}
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+      at listenInCluster (node:net:1965:12)
+      at doListen (node:net:2139:7)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  exception: true,
+  date: 'Wed Mar 18 2026 17:31:12 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 88246,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 131432448,
+      heapTotal: 72646656,
+      heapUsed: 48145024,
+      external: 2659077,
+      arrayBuffers: 63431
+    }
+  },
+  os: {
+    loadavg: [ 4.1337890625, 4.9716796875, 4.83837890625 ],
+    uptime: 33460
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1908,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1965,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: 'doListen',
+      line: 2139,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 83,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-03-18 17:31:12'
+}
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+      at listenInCluster (node:net:1965:12)
+      at doListen (node:net:2139:7)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  exception: true,
+  date: 'Wed Mar 18 2026 17:31:22 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 88318,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 131776512,
+      heapTotal: 72646656,
+      heapUsed: 49331120,
+      external: 2659077,
+      arrayBuffers: 63431
+    }
+  },
+  os: {
+    loadavg: [ 4.04296875, 4.9384765625, 4.8271484375 ],
+    uptime: 33470
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1908,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1965,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: 'doListen',
+      line: 2139,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 83,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-03-18 17:31:22'
+}
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+      at listenInCluster (node:net:1965:12)
+      at doListen (node:net:2139:7)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  exception: true,
+  date: 'Wed Mar 18 2026 17:32:20 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 88604,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 131514368,
+      heapTotal: 73170944,
+      heapUsed: 48983984,
+      external: 2659077,
+      arrayBuffers: 63431
+    }
+  },
+  os: {
+    loadavg: [ 2.62451171875, 4.3701171875, 4.62109375 ],
+    uptime: 33528
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1908,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1965,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: 'doListen',
+      line: 2139,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 83,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-03-18 17:32:20'
+}
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+      at listenInCluster (node:net:1965:12)
+      at doListen (node:net:2139:7)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  exception: true,
+  date: 'Wed Mar 18 2026 17:35:44 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 92175,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+    version: 'v20.19.2',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.2/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 133365760,
+      heapTotal: 75005952,
+      heapUsed: 41703960,
+      external: 2659077,
+      arrayBuffers: 63431
+    }
+  },
+  os: {
+    loadavg: [ 5.4521484375, 3.99609375, 4.3486328125 ],
+    uptime: 33732
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1908,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1965,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: 'doListen',
+      line: 2139,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 83,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-03-18 17:35:44'
+}

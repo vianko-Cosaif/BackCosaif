@@ -2,9 +2,9 @@
 import { RequestHandler } from 'express';
 import { DeviceType } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { UsuarioModel } from '../../models/Usuario/usuarioModel';
+import { UsuarioModel } from '../../models/Usuario';
 import * as tokenService from '../../middlewares/token.service';
-import { registrarIpUsuario, extraerIp } from '../../models/Token/ipUsuario';
+import { registrarIpUsuario, extraerIp } from '../../models/Token';
 import { usuarioControllerLogger as log } from './usuario.controller.logger';
 import { v4 as uuidv4 } from 'uuid';
 import { getAccessTtlForRole } from '../../auth/sessionPolicy';

@@ -26,6 +26,26 @@ const prisma = new PrismaClient();
  * disponibles sobre el modelo Empresa.
  */
 export class EmpresaModel {
+  private static readonly CACHE_TTL_MS = 60 * 1000;
+  private static empresasLiteCache: { data: Array<{ id: number; nombre: string }>; exp: number } | null = null;
+
+  private static getEmpresasLiteCache() {
+    if (!this.empresasLiteCache) return null;
+    if (Date.now() > this.empresasLiteCache.exp) {
+      this.empresasLiteCache = null;
+      return null;
+    }
+    return this.empresasLiteCache.data;
+  }
+
+  private static setEmpresasLiteCache(data: Array<{ id: number; nombre: string }>) {
+    this.empresasLiteCache = { data, exp: Date.now() + this.CACHE_TTL_MS };
+  }
+
+  private static clearEmpresasLiteCache() {
+    this.empresasLiteCache = null;
+  }
+
   /**
    * Obtener todas las empresas registradas.
    * Incluye la relación con los usuarios asociados a cada empresa.
@@ -44,6 +64,23 @@ export class EmpresaModel {
     }
   }
 
+  static async obtenerEmpresasLite() {
+    const cached = this.getEmpresasLiteCache();
+    if (cached) return cached;
+
+    try {
+      const data = await prisma.empresa.findMany({
+        select: { id: true, nombre: true },
+        orderBy: { nombre: 'asc' },
+      });
+      this.setEmpresasLiteCache(data);
+      return data;
+    } catch (error) {
+      empresaError.error('Error al obtener empresas lite', { error });
+      throw new Error('Error al obtener empresas');
+    }
+  }
+
   /**
    * Crear una nueva empresa.
    *
@@ -53,7 +90,9 @@ export class EmpresaModel {
    */
   static async crearEmpresa(nombre: string) {
     try {
-      return await prisma.empresa.create({ data: { nombre } });
+      const created = await prisma.empresa.create({ data: { nombre } });
+      this.clearEmpresasLiteCache();
+      return created;
     } catch (error) {
       empresaError.error('Error al crear empresa', { error });
       throw new Error('Error al crear empresa');
@@ -70,10 +109,12 @@ export class EmpresaModel {
    */
   static async editarEmpresa(id: number, nombre: string) {
     try {
-      return await prisma.empresa.update({
+      const updated = await prisma.empresa.update({
         where: { id },
         data: { nombre },
       });
+      this.clearEmpresasLiteCache();
+      return updated;
     } catch (error) {
       empresaError.error('Error al editar empresa', { error });
       throw new Error('Error al editar empresa');
@@ -89,9 +130,11 @@ export class EmpresaModel {
    */
   static async eliminarEmpresa(id: number) {
     try {
-      return await prisma.empresa.delete({
+      const deleted = await prisma.empresa.delete({
         where: { id },
       });
+      this.clearEmpresasLiteCache();
+      return deleted;
     } catch (error) {
       empresaError.error('Error al eliminar empresa', { error });
       throw new Error('Error al eliminar empresa');

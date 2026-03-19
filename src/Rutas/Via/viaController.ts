@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from 'express';
-import { ViaModel } from '../../models/Via/viaModel';
+import { ViaModel } from '../../models/Via';
 import { viaControllerLogger } from './via.controller.logger';
+import { ok, fail } from '../../utils/http';
 
 export class ViaController {
   /**
@@ -10,10 +11,24 @@ export class ViaController {
   static obtenerVias: RequestHandler = async (req: Request, res: Response) => {
     try {
       const vias = await ViaModel.obtenerVias();
-      res.json(vias);
+      ok(res, vias);
     } catch (error) {
       viaControllerLogger.error('Error al obtener vías', { error });
-      res.status(500).json({ error: 'Error al obtener vías', details: error });
+      fail(res, 500, 'Error al obtener vías', { error: error as any });
+    }
+  };
+
+  /**
+   * GET /vias/lite
+   * Devuelve vías ligeras.
+   */
+  static obtenerViasLite: RequestHandler = async (_req: Request, res: Response) => {
+    try {
+      const vias = await ViaModel.obtenerViasLite();
+      ok(res, vias);
+    } catch (error) {
+      viaControllerLogger.error('Error al obtener vías lite', { error });
+      fail(res, 500, 'Error al obtener vías', { error: error as any });
     }
   };
 
@@ -24,15 +39,34 @@ export class ViaController {
   static obtenerViasPorLocalidad: RequestHandler = async (req: Request, res: Response) => {
     const localidadId = parseInt(req.params.localidadId, 10);
     if (isNaN(localidadId)) {
-      res.status(400).json({ error: 'localidadId inválido' });
+      fail(res, 400, 'localidadId inválido');
       return;
     }
     try {
       const vias = await ViaModel.obtenerViasPorLocalidad(localidadId);
-      res.json(vias);
+      ok(res, vias);
     } catch (error) {
       viaControllerLogger.error('Error al obtener vías por localidad', { error, localidadId });
-      res.status(500).json({ error: 'Error al obtener vías por localidad', details: error });
+      fail(res, 500, 'Error al obtener vías por localidad', { error: error as any });
+    }
+  };
+
+  /**
+   * GET /vias/localidad/:localidadId/lite
+   * Devuelve vías ligeras por localidad.
+   */
+  static obtenerViasLitePorLocalidad: RequestHandler = async (req: Request, res: Response) => {
+    const localidadId = parseInt(req.params.localidadId, 10);
+    if (isNaN(localidadId)) {
+      fail(res, 400, 'localidadId inválido');
+      return;
+    }
+    try {
+      const vias = await ViaModel.obtenerViasLitePorLocalidad(localidadId);
+      ok(res, vias);
+    } catch (error) {
+      viaControllerLogger.error('Error al obtener vías lite por localidad', { error, localidadId });
+      fail(res, 500, 'Error al obtener vías por localidad', { error: error as any });
     }
   };
 
@@ -43,17 +77,16 @@ export class ViaController {
   static crearVia: RequestHandler = async (req: Request, res: Response) => {
     const { numero, nombre, localidadId } = req.body;
     if (numero === undefined || !nombre || localidadId === undefined) {
-      res
-        .status(400)
-        .json({ error: 'Datos incompletos. Se requieren numero, nombre y localidadId' });
+      fail(res, 400, 'Datos incompletos. Se requieren numero, nombre y localidadId');
       return;
     }
     try {
       const nuevaVia = await ViaModel.crearVia(numero, nombre, parseInt(localidadId, 10));
-      res.status(201).json(nuevaVia);
+      res.status(201);
+      ok(res, nuevaVia);
     } catch (error) {
       viaControllerLogger.error('Error al crear vía', { error, numero, nombre, localidadId });
-      res.status(500).json({ error: 'Error al crear vía', details: error });
+      fail(res, 500, 'Error al crear vía', { error: error as any });
     }
   };
 
@@ -65,7 +98,7 @@ export class ViaController {
     const id = parseInt(req.params.id, 10);
     const { numero, nombre, localidadId } = req.body;
     if (isNaN(id)) {
-      res.status(400).json({ error: 'ID inválido' });
+      fail(res, 400, 'ID inválido');
       return;
     }
     try {
@@ -75,10 +108,10 @@ export class ViaController {
       if (localidadId !== undefined) data.localidadId = parseInt(localidadId, 10);
       
       const viaActualizada = await ViaModel.editarVia(id, data);
-      res.json(viaActualizada);
+      ok(res, viaActualizada);
     } catch (error) {
       viaControllerLogger.error('Error al editar vía', { error, id, data: { numero, nombre, localidadId } });
-      res.status(500).json({ error: 'Error al editar vía', details: error });
+      fail(res, 500, 'Error al editar vía', { error: error as any });
     }
   };
 
@@ -89,15 +122,15 @@ export class ViaController {
   static eliminarVia: RequestHandler = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) {
-      res.status(400).json({ error: 'ID inválido' });
+      fail(res, 400, 'ID inválido');
       return;
     }
     try {
       const viaEliminada = await ViaModel.eliminarVia(id);
-      res.json({ message: 'Vía eliminada exitosamente', viaEliminada });
+      ok(res, { message: 'Vía eliminada exitosamente', viaEliminada });
     } catch (error) {
       viaControllerLogger.error('Error al eliminar vía', { error, id });
-      res.status(500).json({ error: 'Error al eliminar vía', details: error });
+      fail(res, 500, 'Error al eliminar vía', { error: error as any });
     }
   };
 }
