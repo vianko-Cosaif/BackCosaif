@@ -32,6 +32,7 @@ type MovimientoBusquedaParams = {
   estados?: string[];
   prioridad?: 'ALTA' | 'BAJA';
   finalizado?: boolean;
+  ambito?: 'actuales' | 'pasados';
   fechaCampo?: 'solicitud' | 'inicio' | 'fin' | 'creacion';
   fechaDesde?: Date;
   fechaHasta?: Date;
@@ -64,6 +65,20 @@ export class MovimientoReadModel {
     { prioridad: 'desc' },
     { createdAt: 'asc' },
     { id: 'asc' },
+  ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
+
+  private static readonly MOVIMIENTOS_ORDER_RONDA = [
+    { ronda: { rondaNumero: 'asc' } },
+    { ronda: { orden: 'asc' } },
+    { prioridad: 'desc' },
+    { createdAt: 'asc' },
+    { id: 'asc' },
+  ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
+
+  private static readonly MOVIMIENTOS_ORDER_PASADOS = [
+    { fechaFin: 'desc' },
+    { createdAt: 'desc' },
+    { id: 'desc' },
   ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
 
   public static readonly MOVIMIENTO_LIST_INCLUDE = {
@@ -223,9 +238,18 @@ export class MovimientoReadModel {
         }
       }
 
+      let orderBy: Prisma.MovimientoOrderByWithRelationInput[] = this.MOVIMIENTOS_ORDER_DESC;
+      if (locomotivePrefix) {
+        orderBy = [{ locomotiveNumber: 'desc' }, { id: 'desc' }];
+      } else if (params.ambito === 'actuales') {
+        orderBy = this.MOVIMIENTOS_ORDER_RONDA;
+      } else if (params.ambito === 'pasados') {
+        orderBy = this.MOVIMIENTOS_ORDER_PASADOS;
+      }
+
       return await this.listarMovimientosColeccion({
         where,
-        orderBy: locomotivePrefix ? [{ locomotiveNumber: 'desc' }, { id: 'desc' }] : this.MOVIMIENTOS_ORDER_DESC,
+        orderBy,
         pagination,
       });
     } catch (error: any) {

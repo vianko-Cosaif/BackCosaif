@@ -662,6 +662,7 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const locomotiveNumber = req.query.locomotiveNumber !== undefined ? Number(req.query.locomotiveNumber) : undefined;
     const prioridad = typeof req.query.prioridad === 'string' ? req.query.prioridad.toUpperCase() : undefined;
     const finalizadoRaw = typeof req.query.finalizado === 'string' ? req.query.finalizado : undefined;
+    const ambitoRaw = typeof req.query.ambito === 'string' ? req.query.ambito.toLowerCase() : undefined;
     const fechaCampoRaw = typeof req.query.fechaCampo === 'string' ? req.query.fechaCampo.toLowerCase() : 'solicitud';
     const fechaDesdeRaw = typeof req.query.fechaDesde === 'string' ? req.query.fechaDesde : undefined;
     const fechaHastaRaw = typeof req.query.fechaHasta === 'string' ? req.query.fechaHasta : undefined;
@@ -680,6 +681,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     }
     if (prioridad && !['ALTA', 'BAJA'].includes(prioridad)) {
       return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+    }
+
+    let ambito: 'actuales' | 'pasados' | undefined;
+    if (ambitoRaw) {
+      if (!['actuales', 'pasados'].includes(ambitoRaw)) {
+        return res.status(400).json({ message: 'ambito inválido (actuales|pasados)' });
+      }
+      ambito = ambitoRaw as any;
     }
 
     const camposFechaValidos = ['solicitud', 'inicio', 'fin', 'creacion'];
@@ -740,7 +749,23 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
       return res.status(400).json({ message: `estado inválido (válidos: ${estadosValidos.join(', ')})` });
     }
 
-    if (!q && !locomotivePrefix && empresaId === undefined && localidadId === undefined && locomotiveNumber === undefined && !prioridad && finalizado === undefined && !estadosFiltrados.length) {
+    let estadosFinal = estadosFiltrados;
+    let ambitoFinal = ambito;
+
+    if (!estadosFinal.length && (ambitoFinal || finalizado !== undefined)) {
+      const scope = ambitoFinal ?? (finalizado ? 'pasados' : 'actuales');
+      if (scope === 'pasados') {
+        estadosFinal = ['CONCLUIDO', 'DETENIDO', 'CANCELADO'];
+        ambitoFinal = 'pasados';
+      } else {
+        estadosFinal = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'];
+        ambitoFinal = 'actuales';
+      }
+      // Si se usa finalizado como scope, no filtramos por el flag para permitir DETENIDO en ambos listados.
+      if (finalizado !== undefined) finalizado = undefined;
+    }
+
+    if (!q && !locomotivePrefix && empresaId === undefined && localidadId === undefined && locomotiveNumber === undefined && !prioridad && finalizado === undefined && !estadosFinal.length && !ambitoFinal) {
       return res.status(400).json({ message: 'Debe enviar q o al menos un filtro' });
     }
 
@@ -751,9 +776,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
         locomotiveNumber,
         empresaId,
         localidadId,
-        estados: estadosFiltrados,
+        estados: estadosFinal,
         prioridad: prioridad as any,
         finalizado,
+        ambito: ambitoFinal,
         fechaCampo: fechaCampoRaw as any,
         fechaDesde,
         fechaHasta,
