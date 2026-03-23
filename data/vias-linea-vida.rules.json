@@ -1,0 +1,25 @@
+{
+  "default": {
+    "1": [],
+    "2": ["izquierdo"],
+    "3": [],
+    "4": ["derecho"],
+    "5": ["izquierdo"],
+    "6": [],
+    "7": ["derecho"],
+    "8": ["izquierdo"],
+    "9": [],
+    "10": ["derecho"],
+    "11": ["izquierdo"],
+    "12": [],
+    "13": ["izquierdo", "derecho"],
+    "14": ["izquierdo"],
+    "15": [],
+    "16": ["derecho"],
+    "17": ["izquierdo"]
+  },
+  "rp": {
+    "5": ["derecho"],
+    "6": ["izquierdo"]
+  }
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://cosaif.local/schema/dashboard-banner.contract.schema.json",
-  "title": "Dashboard Banner Contract v7 (Normalized)",
+  "title": "Dashboard Banner Contract v8 (Role Aware)",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -38,37 +38,70 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "order", "banner"],
+        "required": [
+          "id",
+          "name",
+          "order",
+          "banner"
+        ],
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "order": { "type": "integer", "minimum": 0 },
-          "banner": { "$ref": "#/$defs/banner" }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "banner": {
+            "$ref": "#/$defs/banner"
+          }
         }
       }
     }
   },
   "anyOf": [
-    { "required": ["banner"] },
-    { "required": ["banners"] }
+    {
+      "required": [
+        "banner"
+      ]
+    },
+    {
+      "required": [
+        "banners"
+      ]
+    }
   ],
   "allOf": [
     {
       "if": {
-        "required": ["bannerTools"],
+        "required": [
+          "bannerTools"
+        ],
         "properties": {
           "bannerTools": {
             "type": "object",
             "properties": {
-              "mode": { "const": "auto" },
-              "autoplay": { "const": true }
+              "mode": {
+                "const": "auto"
+              },
+              "autoplay": {
+                "const": true
+              }
             },
-            "required": ["mode", "autoplay"]
+            "required": [
+              "mode",
+              "autoplay"
+            ]
           }
         }
       },
       "then": {
-        "required": ["banners"],
+        "required": [
+          "banners"
+        ],
         "properties": {
           "banners": {
             "type": "array",
@@ -81,8 +114,12 @@
   "$defs": {
     "styleValue": {
       "oneOf": [
-        { "type": "string" },
-        { "type": "number" }
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        }
       ]
     },
     "styleMap": {
@@ -97,7 +134,10 @@
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["manual", "auto"]
+          "enum": [
+            "manual",
+            "auto"
+          ]
         },
         "autoplay": {
           "type": "boolean"
@@ -108,18 +148,34 @@
         },
         "transition": {
           "type": "string",
-          "enum": ["fade", "slide", "zoom", "none"]
+          "enum": [
+            "fade",
+            "slide",
+            "zoom",
+            "none"
+          ]
         }
       }
     },
     "bannerMeta": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "order"],
+      "required": [
+        "id",
+        "name",
+        "order"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "order": { "type": "integer", "minimum": 0 }
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "background": {
@@ -128,37 +184,74 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["color", "gradient", "image", "solid"]
+          "enum": [
+            "color",
+            "gradient",
+            "image",
+            "solid"
+          ]
         },
         "bgType": {
           "type": "string",
-          "enum": ["solid", "gradient", "image"]
+          "enum": [
+            "solid",
+            "gradient",
+            "image"
+          ]
         },
-        "value": { "type": "string" },
-        "image": { "type": "string" },
+        "value": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
         "fit": {
           "type": "string",
-          "enum": ["cover", "contain", "fill", "none", "scale-down"]
+          "enum": [
+            "cover",
+            "contain",
+            "fill",
+            "none",
+            "scale-down"
+          ]
         },
-        "position": { "type": "string" }
+        "position": {
+          "type": "string"
+        }
       }
     },
     "animation": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": { "type": "string" },
-        "duration": { "type": "string" },
-        "delay": { "type": "string" },
-        "timingFunction": { "type": "string" },
-        "easing": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "delay": {
+          "type": "string"
+        },
+        "timingFunction": {
+          "type": "string"
+        },
+        "easing": {
+          "type": "string"
+        },
         "iterationCount": {
           "oneOf": [
-            { "type": "string" },
-            { "type": "number" }
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
           ]
         },
-        "fillMode": { "type": "string" }
+        "fillMode": {
+          "type": "string"
+        }
       }
     },
     "mediaMap": {
@@ -173,110 +266,259 @@
     "layer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "id": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
         "type": {
           "type": "string",
-          "enum": ["background", "canvas", "image", "text", "animated", "lottie", "particles", "group", "components"]
+          "enum": [
+            "background",
+            "canvas",
+            "image",
+            "text",
+            "animated",
+            "lottie",
+            "particles",
+            "group",
+            "components"
+          ]
         },
-        "visible": { "type": "boolean" },
+        "visible": {
+          "type": "boolean"
+        },
         "bgType": {
           "type": "string",
-          "enum": ["solid", "gradient", "image"]
+          "enum": [
+            "solid",
+            "gradient",
+            "image"
+          ]
         },
-        "value": { "type": "string" },
+        "value": {
+          "type": "string"
+        },
         "effect": {
           "type": "string",
-          "enum": ["nodes", "particles", "hearts", "rain", "snow", "fire", "stars"]
+          "enum": [
+            "nodes",
+            "particles",
+            "hearts",
+            "rain",
+            "snow",
+            "fire",
+            "stars"
+          ]
         },
-        "intensity": { "type": "number" },
-        "density": { "type": "number" },
-        "color": { "type": "string" },
-        "source": { "type": "string" },
-        "loop": { "type": "boolean" },
-        "speed": { "type": "number" },
-        "autoPlay": { "type": "boolean" },
-        "src": { "type": "string" },
-        "alt": { "type": "string" },
-        "content": { "type": "string" },
+        "intensity": {
+          "type": "number"
+        },
+        "density": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "speed": {
+          "type": "number"
+        },
+        "autoPlay": {
+          "type": "boolean"
+        },
+        "src": {
+          "type": "string"
+        },
+        "alt": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
         "fit": {
           "type": "string",
-          "enum": ["cover", "contain", "fill", "none", "scale-down"]
+          "enum": [
+            "cover",
+            "contain",
+            "fill",
+            "none",
+            "scale-down"
+          ]
         },
-        "position": { "type": "string" },
+        "position": {
+          "type": "string"
+        },
         "assetType": {
           "type": "string",
-          "enum": ["text", "image", "tag"]
+          "enum": [
+            "text",
+            "image",
+            "tag"
+          ]
         },
-        "tag": { "type": "string" },
-        "actionUrl": { "type": "string" },
-        "styles": { "$ref": "#/$defs/styleMap" },
-        "nativeStyles": { "$ref": "#/$defs/styleMap" },
-        "imageStyles": { "$ref": "#/$defs/styleMap" },
-        "nativeImageStyles": { "$ref": "#/$defs/styleMap" },
-        "animation": { "$ref": "#/$defs/animation" },
+        "tag": {
+          "type": "string"
+        },
+        "actionUrl": {
+          "type": "string"
+        },
+        "styles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "nativeStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "imageStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "nativeImageStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "animation": {
+          "$ref": "#/$defs/animation"
+        },
         "components": {
           "type": "array",
-          "items": { "$ref": "#/$defs/layer" }
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
         },
-        "mask": { "type": "string" },
-        "media": { "$ref": "#/$defs/mediaMap" }
+        "mask": {
+          "type": "string"
+        },
+        "media": {
+          "$ref": "#/$defs/mediaMap"
+        }
       },
       "allOf": [
         {
           "if": {
-            "properties": { "type": { "const": "image" } },
-            "required": ["type"]
+            "properties": {
+              "type": {
+                "const": "image"
+              }
+            },
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "anyOf": [
-              { "required": ["src"] },
-              { "required": ["value"] }
+              {
+                "required": [
+                  "src"
+                ]
+              },
+              {
+                "required": [
+                  "value"
+                ]
+              }
             ]
           }
         },
         {
           "if": {
-            "properties": { "type": { "const": "text" } },
-            "required": ["type"]
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": [
+              "type"
+            ]
           },
           "then": {
             "anyOf": [
-              { "required": ["content"] },
-              { "required": ["value"] }
+              {
+                "required": [
+                  "content"
+                ]
+              },
+              {
+                "required": [
+                  "value"
+                ]
+              }
             ]
           }
         },
         {
           "if": {
-            "properties": { "type": { "const": "animated" } },
-            "required": ["type"]
+            "properties": {
+              "type": {
+                "const": "animated"
+              }
+            },
+            "required": [
+              "type"
+            ]
           },
           "then": {
-            "required": ["assetType"],
+            "required": [
+              "assetType"
+            ],
             "allOf": [
               {
                 "if": {
-                  "properties": { "assetType": { "const": "image" } },
-                  "required": ["assetType"]
+                  "properties": {
+                    "assetType": {
+                      "const": "image"
+                    }
+                  },
+                  "required": [
+                    "assetType"
+                  ]
                 },
                 "then": {
                   "anyOf": [
-                    { "required": ["src"] },
-                    { "required": ["value"] }
+                    {
+                      "required": [
+                        "src"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "value"
+                      ]
+                    }
                   ]
                 }
               },
               {
                 "if": {
-                  "properties": { "assetType": { "enum": ["text", "tag"] } },
-                  "required": ["assetType"]
+                  "properties": {
+                    "assetType": {
+                      "enum": [
+                        "text",
+                        "tag"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "assetType"
+                  ]
                 },
                 "then": {
                   "anyOf": [
-                    { "required": ["content"] },
-                    { "required": ["value"] }
+                    {
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "value"
+                      ]
+                    }
                   ]
                 }
               }
@@ -292,32 +534,143 @@
     "banner": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["layers"],
+      "required": [
+        "layers"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "duration": { "type": "number", "exclusiveMinimum": 0 },
-        "width": { "type": "string", "minLength": 1 },
-        "height": { "type": "string", "minLength": 1 },
-        "designWidth": { "type": "number", "exclusiveMinimum": 0 },
-        "designHeight": { "type": "number", "exclusiveMinimum": 0 },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "width": {
+          "type": "string",
+          "minLength": 1
+        },
+        "height": {
+          "type": "string",
+          "minLength": 1
+        },
+        "designWidth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "designHeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
         "aspectRatio": {
           "oneOf": [
-            { "type": "number", "exclusiveMinimum": 0 },
-            { "type": "string", "minLength": 1 }
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
           ]
         },
-        "actionUrl": { "type": "string" },
-        "background": { "$ref": "#/$defs/background" },
-        "styles": { "$ref": "#/$defs/styleMap" },
-        "nativeStyles": { "$ref": "#/$defs/styleMap" },
+        "actionUrl": {
+          "type": "string"
+        },
+        "background": {
+          "$ref": "#/$defs/background"
+        },
+        "styles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "nativeStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
         "elements": {
           "type": "array",
-          "items": { "$ref": "#/$defs/legacyElement" }
+          "items": {
+            "$ref": "#/$defs/legacyElement"
+          }
         },
         "layers": {
           "type": "array",
-          "items": { "$ref": "#/$defs/layer" }
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
+        },
+        "visibleFor": {
+          "$ref": "#/$defs/roleList"
+        },
+        "roles": {
+          "$ref": "#/$defs/roleList"
+        },
+        "userTypes": {
+          "$ref": "#/$defs/roleList"
+        },
+        "targetRoles": {
+          "$ref": "#/$defs/roleList"
+        },
+        "audience": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            },
+            "visibleFor": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        },
+        "permissions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        },
+        "access": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
         }
+      }
+    },
+    "userRole": {
+      "type": "string",
+      "enum": [
+        "ADMIN",
+        "GERENTE",
+        "GERENCIA",
+        "SUPERVISOR",
+        "EMPLEADO",
+        "RH",
+        "ADMINISTRADOR",
+        "COORDINADOR",
+        "CLIENTE"
+      ]
+    },
+    "roleList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/userRole"
       }
     }
   }

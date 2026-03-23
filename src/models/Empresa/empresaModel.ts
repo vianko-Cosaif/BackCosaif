@@ -56,7 +56,7 @@ export class EmpresaModel {
   static async obtenerEmpresas() {
     try {
       return await prisma.empresa.findMany({
-        include: { usuarios: true },
+        // include: { usuarios: true },
       });
     } catch (error) {
       empresaError.error('Error al obtener empresas', { error });

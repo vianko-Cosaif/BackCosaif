@@ -1,28 +1,29 @@
 {
-  "version": "multi-banner-v1",
-  "exportedAt": "2026-03-17T23:38:41.365Z",
-  "activeBannerId": "vprj-1773789154733-57894",
+  "version": "multi-banner-v2-role-aware",
+  "exportedAt": "2026-03-23T15:03:47.210Z",
+  "activeBannerId": "vprj-1774276905558-63692",
   "bannerTools": {
     "mode": "auto",
     "autoplay": true,
     "intervalMs": 8000,
-    "transition": "slide"
+    "transition": "zoom"
   },
   "banner": {
-    "id": "vprj-1773789154733-57894",
+    "id": "vprj-1774276905558-63692",
     "width": "100%",
     "height": "120px",
     "designWidth": 800,
     "designHeight": 120,
     "aspectRatio": 6.666666666666667,
+    "actionUrl": "/dashboard",
     "background": {
       "type": "image",
       "bgType": "image",
-      "value": "/banner/assets/marzo.webp",
-      "image": "/banner/assets/marzo.webp"
+      "value": "/banner/assets/abril.webp",
+      "image": "/banner/assets/abril.webp"
     },
     "styles": {
-      "borderRadius": "0px",
+      "borderRadius": "12px",
       "position": "relative",
       "overflow": "hidden"
     },
@@ -33,17 +34,18 @@
   },
   "banners": [
     {
-      "id": "vprj-1773789154733-57894",
+      "id": "vprj-1773849087531",
       "width": "100%",
       "height": "120px",
       "designWidth": 800,
       "designHeight": 120,
       "aspectRatio": 6.666666666666667,
+      "actionUrl": "/dashboard",
       "background": {
         "type": "image",
         "bgType": "image",
-        "value": "/banner/assets/marzo.webp",
-        "image": "/banner/assets/marzo.webp"
+        "value": "/banner/assets/3.webp",
+        "image": "/banner/assets/3.webp"
       },
       "styles": {
         "borderRadius": "0px",
@@ -56,12 +58,13 @@
       "layers": []
     },
     {
-      "id": "vprj-1773789307329-92085",
+      "id": "vprj-1774276905558-63692",
       "width": "100%",
       "height": "120px",
       "designWidth": 800,
       "designHeight": 120,
       "aspectRatio": 6.666666666666667,
+      "actionUrl": "/dashboard",
       "background": {
         "type": "image",
         "bgType": "image",
@@ -69,7 +72,7 @@
         "image": "/banner/assets/abril.webp"
       },
       "styles": {
-        "borderRadius": "0px",
+        "borderRadius": "12px",
         "position": "relative",
         "overflow": "hidden"
       },
@@ -81,33 +84,34 @@
   ],
   "availableBanners": [
     {
-      "id": "vprj-1773789154733-57894",
-      "name": "Banner 2",
+      "id": "vprj-1773849087531",
+      "name": "Nuevo Banner",
       "order": 0
     },
     {
-      "id": "vprj-1773789307329-92085",
-      "name": "Banner 2",
+      "id": "vprj-1774276905558-63692",
+      "name": "Nuevo Banner copia",
       "order": 1
     }
   ],
   "bannerItems": [
     {
-      "id": "vprj-1773789154733-57894",
-      "name": "Banner 2",
+      "id": "vprj-1773849087531",
+      "name": "Nuevo Banner",
       "order": 0,
       "banner": {
-        "id": "vprj-1773789154733-57894",
+        "id": "vprj-1773849087531",
         "width": "100%",
         "height": "120px",
         "designWidth": 800,
         "designHeight": 120,
         "aspectRatio": 6.666666666666667,
+        "actionUrl": "/dashboard",
         "background": {
           "type": "image",
           "bgType": "image",
-          "value": "/banner/assets/marzo.webp",
-          "image": "/banner/assets/marzo.webp"
+          "value": "/banner/assets/3.webp",
+          "image": "/banner/assets/3.webp"
         },
         "styles": {
           "borderRadius": "0px",
@@ -121,16 +125,17 @@
       }
     },
     {
-      "id": "vprj-1773789307329-92085",
-      "name": "Banner 2",
+      "id": "vprj-1774276905558-63692",
+      "name": "Nuevo Banner copia",
       "order": 1,
       "banner": {
-        "id": "vprj-1773789307329-92085",
+        "id": "vprj-1774276905558-63692",
         "width": "100%",
         "height": "120px",
         "designWidth": 800,
         "designHeight": 120,
         "aspectRatio": 6.666666666666667,
+        "actionUrl": "/dashboard",
         "background": {
           "type": "image",
           "bgType": "image",
@@ -138,7 +143,7 @@
           "image": "/banner/assets/abril.webp"
         },
         "styles": {
-          "borderRadius": "0px",
+          "borderRadius": "12px",
           "position": "relative",
           "overflow": "hidden"
         },
