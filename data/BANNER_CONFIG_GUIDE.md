@@ -1,17 +1,19 @@
-# Guia Normalizada de Banner v7
+# Guia Normalizada de Banner v8 (Role Aware)
 
 Esta guia define el contrato comun para:
 
 1. `ApiSistemas <-> ViankoSystems`
 2. `BackCosaif <-> CosaifWeb`
 
-El objetivo es que creador, backend y frontend compartan las mismas reglas.
+El objetivo es que creador, backend y frontend compartan exactamente las mismas reglas de exportacion y lectura.
 
 ## 1) Payload canonico recomendado
 
 ```json
 {
-  "version": "multi-banner-v1",
+  "version": "multi-banner-v2-role-aware",
+  "exportedAt": "2026-03-18T12:00:00.000Z",
+  "activeBannerId": "banner-1",
   "bannerTools": {
     "mode": "auto",
     "autoplay": true,
@@ -38,16 +40,50 @@ El objetivo es que creador, backend y frontend compartan las mismas reglas.
     "nativeStyles": {
       "overflow": "hidden"
     },
+    "visibleFor": ["ADMIN", "GERENTE", "SUPERVISOR", "EMPLEADO"],
     "layers": []
   },
   "banners": [
-    { "id": "banner-1", "layers": [] },
-    { "id": "banner-2", "layers": [] }
+    { "id": "banner-1", "visibleFor": ["ADMIN"], "layers": [] },
+    { "id": "banner-2", "visibleFor": ["SUPERVISOR", "CLIENTE"], "layers": [] }
   ]
 }
 ```
 
-## 2) Reglas de transicion de banners
+## 2) Reglas de visibilidad por rol
+
+Campo canonico recomendado para el creador:
+
+1. `visibleFor: string[]`
+
+Aliases aceptados por backend/frontend (compatibilidad):
+
+1. `roles`
+2. `userTypes`
+3. `targetRoles`
+4. `audience.roles`
+5. `meta.visibleFor`
+6. `meta.roles`
+7. `permissions.roles`
+8. `access.roles`
+
+Roles soportados por contrato:
+
+1. `ADMIN`
+2. `ADMINISTRADOR` (alias de `ADMIN`)
+3. `GERENTE`
+4. `GERENCIA` (alias de `GERENTE`)
+5. `SUPERVISOR`
+6. `EMPLEADO`
+7. `RH`
+8. `COORDINADOR`
+9. `CLIENTE`
+
+Regla funcional:
+
+1. Si un banner no define roles, se considera visible para todos.
+
+## 3) Reglas de transicion de banners
 
 La rotacion automatica solo ocurre si se cumple todo:
 
@@ -55,20 +91,11 @@ La rotacion automatica solo ocurre si se cumple todo:
 2. `bannerTools.autoplay = true`
 3. `banners.length >= 2`
 
-Si `banners.length < 2`, no hay cambio de banner (comportamiento correcto).
+Si `banners.length < 2`, no hay cambio de banner (comportamiento esperado).
 
-## 3) `bannerTools` (raiz)
+## 4) Campos base de `banner`
 
-| Campo | Tipo | Default recomendado | Notas |
-|---|---|---|---|
-| `mode` | `"manual" \| "auto"` | `"auto"` | `manual` deshabilita autoplay |
-| `autoplay` | `boolean` | `true` | Aplica solo en modo `auto` |
-| `intervalMs` | `number` | `6000` | Minimo recomendado: `1000` |
-| `transition` | `"fade" \| "slide" \| "zoom" \| "none"` | `"fade"` | Transicion al cambiar banner |
-
-## 4) Campos de `banner`
-
-Campos clave:
+Campos clave para render estable y responsivo:
 
 1. `id`
 2. `width`
@@ -85,25 +112,22 @@ Notas:
 
 1. `layers` es la ruta activa de render.
 2. `elements` se considera legacy.
-3. Para responsividad estable, siempre exportar `designWidth` y `designHeight`.
+3. Para escalado consistente, siempre exportar `designWidth` y `designHeight`.
 
-## 5) Tipos de capa soportados
-
-`background | canvas | image | text | animated | lottie | particles | group | components`
-
-## 6) Assets
+## 5) Assets y nombres de archivo
 
 Rutas relativas soportadas:
 
 1. `/banner/assets/<archivo>`
 2. `/dashboard/banner/assets/<archivo>`
 
-Recomendacion:
+Recomendacion de normalizacion:
 
 1. Usar `/banner/assets/<archivo>` como ruta unificada en JSON.
-2. Mantener nombres de archivo finales iguales entre disco y JSON.
+2. Los campos `src`, `value`, `image` y `source` deben apuntar al nombre final real del asset guardado.
+3. No generar `manifest` auxiliar si no es consumido por el frontend.
 
-## 7) Wrappers aceptados por parser
+## 6) Wrappers aceptados por parser
 
 1. `{ "banner": { ... } }`
 2. `{ "data": { "banner": { ... }, "banners": [...] } }`
@@ -111,14 +135,7 @@ Recomendacion:
 4. `{ "banners": [ { "banner": { ... } } ] }` (wrapper por item)
 5. `{ "layers": [...] }` (legacy single banner)
 
-## 8) Reglas de calidad para el creador
-
-1. Exportar un unico `dashboard-banner.json` + assets usados.
-2. No exportar JSONs auxiliares si no son consumidos por el frontend.
-3. Si `mode=auto` y `autoplay=true`, validar al menos 2 banners antes de exportar.
-4. Mantener sincronizados `src/value/image/source` con nombres reales de assets.
-
-## 9) Checklist de validacion
+## 7) Checklist de validacion para el creador
 
 1. `banners.length >= 2` cuando hay autoplay.
 2. `bannerTools.intervalMs >= 1000`.
@@ -127,12 +144,13 @@ Recomendacion:
 5. Capas `image` con `src` o `value`.
 6. Capas `animated` con `assetType` + contenido valido.
 7. `background` consistente (sin conflicto entre `background` y `styles.background`).
-8. Assets existentes en `data/` y rutas coinciden con el JSON.
+8. Assets existentes en `data/` y rutas iguales a los nombres reales exportados.
+9. Si hay roles, usar preferentemente `visibleFor` como campo principal.
 
-## 10) Esquema oficial
+## 8) Esquema oficial
 
 Validar contra:
 
 1. `data/dashboard-banner.contract.schema.json`
 
-Si el JSON pasa schema + checklist, el despliegue de transiciones es determinista.
+Si el JSON pasa schema + checklist, el despliegue es determinista en web y native.

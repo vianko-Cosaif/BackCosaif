@@ -2,6 +2,9 @@ import { Request, Response, RequestHandler } from 'express';
 import { ViaModel } from '../../models/Via';
 import { viaControllerLogger } from './via.controller.logger';
 import { ok, fail } from '../../utils/http';
+import { ViaModel } from '../../models/Via/viaModel';
+import { viaControllerLogger } from './via.controller.logger';
+import { attachLifeLineRulesToVias } from './via.lifeLineRules';
 
 export class ViaController {
   /**
@@ -67,6 +70,21 @@ export class ViaController {
     } catch (error) {
       viaControllerLogger.error('Error al obtener vías lite por localidad', { error, localidadId });
       fail(res, 500, 'Error al obtener vías por localidad', { error: error as any });
+    }
+  };
+  static obtenerViasPorLocalidad: RequestHandler = async (req: Request, res: Response) => {
+    const localidadId = parseInt(req.params.localidadId, 10);
+    if (isNaN(localidadId)) {
+      res.status(400).json({ error: 'localidadId inválido' });
+      return;
+    }
+    try {
+      const vias = await ViaModel.obtenerViasPorLocalidad(localidadId);
+      const viasConLineaDeVida = attachLifeLineRulesToVias(vias);
+      res.json(viasConLineaDeVida);
+    } catch (error) {
+      viaControllerLogger.error('Error al obtener vías por localidad', { error, localidadId });
+      res.status(500).json({ error: 'Error al obtener vías por localidad', details: error });
     }
   };
 
