@@ -15,7 +15,7 @@
     "designWidth": 800,
     "designHeight": 120,
     "aspectRatio": 6.666666666666667,
-    "actionUrl": "/dashboard",
+    
     "background": {
       "type": "image",
       "bgType": "image",
@@ -40,7 +40,7 @@
       "designWidth": 800,
       "designHeight": 120,
       "aspectRatio": 6.666666666666667,
-      "actionUrl": "/dashboard",
+      
       "background": {
         "type": "image",
         "bgType": "image",
@@ -64,7 +64,7 @@
       "designWidth": 800,
       "designHeight": 120,
       "aspectRatio": 6.666666666666667,
-      "actionUrl": "/dashboard",
+      
       "background": {
         "type": "image",
         "bgType": "image",
@@ -106,7 +106,7 @@
         "designWidth": 800,
         "designHeight": 120,
         "aspectRatio": 6.666666666666667,
-        "actionUrl": "/dashboard",
+        
         "background": {
           "type": "image",
           "bgType": "image",
@@ -135,7 +135,7 @@
         "designWidth": 800,
         "designHeight": 120,
         "aspectRatio": 6.666666666666667,
-        "actionUrl": "/dashboard",
+        
         "background": {
           "type": "image",
           "bgType": "image",
