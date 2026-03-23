@@ -723,3 +723,223 @@
   layer: 'HTTP',
   timestamp: '2025-07-24 16:40:36'
 }
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/Banner/BannerController.ts(496,52): error TS2345: Argument of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; } | undefined' is not assignable to parameter of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.
+    Type 'undefined' is not assignable to type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.
+  
+      at Object.<anonymous> (C:\Users\cristian.garcia\Documents\GitHub\BackCosaif\src\Rutas\Banner\BannerController.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1521:14)
+      at Module._compile (C:\Users\cristian.garcia\Documents\GitHub\BackCosaif\node_modules\source-map-support\source-map-support.js:568:25)
+      at Module.m._compile (C:\Users\CRISTI~1.GAR\AppData\Local\Temp\ts-node-dev-hook-4329800161286552.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+      at require.extensions..jsx.require.extensions..js (C:\Users\CRISTI~1.GAR\AppData\Local\Temp\ts-node-dev-hook-4329800161286552.js:114:20)
+      at require.extensions.<computed> (C:\Users\CRISTI~1.GAR\AppData\Local\Temp\ts-node-dev-hook-4329800161286552.js:71:20)
+      at Object.nodeDevHook [as .ts] (C:\Users\cristian.garcia\Documents\GitHub\BackCosaif\node_modules\ts-node-dev\lib\hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1266:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+      at Module.require (node:internal/modules/cjs/loader:1289:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (C:\Users\cristian.garcia\Documents\GitHub\BackCosaif\src\Rutas\Banner\BannerRoutes.ts:2:1)
+      at Module._compile (node:internal/modules/cjs/loader:1521:14)
+      at Module._compile (C:\Users\cristian.garcia\Documents\GitHub\BackCosaif\node_modules\source-map-support\source-map-support.js:568:25)
+      at Module.m._compile (C:\Users\CRISTI~1.GAR\AppData\Local\Temp\ts-node-dev-hook-4329800161286552.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/Banner/BannerController.ts(496,52): error TS2345: Argument of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; } | undefined' is not assignable to parameter of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.\r\n" +
+    "  Type 'undefined' is not assignable to type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.\r\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/Banner/BannerController.ts(496,52): error TS2345: Argument of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; } | undefined' is not assignable to parameter of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.\r\n" +
+    "  Type 'undefined' is not assignable to type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.\r\n" +
+    '\n' +
+    '    at Object.<anonymous> (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\src\\Rutas\\Banner\\BannerController.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n' +
+    '    at Module._compile (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\source-map-support\\source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:114:20)\n' +
+    '    at require.extensions.<computed> (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\ts-node-dev\\lib\\hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1266:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1289:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\src\\Rutas\\Banner\\BannerRoutes.ts:2:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n' +
+    '    at Module._compile (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\source-map-support\\source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/Banner/BannerController.ts(496,52): error TS2345: Argument of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; } | undefined' is not assignable to parameter of type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.\r\n" +
+    "  Type 'undefined' is not assignable to type '{ id?: string | undefined; duration?: number | undefined; width?: string | undefined; height?: string | undefined; designWidth?: number | undefined; designHeight?: number | undefined; ... 6 more ...; layers?: BannerLayer[] | undefined; }'.\r\n" +
+    '\n' +
+    '    at Object.<anonymous> (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\src\\Rutas\\Banner\\BannerController.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n' +
+    '    at Module._compile (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\source-map-support\\source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:114:20)\n' +
+    '    at require.extensions.<computed> (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\ts-node-dev\\lib\\hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1266:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1289:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\src\\Rutas\\Banner\\BannerRoutes.ts:2:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n' +
+    '    at Module._compile (C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\source-map-support\\source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js:69:33)',
+  exception: true,
+  date: 'Wed Mar 18 2026 11:21:42 GMT-0600 (hora estándar central)',
+  process: {
+    pid: 1500,
+    uid: null,
+    gid: null,
+    cwd: 'C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif',
+    execPath: 'C:\\Program Files\\nodejs\\node.exe',
+    version: 'v20.20.1',
+    argv: [ 'C:\\Program Files\\nodejs\\node.exe', 'index.ts' ],
+    memoryUsage: {
+      rss: 124960768,
+      heapTotal: 70979584,
+      heapUsed: 51475088,
+      external: 2780019,
+      arrayBuffers: 323706
+    }
+  },
+  os: { loadavg: [ 0, 0, 0 ], uptime: 86730.812 },
+  trace: [
+    {
+      column: 7,
+      file: 'C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\src\\Rutas\\Banner\\BannerController.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1521,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: 'C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\source-map-support\\source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: 'C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1623,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: 'C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: 'C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: 'C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\ts-node-dev\\lib\\hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1266,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1091,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1289,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: 'C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\src\\Rutas\\Banner\\BannerRoutes.ts',
+      function: null,
+      line: 2,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1521,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: 'C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\node_modules\\source-map-support\\source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: 'C:\\Users\\CRISTI~1.GAR\\AppData\\Local\\Temp\\ts-node-dev-hook-4329800161286552.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-03-18 11:21:42'
+}

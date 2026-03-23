@@ -1,6 +1,7 @@
 import { Request, Response, RequestHandler } from 'express';
 import { ViaModel } from '../../models/Via/viaModel';
 import { viaControllerLogger } from './via.controller.logger';
+import { attachLifeLineRulesToVias } from './via.lifeLineRules';
 
 export class ViaController {
   /**
@@ -29,7 +30,8 @@ export class ViaController {
     }
     try {
       const vias = await ViaModel.obtenerViasPorLocalidad(localidadId);
-      res.json(vias);
+      const viasConLineaDeVida = attachLifeLineRulesToVias(vias);
+      res.json(viasConLineaDeVida);
     } catch (error) {
       viaControllerLogger.error('Error al obtener vías por localidad', { error, localidadId });
       res.status(500).json({ error: 'Error al obtener vías por localidad', details: error });
