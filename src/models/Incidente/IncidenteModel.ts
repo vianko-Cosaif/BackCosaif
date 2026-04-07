@@ -404,6 +404,33 @@ export class IncidenteModel {
     return `Incidente #${incidenteId} no resuelto para movimiento #${movimientoId}`;
   }
 
+  /**
+   * Obtiene la cadena de movimientos reprogramados a partir del movimiento actual.
+   * Regla: el movimiento anterior guarda el comentario "Reprogramado en movimiento #X".
+   */
+  private static async obtenerCadenaMovimientos(movimientoId: number): Promise<number[]> {
+    const chain: number[] = [];
+    const seen = new Set<number>();
+    let current = movimientoId;
+    const MAX_DEPTH = 20;
+
+    for (let i = 0; i < MAX_DEPTH; i++) {
+      if (seen.has(current)) break;
+      seen.add(current);
+      chain.push(current);
+
+      const token = `Reprogramado en movimiento #${current}`;
+      const prev = await prisma.movimiento.findFirst({
+        where: { instrucciones: { contains: token } },
+        select: { id: true },
+      });
+      if (!prev) break;
+      current = prev.id;
+    }
+
+    return chain;
+  }
+
   static async cerrarIncidenteProgramado(incidenteId: number) {
     const rid = _rid();
     return traceSpan(
@@ -472,21 +499,16 @@ export class IncidenteModel {
           };
         }
 
-        const totalIncidentesLocomotora = await prisma.incidente.count({
-          where: {
-            movimiento: {
-              locomotiveNumber: incidente.movimiento.locomotiveNumber,
-              empresaId: incidente.movimiento.empresaId,
-              localidadId: incidente.movimiento.localidadId,
-            },
-          },
+        const cadenaMovimientos = await this.obtenerCadenaMovimientos(movimientoId);
+        const totalIncidentesCadena = await prisma.incidente.count({
+          where: { movimientoId: { in: cadenaMovimientos } },
         });
 
-        if (totalIncidentesLocomotora >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
+        if (totalIncidentesCadena >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
           const ahora = new Date();
           const comentarioBase = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
           const comentarioCancelacion =
-            `${comentarioBase}. Cancelado tras ${totalIncidentesLocomotora} incidentes de la locomotora #${incidente.movimiento.locomotiveNumber}.`;
+            `${comentarioBase}. Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${incidente.movimiento.locomotiveNumber}.`;
 
           const resultado = await prisma.$transaction(async (tx) => {
             const original = await tx.movimiento.findUnique({
@@ -554,7 +576,7 @@ export class IncidenteModel {
             incidenteId,
             movimientoId,
             locomotiveNumber: incidente.movimiento.locomotiveNumber,
-            totalIncidentesLocomotora,
+            totalIncidentesCadena,
           });
 
           return resultado;
