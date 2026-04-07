@@ -1,7 +1,7 @@
 // src/models/RondaModel.ts
 import { movimientoError } from "../movimiento.logger";
-import type { Prisma, Ronda } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+import type { Ronda } from '@prisma/client';
 import admin from 'firebase-admin';
 
 const prisma = new PrismaClient();
@@ -1386,15 +1386,42 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     const locs = await prisma.ronda.findMany({ select: { localidadId: true }, distinct: ['localidadId'] });
     for (const { localidadId } of locs) {
       await prisma.$transaction(async (tx) => {
+        await this.eliminarRondasConcluidasCompletas(localidadId, tx);
         await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
         await this.recomponerRondasLocalidad(localidadId, tx);
       });
     }
   }
 
+  /**
+   * Elimina rondas concluidas SOLO si TODA la rondaNumero está concluida.
+   * Regla: si en la ronda hay al menos 1 concluido=false, no se borra ninguna.
+   */
+  private static async eliminarRondasConcluidasCompletas(localidadId: number, tx: Tx = prisma) {
+    const grupos = await tx.$queryRaw<{ rondaNumero: number }[]>(Prisma.sql`
+      SELECT "rondaNumero"
+      FROM "Ronda"
+      WHERE "localidadId" = ${localidadId}
+      GROUP BY "rondaNumero"
+      HAVING bool_and("concluido") = true
+    `);
+
+    for (const g of grupos) {
+      await tx.ronda.deleteMany({ where: { localidadId, rondaNumero: g.rondaNumero } });
+    }
+  }
+
+  private static async eliminarRondaGrupoSiConcluida(localidadId: number, rondaNumero: number, tx: Tx = prisma) {
+    const pendientes = await tx.ronda.count({ where: { localidadId, rondaNumero, concluido: false } });
+    if (pendientes === 0) {
+      await tx.ronda.deleteMany({ where: { localidadId, rondaNumero } });
+    }
+  }
+
   // ---------- QUERIES VARIAS (compat front) ----------
   static async obtenerRondas() {
     try {
+      await this.limpiarYReorganizarRondasConcluidas();
       return await prisma.ronda.findMany({
         include: { empresa: true, movimiento: { include: { empresa: true } } },
         orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
@@ -1416,6 +1443,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   static async obtenerRondasPorLocalidad(localidadId: number) {
     try {
+      await this.eliminarRondasConcluidasCompletas(localidadId);
       return await prisma.ronda.findMany({
         where: { localidadId },
         include: {
@@ -1438,6 +1466,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   static async obtenerRondasPorLocalidadConEstado(localidadId: number, concluido: boolean) {
     try {
+      await this.eliminarRondasConcluidasCompletas(localidadId);
       return await prisma.ronda.findMany({
         where: { localidadId, concluido },
         include: {
@@ -1580,6 +1609,8 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
         data: { concluido: true, updatedAt: new Date() },
       });
       await this.recomponerRondasLocalidad(rondaActualizada.localidadId);
+      await this.eliminarRondasConcluidasCompletas(rondaActualizada.localidadId);
+      await this.eliminarRondaGrupoSiConcluida(rondaActualizada.localidadId, rondaActualizada.rondaNumero);
       return rondaActualizada;
     } catch (error) {
       movimientoError.error('Error al marcar ronda como concluida', { id, error });
