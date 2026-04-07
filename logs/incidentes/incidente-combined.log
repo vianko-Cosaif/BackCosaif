@@ -43385,3 +43385,103 @@
   message: 'Movimiento cancelado por límite de incidentes en locomotora',
   timestamp: '2026-03-18 12:25:42'
 }
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  rid: 'mn7my0i1-8blhxb',
+  incidenteId: 20,
+  movimientoId: 6825,
+  ms: 767,
+  error: 'PrismaClientKnownRequestError: \n' +
+    'Invalid `tx.ronda.update()` invocation in\n' +
+    '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:20\n' +
+    '\n' +
+    '  281   where: { localidadId: row.localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: targetOrden } },\n' +
+    '  282   data: { orden: { increment: 1 } },\n' +
+    '  283 });\n' +
+    '→ 284 await tx.ronda.update(\n' +
+    'Transaction failed due to a write conflict or a deadlock. Please retry your transaction\n' +
+    '    at ei.handleRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:228:13)\n' +
+    '    at ei.handleAndLogRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n' +
+    '    at ei.request (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n' +
+    '    at a (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n' +
+    '    at Function.moverRonda (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:5)\n' +
+    '    at prisma.$transaction.isolationLevel (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:994:13)\n' +
+    '    at Proxy._transactionWithCallback (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:722:18)\n' +
+    '    at Function.gestionarIncidente (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:823:5)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:564:11)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:1108:11)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at IncidenteController.cerrar (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/Rutas/Incidente/IncidenteController.ts:279:23)',
+  level: 'error',
+  message: '✖ RondaModel.gestionarIncidente',
+  timestamp: '2026-03-26 09:36:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  rid: 'mn7my0i1-8blhxb',
+  incidenteId: 20,
+  ms: 769,
+  error: 'PrismaClientKnownRequestError: \n' +
+    'Invalid `tx.ronda.update()` invocation in\n' +
+    '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:20\n' +
+    '\n' +
+    '  281   where: { localidadId: row.localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: targetOrden } },\n' +
+    '  282   data: { orden: { increment: 1 } },\n' +
+    '  283 });\n' +
+    '→ 284 await tx.ronda.update(\n' +
+    'Transaction failed due to a write conflict or a deadlock. Please retry your transaction\n' +
+    '    at ei.handleRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:228:13)\n' +
+    '    at ei.handleAndLogRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n' +
+    '    at ei.request (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n' +
+    '    at a (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n' +
+    '    at Function.moverRonda (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:5)\n' +
+    '    at prisma.$transaction.isolationLevel (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:994:13)\n' +
+    '    at Proxy._transactionWithCallback (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:722:18)\n' +
+    '    at Function.gestionarIncidente (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:823:5)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:564:11)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:1108:11)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at IncidenteController.cerrar (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/Rutas/Incidente/IncidenteController.ts:279:23)',
+  level: 'error',
+  message: '✖ reprogramarMovimientoPorIncidenteNoResuelto',
+  timestamp: '2026-03-26 09:36:46'
+}
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  rid: 'mn7my0hz-rfkv66',
+  id: 20,
+  ms: 771,
+  error: 'PrismaClientKnownRequestError: \n' +
+    'Invalid `tx.ronda.update()` invocation in\n' +
+    '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:20\n' +
+    '\n' +
+    '  281   where: { localidadId: row.localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: targetOrden } },\n' +
+    '  282   data: { orden: { increment: 1 } },\n' +
+    '  283 });\n' +
+    '→ 284 await tx.ronda.update(\n' +
+    'Transaction failed due to a write conflict or a deadlock. Please retry your transaction\n' +
+    '    at ei.handleRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:228:13)\n' +
+    '    at ei.handleAndLogRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n' +
+    '    at ei.request (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n' +
+    '    at a (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n' +
+    '    at Function.moverRonda (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:5)\n' +
+    '    at prisma.$transaction.isolationLevel (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:994:13)\n' +
+    '    at Proxy._transactionWithCallback (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:722:18)\n' +
+    '    at Function.gestionarIncidente (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:823:5)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:564:11)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:1108:11)\n' +
+    '    at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)\n' +
+    '    at IncidenteController.cerrar (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/Rutas/Incidente/IncidenteController.ts:279:23)',
+  level: 'error',
+  message: '✖ editarIncidente',
+  timestamp: '2026-03-26 09:36:46'
+}

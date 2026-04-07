@@ -1,6 +1,5 @@
 # BackCosaif
 
-Backend monolítico con controllers HTTP, modelos de dominio y Prisma como acceso a datos.
 
 ## Arquitectura (rápida)
 - **Routes**: `src/Rutas/**` (HTTP, JWT, validaciones mínimas)

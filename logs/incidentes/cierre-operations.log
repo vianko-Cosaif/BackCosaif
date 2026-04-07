@@ -414,3 +414,10 @@
 
 
 
+
+
+2026-03-26 09:36:46 [ERROR]: cerrar {"service":"IncidenteController","module":"Controllers/Incidente","layer":"HTTP","id":"20","error":{"code":"P2034","meta":{"modelName":"Ronda"},"clientVersion":"6.19.1","name":"PrismaClientKnownRequestError"}}
+
+
+
+
