@@ -1,14 +1,17 @@
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import { ViaController } from './viaController';
 
 const router = Router();
 
 // Middleware de autenticación JWT para las rutas siguientes
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 
 // Ruta pública: obtener todas las vías
 router.get('/', ViaController.obtenerVias);
+
+// Ruta ligera: obtener vías (payload mínimo)
+router.get('/lite', ViaController.obtenerViasLite);
 
 // Crear una nueva vía
 router.post('/', ViaController.crearVia);
@@ -16,6 +19,9 @@ router.post('/', ViaController.crearVia);
 
 // Ruta para obtener vías filtradas por localidad (ej: GET /vias/localidad/1)
 router.get('/localidad/:localidadId', ViaController.obtenerViasPorLocalidad);
+
+// Ruta para obtener vías ligeras por localidad
+router.get('/localidad/:localidadId/lite', ViaController.obtenerViasLitePorLocalidad);
 
 
 // Editar una vía (se espera el id en la URL)

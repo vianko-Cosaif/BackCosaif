@@ -23,3 +23,39 @@ git remote -v
   message: 'cerrar',
   timestamp: '2025-12-18 00:23:22'
 }
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  id: '20',
+  error: PrismaClientKnownRequestError: 
+  Invalid `tx.ronda.update()` invocation in
+  /Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:20
+  
+    281   where: { localidadId: row.localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: targetOrden } },
+    282   data: { orden: { increment: 1 } },
+    283 });
+  → 284 await tx.ronda.update(
+  Transaction failed due to a write conflict or a deadlock. Please retry your transaction
+      at ei.handleRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:228:13)
+      at ei.handleAndLogRequestError (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)
+      at ei.request (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)
+      at a (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)
+      at Function.moverRonda (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:284:5)
+      at prisma.$transaction.isolationLevel (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:994:13)
+      at Proxy._transactionWithCallback (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:722:18)
+      at Function.gestionarIncidente (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Movimientos/Ronda/RondaModel.ts:823:5)
+      at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)
+      at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:564:11)
+      at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)
+      at traceSpan.rid.rid (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:1108:11)
+      at traceSpan (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/models/Incidente/IncidenteModel.ts:89:17)
+      at IncidenteController.cerrar (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif/src/Rutas/Incidente/IncidenteController.ts:279:23) {
+    code: 'P2034',
+    meta: { modelName: 'Ronda' },
+    clientVersion: '6.19.1'
+  },
+  level: 'error',
+  message: 'cerrar',
+  timestamp: '2026-03-26 09:36:46'
+}

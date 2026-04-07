@@ -20,13 +20,14 @@
 
 import { Router } from "express";
 import { RondaController } from "./RondaController";
-import passport from "../../../middlewares/passport";
+import { authenticateAccess } from "../../../auth/authenticateAccess";
 
 const router = Router();
 
 // ---------------------------------------------------------------------------
 // 🔐 Protección JWT para todas las rutas
 // ---------------------------------------------------------------------------
+router.use(authenticateAccess);
 
 // ---------------------------------------------------------------------------
 // ➕ Crear / insertar en rondas
@@ -188,7 +189,5 @@ router.get("/:id/info", RondaController.obtenerInfoRonda);
  * 200 { message, ronda, siguienteInteligente } | 400 | 500
  */
 router.patch("/:id/concluir", RondaController.marcarRondaComoConcluida);
-router.use(passport.authenticate("jwt", { session: false }));
-
 export default router;
 

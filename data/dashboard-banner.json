@@ -1,0 +1,157 @@
+{
+  "version": "multi-banner-v2-role-aware",
+  "exportedAt": "2026-03-23T15:03:47.210Z",
+  "activeBannerId": "vprj-1774276905558-63692",
+  "bannerTools": {
+    "mode": "auto",
+    "autoplay": true,
+    "intervalMs": 8000,
+    "transition": "zoom"
+  },
+  "banner": {
+    "id": "vprj-1774276905558-63692",
+    "width": "100%",
+    "height": "120px",
+    "designWidth": 800,
+    "designHeight": 120,
+    "aspectRatio": 6.666666666666667,
+    
+    "background": {
+      "type": "image",
+      "bgType": "image",
+      "value": "/banner/assets/abril.webp",
+      "image": "/banner/assets/abril.webp"
+    },
+    "styles": {
+      "borderRadius": "12px",
+      "position": "relative",
+      "overflow": "hidden"
+    },
+    "nativeStyles": {
+      "overflow": "hidden"
+    },
+    "layers": []
+  },
+  "banners": [
+    {
+      "id": "vprj-1773849087531",
+      "width": "100%",
+      "height": "120px",
+      "designWidth": 800,
+      "designHeight": 120,
+      "aspectRatio": 6.666666666666667,
+      
+      "background": {
+        "type": "image",
+        "bgType": "image",
+        "value": "/banner/assets/3.webp",
+        "image": "/banner/assets/3.webp"
+      },
+      "styles": {
+        "borderRadius": "0px",
+        "position": "relative",
+        "overflow": "hidden"
+      },
+      "nativeStyles": {
+        "overflow": "hidden"
+      },
+      "layers": []
+    },
+    {
+      "id": "vprj-1774276905558-63692",
+      "width": "100%",
+      "height": "120px",
+      "designWidth": 800,
+      "designHeight": 120,
+      "aspectRatio": 6.666666666666667,
+      
+      "background": {
+        "type": "image",
+        "bgType": "image",
+        "value": "/banner/assets/abril.webp",
+        "image": "/banner/assets/abril.webp"
+      },
+      "styles": {
+        "borderRadius": "12px",
+        "position": "relative",
+        "overflow": "hidden"
+      },
+      "nativeStyles": {
+        "overflow": "hidden"
+      },
+      "layers": []
+    }
+  ],
+  "availableBanners": [
+    {
+      "id": "vprj-1773849087531",
+      "name": "Nuevo Banner",
+      "order": 0
+    },
+    {
+      "id": "vprj-1774276905558-63692",
+      "name": "Nuevo Banner copia",
+      "order": 1
+    }
+  ],
+  "bannerItems": [
+    {
+      "id": "vprj-1773849087531",
+      "name": "Nuevo Banner",
+      "order": 0,
+      "banner": {
+        "id": "vprj-1773849087531",
+        "width": "100%",
+        "height": "120px",
+        "designWidth": 800,
+        "designHeight": 120,
+        "aspectRatio": 6.666666666666667,
+        
+        "background": {
+          "type": "image",
+          "bgType": "image",
+          "value": "/banner/assets/3.webp",
+          "image": "/banner/assets/3.webp"
+        },
+        "styles": {
+          "borderRadius": "0px",
+          "position": "relative",
+          "overflow": "hidden"
+        },
+        "nativeStyles": {
+          "overflow": "hidden"
+        },
+        "layers": []
+      }
+    },
+    {
+      "id": "vprj-1774276905558-63692",
+      "name": "Nuevo Banner copia",
+      "order": 1,
+      "banner": {
+        "id": "vprj-1774276905558-63692",
+        "width": "100%",
+        "height": "120px",
+        "designWidth": 800,
+        "designHeight": 120,
+        "aspectRatio": 6.666666666666667,
+        
+        "background": {
+          "type": "image",
+          "bgType": "image",
+          "value": "/banner/assets/abril.webp",
+          "image": "/banner/assets/abril.webp"
+        },
+        "styles": {
+          "borderRadius": "12px",
+          "position": "relative",
+          "overflow": "hidden"
+        },
+        "nativeStyles": {
+          "overflow": "hidden"
+        },
+        "layers": []
+      }
+    }
+  ]
+}

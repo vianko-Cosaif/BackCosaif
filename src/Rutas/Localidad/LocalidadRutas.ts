@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import { LocalidadController } from './LocalidadController';
 
 const router = Router();
@@ -7,12 +7,15 @@ const router = Router();
 router.post('/', LocalidadController.crearLocalidad);
 
 // Middleware de autenticación JWT aplicado a todas las rutas siguientes
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 
 
 
 // Obtener todas las localidades (ruta protegida)
 router.get('/', LocalidadController.obtenerLocalidades);
+
+// Obtener localidades ligeras (ruta protegida)
+router.get('/lite', LocalidadController.obtenerLocalidadesLite);
 
 // Buscar localidad por nombre (ruta protegida, se espera el parámetro de consulta "nombre")
 router.get('/buscar', LocalidadController.buscarLocalidadPorNombre);

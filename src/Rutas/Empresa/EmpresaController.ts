@@ -22,8 +22,9 @@
  */
 
 import { Request, Response, RequestHandler } from 'express';
-import { EmpresaModel } from '../../models/Empresa/empresaModel';
+import { EmpresaModel } from '../../models/Empresa';
 import { empresaControllerLogger } from './empresa.controller.logger';
+import { ok, fail } from '../../utils/http';
 
 /**
  * Controlador REST para entidades Empresa.
@@ -38,10 +39,25 @@ export class EmpresaController {
   static obtenerEmpresas: RequestHandler = async (req: Request, res: Response) => {
     try {
       const empresas = await EmpresaModel.obtenerEmpresas();
-      res.json(empresas);
+      ok(res, empresas);
     } catch (error) {
       empresaControllerLogger.error('Error al obtener empresas', { error });
-      res.status(500).json({ error: 'Error al obtener empresas', details: error });
+      fail(res, 500, 'Error al obtener empresas', { error: error as any });
+    }
+  };
+
+  /**
+   * GET /empresas/lite
+   *
+   * Devuelve empresas en versión ligera (id, nombre).
+   */
+  static obtenerEmpresasLite: RequestHandler = async (_req: Request, res: Response) => {
+    try {
+      const empresas = await EmpresaModel.obtenerEmpresasLite();
+      ok(res, empresas);
+    } catch (error) {
+      empresaControllerLogger.error('Error al obtener empresas lite', { error });
+      fail(res, 500, 'Error al obtener empresas', { error: error as any });
     }
   };
 
@@ -54,16 +70,17 @@ export class EmpresaController {
     const { nombre } = req.body;
 
     if (!nombre || typeof nombre !== 'string') {
-      res.status(400).json({ error: 'El campo nombre es obligatorio y debe ser texto' });
+      fail(res, 400, 'El campo nombre es obligatorio y debe ser texto');
       return;
     }
 
     try {
       const nueva = await EmpresaModel.crearEmpresa(nombre);
-      res.status(201).json(nueva);
+      res.status(201);
+      ok(res, nueva);
     } catch (error) {
       empresaControllerLogger.error('Error al crear empresa', { error });
-      res.status(500).json({ error: 'Error al crear empresa', details: error });
+      fail(res, 500, 'Error al crear empresa', { error: error as any });
     }
   };
 
@@ -77,16 +94,16 @@ export class EmpresaController {
     const { nombre } = req.body;
 
     if (!nombre || typeof nombre !== 'string' || isNaN(id)) {
-      res.status(400).json({ error: 'Datos inválidos. ID debe ser numérico y nombre no vacío.' });
+      fail(res, 400, 'Datos inválidos. ID debe ser numérico y nombre no vacío.');
       return;
     }
 
     try {
       const actualizada = await EmpresaModel.editarEmpresa(id, nombre);
-      res.json(actualizada);
+      ok(res, actualizada);
     } catch (error) {
       empresaControllerLogger.error('Error al editar empresa', { error });
-      res.status(500).json({ error: 'Error al editar empresa', details: error });
+      fail(res, 500, 'Error al editar empresa', { error: error as any });
     }
   };
 
@@ -99,16 +116,16 @@ export class EmpresaController {
     const id = parseInt(req.params.id);
 
     if (isNaN(id)) {
-      res.status(400).json({ error: 'ID inválido. Debe ser un número válido.' });
+      fail(res, 400, 'ID inválido. Debe ser un número válido.');
       return;
     }
 
     try {
       const eliminada = await EmpresaModel.eliminarEmpresa(id);
-      res.json({ message: 'Empresa eliminada exitosamente', eliminada });
+      ok(res, { message: 'Empresa eliminada exitosamente', eliminada });
     } catch (error) {
       empresaControllerLogger.error('Error al eliminar empresa', { error });
-      res.status(500).json({ error: 'Error al eliminar empresa', details: error });
+      fail(res, 500, 'Error al eliminar empresa', { error: error as any });
     }
   };
 }

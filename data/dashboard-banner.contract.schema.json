@@ -1,0 +1,677 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosaif.local/schema/dashboard-banner.contract.schema.json",
+  "title": "Dashboard Banner Contract v8 (Role Aware)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "exportedAt": {
+      "type": "string"
+    },
+    "activeBannerId": {
+      "type": "string"
+    },
+    "bannerTools": {
+      "$ref": "#/$defs/bannerTools"
+    },
+    "banner": {
+      "$ref": "#/$defs/banner"
+    },
+    "banners": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/banner"
+      }
+    },
+    "availableBanners": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/bannerMeta"
+      }
+    },
+    "bannerItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "order",
+          "banner"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "banner": {
+            "$ref": "#/$defs/banner"
+          }
+        }
+      }
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "banner"
+      ]
+    },
+    {
+      "required": [
+        "banners"
+      ]
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "bannerTools"
+        ],
+        "properties": {
+          "bannerTools": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "const": "auto"
+              },
+              "autoplay": {
+                "const": true
+              }
+            },
+            "required": [
+              "mode",
+              "autoplay"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "banners"
+        ],
+        "properties": {
+          "banners": {
+            "type": "array",
+            "minItems": 2
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "styleValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        }
+      ]
+    },
+    "styleMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/styleValue"
+      }
+    },
+    "bannerTools": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "auto"
+          ]
+        },
+        "autoplay": {
+          "type": "boolean"
+        },
+        "intervalMs": {
+          "type": "number",
+          "minimum": 1000
+        },
+        "transition": {
+          "type": "string",
+          "enum": [
+            "fade",
+            "slide",
+            "zoom",
+            "none"
+          ]
+        }
+      }
+    },
+    "bannerMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "order"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "color",
+            "gradient",
+            "image",
+            "solid"
+          ]
+        },
+        "bgType": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "gradient",
+            "image"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "fit": {
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill",
+            "none",
+            "scale-down"
+          ]
+        },
+        "position": {
+          "type": "string"
+        }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "delay": {
+          "type": "string"
+        },
+        "timingFunction": {
+          "type": "string"
+        },
+        "easing": {
+          "type": "string"
+        },
+        "iterationCount": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "fillMode": {
+          "type": "string"
+        }
+      }
+    },
+    "mediaMap": {
+      "type": "object",
+      "patternProperties": {
+        "^[0-9]+$": {
+          "$ref": "#/$defs/styleMap"
+        }
+      },
+      "additionalProperties": false
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "background",
+            "canvas",
+            "image",
+            "text",
+            "animated",
+            "lottie",
+            "particles",
+            "group",
+            "components"
+          ]
+        },
+        "visible": {
+          "type": "boolean"
+        },
+        "bgType": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "gradient",
+            "image"
+          ]
+        },
+        "value": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string",
+          "enum": [
+            "nodes",
+            "particles",
+            "hearts",
+            "rain",
+            "snow",
+            "fire",
+            "stars"
+          ]
+        },
+        "intensity": {
+          "type": "number"
+        },
+        "density": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "speed": {
+          "type": "number"
+        },
+        "autoPlay": {
+          "type": "boolean"
+        },
+        "src": {
+          "type": "string"
+        },
+        "alt": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "fit": {
+          "type": "string",
+          "enum": [
+            "cover",
+            "contain",
+            "fill",
+            "none",
+            "scale-down"
+          ]
+        },
+        "position": {
+          "type": "string"
+        },
+        "assetType": {
+          "type": "string",
+          "enum": [
+            "text",
+            "image",
+            "tag"
+          ]
+        },
+        "tag": {
+          "type": "string"
+        },
+        "actionUrl": {
+          "type": "string"
+        },
+        "styles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "nativeStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "imageStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "nativeImageStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "animation": {
+          "$ref": "#/$defs/animation"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
+        },
+        "mask": {
+          "type": "string"
+        },
+        "media": {
+          "$ref": "#/$defs/mediaMap"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "image"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "src"
+                ]
+              },
+              {
+                "required": [
+                  "value"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "content"
+                ]
+              },
+              {
+                "required": [
+                  "value"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "animated"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "assetType"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "assetType": {
+                      "const": "image"
+                    }
+                  },
+                  "required": [
+                    "assetType"
+                  ]
+                },
+                "then": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "src"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "assetType": {
+                      "enum": [
+                        "text",
+                        "tag"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "assetType"
+                  ]
+                },
+                "then": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "content"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "value"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "legacyElement": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "banner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "layers"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "width": {
+          "type": "string",
+          "minLength": 1
+        },
+        "height": {
+          "type": "string",
+          "minLength": 1
+        },
+        "designWidth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "designHeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "aspectRatio": {
+          "oneOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ]
+        },
+        "actionUrl": {
+          "type": "string"
+        },
+        "background": {
+          "$ref": "#/$defs/background"
+        },
+        "styles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "nativeStyles": {
+          "$ref": "#/$defs/styleMap"
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/legacyElement"
+          }
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
+        },
+        "visibleFor": {
+          "$ref": "#/$defs/roleList"
+        },
+        "roles": {
+          "$ref": "#/$defs/roleList"
+        },
+        "userTypes": {
+          "$ref": "#/$defs/roleList"
+        },
+        "targetRoles": {
+          "$ref": "#/$defs/roleList"
+        },
+        "audience": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            },
+            "visibleFor": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        },
+        "permissions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        },
+        "access": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "roles": {
+              "$ref": "#/$defs/roleList"
+            }
+          }
+        }
+      }
+    },
+    "userRole": {
+      "type": "string",
+      "enum": [
+        "ADMIN",
+        "GERENTE",
+        "GERENCIA",
+        "SUPERVISOR",
+        "EMPLEADO",
+        "RH",
+        "ADMINISTRADOR",
+        "COORDINADOR",
+        "CLIENTE"
+      ]
+    },
+    "roleList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/userRole"
+      }
+    }
+  }
+}

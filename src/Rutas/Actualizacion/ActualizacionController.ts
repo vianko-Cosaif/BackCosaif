@@ -1,7 +1,8 @@
 // src/Rutas/Actualizacion/ActualizacionController.ts
 import { Request, Response } from 'express';
 import { EstadoActualizacion } from '@prisma/client';
-import * as modelo from '../../models/Actualizacion/actualizacionModel';
+import { ActualizacionModel } from '../../models/Actualizacion';
+import { ok, fail } from '../../utils/http';
 
 const parseFecha = (valor: unknown): Date | undefined => {
   if (typeof valor === 'string' || valor instanceof Date) {
@@ -12,29 +13,38 @@ const parseFecha = (valor: unknown): Date | undefined => {
 };
 
 export class ActualizacionController {
+  private static toDto(row: { id: number; nombre: string; fechalanzamiento: Date; estado: EstadoActualizacion }) {
+    return {
+      id: row.id,
+      nombre: row.nombre,
+      fechalanzamiento: row.fechalanzamiento,
+      estado: row.estado,
+    };
+  }
+
   /** GET /actualizaciones */
   static obtenerActualizaciones = async (_req: Request, res: Response): Promise<void> => {
     try {
-      const lista = await modelo.obtenerActualizaciones();
-      res.json(lista);
+      const lista = await ActualizacionModel.obtenerActualizaciones();
+      ok(res, lista.map((row) => this.toDto(row)));
     } catch (err) {
       console.error('Error al obtener actualizaciones:', err);
-      res.status(500).json({ error: 'No se pudieron obtener las actualizaciones' });
+      fail(res, 500, 'No se pudieron obtener las actualizaciones');
     }
   };
 
   /** GET /actualizaciones/ultima */
   static obtenerUltimaActualizacion = async (_req: Request, res: Response): Promise<void> => {
     try {
-      const ultima = await modelo.obtenerUltimaActualizacion();
+      const ultima = await ActualizacionModel.obtenerUltimaActualizacion();
       if (!ultima) {
-        res.status(404).json({ error: 'No hay actualizaciones registradas' });
+        fail(res, 404, 'No hay actualizaciones registradas');
         return;
       }
-      res.json(ultima);
+      ok(res, this.toDto(ultima));
     } catch (err) {
       console.error('Error al obtener la última actualización:', err);
-      res.status(500).json({ error: 'No se pudo obtener la última actualización' });
+      fail(res, 500, 'No se pudo obtener la última actualización');
     }
   };
 
@@ -43,25 +53,26 @@ export class ActualizacionController {
     const { nombre, fechalanzamiento, estado } = req.body;
 
     if (!nombre || !fechalanzamiento) {
-      res.status(400).json({ error: 'Se requieren nombre y fechalanzamiento' });
+      fail(res, 400, 'Se requieren nombre y fechalanzamiento');
       return;
     }
     const fecha = parseFecha(fechalanzamiento);
     if (!fecha) {
-      res.status(400).json({ error: 'fechalanzamiento debe ser fecha ISO válida' });
+      fail(res, 400, 'fechalanzamiento debe ser fecha ISO válida');
       return;
     }
 
     try {
-      const creada = await modelo.crearActualizacion(
+      const creada = await ActualizacionModel.crearActualizacion(
         nombre,
         fecha,
         estado as EstadoActualizacion | undefined,
       );
-      res.status(201).json(creada);
+      res.status(201);
+      ok(res, this.toDto(creada));
     } catch (err) {
       console.error('Error al crear actualización:', err);
-      res.status(500).json({ error: 'Error al crear la actualización' });
+      fail(res, 500, 'Error al crear la actualización');
     }
   };
 
@@ -69,7 +80,7 @@ export class ActualizacionController {
   static actualizarActualizacion = async (req: Request, res: Response): Promise<void> => {
     const id = Number(req.params.id);
     if (isNaN(id)) {
-      res.status(400).json({ error: 'ID de actualización inválido' });
+      fail(res, 400, 'ID de actualización inválido');
       return;
     }
 
@@ -85,7 +96,7 @@ export class ActualizacionController {
     if (fechalanzamiento !== undefined) {
       const fecha = parseFecha(fechalanzamiento);
       if (!fecha) {
-        res.status(400).json({ error: 'fechalanzamiento debe ser fecha ISO válida' });
+        fail(res, 400, 'fechalanzamiento debe ser fecha ISO válida');
         return;
       }
       cambios.fechalanzamiento = fecha;
@@ -94,11 +105,11 @@ export class ActualizacionController {
     if (estado !== undefined) cambios.estado = estado as EstadoActualizacion;
 
     try {
-      const actualizado = await modelo.actualizarActualizacion(id, cambios);
-      res.json(actualizado);
+      const actualizado = await ActualizacionModel.actualizarActualizacion(id, cambios);
+      ok(res, this.toDto(actualizado));
     } catch (err) {
       console.error(`Error al actualizar con ID ${id}:`, err);
-      res.status(500).json({ error: 'Error al actualizar la actualización' });
+      fail(res, 500, 'Error al actualizar la actualización');
     }
   };
 }

@@ -20,8 +20,12 @@
  * - `exp`: Fecha de expiración del token (timestamp UNIX en segundos) (opcional).
  */
 export interface JwtPayload {
+  sub?: string;
+  userId?: number;
   jti?: string;
-  id: number;
+  id?: number;
+  rol?: string;
+  v?: number;
   iat?: number;
   exp?: number;
 }
@@ -42,4 +46,21 @@ export interface SafeUser {
   id: number;
   usuario: string;
   rol: string;
+}
+
+export interface AuthTokenMeta {
+  jti: string;
+  iat?: number;
+  exp?: number;
+  v?: number;
+  expiresAt?: string;
+}
+
+export interface AuthenticatedUser {
+  id: number;
+  nombre: string;
+  rol: string;
+  empresa?: { id: number; nombre: string } | null;
+  localidad?: { id: number; nombre: string; estado: string } | null;
+  auth: AuthTokenMeta;
 }

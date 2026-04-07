@@ -14,7 +14,7 @@
  */
 
 import { Router } from 'express';
-import passport from '../../middlewares/passport';
+import { authenticateAccess } from '../../auth/authenticateAccess';
 import { MovimientoController } from './MovimientoController'; // <-- asegura que coincide con el nombre real del archivo
 
 const router = Router();
@@ -41,7 +41,7 @@ const router = Router();
  *  - 400 Bad Request: parámetros inválidos
  *  - 500 Internal Server Error
  */
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(authenticateAccess);
 router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendientes);
 
 /**
@@ -77,6 +77,12 @@ router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServi
 router.get('/', MovimientoController.obtenerMovimientos);
 
 /**
+ * GET /movimientos/buscar
+ * Búsqueda server-side con filtros y paginación obligatoria.
+ */
+router.get('/buscar', MovimientoController.buscarMovimientos);
+
+/**
  * GET /movimientos/all
  * Lista *todos* los movimientos (sin filtros). 
  * Efecto: solo lectura.
@@ -108,8 +114,8 @@ router.get('/empresa/:empresaId/pendientes', MovimientoController.obtenerMovimie
 
 
 
-router.get('/movimientos/servicios/espera', MovimientoController.listarServiciosPendientesFIFO);
-router.patch('/movimientos/servicios/:id/solicitar', MovimientoController.solicitarServicioYEncolarFrenteR1);
+router.get('/servicios/espera', MovimientoController.listarServiciosPendientesFIFO);
+router.patch('/servicios/:id/solicitar', MovimientoController.solicitarServicioYEncolarFrenteR1);
 
 /**
  * GET /movimientos/empresa/:empresaId
@@ -191,7 +197,7 @@ router.get('/ronda/:rondaId/info', MovimientoController.obtenerInfoPorRonda);
 
 
 
-router.patch('/movimientos/:id/cancelar', MovimientoController.cancelarMovimiento);
+router.patch('/:id/cancelar', MovimientoController.cancelarMovimiento);
 
 /**
  * POST /movimientos

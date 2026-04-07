@@ -25,8 +25,10 @@
  */
 
 import { RequestHandler } from 'express';
-import { MovimientoModel } from '../../models/Movimientos/movimientosModel';
+import { MovimientoModel } from '../../models/Movimientos';
+import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
+import { readMovimientoPagination } from './movimiento.pagination';
 
 /** ------------------------------------------------------------------------
  * Helpers META
@@ -35,47 +37,20 @@ import { movimientoControllerLogger as log } from './movimiento.controller.logge
  * Formato: [META DESTINO:123|SECCION:2|LIBERAR]
  * ------------------------------------------------------------------------ */
 
-/**
- * Construye la etiqueta META a inyectar en `instrucciones`.
- * - DESTINO:n   → viaDestinoId
- * - SECCION:n   → número de sección deseada (solo intención, no se persiste como columna)
- * - LIBERAR     → liberar vía origen al concluir
- */
-function buildMetaTag(opts: {
-  viaDestinoId?: number;
-  numeroSeccion?: number;
-  liberarOrigen?: boolean;
-}) {
-  const parts: string[] = [];
-  if (opts.viaDestinoId) parts.push(`DESTINO:${Number(opts.viaDestinoId)}`);
-  if (opts.numeroSeccion != null) parts.push(`SECCION:${Number(opts.numeroSeccion)}`);
-  if (opts.liberarOrigen) parts.push('LIBERAR');
-  return parts.length ? `[META ${parts.join('|')}] ` : '';
-}
-
-/**
- * Extrae la intención operativa desde `instrucciones` si existe.
- * Retorna { destinoId?, seccion?, liberar:boolean }.
- */
-function parseMetaFromInstrucciones(instr?: string) {
-  const meta = { destinoId: undefined as number | undefined, seccion: undefined as number | undefined, liberar: false };
-  if (!instr) return meta;
-  const m = instr.match(/\[META ([^\]]+)\]/i);
-  if (!m) return meta;
-  const tokens = m[1].split('|').map(s => s.trim().toUpperCase());
-  for (const t of tokens) {
-    if (t === 'LIBERAR') meta.liberar = true;
-    if (t.startsWith('DESTINO:')) {
-      const v = Number(t.split(':')[1]); if (!Number.isNaN(v)) meta.destinoId = v;
-    }
-    if (t.startsWith('SECCION:')) {
-      const s = Number(t.split(':')[1]); if (!Number.isNaN(s)) meta.seccion = s;
-    }
-  }
-  return meta;
-}
-
 export class MovimientoController {
+  private static requirePagination(req: any, res: any) {
+    const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
+    if (error) {
+      res.status(400).json({ message: error });
+      return null;
+    }
+    if (!pagination) {
+      res.status(400).json({ message: 'page y pageSize son requeridos en este endpoint' });
+      return null;
+    }
+    return pagination;
+  }
+
   /**
    * GET /movimientos
    *
@@ -83,12 +58,15 @@ export class MovimientoController {
    * @auth Requiere JWT.
    * @returns 200 [Movimiento] | 500
    */
-  static obtenerMovimientos: RequestHandler = async (_req, res) => {
+  static obtenerMovimientos: RequestHandler = async (req, res) => {
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientos();
+      const movimientos = await MovimientoModel.obtenerMovimientosPaginados(pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos', { error });
+      log.error('Error al obtener movimientos', { error, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos' });
     }
   };
@@ -200,8 +178,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
 
     try {
-      const todos = await MovimientoModel.obtenerMovimientos();
-      const mov = todos.find((m: { id: number }) => m.id === id);
+      const mov = await MovimientoModel.obtenerMovimientoPorId(id);
       if (!mov) return res.status(404).json({ message: 'Movimiento no encontrado' });
 
       const meta = parseMetaFromInstrucciones((mov as any).instrucciones ?? undefined);
@@ -458,12 +435,15 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    * @auth Requiere JWT.
    * @returns 200 [Movimiento] | 500
    */
-  static obtenerMovimientosPendientes: RequestHandler = async (_req, res) => {
+  static obtenerMovimientosPendientes: RequestHandler = async (req, res) => {
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientes();
+      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPaginados(pagination);
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes', { error });
+      log.error('Error al obtener movimientos pendientes', { error, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos pendientes' });
     }
   };
@@ -480,11 +460,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
 
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresa(empresaId);
+      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination);
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId });
+      log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos pendientes por empresa' });
     }
   };
@@ -496,12 +479,15 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
    * @auth Requiere JWT.
    * @returns 200 [Movimiento] | 500
    */
-  static obtenerTodosLosMovimientos: RequestHandler = async (_req, res) => {
+  static obtenerTodosLosMovimientos: RequestHandler = async (req, res) => {
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerTodosLosMovimientos();
+      const movimientos = await MovimientoModel.obtenerTodosLosMovimientosPaginados(pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener todos los movimientos', { error });
+      log.error('Error al obtener todos los movimientos', { error, query: req.query });
       res.status(500).json({ message: 'Error al obtener todos los movimientos' });
     }
   };
@@ -518,11 +504,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const empresaId = Number(req.params.empresaId);
     if (!Number.isInteger(empresaId)) return res.status(400).json({ message: 'ID de empresa inválido' });
 
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresa(empresaId);
+      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por empresa', { error, empresaId });
+      log.error('Error al obtener movimientos por empresa', { error, empresaId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos por empresa' });
     }
   };
@@ -539,11 +528,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
 
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidad(localidadId);
+      const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId });
+      log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos pendientes por localidad' });
     }
   };
@@ -560,11 +552,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
     if (!Number.isInteger(localidadId)) return res.status(400).json({ message: 'ID de localidad inválido' });
 
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidad(localidadId);
+      const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener todos los movimientos por localidad', { error, localidadId });
+      log.error('Error al obtener todos los movimientos por localidad', { error, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener todos los movimientos por localidad' });
     }
   };
@@ -584,11 +579,15 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!Number.isInteger(localidadId) || !Number.isInteger(empresaId)) {
       return res.status(400).json({ message: 'ID de localidad o empresa inválido' });
     }
+
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorLocalidadEmpresa(localidadId, empresaId);
+      const movimientos = await MovimientoModel.obtenerMovimientosPorLocalidadEmpresaPaginados(localidadId, empresaId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId });
+      log.error('Error al obtener movimientos por localidad y empresa', { error, localidadId, empresaId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos por localidad y empresa' });
     }
   };
@@ -608,11 +607,15 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
       return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
     }
+
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidad(empresaId, localidadId);
+      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
-      log.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId });
+      log.error('Error al obtener movimientos por empresa y localidad', { error, empresaId, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos por empresa y localidad' });
     }
   };
@@ -632,12 +635,160 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!Number.isInteger(empresaId) || !Number.isInteger(localidadId)) {
       return res.status(400).json({ message: 'ID de empresa o localidad inválido' });
     }
+
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad(empresaId, localidadId);
+      const pendientes = await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination);
       res.status(200).json(pendientes);
     } catch (error) {
-      log.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId });
+      log.error('Error al obtener movimientos no concluidos por empresa y localidad', { error, empresaId, localidadId, query: req.query });
       res.status(500).json({ message: 'Error al obtener movimientos no concluidos por empresa y localidad' });
+    }
+  };
+
+  /**
+   * GET /movimientos/buscar?q=&locomotiveNumber=&empresaId=&localidadId=&estado=&prioridad=&finalizado=&page=&pageSize=
+   */
+  static buscarMovimientos: RequestHandler = async (req, res) => {
+    const pagination = this.requirePagination(req, res);
+    if (!pagination) return;
+
+    const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+    const locomotivePrefix = typeof req.query.locomotivePrefix === 'string' ? req.query.locomotivePrefix.trim() : undefined;
+    const empresaId = req.query.empresaId !== undefined ? Number(req.query.empresaId) : undefined;
+    const localidadId = req.query.localidadId !== undefined ? Number(req.query.localidadId) : undefined;
+    const locomotiveNumber = req.query.locomotiveNumber !== undefined ? Number(req.query.locomotiveNumber) : undefined;
+    const prioridad = typeof req.query.prioridad === 'string' ? req.query.prioridad.toUpperCase() : undefined;
+    const finalizadoRaw = typeof req.query.finalizado === 'string' ? req.query.finalizado : undefined;
+    const ambitoRaw = typeof req.query.ambito === 'string' ? req.query.ambito.toLowerCase() : undefined;
+    const fechaCampoRaw = typeof req.query.fechaCampo === 'string' ? req.query.fechaCampo.toLowerCase() : 'solicitud';
+    const fechaDesdeRaw = typeof req.query.fechaDesde === 'string' ? req.query.fechaDesde : undefined;
+    const fechaHastaRaw = typeof req.query.fechaHasta === 'string' ? req.query.fechaHasta : undefined;
+
+    if (empresaId !== undefined && Number.isNaN(empresaId)) {
+      return res.status(400).json({ message: 'empresaId debe ser numérico' });
+    }
+    if (localidadId !== undefined && Number.isNaN(localidadId)) {
+      return res.status(400).json({ message: 'localidadId debe ser numérico' });
+    }
+    if (locomotiveNumber !== undefined && Number.isNaN(locomotiveNumber)) {
+      return res.status(400).json({ message: 'locomotiveNumber debe ser numérico' });
+    }
+    if (locomotivePrefix && !/^\d+$/.test(locomotivePrefix)) {
+      return res.status(400).json({ message: 'locomotivePrefix debe ser numérico' });
+    }
+    if (prioridad && !['ALTA', 'BAJA'].includes(prioridad)) {
+      return res.status(400).json({ message: 'prioridad inválida (ALTA|BAJA)' });
+    }
+
+    let ambito: 'actuales' | 'pasados' | undefined;
+    if (ambitoRaw) {
+      if (!['actuales', 'pasados'].includes(ambitoRaw)) {
+        return res.status(400).json({ message: 'ambito inválido (actuales|pasados)' });
+      }
+      ambito = ambitoRaw as any;
+    }
+
+    const camposFechaValidos = ['solicitud', 'inicio', 'fin', 'creacion'];
+    if (fechaCampoRaw && !camposFechaValidos.includes(fechaCampoRaw)) {
+      return res.status(400).json({ message: `fechaCampo inválido (válidos: ${camposFechaValidos.join(', ')})` });
+    }
+
+    const parseFecha = (v?: string) => {
+      if (!v) return undefined;
+      // Acepta ISO o formato MX: DD/MM/YYYY o DD/MM/YYYY HH:mm
+      if (v.includes('/')) {
+        const [datePart, timePart] = v.trim().split(' ');
+        const [dd, mm, yyyy] = datePart.split('/').map((n) => Number(n));
+        if (!dd || !mm || !yyyy) return undefined;
+        let hh = 0;
+        let min = 0;
+        let ss = 0;
+        if (timePart) {
+          const [hhs, mins, secs] = timePart.split(':');
+          hh = Number(hhs);
+          min = Number(mins);
+          if (secs !== undefined) ss = Number(secs);
+          if (Number.isNaN(hh) || Number.isNaN(min) || Number.isNaN(ss)) return undefined;
+        }
+        const d = new Date(yyyy, mm - 1, dd, hh, min, ss, 0);
+        return Number.isNaN(d.getTime()) ? undefined : d;
+      }
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? undefined : d;
+    };
+    const fechaDesde = parseFecha(fechaDesdeRaw);
+    const fechaHasta = parseFecha(fechaHastaRaw);
+    if ((fechaDesdeRaw && !fechaDesde) || (fechaHastaRaw && !fechaHasta)) {
+      return res.status(400).json({ message: 'fechaDesde/fechaHasta deben ser ISO válidos' });
+    }
+    if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+      return res.status(400).json({ message: 'fechaDesde no puede ser mayor que fechaHasta' });
+    }
+
+    let finalizado: boolean | undefined = undefined;
+    if (finalizadoRaw !== undefined) {
+      if (finalizadoRaw !== 'true' && finalizadoRaw !== 'false') {
+        return res.status(400).json({ message: 'finalizado debe ser true|false' });
+      }
+      finalizado = finalizadoRaw === 'true';
+    }
+
+    const rawEstado = req.query.estado;
+    const estados = Array.isArray(rawEstado)
+      ? rawEstado.flatMap((v) => String(v).split(','))
+      : rawEstado !== undefined
+        ? String(rawEstado).split(',')
+        : [];
+    const estadosLimpios = estados.map((e) => e.trim().toUpperCase()).filter(Boolean);
+    const estadosValidos = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA', 'CANCELADO', 'CONCLUIDO'];
+    const estadosFiltrados = estadosLimpios.filter((e) => estadosValidos.includes(e));
+    if (estadosLimpios.length && !estadosFiltrados.length) {
+      return res.status(400).json({ message: `estado inválido (válidos: ${estadosValidos.join(', ')})` });
+    }
+
+    let estadosFinal = estadosFiltrados;
+    let ambitoFinal = ambito;
+
+    if (!estadosFinal.length && (ambitoFinal || finalizado !== undefined)) {
+      const scope = ambitoFinal ?? (finalizado ? 'pasados' : 'actuales');
+      if (scope === 'pasados') {
+        estadosFinal = ['CONCLUIDO', 'DETENIDO', 'CANCELADO'];
+        ambitoFinal = 'pasados';
+      } else {
+        estadosFinal = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'];
+        ambitoFinal = 'actuales';
+      }
+      // Si se usa finalizado como scope, no filtramos por el flag para permitir DETENIDO en ambos listados.
+      if (finalizado !== undefined) finalizado = undefined;
+    }
+
+    if (!q && !locomotivePrefix && empresaId === undefined && localidadId === undefined && locomotiveNumber === undefined && !prioridad && finalizado === undefined && !estadosFinal.length && !ambitoFinal) {
+      return res.status(400).json({ message: 'Debe enviar q o al menos un filtro' });
+    }
+
+    try {
+      const resultado = await MovimientoModel.buscarMovimientos({
+        q,
+        locomotivePrefix,
+        locomotiveNumber,
+        empresaId,
+        localidadId,
+        estados: estadosFinal,
+        prioridad: prioridad as any,
+        finalizado,
+        ambito: ambitoFinal,
+        fechaCampo: fechaCampoRaw as any,
+        fechaDesde,
+        fechaHasta,
+        pagination,
+      });
+      res.status(200).json(resultado);
+    } catch (error) {
+      log.error('Error al buscar movimientos', { error, query: req.query });
+      res.status(500).json({ message: 'Error al buscar movimientos' });
     }
   };
 
