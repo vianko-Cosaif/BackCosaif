@@ -55,6 +55,8 @@ export type ReporteCoordinador = {
   topEmpresas: EmpresaResumen[];
   topLocomotoras: LocomotoraResumen[];
   movimientosDetalle: MovimientoDetalle[];
+  cronologiaCierres: CronologiaDia[];
+  cronologiaMovimientos: CronologiaDia[];
 };
 
 function toPct(n: number, d: number) {
@@ -82,6 +84,8 @@ export type MovimientoDetalle = {
   solicitadoPor?: { id: number; nombre: string };
   operador?: { id: number; nombre: string };
   cliente?: { id: number; nombre: string };
+  supervisor?: { id: number; nombre: string };
+  coordinador?: { id: number; nombre: string };
 
   fechaSolicitudMX: string;
   fechaInicioMX: string | null;
@@ -100,6 +104,11 @@ export type MovimientoDetalle = {
   comentarios: string | null;
 
   incidentes: IncidenteDetalle[];
+};
+
+export type CronologiaDia = {
+  fecha: string; // yyyy-LL-dd (MX)
+  movimientos: Array<MovimientoDetalle & { ordenDia: number }>;
 };
 
 const prisma = new PrismaClient();
@@ -239,6 +248,8 @@ export class CoordinadorReporteriaModel {
         solicitadoPor: d.usuarios.creadoPor ? { id: d.usuarios.creadoPor.id, nombre: d.usuarios.creadoPor.nombre } : undefined,
         operador: d.usuarios.operador ? { id: d.usuarios.operador.id, nombre: d.usuarios.operador.nombre } : undefined,
         cliente: d.usuarios.cliente ? { id: d.usuarios.cliente.id, nombre: d.usuarios.cliente.nombre } : undefined,
+        supervisor: d.usuarios.supervisor ? { id: d.usuarios.supervisor.id, nombre: d.usuarios.supervisor.nombre } : undefined,
+        coordinador: d.usuarios.coordinador ? { id: d.usuarios.coordinador.id, nombre: d.usuarios.coordinador.nombre } : undefined,
         fechaSolicitudMX: d.fechaSolicitudMX,
         fechaInicioMX: d.fechaInicioMX,
         fechaFinMX: d.fechaFinMX,
@@ -255,6 +266,50 @@ export class CoordinadorReporteriaModel {
         incidentes: incs,
       };
     });
+
+    const movDetailMap = new Map<number, MovimientoDetalle>();
+    for (const m of movimientosDetalle) movDetailMap.set(m.id, m);
+
+    const cronMap = new Map<string, Array<MovimientoDetalle & { ordenDia: number }>>();
+    const completados = detalles
+      .filter((d) => d.fechaFinUTC)
+      .sort((a, b) => String(a.fechaFinUTC).localeCompare(String(b.fechaFinUTC)));
+
+    const counters = new Map<string, number>();
+    for (const d of completados) {
+      const dateKey = DateTime.fromISO(String(d.fechaFinUTC), { zone: tz }).toFormat('yyyy-LL-dd');
+      const idx = (counters.get(dateKey) ?? 0) + 1;
+      counters.set(dateKey, idx);
+      const det = movDetailMap.get(d.id);
+      if (!det) continue;
+      const list = cronMap.get(dateKey) ?? [];
+      list.push({ ...det, ordenDia: idx });
+      cronMap.set(dateKey, list);
+    }
+
+    const cronologiaCierres: CronologiaDia[] = Array.from(cronMap.entries())
+      .map(([fecha, movimientos]) => ({ fecha, movimientos }))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+    const cronSolMap = new Map<string, Array<MovimientoDetalle & { ordenDia: number }>>();
+    const solicitados = detalles
+      .sort((a, b) => String(a.fechaSolicitudUTC).localeCompare(String(b.fechaSolicitudUTC)));
+
+    const countersSol = new Map<string, number>();
+    for (const d of solicitados) {
+      const dateKey = d.diaMX;
+      const idx = (countersSol.get(dateKey) ?? 0) + 1;
+      countersSol.set(dateKey, idx);
+      const det = movDetailMap.get(d.id);
+      if (!det) continue;
+      const list = cronSolMap.get(dateKey) ?? [];
+      list.push({ ...det, ordenDia: idx });
+      cronSolMap.set(dateKey, list);
+    }
+
+    const cronologiaMovimientos: CronologiaDia[] = Array.from(cronSolMap.entries())
+      .map(([fecha, movimientos]) => ({ fecha, movimientos }))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha));
 
     return {
       meta: base.meta,
@@ -276,6 +331,8 @@ export class CoordinadorReporteriaModel {
       topEmpresas,
       topLocomotoras,
       movimientosDetalle,
+      cronologiaCierres,
+      cronologiaMovimientos,
     };
   }
 }
