@@ -79,6 +79,39 @@ function buildHtml(r: ReporteCoordinador) {
     `)
     .join('') || `<tr><td colspan="4" class="muted">Sin datos.</td></tr>`;
 
+  const detailCards = (r.movimientosDetalle ?? [])
+    .map((m) => {
+      const incs = (m.incidentes ?? [])
+        .map((i) => {
+          const imgs = (i.imagenUrls ?? []).slice(0, 4).map((u) => `<span class="mono">${escapeHtml(u)}</span>`).join('<br/>');
+          return `
+            <li>
+              <b>#${i.id}</b> · ${escapeHtml(i.estado)} · ${escapeHtml(i.descripcion)}
+              <div class="muted">Inicio: ${escapeHtml(i.fechaInicioMX)} · Fin: ${escapeHtml(i.fechaFinMX ?? '—')}</div>
+              ${imgs ? `<div class="muted">Imgs:<br/>${imgs}</div>` : '<div class="muted">Imgs: —</div>'}
+            </li>
+          `;
+        })
+        .join('') || '<li class="muted">Sin incidentes</li>';
+
+      const tiempos = `S→I ${m.minSolicitudAInicio ?? '—'}m · I→F ${m.minInicioAFin ?? '—'}m · S→F ${m.minSolicitudAFin ?? '—'}m`;
+
+      return `
+        <div class="card compact">
+          <div><b>#${m.id}</b> · L-${escapeHtml(m.locomotiveNumber)} · ${escapeHtml(m.estado)}</div>
+          <div class="muted">Solicita: ${escapeHtml(m.solicitadoPor?.nombre ?? '—')} · Operador: ${escapeHtml(m.operador?.nombre ?? '—')} · Cliente: ${escapeHtml(m.cliente?.nombre ?? '—')}</div>
+          <div class="muted">Creado: ${escapeHtml(m.fechaCreacionMX)} · Actualizado: ${escapeHtml(m.fechaActualizacionMX)}</div>
+          <div class="muted">Solicitud: ${escapeHtml(m.fechaSolicitudMX)} · Inicio: ${escapeHtml(m.fechaInicioMX ?? '—')} · Fin: ${escapeHtml(m.fechaFinMX ?? '—')}</div>
+          <div class="muted">Tiempos: ${escapeHtml(tiempos)}</div>
+          <div class="muted">Vía: ${escapeHtml(m.viaOrigen ?? '—')} → ${escapeHtml(m.viaDestino ?? '—')} · Tipo: ${escapeHtml(m.tipoMovimiento ?? '—')} · Prioridad: ${escapeHtml(m.prioridad ?? '—')}</div>
+          <div class="muted">Comentarios: ${escapeHtml(m.comentarios ?? '—')}</div>
+          <div class="section-title" style="margin-top:8px;">Incidentes</div>
+          <ul>${incs}</ul>
+        </div>
+      `;
+    })
+    .join('') || `<div class="empty">Sin movimientos.</div>`;
+
   return `
     <html>
     <head><style>${baseCss()}</style></head>
@@ -160,6 +193,11 @@ function buildHtml(r: ReporteCoordinador) {
             <tbody>${locoRows}</tbody>
           </table>
         </div>
+      </div>
+
+      <div class="page break">
+        <div class="section-title">Detalle de movimientos</div>
+        ${detailCards}
       </div>
     </body>
     </html>
