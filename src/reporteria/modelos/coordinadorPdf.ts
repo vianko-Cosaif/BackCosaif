@@ -112,6 +112,52 @@ function buildHtml(r: ReporteCoordinador) {
     })
     .join('') || `<div class="empty">Sin movimientos.</div>`;
 
+  const cronologiaBlocks = (r.cronologiaCierres ?? [])
+    .map((dia) => {
+      const items = (dia.movimientos ?? [])
+        .map((m) => `
+          <div class="card compact">
+            <div><b>${m.ordenDia}</b> · #${m.id} · L-${escapeHtml(m.locomotiveNumber)} · ${escapeHtml(m.estado)}</div>
+            <div class="muted">Empresa: ${escapeHtml(m.empresa ?? '—')} · Localidad: ${escapeHtml(m.localidad ?? '—')}</div>
+            <div class="muted">Fin: ${escapeHtml(m.fechaFinMX ?? '—')} · Solicita: ${escapeHtml(m.solicitadoPor?.nombre ?? '—')}</div>
+            <div class="muted">Operador: ${escapeHtml(m.operador?.nombre ?? '—')} · Cliente: ${escapeHtml(m.cliente?.nombre ?? '—')}</div>
+            <div class="muted">Supervisor: ${escapeHtml(m.supervisor?.nombre ?? '—')} · Coordinador: ${escapeHtml(m.coordinador?.nombre ?? '—')}</div>
+            <div class="muted">Vía: ${escapeHtml(m.viaOrigen ?? '—')} → ${escapeHtml(m.viaDestino ?? '—')}</div>
+            <div class="muted">Comentarios: ${escapeHtml(m.comentarios ?? '—')}</div>
+          </div>
+        `)
+        .join('') || `<div class="empty">Sin movimientos.</div>`;
+
+      return `
+        <div class="section-title">${escapeHtml(dia.fecha)}</div>
+        ${items}
+      `;
+    })
+    .join('') || `<div class="empty">Sin cierres.</div>`;
+
+  const cronologiaMovBlocks = (r.cronologiaMovimientos ?? [])
+    .map((dia) => {
+      const items = (dia.movimientos ?? [])
+        .map((m) => `
+          <div class="card compact">
+            <div><b>${m.ordenDia}</b> · #${m.id} · L-${escapeHtml(m.locomotiveNumber)} · ${escapeHtml(m.estado)}</div>
+            <div class="muted">Empresa: ${escapeHtml(m.empresa ?? '—')} · Localidad: ${escapeHtml(m.localidad ?? '—')}</div>
+            <div class="muted">Solicitud: ${escapeHtml(m.fechaSolicitudMX)} · Fin: ${escapeHtml(m.fechaFinMX ?? '—')}</div>
+            <div class="muted">Solicita: ${escapeHtml(m.solicitadoPor?.nombre ?? '—')} · Operador: ${escapeHtml(m.operador?.nombre ?? '—')} · Cliente: ${escapeHtml(m.cliente?.nombre ?? '—')}</div>
+            <div class="muted">Supervisor: ${escapeHtml(m.supervisor?.nombre ?? '—')} · Coordinador: ${escapeHtml(m.coordinador?.nombre ?? '—')}</div>
+            <div class="muted">Vía: ${escapeHtml(m.viaOrigen ?? '—')} → ${escapeHtml(m.viaDestino ?? '—')}</div>
+            <div class="muted">Comentarios: ${escapeHtml(m.comentarios ?? '—')}</div>
+          </div>
+        `)
+        .join('') || `<div class="empty">Sin movimientos.</div>`;
+
+      return `
+        <div class="section-title">${escapeHtml(dia.fecha)}</div>
+        ${items}
+      `;
+    })
+    .join('') || `<div class="empty">Sin movimientos.</div>`;
+
   return `
     <html>
     <head><style>${baseCss()}</style></head>
@@ -198,6 +244,16 @@ function buildHtml(r: ReporteCoordinador) {
       <div class="page break">
         <div class="section-title">Detalle de movimientos</div>
         ${detailCards}
+      </div>
+
+      <div class="page break">
+        <div class="section-title">Cronología de cierres (por día)</div>
+        ${cronologiaBlocks}
+      </div>
+
+      <div class="page break">
+        <div class="section-title">Cronología por solicitud (por día)</div>
+        ${cronologiaMovBlocks}
       </div>
     </body>
     </html>

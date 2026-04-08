@@ -8,6 +8,7 @@ import { AdminReporteriaController } from '../controller/adminController';
 import { CeoReportsController } from '../controller/ceoReportsController';
 import { CoordinadorReporteriaController } from '../controller/coordinadorController';
 import { EmpresaLocomotorasController } from '../controller/empresaLocomotorasController';
+import { CronologiaEmpresasController } from '../controller/cronologiaEmpresasController';
 import { LocomotorasPdfController } from '../controller/locomotorasPdf';
 import { EmpresasPdfController } from '../controller/empresasPdf';
 
@@ -37,6 +38,8 @@ router.use(authenticateAccess);
  *   GET /reporteria/coordinador/pdf
  *   GET /reporteria/empresa-locomotoras
  *   GET /reporteria/empresa-locomotoras/pdf
+ *   GET /reporteria/cronologia-empresas
+ *   GET /reporteria/cronologia-empresas/pdf
  *   GET /reporteria/locomotoras/pdf
  *   GET /reporteria/empresas/pdf
  */
@@ -57,6 +60,8 @@ router.get('/coordinador', CoordinadorReporteriaController.getJSON);
 router.get('/coordinador/pdf', CoordinadorReporteriaController.getPDF);
 router.get('/empresa-locomotoras', EmpresaLocomotorasController.getJSON);
 router.get('/empresa-locomotoras/pdf', EmpresaLocomotorasController.getPDF);
+router.get('/cronologia-empresas', CronologiaEmpresasController.getJSON);
+router.get('/cronologia-empresas/pdf', CronologiaEmpresasController.getPDF);
 router.get('/locomotoras/pdf', LocomotorasPdfController.generar);
 router.get('/empresas/pdf', EmpresasPdfController.generar);
 
