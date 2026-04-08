@@ -2,6 +2,8 @@
 // Reporte COORDINADOR: volumen operativo sin tiempos ni roles
 
 import type { AdminReporteFilters, PeriodoReporte } from './admin-model';
+import { PrismaClient } from '@prisma/client';
+import { DateTime } from 'luxon';
 import {
   loadMovimientosBase,
   buildEstadoCounts,
@@ -52,16 +54,67 @@ export type ReporteCoordinador = {
   incidentesPorDiaSemana: Array<{ dia: string; incidentes: number }>;
   topEmpresas: EmpresaResumen[];
   topLocomotoras: LocomotoraResumen[];
+  movimientosDetalle: MovimientoDetalle[];
 };
 
 function toPct(n: number, d: number) {
   return d ? Math.round((n / d) * 100) : 0;
 }
 
+export type IncidenteDetalle = {
+  id: number;
+  estado: string;
+  descripcion: string;
+  fechaInicioMX: string;
+  fechaFinMX: string | null;
+  usuario?: { id: number; nombre: string };
+  imagenes: string[];
+  imagenUrls: string[];
+};
+
+export type MovimientoDetalle = {
+  id: number;
+  locomotiveNumber: number;
+  estado: string;
+  empresa: string;
+  localidad: string;
+
+  solicitadoPor?: { id: number; nombre: string };
+  operador?: { id: number; nombre: string };
+  cliente?: { id: number; nombre: string };
+
+  fechaSolicitudMX: string;
+  fechaInicioMX: string | null;
+  fechaFinMX: string | null;
+  fechaCreacionMX: string;
+  fechaActualizacionMX: string;
+
+  minSolicitudAInicio: number | null;
+  minInicioAFin: number | null;
+  minSolicitudAFin: number | null;
+
+  viaOrigen: string | null;
+  viaDestino: string | null;
+  tipoMovimiento: string | null;
+  prioridad: string;
+  comentarios: string | null;
+
+  incidentes: IncidenteDetalle[];
+};
+
+const prisma = new PrismaClient();
+const MX_TZ = 'America/Mexico_City';
+
+function fmtMX(d: Date | null, tz: string) {
+  if (!d) return null;
+  return DateTime.fromJSDate(d, { zone: tz }).toFormat('yyyy-LL-dd HH:mm');
+}
+
 export class CoordinadorReporteriaModel {
   static async reportePorPeriodo(filters: AdminReporteFilters, periodo: PeriodoReporte): Promise<ReporteCoordinador> {
     const base = await loadMovimientosBase(filters, periodo);
     const detalles = base.detalles;
+    const tz = filters.tz ?? MX_TZ;
 
     const estadosGeneral = buildEstadoCounts(detalles);
     const traffic = buildTraffic(detalles);
@@ -114,6 +167,95 @@ export class CoordinadorReporteriaModel {
       .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.incidentesTotal - a.incidentesTotal))
       .slice(0, 20);
 
+    const ids = detalles.map((d) => d.id);
+
+    const extras = ids.length
+      ? await prisma.movimiento.findMany({
+          where: { id: { in: ids } },
+          select: {
+            id: true,
+            createdAt: true,
+            updatedAt: true,
+            instrucciones: true,
+            viaOrigen: { select: { nombre: true } },
+            viaDestino: { select: { nombre: true } },
+            tipoMovimiento: true,
+            prioridad: true,
+          },
+        })
+      : [];
+
+    const extraMap = new Map<number, typeof extras[number]>();
+    for (const e of extras) extraMap.set(e.id, e);
+
+    const incidentes = ids.length
+      ? await prisma.incidente.findMany({
+          where: { movimientoId: { in: ids } },
+          select: {
+            id: true,
+            movimientoId: true,
+            estado: true,
+            descripcion: true,
+            fechaInicio: true,
+            fechaFin: true,
+            imagen1: true,
+            imagen2: true,
+            imagen3: true,
+            imagen4: true,
+            usuario: { select: { id: true, nombre: true } },
+          },
+          orderBy: { id: 'asc' },
+        })
+      : [];
+
+    const incByMov = new Map<number, IncidenteDetalle[]>();
+    for (const inc of incidentes) {
+      const imgs = [inc.imagen1, inc.imagen2, inc.imagen3, inc.imagen4].filter(Boolean) as string[];
+      const urls = imgs.map((ruta) => `/incidentes/imagen?ruta=${encodeURIComponent(ruta)}`);
+      const row: IncidenteDetalle = {
+        id: inc.id,
+        estado: String(inc.estado),
+        descripcion: inc.descripcion,
+        fechaInicioMX: fmtMX(inc.fechaInicio, tz) ?? '',
+        fechaFinMX: fmtMX(inc.fechaFin, tz),
+        usuario: inc.usuario ? { id: inc.usuario.id, nombre: inc.usuario.nombre } : undefined,
+        imagenes: imgs,
+        imagenUrls: urls,
+      };
+      const list = incByMov.get(inc.movimientoId) ?? [];
+      list.push(row);
+      incByMov.set(inc.movimientoId, list);
+    }
+
+    const movimientosDetalle: MovimientoDetalle[] = detalles.map((d) => {
+      const extra = extraMap.get(d.id);
+      const incs = incByMov.get(d.id) ?? [];
+      return {
+        id: d.id,
+        locomotiveNumber: d.locomotiveNumber,
+        estado: d.estado,
+        empresa: d.empresa,
+        localidad: d.localidad,
+        solicitadoPor: d.usuarios.creadoPor ? { id: d.usuarios.creadoPor.id, nombre: d.usuarios.creadoPor.nombre } : undefined,
+        operador: d.usuarios.operador ? { id: d.usuarios.operador.id, nombre: d.usuarios.operador.nombre } : undefined,
+        cliente: d.usuarios.cliente ? { id: d.usuarios.cliente.id, nombre: d.usuarios.cliente.nombre } : undefined,
+        fechaSolicitudMX: d.fechaSolicitudMX,
+        fechaInicioMX: d.fechaInicioMX,
+        fechaFinMX: d.fechaFinMX,
+        fechaCreacionMX: fmtMX(extra?.createdAt ?? null, tz) ?? '',
+        fechaActualizacionMX: fmtMX(extra?.updatedAt ?? null, tz) ?? '',
+        minSolicitudAInicio: d.minSolicitudAInicio,
+        minInicioAFin: d.minInicioAFin,
+        minSolicitudAFin: d.minSolicitudAFin,
+        viaOrigen: extra?.viaOrigen?.nombre ?? null,
+        viaDestino: extra?.viaDestino?.nombre ?? null,
+        tipoMovimiento: extra?.tipoMovimiento ? String(extra.tipoMovimiento) : null,
+        prioridad: extra?.prioridad ? String(extra.prioridad) : '—',
+        comentarios: extra?.instrucciones ?? null,
+        incidentes: incs,
+      };
+    });
+
     return {
       meta: base.meta,
       kpis: {
@@ -133,6 +275,7 @@ export class CoordinadorReporteriaModel {
       incidentesPorDiaSemana: traffic.incidentesPorDiaSemana,
       topEmpresas,
       topLocomotoras,
+      movimientosDetalle,
     };
   }
 }
