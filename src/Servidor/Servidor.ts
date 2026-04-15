@@ -28,6 +28,7 @@ import Secciones from "../Rutas/Via/Secciones/SeccionRoutes";
 import Reporte from "../reporteria/rutas/rutasPdf";
 import Excel from "../reporteria/rutas/rutasExcel";
 import bannerRoutes from "../Rutas/Banner/BannerRoutes";
+import tornoMsRoutes from "../Rutas/TornoMs/TornoMsRoutes";
 // Carga variables de entorno
 dotenv.config();
 
@@ -76,6 +77,7 @@ export function iniciarServidor(): void {
     app.use("/reporteria", Reporte);
     app.use("/reporterias", Excel);
     app.use("/banner", bannerRoutes);
+    app.use("/torno", tornoMsRoutes);
 
     // ---------------- Arranque del servidor ----------------
     app.listen(Number(PORT), HOST, () => {
