@@ -25,10 +25,32 @@
  */
 
 import { RequestHandler } from 'express';
+import { z } from 'zod';
 import { MovimientoModel } from '../../models/Movimientos';
 import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { readMovimientoPagination } from './movimiento.pagination';
+import { ensureSolicitudYRondaForMovimiento } from '../../services/tornoMs/tornoMsClient';
+
+const medidaSchema = z.preprocess(
+  (v) => (typeof v === 'number' ? String(v) : v),
+  z.string().min(1)
+);
+
+const medidasTornoSchema = z.object({
+  l1: medidaSchema,
+  l2: medidaSchema,
+  l3: medidaSchema,
+  l4: medidaSchema,
+  l5: medidaSchema,
+  l6: medidaSchema,
+  r1: medidaSchema,
+  r2: medidaSchema,
+  r3: medidaSchema,
+  r4: medidaSchema,
+  r5: medidaSchema,
+  r6: medidaSchema,
+});
 
 /** ------------------------------------------------------------------------
  * Helpers META
@@ -256,8 +278,55 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       };
       // ¡OJO! NO borrar viaDestinoId (sí existe en el esquema y queremos persistirlo)
       delete (data as any).numeroSeccion;
+      const medidasTornoRaw = (raw as any).medidasTorno ?? (raw as any).tornoMedidas ?? null;
+      delete (data as any).medidasTorno;
+      delete (data as any).tornoMedidas;
+
+      // Regla de negocio: solo registrar medidas en msTorno cuando es "VIA -> SERVICIO TORNO"
+      const esViaParaServicioTorno = raw?.torno === true && tieneOrigen && !tieneDestino;
+      let medidasTorno: z.infer<typeof medidasTornoSchema> | null = null;
+      if (esViaParaServicioTorno) {
+        const parsed = medidasTornoSchema.safeParse(medidasTornoRaw);
+        if (!parsed.success) {
+          return res.status(400).json({
+            message: 'Faltan/invalidas medidasTorno para servicio TORNO (via -> torno)',
+            details: parsed.error.flatten(),
+          });
+        }
+        medidasTorno = parsed.data;
+      }
 
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
+      if (!movimiento) {
+        return res.status(500).json({ message: 'Movimiento creado pero no se pudo recuperar' });
+      }
+
+      let tornoMs: any = null;
+
+      if (esViaParaServicioTorno) {
+        try {
+          tornoMs = await ensureSolicitudYRondaForMovimiento(movimiento.id, medidasTorno!);
+        } catch (error: any) {
+          // Si falla msTorno, cancelamos la creación del movimiento para que quede consistente.
+          try {
+            await MovimientoModel.eliminarMovimiento(movimiento.id);
+          } catch (rollbackError: any) {
+            log.error('Rollback movimiento falló tras error msTorno', {
+              movId: movimiento.id,
+              err: rollbackError?.message,
+            });
+          }
+
+          log.error('Error registrando medidas/ronda en msTorno', {
+            movId: movimiento.id,
+            err: error?.message,
+          });
+          return res.status(502).json({
+            message: 'No se pudo registrar el servicio de torno (msTorno)',
+            details: error?.message,
+          });
+        }
+      }
 
       res.status(201).json({
         message: 'Movimiento creado (sin ocupar/liberar vías/secciones). Acciones diferidas al concluir.',
@@ -267,6 +336,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           liberarOrigen: liberarOrigenFlag,
         },
         movimiento,
+        ...(tornoMs ? { tornoMs } : {}),
       });
     } catch (error: any) {
       log.error('Error al crear movimiento', { error, body: req.body });

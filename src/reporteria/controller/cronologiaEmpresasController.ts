@@ -29,8 +29,10 @@ export class CronologiaEmpresasController {
       const tz = String(req.query.tz || MX_TZ);
       const localidadId = safeInt(req.query.localidadId);
       const empresaId = safeInt(req.query.empresaId);
+      const page = safeInt(req.query.page) ?? 1;
+      const pageSize = safeInt(req.query.pageSize) ?? 200;
 
-      const reporte = await CronologiaEmpresasModel.reporte({ fecha, tz, localidadId, empresaId }, periodo);
+      const reporte = await CronologiaEmpresasModel.reporte({ fecha, tz, localidadId, empresaId, page, pageSize }, periodo);
       return res.json({ ok: true, reporte });
     } catch (e: any) {
       return res.status(500).json({ ok: false, message: e?.message ?? 'Error generando reporte' });
@@ -46,8 +48,10 @@ export class CronologiaEmpresasController {
       const tz = String(req.query.tz || MX_TZ);
       const localidadId = safeInt(req.query.localidadId);
       const empresaId = safeInt(req.query.empresaId);
+      const page = safeInt(req.query.page) ?? 1;
+      const pageSize = safeInt(req.query.pageSize) ?? 200;
 
-      const reporte = await CronologiaEmpresasModel.reporte({ fecha, tz, localidadId, empresaId }, periodo);
+      const reporte = await CronologiaEmpresasModel.reporte({ fecha, tz, localidadId, empresaId, page, pageSize }, periodo);
       const pdf = await exportarCronologiaEmpresasPDF(reporte);
 
       res.setHeader('Content-Type', pdf.contentType);
