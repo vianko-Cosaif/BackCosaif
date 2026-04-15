@@ -38,6 +38,9 @@ router.post('/', EmpresaController.crearEmpresa);
 // Ruta para obtener la lista de empresas
 router.get('/', EmpresaController.obtenerEmpresas);
 
+// Ruta para obtener la lista ligera de empresas
+router.get('/lite', EmpresaController.obtenerEmpresasLite);
+
 
 
 // Ruta para editar una empresa existente (por ID)

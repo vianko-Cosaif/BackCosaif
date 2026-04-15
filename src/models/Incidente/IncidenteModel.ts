@@ -271,127 +271,122 @@ export async function listarIncidentesPorCursor({
   );
 }
 
-/**
- * Auto-cierre en 10 minutos (sin periodo de bloqueo).
- */
-const TIMEOUT_CONFIG = {
-  verificacion: 10 * 60 * 1000,
-  bloqueo: 0,
-};
-const MAX_INCIDENTES_POR_LOCOMOTORA = 3;
+export class IncidenteModel {
+  /**
+   * Auto-cierre en 10 minutos (sin periodo de bloqueo).
+   */
+  private static readonly TIMEOUT_CONFIG = {
+    verificacion: 10 * 60 * 1000,
+    bloqueo: 0,
+  };
+  private static readonly MAX_INCIDENTES_POR_LOCOMOTORA = 3;
 
-/* =========================================================
- *               CRON INTERNO (AUTO-SWEEP VENCIDOS)
- * ========================================================= */
-let _incidentSchedulerStarted = false;
-let _incidentSchedulerBootstrapping = false;
-const _incidentTimers = new Map<number, NodeJS.Timeout>();
+  // Scheduler interno
+  private static incidentSchedulerStarted = false;
+  private static incidentSchedulerBootstrapping = false;
+  private static incidentTimers = new Map<number, NodeJS.Timeout>();
 
-function _isIncidentSchedulerLeader() {
-  const inst = process.env.NODE_APP_INSTANCE;
-  return inst == null || String(inst) === '0';
-}
-
-function _clearIncidentTimer(incidenteId: number) {
-  const timer = _incidentTimers.get(incidenteId);
-  if (timer) {
-    clearTimeout(timer);
-    _incidentTimers.delete(incidenteId);
+  private static isIncidentSchedulerLeader() {
+    const inst = process.env.NODE_APP_INSTANCE;
+    return inst == null || String(inst) === '0';
   }
-}
 
-function _scheduleIncidentAutoClose(incidenteId: number, fechaInicio: Date) {
-  if (!_isIncidentSchedulerLeader()) return;
+  private static clearIncidentTimer(incidenteId: number) {
+    const timer = this.incidentTimers.get(incidenteId);
+    if (timer) {
+      clearTimeout(timer);
+      this.incidentTimers.delete(incidenteId);
+    }
+  }
 
-  _clearIncidentTimer(incidenteId);
+  private static scheduleIncidentAutoClose(incidenteId: number, fechaInicio: Date) {
+    if (!this.isIncidentSchedulerLeader()) return;
 
-  const cierreAtMs = fechaInicio.getTime() + TIMEOUT_CONFIG.verificacion;
-  const delayMs = Math.max(0, cierreAtMs - Date.now());
+    this.clearIncidentTimer(incidenteId);
 
-  const timer = setTimeout(() => {
-    _incidentTimers.delete(incidenteId);
-    const runId = _rid();
-    void bestEffort(
-      'cerrarIncidenteProgramado(timeout)',
-      () => IncidenteModel.cerrarIncidenteProgramado(incidenteId),
-      {
-        runId,
-        incidenteId,
-        cierreAutomaticoAt: new Date(cierreAtMs).toISOString(),
-      }
-    );
-  }, delayMs);
+    const cierreAtMs = fechaInicio.getTime() + this.TIMEOUT_CONFIG.verificacion;
+    const delayMs = Math.max(0, cierreAtMs - Date.now());
 
-  _unref(timer);
-  _incidentTimers.set(incidenteId, timer);
+    const timer = setTimeout(() => {
+      this.incidentTimers.delete(incidenteId);
+      const runId = _rid();
+      void bestEffort(
+        'cerrarIncidenteProgramado(timeout)',
+        () => IncidenteModel.cerrarIncidenteProgramado(incidenteId),
+        {
+          runId,
+          incidenteId,
+          cierreAutomaticoAt: new Date(cierreAtMs).toISOString(),
+        }
+      );
+    }, delayMs);
 
-  trace('info', 'Incidente programado para autocierre', {
-    incidenteId,
-    delayMs,
-    cierreAutomaticoAt: new Date(cierreAtMs).toISOString(),
-  });
-}
+    _unref(timer);
+    this.incidentTimers.set(incidenteId, timer);
 
-async function _bootstrapIncidentScheduler() {
-  if (!_isIncidentSchedulerLeader() || _incidentSchedulerBootstrapping) return;
-
-  _incidentSchedulerBootstrapping = true;
-  const runId = _rid();
-
-  try {
-    const abiertos = await prisma.incidente.findMany({
-      where: { estado: 'ABIERTO' },
-      select: { id: true, fechaInicio: true },
-      orderBy: { id: 'asc' },
+    trace('info', 'Incidente programado para autocierre', {
+      incidenteId,
+      delayMs,
+      cierreAutomaticoAt: new Date(cierreAtMs).toISOString(),
     });
+  }
 
-    for (const incidente of abiertos) {
-      _scheduleIncidentAutoClose(incidente.id, incidente.fechaInicio);
+  private static async bootstrapIncidentScheduler() {
+    if (!this.isIncidentSchedulerLeader() || this.incidentSchedulerBootstrapping) return;
+
+    this.incidentSchedulerBootstrapping = true;
+    const runId = _rid();
+
+    try {
+      const abiertos = await prisma.incidente.findMany({
+        where: { estado: 'ABIERTO' },
+        select: { id: true, fechaInicio: true },
+        orderBy: { id: 'asc' },
+      });
+
+      for (const incidente of abiertos) {
+        this.scheduleIncidentAutoClose(incidente.id, incidente.fechaInicio);
+      }
+
+      trace('info', 'Scheduler de incidentes rehidratado', {
+        runId,
+        abiertos: abiertos.length,
+        timers: this.incidentTimers.size,
+      });
+    } catch (e: any) {
+      trace('warn', 'Rehidratación inicial de incidentes falló', {
+        runId,
+        error: String(e?.stack ?? e),
+      });
+    } finally {
+      this.incidentSchedulerBootstrapping = false;
+    }
+  }
+
+  static ensureIncidentScheduler() {
+    if (this.incidentSchedulerStarted) return;
+
+    this.incidentSchedulerStarted = true;
+
+    if (!this.isIncidentSchedulerLeader()) {
+      trace('info', 'Scheduler puntual de incidentes NO iniciado (worker no líder)', {
+        pid: process.pid,
+        inst: process.env.NODE_APP_INSTANCE,
+      });
+      return;
     }
 
-    trace('info', 'Scheduler de incidentes rehidratado', {
-      runId,
-      abiertos: abiertos.length,
-      timers: _incidentTimers.size,
-    });
-  } catch (e: any) {
-    trace('warn', 'Rehidratación inicial de incidentes falló', {
-      runId,
-      error: String(e?.stack ?? e),
-    });
-  } finally {
-    _incidentSchedulerBootstrapping = false;
-  }
-}
-
-function _ensureIncidentScheduler() {
-  if (_incidentSchedulerStarted) return;
-
-  _incidentSchedulerStarted = true;
-
-  if (!_isIncidentSchedulerLeader()) {
-    trace('info', 'Scheduler puntual de incidentes NO iniciado (worker no líder)', {
+    trace('info', 'Scheduler puntual de incidentes iniciado (líder)', {
       pid: process.pid,
       inst: process.env.NODE_APP_INSTANCE,
     });
-    return;
+
+    const t = setTimeout(() => {
+      void this.bootstrapIncidentScheduler();
+    }, 5_000);
+
+    _unref(t);
   }
-
-  trace('info', 'Scheduler puntual de incidentes iniciado (líder)', {
-    pid: process.pid,
-    inst: process.env.NODE_APP_INSTANCE,
-  });
-
-  const t = setTimeout(() => {
-    void _bootstrapIncidentScheduler();
-  }, 5_000);
-
-  _unref(t);
-}
-
-_ensureIncidentScheduler();
-
-export class IncidenteModel {
   private static appendMovimientoComentario(base: string | null | undefined, comentario: string) {
     const limpio = String(base ?? '').trim();
     return limpio ? `${limpio} | ${comentario}` : comentario;
@@ -409,12 +404,39 @@ export class IncidenteModel {
     return `Incidente #${incidenteId} no resuelto para movimiento #${movimientoId}`;
   }
 
+  /**
+   * Obtiene la cadena de movimientos reprogramados a partir del movimiento actual.
+   * Regla: el movimiento anterior guarda el comentario "Reprogramado en movimiento #X".
+   */
+  private static async obtenerCadenaMovimientos(movimientoId: number): Promise<number[]> {
+    const chain: number[] = [];
+    const seen = new Set<number>();
+    let current = movimientoId;
+    const MAX_DEPTH = 20;
+
+    for (let i = 0; i < MAX_DEPTH; i++) {
+      if (seen.has(current)) break;
+      seen.add(current);
+      chain.push(current);
+
+      const token = `Reprogramado en movimiento #${current}`;
+      const prev = await prisma.movimiento.findFirst({
+        where: { instrucciones: { contains: token } },
+        select: { id: true },
+      });
+      if (!prev) break;
+      current = prev.id;
+    }
+
+    return chain;
+  }
+
   static async cerrarIncidenteProgramado(incidenteId: number) {
     const rid = _rid();
     return traceSpan(
       'cerrarIncidenteProgramado',
       async () => {
-        _clearIncidentTimer(incidenteId);
+        this.clearIncidentTimer(incidenteId);
 
         const actualizado = await prisma.incidente.updateMany({
           where: { id: incidenteId, estado: 'ABIERTO' },
@@ -434,7 +456,7 @@ export class IncidenteModel {
         trace('info', 'Incidente autocerrado por timeout exacto', {
           rid,
           incidenteId,
-          timeoutMs: TIMEOUT_CONFIG.verificacion,
+          timeoutMs: this.TIMEOUT_CONFIG.verificacion,
         });
 
         return true;
@@ -477,21 +499,16 @@ export class IncidenteModel {
           };
         }
 
-        const totalIncidentesLocomotora = await prisma.incidente.count({
-          where: {
-            movimiento: {
-              locomotiveNumber: incidente.movimiento.locomotiveNumber,
-              empresaId: incidente.movimiento.empresaId,
-              localidadId: incidente.movimiento.localidadId,
-            },
-          },
+        const cadenaMovimientos = await this.obtenerCadenaMovimientos(movimientoId);
+        const totalIncidentesCadena = await prisma.incidente.count({
+          where: { movimientoId: { in: cadenaMovimientos } },
         });
 
-        if (totalIncidentesLocomotora >= MAX_INCIDENTES_POR_LOCOMOTORA) {
+        if (totalIncidentesCadena >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
           const ahora = new Date();
           const comentarioBase = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
           const comentarioCancelacion =
-            `${comentarioBase}. Cancelado tras ${totalIncidentesLocomotora} incidentes de la locomotora #${incidente.movimiento.locomotiveNumber}.`;
+            `${comentarioBase}. Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${incidente.movimiento.locomotiveNumber}.`;
 
           const resultado = await prisma.$transaction(async (tx) => {
             const original = await tx.movimiento.findUnique({
@@ -548,7 +565,7 @@ export class IncidenteModel {
               () =>
                 NotificadorFCM.notificarCancelacionMovimiento(
                   movimientoCancelado,
-                  `Límite de ${MAX_INCIDENTES_POR_LOCOMOTORA} incidentes para locomotora ${movimientoCancelado.locomotiveNumber}`
+                  `Límite de ${this.MAX_INCIDENTES_POR_LOCOMOTORA} incidentes para locomotora ${movimientoCancelado.locomotiveNumber}`
                 ),
               { rid, incidenteId, movimientoId }
             );
@@ -559,7 +576,7 @@ export class IncidenteModel {
             incidenteId,
             movimientoId,
             locomotiveNumber: incidente.movimiento.locomotiveNumber,
-            totalIncidentesLocomotora,
+            totalIncidentesCadena,
           });
 
           return resultado;
@@ -815,7 +832,7 @@ export class IncidenteModel {
     return traceSpan(
       'verificarPeriodoVerificacion',
       async () => {
-        _ensureIncidentScheduler();
+        this.ensureIncidentScheduler();
 
         const incidente = await prisma.incidente.findUnique({
           where: { id: incidenteId },
@@ -825,10 +842,10 @@ export class IncidenteModel {
         if (!incidente) throw new Error(`No se encontró incidente con id ${incidenteId}`);
 
         if (incidente.estado === EstadoIncidente.ABIERTO) {
-          _scheduleIncidentAutoClose(incidente.id, incidente.fechaInicio);
+          this.scheduleIncidentAutoClose(incidente.id, incidente.fechaInicio);
         }
 
-        const cierreAutomaticoAt = new Date(incidente.fechaInicio.getTime() + TIMEOUT_CONFIG.verificacion);
+        const cierreAutomaticoAt = new Date(incidente.fechaInicio.getTime() + this.TIMEOUT_CONFIG.verificacion);
 
         if (incidente.estado === EstadoIncidente.CERRADO || incidente.estado === (RESUELTO as any)) {
           return {
@@ -837,7 +854,7 @@ export class IncidenteModel {
             enPeriodoBloqueo: false,
             tiempoRestante: 0,
             tiempoRestanteSegundos: 0,
-            timeoutMs: TIMEOUT_CONFIG.verificacion,
+            timeoutMs: this.TIMEOUT_CONFIG.verificacion,
             fechaInicio: incidente.fechaInicio.toISOString(),
             fechaFin: incidente.fechaFin?.toISOString() ?? null,
             cierreAutomaticoAt: cierreAutomaticoAt.toISOString(),
@@ -847,8 +864,8 @@ export class IncidenteModel {
 
         const ahora = new Date();
         const transcurrido = ahora.getTime() - incidente.fechaInicio.getTime();
-        const verif = TIMEOUT_CONFIG.verificacion;
-        const bloque = TIMEOUT_CONFIG.bloqueo;
+        const verif = this.TIMEOUT_CONFIG.verificacion;
+        const bloque = this.TIMEOUT_CONFIG.bloqueo;
 
         const enPeriodoVerificacion = transcurrido <= verif;
         const enPeriodoBloqueo = bloque > 0 && transcurrido > verif && transcurrido <= verif + bloque;
@@ -872,7 +889,7 @@ export class IncidenteModel {
           enPeriodoBloqueo,
           tiempoRestante: Math.max(0, tiempoRestante),
           tiempoRestanteSegundos: Math.ceil(Math.max(0, tiempoRestante) / 1000),
-          timeoutMs: TIMEOUT_CONFIG.verificacion,
+          timeoutMs: this.TIMEOUT_CONFIG.verificacion,
           fechaInicio: incidente.fechaInicio.toISOString(),
           fechaFin: incidente.fechaFin?.toISOString() ?? null,
           cierreAutomaticoAt: cierreAutomaticoAt.toISOString(),
@@ -1128,9 +1145,9 @@ export class IncidenteModel {
         }
 
         if (data.estado === 'CERRADO' || data.estado === 'RESUELTO') {
-          _clearIncidentTimer(id);
+          this.clearIncidentTimer(id);
         } else if (data.estado === 'ABIERTO' && incidenteActualizado.fechaInicio) {
-          _scheduleIncidentAutoClose(id, incidenteActualizado.fechaInicio);
+          this.scheduleIncidentAutoClose(id, incidenteActualizado.fechaInicio);
         }
 
         trace('info', 'editarIncidente:done', { rid, id, estadoFinal: incidenteActualizado.estado });
@@ -1463,8 +1480,8 @@ export class IncidenteModel {
           });
         }
 
-        _ensureIncidentScheduler();
-        _scheduleIncidentAutoClose(nuevoIncidente.id, nuevoIncidente.fechaInicio);
+        this.ensureIncidentScheduler();
+        this.scheduleIncidentAutoClose(nuevoIncidente.id, nuevoIncidente.fechaInicio);
 
         trace('info', 'Incidente creado y procesado', {
           rid,
@@ -1515,7 +1532,7 @@ export class IncidenteModel {
           imagenesEliminadas: imagenes.filter(Boolean).length,
         });
 
-        _clearIncidentTimer(id);
+        this.clearIncidentTimer(id);
         return incidenteEliminado;
       },
       { rid, id }
@@ -1531,7 +1548,7 @@ export class IncidenteModel {
     return traceSpan(
       'cerrarIncidentesVencidos',
       async () => {
-        const tiempoLimite = new Date(Date.now() - TIMEOUT_CONFIG.verificacion);
+        const tiempoLimite = new Date(Date.now() - this.TIMEOUT_CONFIG.verificacion);
 
         const vencidos = await prisma.incidente.findMany({
           where: { estado: 'ABIERTO', fechaInicio: { lte: tiempoLimite } },
@@ -1628,7 +1645,7 @@ export class IncidenteModel {
           { rid, incidenteId: id }
         );
 
-        _clearIncidentTimer(id);
+        this.clearIncidentTimer(id);
 
         return actualizado;
       },

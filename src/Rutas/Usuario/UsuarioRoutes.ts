@@ -8,14 +8,14 @@ const router = Router();
 // Ruta pública para inicio de sesión
 router.post('/login', UsuarioController.login);
 // Crear nuevo usuario
-// Middleware de autenticación JWT aplicado a todas las rutas siguientes
 
-router.use(authenticateAccess);
 
 router.post('/', UsuarioController.crearUsuario);
 
 
+// Middleware de autenticación JWT aplicado a todas las rutas siguientes
 
+router.use(authenticateAccess);
 
 
 // Obtener todos los usuarios

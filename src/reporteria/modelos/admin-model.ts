@@ -2,18 +2,15 @@
 // Reporte ADMIN (DIA / SEMANA / MES / BIMESTRE / SEMESTRE / ANUAL)
 //
 // Métricas (CEO-ready, en español):
-// - Duraciones entre fechaSolicitud -> fechaFin (lead time)
-// - Buckets por minutos: <10, 10-20, 20-30, 30-60, 60-120, 120+ + Sin fin
-// - Promedios por umbral: >=1, >=10, >=20, >=30 minutos
-// - Incidentes: conteo, %mov con incidente por bucket, tiempo promedio con/sin incidentes
-// - Correlación (Pearson) entre duración (min) y #incidentes (solo movimientos con fin)
-// - Anomalías operativas: movimientos concluidos con duración < 10 min (baseline esperado 10–15)
-// - Bono operador (regla 09:00–09:00 MX):
-//    * Día operativo = [09:00 MX, 09:00 MX del día siguiente)
-//    * Por locomotora: el PRIMER movimiento del día operativo genera bono; los demás NO.
-// - Tablas para auditoría: Top lentos + Top con incidentes + Top anomalías + Top bonos + ranking por operador
+// - Tiempos de ejecución: fechaInicio -> fechaFin
+// - Rangos de ejecución: 0–9 min, 10–89 min, 90+ min
+// - Críticos: <2 min y 90+ min
+// - Incidentes: conteo y %mov con incidente
+// - Rankings: maquinistas, locomotoras, empresas y clientes
+// - Tráfico: movimientos por hora y por día
 //
-// Nota: Se eliminan supervisor/coordinador. Solo: creadoPor, cliente, operador, locomotora, movimiento, fechas.
+// Nota:
+// - Supervisor y Coordinador se infieren al cierre por token más nuevo (si no vienen en movimiento).
 
 import { DateTime } from 'luxon';
 import { Prisma, PrismaClient } from '@prisma/client';
@@ -43,6 +40,14 @@ if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
 // -------------------- tiempo / rangos --------------------
 const MX_TZ = 'America/Mexico_City';
 const safeNum = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0);
+
+// Umbrales operativos (ajustables)
+const EXEC_BUCKET_FAST_MAX = 10; // 0–9 min
+const EXEC_BUCKET_OK_MAX = 90; // 10–89 min
+const EXEC_CRIT_LT_MIN = 2; // <2 min
+const EXEC_CRIT_GTE_MIN = 90; // >=90 min
+const ESPERA_OK_MAX = 15; // solicitud->inicio aceptable (min)
+const LEAD_OK_MAX = 120; // solicitud->fin aceptable (min)
 
 function parseFechaLocal(fechaLocal: string, tz: string) {
   const dt = DateTime.fromISO(fechaLocal, { zone: tz });
@@ -138,27 +143,21 @@ function minutesBetween(a?: Date | null, b?: Date | null) {
 }
 
 // -------------------- buckets / stats --------------------
-type DurBucketId = 'lt10' | 'm10_20' | 'm20_30' | 'm30_60' | 'm60_120' | 'gte120' | 'sinFin';
-
-function bucketFromMinutes(min: number | null): DurBucketId {
-  if (min === null) return 'sinFin';
-  if (min < 10) return 'lt10';
-  if (min < 20) return 'm10_20';
-  if (min < 30) return 'm20_30';
-  if (min < 60) return 'm30_60';
-  if (min < 120) return 'm60_120';
-  return 'gte120';
+function execBucketFromMinutes(min: number | null): ExecBucketId | null {
+  if (min === null || !Number.isFinite(min)) return null;
+  if (min < EXEC_BUCKET_FAST_MAX) return 'm0_9';
+  if (min < EXEC_BUCKET_OK_MAX) return 'm10_89';
+  return 'gte90';
 }
 
-function bucketLabel(id: DurBucketId) {
+function execBucketLabel(id: ExecBucketId) {
   switch (id) {
-    case 'lt10': return '< 10 min';
-    case 'm10_20': return '10–20 min';
-    case 'm20_30': return '20–30 min';
-    case 'm30_60': return '30–60 min';
-    case 'm60_120': return '60–120 min';
-    case 'gte120': return '120+ min';
-    case 'sinFin': return 'Sin fin';
+    case 'm0_9':
+      return '0–9 min';
+    case 'm10_89':
+      return '10–89 min';
+    case 'gte90':
+      return '90+ min';
   }
 }
 
@@ -174,56 +173,29 @@ function median(xs: number[]) {
   return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
 }
 
-function stddev(xs: number[]) {
-  if (xs.length < 2) return 0;
-  const m = mean(xs);
-  const v = mean(xs.map((x) => (x - m) ** 2));
-  return Math.sqrt(v);
+function percentile(xs: number[], p: number) {
+  if (!xs.length) return 0;
+  const a = [...xs].sort((x, y) => x - y);
+  const idx = Math.min(a.length - 1, Math.max(0, Math.ceil(p * a.length) - 1));
+  return a[idx] ?? 0;
 }
 
-// Pearson r
-function pearson(x: number[], y: number[]) {
-  const n = Math.min(x.length, y.length);
-  if (n < 2) return 0;
-
-  const xs = x.slice(0, n);
-  const ys = y.slice(0, n);
-
-  const mx = mean(xs);
-  const my = mean(ys);
-
-  let num = 0;
-  let dx = 0;
-  let dy = 0;
-
-  for (let i = 0; i < n; i++) {
-    const a = xs[i] - mx;
-    const b = ys[i] - my;
-    num += a * b;
-    dx += a * a;
-    dy += b * b;
-  }
-
-  const den = Math.sqrt(dx * dy);
-  return den ? num / den : 0;
+function fmtMinHuman(n: number) {
+  if (!Number.isFinite(n) || n <= 0) return '0m';
+  if (n < 60) return `${Math.round(n)}m`;
+  const h = Math.floor(n / 60);
+  const m = Math.round(n - h * 60);
+  return `${h}h ${m}m`;
 }
 
-// -------------------- formato MX / día operativo 09:00 --------------------
+
+// -------------------- formato MX --------------------
 function fmtMXFromDate(d: Date, tz: string) {
   return DateTime.fromJSDate(d, { zone: tz }).toFormat('yyyy-LL-dd HH:mm');
 }
 
-// día operativo = [09:00, 09:00 siguiente)
-// key = yyyy-LL-dd del "inicio" de ventana (MX)
-function diaOperativoKey(fechaSolicitud: Date, tz: string) {
-  const dt = DateTime.fromJSDate(fechaSolicitud, { zone: tz });
-  const nueve = dt.set({ hour: 9, minute: 0, second: 0, millisecond: 0 });
-  const start = dt < nueve ? nueve.minus({ days: 1 }) : nueve;
-  return start.toFormat('yyyy-LL-dd');
-}
-
 // -------------------- tipos --------------------
-export type BonoMotivo = 'PRIMER_MOV_DIA_OPERATIVO' | 'YA_BONIFICADA_EN_VENTANA' | 'NO_TERMINO' | 'SIN_OPERADOR';
+export type ExecBucketId = 'm0_9' | 'm10_89' | 'gte90';
 
 export type AdminMovimientoDetalle = {
   id: number;
@@ -246,24 +218,28 @@ export type AdminMovimientoDetalle = {
   minSolicitudAFin: number | null;
   minSolicitudAInicio: number | null;
   minInicioAFin: number | null;
-
-  // Bandera operativa
-  esAnomalia: boolean; // concluyó y duró < 10 min
+  backlogAgeMin: number | null; // edad al cierre del periodo (si no tiene fin)
 
   incidentesCount: number;
   incidentesAbiertos: number;
   incidentesResueltos: number;
   incidentesCerrados: number;
 
-  // Bono 09:00–09:00
-  diaOperativoMX: string; // key del inicio de ventana 09:00 (MX)
-  bonoElegible: boolean;
-  bonoMotivo: BonoMotivo;
+  // Señales de tiempo de ejecución
+  execBucket: ExecBucketId | null;
+  execLt2: boolean;
+  execGte90: boolean;
+
+  // Tráfico
+  horaMX: number; // 0..23
+  diaSemanaMX: string; // Lun..Dom
 
   usuarios: {
     creadoPor: { id: number; nombre: string; rol: string };
     cliente: { id: number; nombre: string; rol: string } | null;
     operador: { id: number; nombre: string; rol: string } | null;
+    supervisor: { id: number; nombre: string; rol: string } | null;
+    coordinador: { id: number; nombre: string; rol: string } | null;
   };
 };
 
@@ -283,81 +259,161 @@ export type AdminReporte = {
     // solo movimientos con fechaFin
     totalConFin: number;
     totalSinFin: number;
+    totalConInicioFin: number;
 
-    // Duración solicitud->fin
-    durMeanMin: number;
-    durMedianMin: number;
-    durStdMin: number;
+    // Ejecución (inicio -> fin)
+    execMeanMin: number;
+    execMedianMin: number;
+    execP90Min: number;
 
-    // Umbrales: promedio de los que están >= X
-    avgGte1Min: number;
-    avgGte10Min: number;
-    avgGte20Min: number;
-    avgGte30Min: number;
+    // Espera (solicitud -> inicio)
+    esperaMeanMin: number;
+    esperaMedianMin: number;
+    esperaP90Min: number;
+    esperaOkPct: number;
+
+    // Lead (solicitud -> fin)
+    leadMeanMin: number;
+    leadMedianMin: number;
+    leadP90Min: number;
+    leadOkPct: number;
 
     // Incidentes
     totalIncidentes: number;
     movimientosConIncidente: number;
     movimientosConIncidentePct: number;
 
-    // comparación de tiempos con/sin incidentes
-    durMeanConIncidenteMin: number;
-    durMeanSinIncidenteMin: number;
+    // Críticos de ejecución
+    criticosLt2: number;
+    criticosGte90: number;
+    criticosTotal: number;
 
-    // correlación
-    corrDurMin_vs_Incidentes: number;
+    // Locomotoras con críticos
+    locomotorasCritLt2: number;
+    locomotorasCritGte90: number;
 
-    // Anomalías (<10 min)
-    anomalias: number;
-    anomaliasPct: number; // sobre movimientos con fin
+    // Backlog (sin fin) a cierre del periodo
+    backlogAvgAgeMin: number;
+    backlogP90AgeMin: number;
+    backlogMaxAgeMin: number;
 
-    // Bono
-    bonosElegibles: number;
-    bonosElegiblesPct: number; // sobre movimientos con operador y con fin
+    // Índice operativo
+    variabilidadExecRatio: number;
+    indiceOperativo: number;
   };
 
-  duracionBuckets: Array<{
-    id: DurBucketId;
+  ejecucionBuckets: Array<{
+    id: ExecBucketId;
     label: string;
     movimientos: number;
-    pct: number; // sobre totalMovimientos
-    incidentes: number;
-    incidentRate: number; // incidentes / movimientos
+    pct: number; // sobre totalConInicioFin
   }>;
 
   incidentes: {
     porEstado: Record<string, number>;
-    // % de movimientos con incidente en cada bucket
-    movConIncidentePctPorBucket: Array<{ bucketId: DurBucketId; bucketLabel: string; movConIncidentePct: number }>;
   };
 
-  anomalias: {
-    porOperador: Array<{ operadorId: number; operadorNombre: string; total: number; pctSobreAnomalias: number }>;
-    porCliente: Array<{ clienteId: number; clienteNombre: string; total: number; pctSobreAnomalias: number }>;
-    porEmpresa: Array<{ empresa: string; total: number; pctSobreAnomalias: number }>;
-    porLocomotora: Array<{ locomotiveNumber: number; total: number; pctSobreAnomalias: number }>;
-    porDiaMX: Array<{ diaMX: string; total: number }>;
-  };
+  movimientosPorHora: Array<{ hora: number; movimientos: number }>;
+  movimientosPorDiaSemana: Array<{ dia: string; movimientos: number }>;
+  incidentesPorHora: Array<{ hora: number; incidentes: number }>;
+  incidentesPorDiaSemana: Array<{ dia: string; incidentes: number }>;
 
-  bonos: {
-    porOperador: Array<{
-      operadorId: number;
-      operadorNombre: string;
-      operadorRol: string;
-      movimientos: number;
-      conFin: number;
-      elegibles: number;
-      elegiblesPct: number; // sobre conFin
-      leadMeanMin: number; // solicitud->fin promedio (solo con fin)
-      incidentesTotal: number;
-      anomalias: number;
-    }>;
-  };
+  rankingOperadores: Array<{
+    operadorId: number;
+    operadorNombre: string;
+    operadorRol: string;
+    totalMovimientos: number;
+    conInicioFin: number;
+    m0_9: number;
+    m10_89: number;
+    gte90: number;
+    lt2: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+    criticosTotal: number;
+    criticosPct: number;
+  }>;
 
-  topLentos: AdminMovimientoDetalle[]; // top por duración
-  topConIncidentes: AdminMovimientoDetalle[]; // top por incidentesCount
-  topAnomalias: AdminMovimientoDetalle[]; // auditoría anomalías
-  topBonosElegibles: AdminMovimientoDetalle[]; // auditoría bonos
+  rankingLocomotoras: Array<{
+    locomotiveNumber: number;
+    totalMovimientos: number;
+    conInicioFin: number;
+    m0_9: number;
+    m10_89: number;
+    gte90: number;
+    lt2: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+    criticosTotal: number;
+    criticosPct: number;
+    empresas: string[];
+  }>;
+
+  rankingEmpresas: Array<{
+    empresa: string;
+    totalMovimientos: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+  }>;
+
+  rankingClientes: Array<{
+    clienteId: number;
+    clienteNombre: string;
+    totalMovimientos: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+  }>;
+
+  rankingSupervisores: Array<{
+    supervisorId: number;
+    supervisorNombre: string;
+    totalMovimientos: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+    criticosTotal: number;
+    criticosPct: number;
+  }>;
+
+  rankingCoordinadores: Array<{
+    coordinadorId: number;
+    coordinadorNombre: string;
+    totalMovimientos: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+    criticosTotal: number;
+    criticosPct: number;
+  }>;
+
+  rankingLocalidades: Array<{
+    localidad: string;
+    totalMovimientos: number;
+    incidentesTotal: number;
+    incidentesPct: number;
+  }>;
+
+  topLocomotorasIncidentes: Array<{
+    locomotiveNumber: number;
+    incidentesTotal: number;
+    movimientos: number;
+    empresas: string[];
+  }>;
+
+  topCriticos: AdminMovimientoDetalle[];
+  topIncidentes: AdminMovimientoDetalle[];
+
+  backlogTop: Array<{
+    id: number;
+    locomotiveNumber: number;
+    empresa: string;
+    localidad: string;
+    edadMin: number;
+    fechaSolicitudMX: string;
+    operador?: string;
+    supervisor?: string;
+    coordinador?: string;
+  }>;
+
+  insights: string[];
 };
 
 // -------------------- SQL row --------------------
@@ -383,6 +439,14 @@ type SqlMovRow = {
   operadorId: number | null;
   operadorNombre: string | null;
   operadorRol: string | null;
+
+  supervisorId: number | null;
+  supervisorNombre: string | null;
+  supervisorRol: string | null;
+
+  coordinadorId: number | null;
+  coordinadorNombre: string | null;
+  coordinadorRol: string | null;
 };
 
 function toISO(d?: Date | null) {
@@ -406,21 +470,17 @@ export class AdminReporteriaModel {
    * Motor único: arma reporte para cualquier periodo.
    *
    * Importante:
-   * - No existen movimiento.supervisorId / coordinadorId (según lo que dijiste), por eso NO se usan.
-   * - Bono se calcula con ventana 09:00–09:00 (MX) por locomotora.
-   * - Para bono correcto al inicio del rango, hacemos "lookback" de 1 día (24h) en solicitud.
+   * - Se usa supervisor/coordinador del movimiento; si vienen null, se infiere por token más nuevo al cierre.
+   * - Rangos de ejecución se calculan con fechaInicio → fechaFin.
    */
   static async reportePorPeriodo(filters: AdminReporteFilters, periodo: PeriodoReporte): Promise<AdminReporte> {
     const tz = filters.tz ?? MX_TZ;
     const { anchor, startLocal, endLocal, startUTC, endUTC } = rangoPeriodoUTC(filters.fecha, tz, periodo);
 
-    // Lookback: cubre el tramo previo de la ventana 09:00–09:00 para no regalar bonos falsos
-    const lookbackStartUTC = startUTC.minus({ days: 1 });
+    // 1) Movimientos del rango
+    const whereRange = buildWhereSql(filters, startUTC.toJSDate(), endUTC.toJSDate());
 
-    // 1) Movimientos (lookback + rango) para calcular bonos; luego filtramos a rango para métricas
-    const whereLookback = buildWhereSql(filters, lookbackStartUTC.toJSDate(), endUTC.toJSDate());
-
-    const rowsAll = await prisma.$queryRaw<SqlMovRow[]>(Prisma.sql`
+    const rows = await prisma.$queryRaw<SqlMovRow[]>(Prisma.sql`
       SELECT
         m.id,
         m.estado::text as "estado",
@@ -442,27 +502,56 @@ export class AdminReporteriaModel {
 
         uo.id as "operadorId",
         uo.nombre as "operadorNombre",
-        uo.rol::text as "operadorRol"
+        uo.rol::text as "operadorRol",
+
+        COALESCE(usup.id, supTok.id) as "supervisorId",
+        COALESCE(usup.nombre, supTok.nombre) as "supervisorNombre",
+        COALESCE(usup.rol::text, supTok.rol::text) as "supervisorRol",
+
+        COALESCE(uco.id, coorTok.id) as "coordinadorId",
+        COALESCE(uco.nombre, coorTok.nombre) as "coordinadorNombre",
+        COALESCE(uco.rol::text, coorTok.rol::text) as "coordinadorRol"
       FROM "Movimiento" m
       JOIN "Empresa" e ON e.id = m."empresaId"
       JOIN "Localidad" l ON l.id = m."localidadId"
       JOIN "Usuario" ucp ON ucp.id = m."creadoPorId"
       LEFT JOIN "Usuario" uc ON uc.id = m."clienteId"
       LEFT JOIN "Usuario" uo ON uo.id = m."operadorId"
-      ${whereLookback}
+
+      LEFT JOIN "Usuario" usup ON usup.id = m."supervisorId"
+      LEFT JOIN "Usuario" uco ON uco.id = m."coordinadorId"
+
+      LEFT JOIN LATERAL (
+        SELECT u.id, u.nombre, u.rol
+        FROM "Token" t
+        JOIN "Usuario" u ON u.id = t."usuarioId"
+        WHERE u.rol = 'SUPERVISOR'
+          AND m."fechaFin" IS NOT NULL
+          AND t."issuedAt" <= m."fechaFin"
+          AND (t."revokedAt" IS NULL OR t."revokedAt" > m."fechaFin")
+          AND t."expiresAt" > m."fechaFin"
+        ORDER BY t."issuedAt" DESC
+        LIMIT 1
+      ) supTok ON TRUE
+
+      LEFT JOIN LATERAL (
+        SELECT u.id, u.nombre, u.rol
+        FROM "Token" t
+        JOIN "Usuario" u ON u.id = t."usuarioId"
+        WHERE u.rol = 'COORDINADOR'
+          AND m."fechaFin" IS NOT NULL
+          AND t."issuedAt" <= m."fechaFin"
+          AND (t."revokedAt" IS NULL OR t."revokedAt" > m."fechaFin")
+          AND t."expiresAt" > m."fechaFin"
+        ORDER BY t."issuedAt" DESC
+        LIMIT 1
+      ) coorTok ON TRUE
+
+      ${whereRange}
       ORDER BY m."fechaSolicitud" ASC, m.id ASC;
     `);
 
-    // Split: solo los del rango real para KPIs / incidentes / tablas principales
-    const startRange = startUTC.toJSDate().getTime();
-    const endRange = endUTC.toJSDate().getTime();
-
-    const rowsInRange = rowsAll.filter((r) => {
-      const t = r.fechaSolicitud.getTime();
-      return t >= startRange && t < endRange;
-    });
-
-    const movimientoIds = rowsInRange.map((r) => r.id);
+    const movimientoIds = rows.map((r) => r.id);
 
     // 2) Incidentes (solo para movimientos del rango)
     const incidentes = movimientoIds.length
@@ -487,17 +576,8 @@ export class AdminReporteriaModel {
       incByMov.set(i.movimientoId, cur);
     }
 
-    // 3) Bono 09:00–09:00: primer movimiento por (locomotora, díaOperativo)
-    // Usamos rowsAll (incluye lookback) para no marcar elegible algo que ya ocurrió antes en la ventana.
-    const firstSeen = new Map<string, number>(); // key -> movimientoId del primer movimiento
-    for (const r of rowsAll) {
-      const dayKey = diaOperativoKey(r.fechaSolicitud, tz);
-      const k = `${r.locomotiveNumber}__${dayKey}`;
-      if (!firstSeen.has(k)) firstSeen.set(k, r.id);
-    }
-
-    // 4) Detalle por movimiento (solo del rango), con auditoría MX + anomalia + bono
-    const detalles: AdminMovimientoDetalle[] = rowsInRange.map((r) => {
+    // 3) Detalle por movimiento (rango), con auditoría MX
+    const detalles: AdminMovimientoDetalle[] = rows.map((r) => {
       const inc = incByMov.get(r.id) ?? { total: 0, ABIERTO: 0, RESUELTO: 0, CERRADO: 0 };
 
       const minSolicitudAFin = minutesBetween(r.fechaSolicitud, r.fechaFin);
@@ -513,25 +593,17 @@ export class AdminReporteriaModel {
         ? `${fechaSolicitudMX} → ${fechaFinMX}`
         : '—';
 
-      const esAnomalia = minSolicitudAFin !== null && minSolicitudAFin < 10;
+      const execBucket = execBucketFromMinutes(minInicioAFin);
+      const execLt2 = minInicioAFin !== null && minInicioAFin < EXEC_CRIT_LT_MIN;
+      const execGte90 = minInicioAFin !== null && minInicioAFin >= EXEC_CRIT_GTE_MIN;
 
-      const dayKey = diaOperativoKey(r.fechaSolicitud, tz);
-      const bonusKey = `${r.locomotiveNumber}__${dayKey}`;
+      const backlogAgeMin = r.fechaFin ? null : minutesBetween(r.fechaSolicitud, endUTC.toJSDate());
 
-      let bonoElegible = false;
-      let bonoMotivo: BonoMotivo = 'NO_TERMINO';
-
-      if (!r.operadorId) {
-        bonoElegible = false;
-        bonoMotivo = 'SIN_OPERADOR';
-      } else if (!r.fechaFin) {
-        bonoElegible = false;
-        bonoMotivo = 'NO_TERMINO';
-      } else {
-        const firstId = firstSeen.get(bonusKey);
-        bonoElegible = firstId === r.id;
-        bonoMotivo = bonoElegible ? 'PRIMER_MOV_DIA_OPERATIVO' : 'YA_BONIFICADA_EN_VENTANA';
-      }
+      const baseTime = r.fechaInicio ?? r.fechaSolicitud;
+      const dtBase = DateTime.fromJSDate(baseTime, { zone: tz });
+      const hour = dtBase.hour;
+      const weekdayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      const diaSemana = weekdayNames[dtBase.weekday - 1] ?? '—';
 
       return {
         id: r.id,
@@ -552,17 +624,19 @@ export class AdminReporteriaModel {
         minSolicitudAFin,
         minSolicitudAInicio,
         minInicioAFin,
-
-        esAnomalia,
+        backlogAgeMin,
 
         incidentesCount: inc.total,
         incidentesAbiertos: inc.ABIERTO,
         incidentesResueltos: inc.RESUELTO,
         incidentesCerrados: inc.CERRADO,
 
-        diaOperativoMX: dayKey,
-        bonoElegible,
-        bonoMotivo,
+        execBucket,
+        execLt2,
+        execGte90,
+
+        horaMX: hour,
+        diaSemanaMX: diaSemana,
 
         usuarios: {
           creadoPor: { id: r.creadoPorId, nombre: r.creadoPorNombre, rol: String(r.creadoPorRol) },
@@ -572,239 +646,428 @@ export class AdminReporteriaModel {
           operador: r.operadorId
             ? { id: r.operadorId, nombre: r.operadorNombre ?? '—', rol: String(r.operadorRol ?? '—') }
             : null,
+          supervisor: r.supervisorId
+            ? { id: r.supervisorId, nombre: r.supervisorNombre ?? '—', rol: String(r.supervisorRol ?? '—') }
+            : null,
+          coordinador: r.coordinadorId
+            ? { id: r.coordinadorId, nombre: r.coordinadorNombre ?? '—', rol: String(r.coordinadorRol ?? '—') }
+            : null,
         },
       };
     });
 
-    // 5) KPI base
+    // 4) KPI base
     const totalMov = detalles.length;
 
     const conFin = detalles.filter((d) => d.minSolicitudAFin !== null);
     const totalConFin = conFin.length;
     const totalSinFin = totalMov - totalConFin;
 
-    const durAll = conFin.map((d) => safeNum(d.minSolicitudAFin));
-    const durConInc = conFin.filter((d) => d.incidentesCount > 0).map((d) => safeNum(d.minSolicitudAFin));
-    const durSinInc = conFin.filter((d) => d.incidentesCount === 0).map((d) => safeNum(d.minSolicitudAFin));
+    const conInicioFin = detalles.filter((d) => d.minInicioAFin !== null);
+    const totalConInicioFin = conInicioFin.length;
 
-    function avgGte(th: number) {
-      const xs = durAll.filter((x) => x >= th);
-      return xs.length ? mean(xs) : 0;
-    }
+    const execAll = conInicioFin.map((d) => safeNum(d.minInicioAFin));
+    const execMeanMin = mean(execAll);
+    const execMedianMin = median(execAll);
+    const execP90Min = percentile(execAll, 0.9);
+
+    const esperaAll = detalles
+      .filter((d) => d.minSolicitudAInicio !== null)
+      .map((d) => safeNum(d.minSolicitudAInicio));
+    const esperaMeanMin = mean(esperaAll);
+    const esperaMedianMin = median(esperaAll);
+    const esperaP90Min = percentile(esperaAll, 0.9);
+    const esperaOkPct = esperaAll.length
+      ? Math.round((esperaAll.filter((x) => x <= ESPERA_OK_MAX).length / esperaAll.length) * 100)
+      : 0;
+
+    const leadAll = conFin.map((d) => safeNum(d.minSolicitudAFin));
+    const leadMeanMin = mean(leadAll);
+    const leadMedianMin = median(leadAll);
+    const leadP90Min = percentile(leadAll, 0.9);
+    const leadOkPct = leadAll.length
+      ? Math.round((leadAll.filter((x) => x <= LEAD_OK_MAX).length / leadAll.length) * 100)
+      : 0;
+
+    const backlogAges = detalles
+      .filter((d) => d.backlogAgeMin !== null)
+      .map((d) => safeNum(d.backlogAgeMin));
+    const backlogAvgAgeMin = mean(backlogAges);
+    const backlogP90AgeMin = percentile(backlogAges, 0.9);
+    const backlogMaxAgeMin = backlogAges.length ? Math.max(...backlogAges) : 0;
 
     const movConInc = detalles.filter((d) => d.incidentesCount > 0).length;
     const movConIncPct = totalMov ? Math.round((movConInc / totalMov) * 100) : 0;
 
-    const corr = pearson(
-      conFin.map((d) => safeNum(d.minSolicitudAFin)),
-      conFin.map((d) => safeNum(d.incidentesCount))
+    const critLt2 = conInicioFin.filter((d) => d.execLt2).length;
+    const critGte90 = conInicioFin.filter((d) => d.execGte90).length;
+    const critTotal = conInicioFin.filter((d) => d.execLt2 || d.execGte90).length;
+
+    const locoCritLt2 = new Set<number>();
+    const locoCritGte90 = new Set<number>();
+    for (const d of conInicioFin) {
+      if (d.execLt2) locoCritLt2.add(d.locomotiveNumber);
+      if (d.execGte90) locoCritGte90.add(d.locomotiveNumber);
+    }
+
+    const variabilidadExecRatio = execMedianMin ? Math.round((execP90Min / execMedianMin) * 100) / 100 : 0;
+
+    // Índice operativo 0–100 (penaliza críticos, incidentes, backlog y variabilidad)
+    const criticalRate = totalConInicioFin ? critTotal / totalConInicioFin : 0;
+    const incidentRate = totalMov ? movConInc / totalMov : 0;
+    const backlogRate = totalMov ? totalSinFin / totalMov : 0;
+    const variabilityPenalty = execMedianMin ? Math.min(1, Math.max(0, (variabilidadExecRatio - 1) / 2)) : 0;
+
+    const indiceOperativo = Math.max(
+      0,
+      Math.round(
+        100 *
+          (1 -
+            (criticalRate * 0.4 +
+              incidentRate * 0.25 +
+              backlogRate * 0.2 +
+              variabilityPenalty * 0.15))
+      )
     );
 
-    // 6) Anomalías
-    const anomaliasArr = conFin.filter((d) => d.esAnomalia);
-    const anomalias = anomaliasArr.length;
-    const anomaliasPct = totalConFin ? Math.round((anomalias / totalConFin) * 100) : 0;
+    // 5) Buckets de ejecución
+    const bucketOrder: ExecBucketId[] = ['m0_9', 'm10_89', 'gte90'];
+    const bucketAgg = new Map<ExecBucketId, number>();
+    for (const id of bucketOrder) bucketAgg.set(id, 0);
+    for (const d of conInicioFin) {
+      if (!d.execBucket) continue;
+      bucketAgg.set(d.execBucket, (bucketAgg.get(d.execBucket) ?? 0) + 1);
+    }
 
-    const countMap = <T extends string | number>(xs: T[]) => {
-      const m = new Map<T, number>();
-      for (const x of xs) m.set(x, (m.get(x) ?? 0) + 1);
-      return m;
+    const ejecucionBuckets = bucketOrder.map((id) => {
+      const mov = bucketAgg.get(id) ?? 0;
+      const pct = totalConInicioFin ? Math.round((mov / totalConInicioFin) * 100) : 0;
+      return { id, label: execBucketLabel(id), movimientos: mov, pct };
+    });
+
+    // 6) Tráfico por hora / día
+    const hourCounts = Array.from({ length: 24 }, () => 0);
+    const hourIncCounts = Array.from({ length: 24 }, () => 0);
+    const dayLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const dayCounts = new Map<string, number>(dayLabels.map((d) => [d, 0]));
+    const dayIncCounts = new Map<string, number>(dayLabels.map((d) => [d, 0]));
+
+    for (const d of detalles) {
+      if (d.horaMX >= 0 && d.horaMX <= 23) hourCounts[d.horaMX] += 1;
+      if (d.horaMX >= 0 && d.horaMX <= 23) hourIncCounts[d.horaMX] += d.incidentesCount;
+      dayCounts.set(d.diaSemanaMX, (dayCounts.get(d.diaSemanaMX) ?? 0) + 1);
+      dayIncCounts.set(d.diaSemanaMX, (dayIncCounts.get(d.diaSemanaMX) ?? 0) + d.incidentesCount);
+    }
+
+    const movimientosPorHora = hourCounts.map((movimientos, hora) => ({ hora, movimientos }));
+    const movimientosPorDiaSemana = dayLabels.map((dia) => ({ dia, movimientos: dayCounts.get(dia) ?? 0 }));
+    const incidentesPorHora = hourIncCounts.map((incidentes, hora) => ({ hora, incidentes }));
+    const incidentesPorDiaSemana = dayLabels.map((dia) => ({ dia, incidentes: dayIncCounts.get(dia) ?? 0 }));
+
+    // 7) Rankings
+    type AggRow = {
+      totalMovimientos: number;
+      conInicioFin: number;
+      m0_9: number;
+      m10_89: number;
+      gte90: number;
+      lt2: number;
+      incidentesTotal: number;
     };
 
-    const anomPorOperadorMap = countMap(
-      anomaliasArr
-        .map((d) => d.usuarios.operador?.id ?? null)
-        .filter((x): x is number => x !== null)
-    );
-
-    const anomPorOperador = Array.from(anomPorOperadorMap.entries())
-      .map(([operadorId, total]) => {
-        const sample = anomaliasArr.find((d) => d.usuarios.operador?.id === operadorId)?.usuarios.operador;
-        return {
-          operadorId,
-          operadorNombre: sample?.nombre ?? '—',
-          total,
-          pctSobreAnomalias: anomalias ? Math.round((total / anomalias) * 100) : 0,
-        };
-      })
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 30);
-
-    const anomPorClienteMap = countMap(
-      anomaliasArr
-        .map((d) => d.usuarios.cliente?.id ?? null)
-        .filter((x): x is number => x !== null)
-    );
-
-    const anomPorCliente = Array.from(anomPorClienteMap.entries())
-      .map(([clienteId, total]) => {
-        const sample = anomaliasArr.find((d) => d.usuarios.cliente?.id === clienteId)?.usuarios.cliente;
-        return {
-          clienteId,
-          clienteNombre: sample?.nombre ?? '—',
-          total,
-          pctSobreAnomalias: anomalias ? Math.round((total / anomalias) * 100) : 0,
-        };
-      })
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 30);
-
-    const anomPorEmpresaMap = countMap(anomaliasArr.map((d) => d.empresa || '—'));
-    const anomPorEmpresa = Array.from(anomPorEmpresaMap.entries())
-      .map(([empresa, total]) => ({
-        empresa,
-        total,
-        pctSobreAnomalias: anomalias ? Math.round((total / anomalias) * 100) : 0,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 30);
-
-    const anomPorLocoMap = countMap(anomaliasArr.map((d) => safeNum(d.locomotiveNumber)));
-    const anomPorLocomotora = Array.from(anomPorLocoMap.entries())
-      .map(([locomotiveNumber, total]) => ({
-        locomotiveNumber,
-        total,
-        pctSobreAnomalias: anomalias ? Math.round((total / anomalias) * 100) : 0,
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 30);
-
-    const anomPorDiaMap = countMap(anomaliasArr.map((d) => d.diaMX));
-    const anomPorDiaMX = Array.from(anomPorDiaMap.entries())
-      .map(([diaMX, total]) => ({ diaMX, total }))
-      .sort((a, b) => a.diaMX.localeCompare(b.diaMX));
-
-    // 7) Buckets + incidentes por bucket
-    const bucketOrder: DurBucketId[] = ['lt10', 'm10_20', 'm20_30', 'm30_60', 'm60_120', 'gte120', 'sinFin'];
-
-    const bucketAgg = new Map<DurBucketId, { mov: number; inc: number; movConInc: number }>();
-    for (const id of bucketOrder) bucketAgg.set(id, { mov: 0, inc: 0, movConInc: 0 });
-
-    for (const d of detalles) {
-      const bid = bucketFromMinutes(d.minSolicitudAFin);
-      const agg = bucketAgg.get(bid)!;
-      agg.mov += 1;
-      agg.inc += d.incidentesCount;
-      if (d.incidentesCount > 0) agg.movConInc += 1;
-    }
-
-    const duracionBuckets = bucketOrder.map((id) => {
-      const a = bucketAgg.get(id)!;
-      const pct = totalMov ? Math.round((a.mov / totalMov) * 100) : 0;
-      const incidentRate = a.mov ? a.inc / a.mov : 0;
-      return {
-        id,
-        label: bucketLabel(id),
-        movimientos: a.mov,
-        pct,
-        incidentes: a.inc,
-        incidentRate,
-      };
+    const initAgg = (): AggRow => ({
+      totalMovimientos: 0,
+      conInicioFin: 0,
+      m0_9: 0,
+      m10_89: 0,
+      gte90: 0,
+      lt2: 0,
+      incidentesTotal: 0,
     });
 
-    const movConIncidentePctPorBucket = bucketOrder.map((id) => {
-      const a = bucketAgg.get(id)!;
-      const pct = a.mov ? Math.round((a.movConInc / a.mov) * 100) : 0;
-      return { bucketId: id, bucketLabel: bucketLabel(id), movConIncidentePct: pct };
-    });
-
-    // 8) Bono KPIs + ranking operador
-    const conOperadorYFin = conFin.filter((d) => !!d.usuarios.operador);
-    const bonosElegibles = conOperadorYFin.filter((d) => d.bonoElegible).length;
-    const bonosElegiblesPct = conOperadorYFin.length
-      ? Math.round((bonosElegibles / conOperadorYFin.length) * 100)
-      : 0;
-
-    const opMap = new Map<number, {
-      operadorId: number;
-      operadorNombre: string;
-      operadorRol: string;
-      movimientos: number;
-      conFin: number;
-      elegibles: number;
-      leadMins: number[];
-      incidentesTotal: number;
-      anomalias: number;
-    }>();
+    const opMap = new Map<number, AggRow & { operadorId: number; operadorNombre: string; operadorRol: string }>();
+    const supMap = new Map<number, AggRow & { supervisorId: number; supervisorNombre: string }>();
+    const coordMap = new Map<number, AggRow & { coordinadorId: number; coordinadorNombre: string }>();
+    const locoMap = new Map<number, AggRow & { locomotiveNumber: number; empresas: Set<string> }>();
+    const empMap = new Map<string, AggRow & { empresa: string }>();
+    const cliMap = new Map<number, AggRow & { clienteId: number; clienteNombre: string }>();
+    const locMap = new Map<string, AggRow & { localidad: string }>();
 
     for (const d of detalles) {
+      // Empresa
+      const empKey = d.empresa ?? '—';
+      let empRow = empMap.get(empKey);
+      if (!empRow) {
+        empRow = { ...initAgg(), empresa: empKey };
+        empMap.set(empKey, empRow);
+      }
+
+      // Localidad
+      const locKey = d.localidad ?? '—';
+      let locRow = locMap.get(locKey);
+      if (!locRow) {
+        locRow = { ...initAgg(), localidad: locKey };
+        locMap.set(locKey, locRow);
+      }
+
+      // Cliente
+      const cli = d.usuarios.cliente;
+      if (cli) {
+        let cliRow = cliMap.get(cli.id);
+        if (!cliRow) {
+          cliRow = { ...initAgg(), clienteId: cli.id, clienteNombre: cli.nombre };
+          cliMap.set(cli.id, cliRow);
+        }
+        cliRow.totalMovimientos += 1;
+        cliRow.incidentesTotal += d.incidentesCount;
+        if (d.execBucket) {
+          cliRow.conInicioFin += 1;
+          if (d.execBucket === 'm0_9') cliRow.m0_9 += 1;
+          if (d.execBucket === 'm10_89') cliRow.m10_89 += 1;
+          if (d.execBucket === 'gte90') cliRow.gte90 += 1;
+          if (d.execLt2) cliRow.lt2 += 1;
+        }
+      }
+
+      // Operador (maquinista)
       const op = d.usuarios.operador;
-      if (!op) continue;
-
-      let row = opMap.get(op.id);
-      if (!row) {
-        row = {
-          operadorId: op.id,
-          operadorNombre: op.nombre,
-          operadorRol: op.rol,
-          movimientos: 0,
-          conFin: 0,
-          elegibles: 0,
-          leadMins: [],
-          incidentesTotal: 0,
-          anomalias: 0,
-        };
-        opMap.set(op.id, row);
+      if (op) {
+        let opRow = opMap.get(op.id);
+        if (!opRow) {
+          opRow = { ...initAgg(), operadorId: op.id, operadorNombre: op.nombre, operadorRol: op.rol };
+          opMap.set(op.id, opRow);
+        }
+        opRow.totalMovimientos += 1;
+        opRow.incidentesTotal += d.incidentesCount;
+        if (d.execBucket) {
+          opRow.conInicioFin += 1;
+          if (d.execBucket === 'm0_9') opRow.m0_9 += 1;
+          if (d.execBucket === 'm10_89') opRow.m10_89 += 1;
+          if (d.execBucket === 'gte90') opRow.gte90 += 1;
+          if (d.execLt2) opRow.lt2 += 1;
+        }
       }
 
-      row.movimientos += 1;
-      row.incidentesTotal += d.incidentesCount;
-      if (d.esAnomalia) row.anomalias += 1;
-
-      if (d.minSolicitudAFin !== null) {
-        row.conFin += 1;
-        row.leadMins.push(safeNum(d.minSolicitudAFin));
-        if (d.bonoElegible) row.elegibles += 1;
+      // Supervisor
+      const sup = d.usuarios.supervisor;
+      if (sup) {
+        let supRow = supMap.get(sup.id);
+        if (!supRow) {
+          supRow = { ...initAgg(), supervisorId: sup.id, supervisorNombre: sup.nombre };
+          supMap.set(sup.id, supRow);
+        }
+        supRow.totalMovimientos += 1;
+        supRow.incidentesTotal += d.incidentesCount;
+        if (d.execBucket) {
+          supRow.conInicioFin += 1;
+          if (d.execBucket === 'm0_9') supRow.m0_9 += 1;
+          if (d.execBucket === 'm10_89') supRow.m10_89 += 1;
+          if (d.execBucket === 'gte90') supRow.gte90 += 1;
+          if (d.execLt2) supRow.lt2 += 1;
+        }
       }
+
+      // Coordinador
+      const coord = d.usuarios.coordinador;
+      if (coord) {
+        let coordRow = coordMap.get(coord.id);
+        if (!coordRow) {
+          coordRow = { ...initAgg(), coordinadorId: coord.id, coordinadorNombre: coord.nombre };
+          coordMap.set(coord.id, coordRow);
+        }
+        coordRow.totalMovimientos += 1;
+        coordRow.incidentesTotal += d.incidentesCount;
+        if (d.execBucket) {
+          coordRow.conInicioFin += 1;
+          if (d.execBucket === 'm0_9') coordRow.m0_9 += 1;
+          if (d.execBucket === 'm10_89') coordRow.m10_89 += 1;
+          if (d.execBucket === 'gte90') coordRow.gte90 += 1;
+          if (d.execLt2) coordRow.lt2 += 1;
+        }
+      }
+
+      // Locomotora
+      let locoRow = locoMap.get(d.locomotiveNumber);
+      if (!locoRow) {
+        locoRow = { ...initAgg(), locomotiveNumber: d.locomotiveNumber, empresas: new Set<string>() };
+        locoMap.set(d.locomotiveNumber, locoRow);
+      }
+      locoRow.empresas.add(empKey);
+
+      // Incremento común
+      const applyAgg = (row: AggRow) => {
+        row.totalMovimientos += 1;
+        row.incidentesTotal += d.incidentesCount;
+        if (d.execBucket) {
+          row.conInicioFin += 1;
+          if (d.execBucket === 'm0_9') row.m0_9 += 1;
+          if (d.execBucket === 'm10_89') row.m10_89 += 1;
+          if (d.execBucket === 'gte90') row.gte90 += 1;
+          if (d.execLt2) row.lt2 += 1;
+        }
+      };
+
+      applyAgg(empRow);
+      applyAgg(locRow);
+      applyAgg(locoRow);
     }
 
-    const porOperador = Array.from(opMap.values())
+    const toPct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
+
+    const rankingOperadores = Array.from(opMap.values())
       .map((r) => ({
         operadorId: r.operadorId,
         operadorNombre: r.operadorNombre,
         operadorRol: r.operadorRol,
-        movimientos: r.movimientos,
-        conFin: r.conFin,
-        elegibles: r.elegibles,
-        elegiblesPct: r.conFin ? Math.round((r.elegibles / r.conFin) * 100) : 0,
-        leadMeanMin: mean(r.leadMins),
+        totalMovimientos: r.totalMovimientos,
+        conInicioFin: r.conInicioFin,
+        m0_9: r.m0_9,
+        m10_89: r.m10_89,
+        gte90: r.gte90,
+        lt2: r.lt2,
         incidentesTotal: r.incidentesTotal,
-        anomalias: r.anomalias,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+        criticosTotal: r.lt2 + r.gte90,
+        criticosPct: toPct(r.lt2 + r.gte90, r.conInicioFin),
       }))
-      // orden CEO: más bonos, luego más movimientos, luego menos anomalías (más “limpio”)
-      .sort((a, b) => (b.elegibles - a.elegibles) || (b.movimientos - a.movimientos) || (a.anomalias - b.anomalias));
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.criticosTotal - a.criticosTotal));
 
-    // 9) Tops (auditoría)
-    const topLentos = [...conFin]
-      .sort((a, b) => safeNum(b.minSolicitudAFin) - safeNum(a.minSolicitudAFin))
+    const rankingLocomotoras = Array.from(locoMap.values())
+      .map((r) => ({
+        locomotiveNumber: r.locomotiveNumber,
+        totalMovimientos: r.totalMovimientos,
+        conInicioFin: r.conInicioFin,
+        m0_9: r.m0_9,
+        m10_89: r.m10_89,
+        gte90: r.gte90,
+        lt2: r.lt2,
+        incidentesTotal: r.incidentesTotal,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+        criticosTotal: r.lt2 + r.gte90,
+        criticosPct: toPct(r.lt2 + r.gte90, r.conInicioFin),
+        empresas: Array.from(r.empresas),
+      }))
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.criticosTotal - a.criticosTotal));
+
+    const rankingEmpresas = Array.from(empMap.values())
+      .map((r) => ({
+        empresa: r.empresa,
+        totalMovimientos: r.totalMovimientos,
+        incidentesTotal: r.incidentesTotal,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+      }))
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.incidentesTotal - a.incidentesTotal));
+
+    const rankingClientes = Array.from(cliMap.values())
+      .map((r) => ({
+        clienteId: r.clienteId,
+        clienteNombre: r.clienteNombre,
+        totalMovimientos: r.totalMovimientos,
+        incidentesTotal: r.incidentesTotal,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+      }))
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.incidentesTotal - a.incidentesTotal));
+
+    const rankingSupervisores = Array.from(supMap.values())
+      .map((r) => ({
+        supervisorId: r.supervisorId,
+        supervisorNombre: r.supervisorNombre,
+        totalMovimientos: r.totalMovimientos,
+        incidentesTotal: r.incidentesTotal,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+        criticosTotal: r.lt2 + r.gte90,
+        criticosPct: toPct(r.lt2 + r.gte90, r.conInicioFin),
+      }))
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.criticosTotal - a.criticosTotal));
+
+    const rankingCoordinadores = Array.from(coordMap.values())
+      .map((r) => ({
+        coordinadorId: r.coordinadorId,
+        coordinadorNombre: r.coordinadorNombre,
+        totalMovimientos: r.totalMovimientos,
+        incidentesTotal: r.incidentesTotal,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+        criticosTotal: r.lt2 + r.gte90,
+        criticosPct: toPct(r.lt2 + r.gte90, r.conInicioFin),
+      }))
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.criticosTotal - a.criticosTotal));
+
+    const rankingLocalidades = Array.from(locMap.values())
+      .map((r) => ({
+        localidad: r.localidad,
+        totalMovimientos: r.totalMovimientos,
+        incidentesTotal: r.incidentesTotal,
+        incidentesPct: toPct(r.incidentesTotal, r.totalMovimientos),
+      }))
+      .sort((a, b) => (b.totalMovimientos - a.totalMovimientos) || (b.incidentesTotal - a.incidentesTotal));
+
+    const topLocomotorasIncidentes = [...rankingLocomotoras]
+      .sort((a, b) => (b.incidentesTotal - a.incidentesTotal) || (b.totalMovimientos - a.totalMovimientos))
+      .slice(0, 20)
+      .map((r) => ({
+        locomotiveNumber: r.locomotiveNumber,
+        incidentesTotal: r.incidentesTotal,
+        movimientos: r.totalMovimientos,
+        empresas: r.empresas.slice(0, 4),
+      }));
+
+    // 8) Tops (críticos / incidentes)
+    const topCriticos = [...conInicioFin]
+      .filter((d) => d.execLt2 || d.execGte90)
+      .sort((a, b) => {
+        const aShort = a.execLt2 ? 0 : 1;
+        const bShort = b.execLt2 ? 0 : 1;
+        if (aShort !== bShort) return aShort - bShort; // primero <2 min
+        const da = safeNum(a.minInicioAFin);
+        const db = safeNum(b.minInicioAFin);
+        return a.execLt2 ? da - db : db - da; // cortos asc, largos desc
+      })
       .slice(0, 40);
 
-    const topConIncidentes = [...detalles]
+    const topIncidentes = [...detalles]
       .filter((d) => d.incidentesCount > 0)
-      .sort((a, b) => (b.incidentesCount - a.incidentesCount) || (safeNum(b.minSolicitudAFin) - safeNum(a.minSolicitudAFin)))
+      .sort(
+        (a, b) =>
+          (b.incidentesCount - a.incidentesCount) ||
+          (safeNum(b.minInicioAFin) - safeNum(a.minInicioAFin))
+      )
       .slice(0, 40);
 
-    const topAnomalias = [...anomaliasArr]
-      .sort((a, b) => {
-        // anomalía más “grave” = más corta (más sospechosa), luego con incidentes, luego por id desc
-        const da = safeNum(a.minSolicitudAFin);
-        const db = safeNum(b.minSolicitudAFin);
-        if (da !== db) return da - db; // más corta primero
-        if (b.incidentesCount !== a.incidentesCount) return b.incidentesCount - a.incidentesCount;
-        return b.id - a.id;
-      })
-      .slice(0, 80);
+    const backlogTop = [...detalles]
+      .filter((d) => d.backlogAgeMin !== null)
+      .sort((a, b) => safeNum(b.backlogAgeMin) - safeNum(a.backlogAgeMin))
+      .slice(0, 20)
+      .map((d) => ({
+        id: d.id,
+        locomotiveNumber: d.locomotiveNumber,
+        empresa: d.empresa,
+        localidad: d.localidad,
+        edadMin: Math.round(safeNum(d.backlogAgeMin)),
+        fechaSolicitudMX: d.fechaSolicitudMX,
+        operador: d.usuarios.operador?.nombre,
+        supervisor: d.usuarios.supervisor?.nombre,
+        coordinador: d.usuarios.coordinador?.nombre,
+      }));
 
-    const topBonosElegibles = [...conOperadorYFin]
-      .filter((d) => d.bonoElegible)
-      // orden: por locomotora/día operativo y luego por fecha (auditoría clara)
-      .sort((a, b) => {
-        const ak = `${a.locomotiveNumber}__${a.diaOperativoMX}`;
-        const bk = `${b.locomotiveNumber}__${b.diaOperativoMX}`;
-        if (ak !== bk) return ak.localeCompare(bk);
-        return a.fechaSolicitudUTC.localeCompare(b.fechaSolicitudUTC);
-      })
-      .slice(0, 120);
+    const insights: string[] = [];
+    const picoHora = movimientosPorHora.reduce((a, b) => (b.movimientos > a.movimientos ? b : a), { hora: 0, movimientos: 0 });
+    const picoDia = movimientosPorDiaSemana.reduce((a, b) => (b.movimientos > a.movimientos ? b : a), { dia: '—', movimientos: 0 });
+    const topEmp = rankingEmpresas[0];
+    const topCli = rankingClientes[0];
+    const topOpCrit = [...rankingOperadores].sort((a, b) => (b.criticosTotal - a.criticosTotal))[0];
+    const topLocoCrit = [...rankingLocomotoras].sort((a, b) => (b.criticosTotal - a.criticosTotal))[0];
+
+    if (topEmp) insights.push(`Empresa con más movimientos: ${topEmp.empresa} (${topEmp.totalMovimientos}).`);
+    if (topCli) insights.push(`Cliente con más movimientos: ${topCli.clienteNombre} (${topCli.totalMovimientos}).`);
+    if (picoHora.movimientos) insights.push(`Pico horario: ${String(picoHora.hora).padStart(2, '0')}:00 (${picoHora.movimientos} mov).`);
+    if (picoDia.movimientos) insights.push(`Día más activo: ${picoDia.dia} (${picoDia.movimientos} mov).`);
+    if (topOpCrit && topOpCrit.criticosTotal) {
+      insights.push(`Maquinista con más críticos: ${topOpCrit.operadorNombre} (${topOpCrit.criticosTotal}).`);
+    }
+    if (topLocoCrit && topLocoCrit.criticosTotal) {
+      insights.push(`Locomotora con más críticos: L-${topLocoCrit.locomotiveNumber} (${topLocoCrit.criticosTotal}).`);
+    }
+    if (backlogMaxAgeMin) insights.push(`Backlog más viejo: ${fmtMinHuman(backlogMaxAgeMin)}.`);
 
     return {
       meta: {
@@ -820,55 +1083,66 @@ export class AdminReporteriaModel {
         totalMovimientos: totalMov,
         totalConFin,
         totalSinFin,
+        totalConInicioFin,
 
-        durMeanMin: mean(durAll),
-        durMedianMin: median(durAll),
-        durStdMin: stddev(durAll),
+        execMeanMin,
+        execMedianMin,
+        execP90Min,
 
-        avgGte1Min: avgGte(1),
-        avgGte10Min: avgGte(10),
-        avgGte20Min: avgGte(20),
-        avgGte30Min: avgGte(30),
+        esperaMeanMin,
+        esperaMedianMin,
+        esperaP90Min,
+        esperaOkPct,
+
+        leadMeanMin,
+        leadMedianMin,
+        leadP90Min,
+        leadOkPct,
 
         totalIncidentes: incidentes.length,
         movimientosConIncidente: movConInc,
         movimientosConIncidentePct: movConIncPct,
 
-        durMeanConIncidenteMin: mean(durConInc),
-        durMeanSinIncidenteMin: mean(durSinInc),
+        criticosLt2: critLt2,
+        criticosGte90: critGte90,
+        criticosTotal: critTotal,
 
-        corrDurMin_vs_Incidentes: corr,
+        locomotorasCritLt2: locoCritLt2.size,
+        locomotorasCritGte90: locoCritGte90.size,
 
-        anomalias,
-        anomaliasPct,
+        backlogAvgAgeMin,
+        backlogP90AgeMin,
+        backlogMaxAgeMin,
 
-        bonosElegibles,
-        bonosElegiblesPct,
+        variabilidadExecRatio,
+        indiceOperativo,
       },
 
-      duracionBuckets,
+      ejecucionBuckets,
 
       incidentes: {
         porEstado: incEstadoGlobal,
-        movConIncidentePctPorBucket,
       },
 
-      anomalias: {
-        porOperador: anomPorOperador,
-        porCliente: anomPorCliente,
-        porEmpresa: anomPorEmpresa,
-        porLocomotora: anomPorLocomotora,
-        porDiaMX: anomPorDiaMX,
-      },
+      movimientosPorHora,
+      movimientosPorDiaSemana,
+      incidentesPorHora,
+      incidentesPorDiaSemana,
 
-      bonos: {
-        porOperador,
-      },
+      rankingOperadores,
+      rankingLocomotoras,
+      rankingEmpresas,
+      rankingClientes,
+      rankingSupervisores,
+      rankingCoordinadores,
+      rankingLocalidades,
+      topLocomotorasIncidentes,
 
-      topLentos,
-      topConIncidentes,
-      topAnomalias,
-      topBonosElegibles,
+      topCriticos,
+      topIncidentes,
+
+      backlogTop,
+      insights,
     };
   }
 

@@ -28,6 +28,10 @@ export class MovimientoModel {
     return MovimientoReadModel.obtenerMovimientosPaginados(pagination);
   }
 
+  static async buscarMovimientos(params: Parameters<typeof MovimientoReadModel.buscarMovimientos>[0]) {
+    return MovimientoReadModel.buscarMovimientos(params);
+  }
+
   static async obtenerMovimientoPorId(id: number) {
     return MovimientoReadModel.obtenerMovimientoPorId(id);
   }
