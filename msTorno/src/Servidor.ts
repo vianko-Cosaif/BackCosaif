@@ -3,12 +3,12 @@ import cors from "cors";
 import { ZodError } from "zod";
 import { apiRouter } from "./routes/api";
 
-const PORT = process.env.TORNO_PORT || "3001";
-const HOST = process.env.TORNO_HOST || "127.0.0.1";
-const SERVICE_TOKEN = process.env.TORNO_SERVICE_TOKEN;
-
 export function iniciarServidorTorno(): void {
   try {
+    const PORT = process.env.TORNO_PORT || "3001";
+    const HOST = process.env.TORNO_HOST || "127.0.0.1";
+    const SERVICE_TOKEN = process.env.TORNO_SERVICE_TOKEN;
+
     if (!SERVICE_TOKEN) {
       throw new Error("TORNO_SERVICE_TOKEN no está configurado");
     }

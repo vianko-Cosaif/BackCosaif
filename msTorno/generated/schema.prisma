@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("TORNO_DATABASE_URL")
+  shadowDatabaseUrl = env("TORNO_SHADOW_DATABASE_URL")
+}
+
+enum TipoFallaTorno {
+  FALLO_SISTEMA
+  NAVAJAS
+}
+
+enum EstadoIncidenteTornoPadre {
+  EN_PROCESO
+  RESUELTO
+}
+
+enum EstadoIncidenteTornoHijo {
+  EN_PROCESO
+  RESUELTO
+}
+
+enum EstadoRondaServicio {
+  SOLICITADO
+  EN_PROCESO
+  CONCLUIDO
+  DETENIDO
+  CANCELADO
+}
+
+enum EstadoTornoG {
+  PENDIENTE
+  EN_PROCESO
+  PAUSADO
+  TERMINADO
+}
+
+enum EstadoTornoRueda {
+  PENDIENTE
+  EN_PROCESO
+  PAUSADO
+  TERMINADO
+}
+
+enum LadoRueda {
+  L
+  R
+}
+
+model RuedaSolicitud {
+  id           Int      @id @default(autoincrement())
+  movimientoId Int
+  l1           String
+  l2           String
+  l3           String
+  l4           String
+  l5           String
+  l6           String
+  r1           String
+  r2           String
+  r3           String
+  r4           String
+  r5           String
+  r6           String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ruedasFinal   RuedasFinal?
+  rondaServicio RondaServicio?
+  tornoG        TornoG[]
+  incidentes    IncidenteTorno[]
+
+  @@index([movimientoId])
+}
+
+model RuedasFinal {
+  id               Int      @id @default(autoincrement())
+  ruedaSolicitudId Int      @unique
+  torneroId        Int
+  l1               String
+  l2               String
+  l3               String
+  l4               String
+  l5               String
+  l6               String
+  r1               String
+  r2               String
+  r3               String
+  r4               String
+  r5               String
+  r6               String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ruedaSolicitud RuedaSolicitud @relation(fields: [ruedaSolicitudId], references: [id], onDelete: Cascade)
+  rondaServicio  RondaServicio?
+  tornoG         TornoG[]
+
+  @@index([torneroId])
+}
+
+model RondaServicio {
+  id                      Int                 @id @default(autoincrement())
+  ruedaSolicitudId        Int                 @unique
+  ruedasFinalId           Int?                @unique
+  status                  EstadoRondaServicio @default(SOLICITADO)
+  torneroId               Int?
+  inicio                  DateTime?
+  fin                     DateTime?
+  detenidoPorIncidenteId  Int?
+  canceladoPorIncidenteId Int?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  ruedaSolicitud        RuedaSolicitud   @relation(fields: [ruedaSolicitudId], references: [id], onDelete: Restrict)
+  ruedasFinal           RuedasFinal?     @relation(fields: [ruedasFinalId], references: [id], onDelete: SetNull)
+  tornoG                TornoG?
+  incidentes            IncidenteTorno[] @relation("IncidentesDeRonda")
+  detenidoPorIncidente  IncidenteTorno?  @relation("RondaDetenidoPor", fields: [detenidoPorIncidenteId], references: [id], onDelete: SetNull)
+  canceladoPorIncidente IncidenteTorno?  @relation("RondaCanceladoPor", fields: [canceladoPorIncidenteId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([torneroId, status])
+}
+
+model Nava {
+  id          Int      @id @default(autoincrement())
+  localidadId Int
+  cantidad    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cambios Cambio[]
+
+  @@unique([localidadId])
+  @@index([localidadId])
+}
+
+model Cambio {
+  id           Int      @id @default(autoincrement())
+  localidadId  Int
+  numeroNavaja Int
+  createdAt    DateTime @default(now())
+
+  nava Nava @relation(fields: [localidadId], references: [localidadId], onDelete: Cascade)
+
+  @@index([localidadId])
+}
+
+model IncidenteTorno {
+  id                 Int                       @id @default(autoincrement())
+  tipoFalla          TipoFallaTorno
+  status             EstadoIncidenteTornoPadre @default(EN_PROCESO)
+  resuelto           Boolean                   @default(false)
+  comentario         String?
+  creadoPorId        Int
+  atendidoPorId      Int?
+  imagen1            String?
+  imagen2            String?
+  imagen3            String?
+  fechaCreacion      DateTime                  @default(now())
+  fechaAtencion      DateTime?
+  fechaTerminacion   DateTime?
+  fechaActualizacion DateTime                  @updatedAt
+
+  ruedaSolicitudId Int?
+  ruedaSolicitud   RuedaSolicitud? @relation(fields: [ruedaSolicitudId], references: [id], onDelete: SetNull)
+
+  rondaServicioId Int?
+  rondaServicio   RondaServicio? @relation("IncidentesDeRonda", fields: [rondaServicioId], references: [id], onDelete: SetNull)
+
+  rondasDetenidas  RondaServicio[] @relation("RondaDetenidoPor")
+  rondasCanceladas RondaServicio[] @relation("RondaCanceladoPor")
+
+  hijos IncidenteTornoHijo[]
+
+  @@index([ruedaSolicitudId])
+  @@index([rondaServicioId])
+  @@index([status])
+  @@index([tipoFalla])
+  @@index([creadoPorId])
+  @@index([atendidoPorId])
+}
+
+model IncidenteTornoHijo {
+  id                 Int                      @id @default(autoincrement())
+  incidenteTornoId   Int
+  status             EstadoIncidenteTornoHijo @default(EN_PROCESO)
+  resuelto           Boolean                  @default(false)
+  comentario         String?
+  imagen1            String?
+  imagen2            String?
+  imagen3            String?
+  fechaCreacion      DateTime                 @default(now())
+  fechaActualizacion DateTime                 @updatedAt
+
+  incidenteTorno IncidenteTorno @relation(fields: [incidenteTornoId], references: [id], onDelete: Cascade)
+
+  @@index([incidenteTornoId])
+  @@index([status])
+}
+
+model TornoG {
+  id               Int          @id @default(autoincrement())
+  rondaServicioId  Int?         @unique
+  ruedaSolicitudId Int?
+  ruedasFinalId    Int?
+  torneroId        Int
+  estado           EstadoTornoG @default(PENDIENTE)
+  cantidadRuedas   Int
+  ruedasTerminadas Int          @default(0)
+  fechaInicio      DateTime?
+  fechaFin         DateTime?
+
+  rondaServicio  RondaServicio?      @relation(fields: [rondaServicioId], references: [id], onDelete: Cascade)
+  ruedaSolicitud RuedaSolicitud?     @relation(fields: [ruedaSolicitudId], references: [id], onDelete: SetNull)
+  ruedasFinal    RuedasFinal?        @relation(fields: [ruedasFinalId], references: [id], onDelete: SetNull)
+  detalleRuedas  TornoRuedaTrabajo[]
+
+  @@index([torneroId])
+  @@index([rondaServicioId])
+  @@index([ruedaSolicitudId])
+  @@index([ruedasFinalId])
+  @@index([estado])
+}
+
+model TornoRuedaTrabajo {
+  id               Int              @id @default(autoincrement())
+  tornoGId         Int
+  lado             LadoRueda
+  posicion         Int
+  estado           EstadoTornoRueda @default(PENDIENTE)
+  fechaInicio      DateTime?
+  fechaFin         DateTime?
+  duracionSegundos Int?
+
+  tornoG TornoG @relation(fields: [tornoGId], references: [id], onDelete: Cascade)
+
+  @@unique([tornoGId, lado, posicion])
+  @@index([tornoGId])
+  @@index([estado])
+}

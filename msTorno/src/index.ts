@@ -1,8 +1,13 @@
 import path from "path";
 import dotenv from "dotenv";
-import { iniciarServidorTorno } from "./Servidor";
 
 // Carga variables del microservicio Torno
-dotenv.config({ path: path.resolve(__dirname, "..", ".env.torno") });
+const envPath = path.resolve(__dirname, "..", ".env.torno");
+const envResult = dotenv.config({ path: envPath, override: true });
+if (envResult.error) {
+  console.error("Error cargando .env.torno desde:", envPath, envResult.error);
+}
+
+const { iniciarServidorTorno } = require("./Servidor");
 
 iniciarServidorTorno();
