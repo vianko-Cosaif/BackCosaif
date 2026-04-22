@@ -30,27 +30,63 @@ import { MovimientoModel } from '../../models/Movimientos';
 import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { readMovimientoPagination } from './movimiento.pagination';
-import { ensureSolicitudYRondaForMovimiento } from '../../services/tornoMs/tornoMsClient';
+import {
+  ensureSolicitudYRondaForMovimiento,
+  getRuedaSolicitudPorMovimiento,
+  normalizeMedidasRuedaInput,
+  upsertRuedaSolicitudPorMovimiento,
+} from '../../services/tornoMs/tornoMsClient';
 
 const medidaSchema = z.preprocess(
   (v) => (typeof v === 'number' ? String(v) : v),
   z.string().min(1)
 );
 
+const wheelCountSchema = z.union([z.literal(4), z.literal(6), z.literal(8), z.literal(12)]);
+
 const medidasTornoSchema = z.object({
-  l1: medidaSchema,
-  l2: medidaSchema,
-  l3: medidaSchema,
-  l4: medidaSchema,
-  l5: medidaSchema,
-  l6: medidaSchema,
-  r1: medidaSchema,
-  r2: medidaSchema,
-  r3: medidaSchema,
-  r4: medidaSchema,
-  r5: medidaSchema,
-  r6: medidaSchema,
+  wheelCount: wheelCountSchema.optional(),
+  l1: medidaSchema.optional(),
+  l2: medidaSchema.optional(),
+  l3: medidaSchema.optional(),
+  l4: medidaSchema.optional(),
+  l5: medidaSchema.optional(),
+  l6: medidaSchema.optional(),
+  r1: medidaSchema.optional(),
+  r2: medidaSchema.optional(),
+  r3: medidaSchema.optional(),
+  r4: medidaSchema.optional(),
+  r5: medidaSchema.optional(),
+  r6: medidaSchema.optional(),
 });
+
+async function enrichWithTornoMeasures<T extends { movimiento?: { id?: number; torno?: boolean | null } | null }>(
+  payload: T
+): Promise<T & { tornoMedidas?: unknown | null }> {
+  const movimientoId = Number(payload.movimiento?.id);
+  const isTorno = payload.movimiento?.torno === true;
+
+  if (!isTorno || !Number.isInteger(movimientoId) || movimientoId <= 0) {
+    return payload;
+  }
+
+  try {
+    const tornoMedidas = await getRuedaSolicitudPorMovimiento(movimientoId);
+    return {
+      ...payload,
+      tornoMedidas,
+    };
+  } catch (error: any) {
+    log.error('No se pudieron consultar medidas de torno en lectura de movimiento', {
+      movimientoId,
+      err: error?.message,
+    });
+    return {
+      ...payload,
+      tornoMedidas: null,
+    };
+  }
+}
 
 /** ------------------------------------------------------------------------
  * Helpers META
@@ -284,7 +320,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
 
       // Regla de negocio: solo registrar medidas en msTorno cuando es "VIA -> SERVICIO TORNO"
       const esViaParaServicioTorno = raw?.torno === true && tieneOrigen && !tieneDestino;
-      let medidasTorno: z.infer<typeof medidasTornoSchema> | null = null;
+      let medidasTorno: ReturnType<typeof normalizeMedidasRuedaInput> | null = null;
       if (esViaParaServicioTorno) {
         const parsed = medidasTornoSchema.safeParse(medidasTornoRaw);
         if (!parsed.success) {
@@ -293,7 +329,14 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
             details: parsed.error.flatten(),
           });
         }
-        medidasTorno = parsed.data;
+        try {
+          medidasTorno = normalizeMedidasRuedaInput(parsed.data);
+        } catch (error: any) {
+          return res.status(400).json({
+            message: 'medidasTorno no cumple con las posiciones activas requeridas para el servicio TORNO',
+            details: error?.message,
+          });
+        }
       }
 
       const movimiento = await MovimientoModel.nuevoMovimiento(data);
@@ -380,7 +423,8 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
       const id = Number(req.params.id);
       if (Number.isNaN(id)) return res.status(400).json({ error: 'id inválido' });
       const info = await MovimientoModel.obtenerInfoEdicion(id);
-      return res.json(info);
+      const enriched = await enrichWithTornoMeasures(info);
+      return res.json(enriched);
     } catch (e: any) {
       return res.status(500).json({ error: e?.message ?? 'Error interno' });
     }
@@ -395,7 +439,38 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
       const actorId = Number((req as any).user?.id);
       if (!actorId) return res.status(401).json({ error: 'No autenticado' });
 
-      const actualizado = await MovimientoModel.guardarEdicion(id, req.body, actorId);
+      const rawBody = { ...(req.body ?? {}) } as Record<string, unknown>;
+      const medidasTornoRaw = rawBody.medidasTorno ?? rawBody.tornoMedidas ?? null;
+      delete rawBody.medidasTorno;
+      delete rawBody.tornoMedidas;
+
+      let medidasTornoNormalizadas: ReturnType<typeof normalizeMedidasRuedaInput> | null = null;
+      if (medidasTornoRaw != null) {
+        const parsed = medidasTornoSchema.safeParse(medidasTornoRaw);
+        if (!parsed.success) {
+          return res.status(400).json({
+            error: 'medidasTorno inválidas para edición',
+            details: parsed.error.flatten(),
+          });
+        }
+        medidasTornoNormalizadas = normalizeMedidasRuedaInput(parsed.data);
+      }
+
+      const actualizado = await MovimientoModel.guardarEdicion(id, rawBody as any, actorId);
+
+      if (medidasTornoNormalizadas && actualizado?.torno) {
+        try {
+          const tornoMedidas = await upsertRuedaSolicitudPorMovimiento(id, medidasTornoNormalizadas);
+          return res.json({ ...actualizado, tornoMedidas });
+        } catch (error: any) {
+          return res.status(502).json({
+            error: 'Movimiento editado pero no se pudieron actualizar medidas de torno',
+            details: error?.message,
+            movimiento: actualizado,
+          });
+        }
+      }
+
       return res.json(actualizado);
     } catch (e: any) {
       const msg = e?.message ?? 'Error interno';
@@ -876,7 +951,8 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
 
   try {
     const info = await MovimientoModel.obtenerInfoPorRonda(rondaId);
-    return res.status(200).json(info);
+    const enriched = await enrichWithTornoMeasures(info);
+    return res.status(200).json(enriched);
   } catch (error) {
     log.error('Error al obtener info de ronda', { error, rondaId });
     return res.status(500).json({ message: 'Error al obtener info de ronda' });

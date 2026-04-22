@@ -139,8 +139,8 @@ export class UsuarioModel {
         data: { activo: true },
         select: {
           id: true, nombre: true, email: true, empresaId: true, localidadId: true, rol: true, tokenVersion: true,
-          empresa: { select: { nombre: true } },
-          localidad: { select: { nombre: true, estado: true } },
+          empresa: { select: { id: true, nombre: true } },
+          localidad: { select: { id: true, nombre: true, estado: true } },
         },
       });
       const updMs = this.dt(tUpd);

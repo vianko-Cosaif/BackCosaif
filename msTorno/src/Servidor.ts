@@ -1,16 +1,16 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { ZodError } from "zod";
 import { apiRouter } from "./routes/api";
 
-const PORT = process.env.TORNO_PORT || "3001";
-const HOST = process.env.TORNO_HOST || "127.0.0.1";
-const SERVICE_TOKEN = process.env.TORNO_SERVICE_TOKEN;
-
 export function iniciarServidorTorno(): void {
   try {
+    const PORT = process.env.TORNO_PORT || "3001";
+    const HOST = process.env.TORNO_HOST || "127.0.0.1";
+    const SERVICE_TOKEN = process.env.TORNO_SERVICE_TOKEN;
+
     if (!SERVICE_TOKEN) {
-      throw new Error("TORNO_SERVICE_TOKEN no estÃ¡ configurado");
+      throw new Error("TORNO_SERVICE_TOKEN no está configurado");
     }
 
     const app: Express = express();
@@ -18,7 +18,7 @@ export function iniciarServidorTorno(): void {
     app.use(express.json());
     app.use(cors());
 
-    // AutenticaciÃ³n simple entre servicios (3000 -> 3001)
+    // Autenticación simple entre servicios (3000 -> 3001)
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === "/health") {
         return next();

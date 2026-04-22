@@ -23,7 +23,8 @@ type SafeUser = {
   id: number; nombre: string; email: string; rol: string;
   empresaId: number; localidadId: number;
   tokenVersion?: number;
-  empresa?: { nombre: string }; localidad?: { nombre: string; estado: string };
+  empresa?: { id?: number; nombre: string };
+  localidad?: { id?: number; nombre: string; estado: string };
 };
 
 export class UsuarioController {
