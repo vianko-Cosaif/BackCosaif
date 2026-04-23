@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { parseMetaFromInstrucciones } from './movimiento.meta';
 import { movimientoError } from './movimiento.logger';
-import { EDITABLE_KEYS, ESTADOS_EDITABLES } from './movimiento.shared';
+import { EDITABLE_KEYS, ESTADOS_EDITABLES, MOVIMIENTO_RESPONSE_INCLUDE } from './movimiento.shared';
 import type { MovimientoPagination } from './movimiento.types';
 
 type MovimientoPageMeta = {
@@ -82,13 +82,7 @@ export class MovimientoReadModel {
   ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
 
   public static readonly MOVIMIENTO_LIST_INCLUDE = {
-    empresa: true,
-    creadoPor: true,
-    localidad: true,
-    viaOrigen: true,
-    viaDestino: true,
-    incidentes: true,
-    ronda: true,
+    ...MOVIMIENTO_RESPONSE_INCLUDE,
   } satisfies Prisma.MovimientoInclude;
   private static async listarMovimientosColeccion(args: {
     where?: Prisma.MovimientoWhereInput;
@@ -273,13 +267,7 @@ export class MovimientoReadModel {
 
       return await prisma.movimiento.findMany({
         where,
-        include: {
-          empresa: true,
-          localidad: true,
-          viaOrigen: true,
-          viaDestino: true,
-          ronda: true,
-        },
+        include: MOVIMIENTO_RESPONSE_INCLUDE,
         orderBy: [{ prioridad: 'desc' }, { createdAt: 'asc' }],
       });
     } catch (error: any) {
@@ -630,13 +618,7 @@ export class MovimientoReadModel {
 
       return await prisma.movimiento.findMany({
         where,
-        include: {
-          empresa: true,
-          localidad: true,
-          viaOrigen: true,
-          viaDestino: true,
-          ronda: true,
-        },
+        include: MOVIMIENTO_RESPONSE_INCLUDE,
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       });
     } catch (error: any) {
