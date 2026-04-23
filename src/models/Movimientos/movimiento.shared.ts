@@ -1,3 +1,18 @@
+import type { Prisma } from '@prisma/client';
+
+export const MOVIMIENTO_RESPONSE_INCLUDE = {
+  empresa: true,
+  creadoPor: true,
+  localidad: true,
+  viaOrigen: true,
+  viaDestino: true,
+  incidentes: true,
+  ronda: true,
+  cliente: { select: { id: true, nombre: true } },
+  supervisor: { select: { id: true, nombre: true } },
+  operador: { select: { id: true, nombre: true } },
+} satisfies Prisma.MovimientoInclude;
+
 export const ESTADOS_EDITABLES = new Set(['SOLICITADO', 'DETENIDO', 'ESPERA', 'MODIFICADO']);
 
 export const EDITABLE_KEYS = new Set([
