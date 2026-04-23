@@ -6,7 +6,7 @@ uploads/
 
 node_modules
 
-
+.env
 
 src/logs
 dist
