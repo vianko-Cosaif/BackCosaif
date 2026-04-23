@@ -4,15 +4,7 @@ import { NotificadorFCM } from '../../services/NotificadorFCM';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import { notificarCambioPrioridad, notificarMovimientoFinalizado, notificarMovimientoIniciado } from './movimiento.notifications';
-import {
-  EDITABLE_KEYS,
-  ESTADOS_EDITABLES,
-  MOVIMIENTO_RESPONSE_INCLUDE,
-  diff,
-  EditableMovimientoInput,
-  getMaquinistaId,
-  pickEditable,
-} from './movimiento.shared';
+import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
 
 export class MovimientoWriteService {
   private static async assertMovimientoNoBloqueadoPorIncidente(id: number) {
@@ -85,7 +77,7 @@ export class MovimientoWriteService {
           updatedAt: fechaActual,
           ...(razon && { instrucciones: razon }),
         },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, ronda: true },
       });
 
       movimientoError.info('Movimiento detenido', {
@@ -126,7 +118,7 @@ export class MovimientoWriteService {
             instrucciones: `CANCELADO: ${razonCancelacion}`,
             incidenteGlobal: false,
           },
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
 
         if (original.ronda) {
@@ -165,7 +157,7 @@ export class MovimientoWriteService {
 
     const actual = await prisma.movimiento.findUnique({
       where: { id },
-      include: MOVIMIENTO_RESPONSE_INCLUDE,
+      include: { localidad: true, viaOrigen: true, viaDestino: true, empresa: true, ronda: true },
     });
     if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
     if (actual.finalizado || !ESTADOS_EDITABLES.has(actual.estado as any)) {
@@ -192,7 +184,7 @@ export class MovimientoWriteService {
       const updated = await tx.movimiento.update({
         where: { id },
         data: { ...updateData, updatedAt: new Date() },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
       });
 
       try {
@@ -269,7 +261,7 @@ export class MovimientoWriteService {
           ...(maquinistaId && { operadorId: maquinistaId }),
           ...responsablesActivos,
         },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, ronda: true },
       });
 
       movimientoError.info('Movimiento reactivado', {
@@ -303,7 +295,7 @@ export class MovimientoWriteService {
 
       const movimientoActual = await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, ronda: true },
       });
       if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
 
@@ -361,7 +353,7 @@ export class MovimientoWriteService {
         const updated = await tx.movimiento.update({
           where: { id },
           data,
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
 
         if (movimientoActual.ronda && (nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO')) {
@@ -473,7 +465,7 @@ export class MovimientoWriteService {
 
       return await prisma.movimiento.findUnique({
         where: { id: movimiento.id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
       });
     } catch (error: any) {
       movimientoError.error('Error al crear movimiento', {
@@ -569,7 +561,7 @@ export class MovimientoWriteService {
         const movUpd = await tx.movimiento.update({
           where: { id },
           data: updateData,
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { empresa: true, localidad: true, viaDestino: true },
         });
 
         const requiereReorg =
@@ -631,7 +623,7 @@ export class MovimientoWriteService {
 
       return await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
       });
     } catch (error: any) {
       movimientoError.error('Error al solicitar y encolar servicio al frente de R1', {
@@ -671,7 +663,7 @@ export class MovimientoWriteService {
     try {
       const movimiento = await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { ronda: true, empresa: true, localidad: true },
       });
       if (!movimiento) throw new Error(`No se encontró movimiento con id ${id}`);
       if (movimiento.prioridad === prioridad) return movimiento;
@@ -679,7 +671,6 @@ export class MovimientoWriteService {
       const movimientoActualizado = await prisma.movimiento.update({
         where: { id },
         data: { prioridad },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
       if (movimiento.estado === 'SOLICITADO' && prioridad === 'ALTA') {
@@ -735,7 +726,6 @@ export class MovimientoWriteService {
           updatedAt: fechaActual,
           ...responsablesActivos,
         },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
       await notificarMovimientoIniciado(movimiento.id);
@@ -757,7 +747,6 @@ export class MovimientoWriteService {
       const movimiento = await prisma.movimiento.update({
         where: { id },
         data: { estado: 'DETENIDO', fechaPausa: fechaActual, updatedAt: fechaActual },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
@@ -787,7 +776,6 @@ export class MovimientoWriteService {
       const movimiento = await prisma.movimiento.update({
         where: { id },
         data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, updatedAt: fechaActual, ...responsablesActivos },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
       await notificarMovimientoIniciado(movimiento.id);
@@ -807,7 +795,7 @@ export class MovimientoWriteService {
       const movimiento = await prisma.$transaction(async (tx) => {
         const actual = await tx.movimiento.findUnique({
           where: { id },
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
         if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
         if (actual.finalizado) return actual;
@@ -815,7 +803,7 @@ export class MovimientoWriteService {
         const result = await tx.movimiento.update({
           where: { id },
           data: { estado: 'CONCLUIDO', finalizado: true, fechaFin: new Date(), updatedAt: new Date() },
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
 
         if (result.ronda) {
