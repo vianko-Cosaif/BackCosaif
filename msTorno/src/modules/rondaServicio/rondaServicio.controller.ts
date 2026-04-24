@@ -4,6 +4,27 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { rondaServicioCreateSchema, rondaServicioUpdateSchema } from "./rondaServicio.schemas";
 
+const HISTORIAL_STATUSES = ["EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"];
+const MEDIDA_KEYS = ["l1", "l2", "l3", "l4", "l5", "l6", "r1", "r2", "r3", "r4", "r5", "r6"] as const;
+
+function parseStatusFilter(value: unknown) {
+  if (!value) return HISTORIAL_STATUSES;
+  const raw = Array.isArray(value) ? value.join(",") : String(value);
+  const statuses = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return statuses.length ? statuses : HISTORIAL_STATUSES;
+}
+
+function pickMedidas(source: Record<string, unknown> | null | undefined) {
+  if (!source) return null;
+  return MEDIDA_KEYS.reduce<Record<(typeof MEDIDA_KEYS)[number], unknown>>((acc, key) => {
+    acc[key] = source[key];
+    return acc;
+  }, {} as Record<(typeof MEDIDA_KEYS)[number], unknown>);
+}
+
 export async function listRondasServicio(req: Request, res: Response) {
   const ruedaSolicitudIdRaw = req.query.ruedaSolicitudId?.toString();
   const torneroIdRaw = req.query.torneroId?.toString();
@@ -20,6 +41,65 @@ export async function listRondasServicio(req: Request, res: Response) {
     include: { tornoG: true },
   });
   return ok(res, data);
+}
+
+export async function historialRondasServicio(req: Request, res: Response) {
+  const statusFilter = parseStatusFilter(req.query.status);
+  const torneroIdRaw = req.query.torneroId?.toString();
+  const movimientoIdRaw = req.query.movimientoId?.toString();
+  const servicioIdRaw = req.query.servicioId?.toString() ?? req.query.rondaServicioId?.toString();
+
+  const where: Record<string, unknown> = {
+    status: { in: statusFilter },
+  };
+
+  if (servicioIdRaw) where.id = parseIntParam(servicioIdRaw, "servicioId");
+  if (torneroIdRaw) where.torneroId = parseIntParam(torneroIdRaw, "torneroId");
+  if (movimientoIdRaw) {
+    where.ruedaSolicitud = {
+      movimientoId: parseIntParam(movimientoIdRaw, "movimientoId"),
+    };
+  }
+
+  const data = await prismaTorno.rondaServicio.findMany({
+    where: where as never,
+    orderBy: { updatedAt: "desc" },
+    include: {
+      ruedaSolicitud: true,
+      ruedasFinal: true,
+      tornoG: { include: { detalleRuedas: true } },
+      incidentes: { include: { hijos: true } },
+    },
+  });
+
+  const historial = data.map((ronda) => ({
+    servicioId: ronda.id,
+    rondaServicioId: ronda.id,
+    movimientoId: ronda.ruedaSolicitud?.movimientoId ?? null,
+    status: ronda.status,
+    torneroId: ronda.torneroId,
+    inicio: ronda.inicio,
+    fin: ronda.fin,
+    creadoEn: ronda.createdAt,
+    actualizadoEn: ronda.updatedAt,
+    medidasSolicitadas: pickMedidas(ronda.ruedaSolicitud as Record<string, unknown> | null),
+    medidasFinales: pickMedidas(ronda.ruedasFinal as Record<string, unknown> | null),
+    torno: ronda.tornoG
+      ? {
+          id: ronda.tornoG.id,
+          estado: ronda.tornoG.estado,
+          cantidadRuedas: ronda.tornoG.cantidadRuedas,
+          ruedasTerminadas: ronda.tornoG.ruedasTerminadas,
+          fechaInicio: ronda.tornoG.fechaInicio,
+          fechaFin: ronda.tornoG.fechaFin,
+          detalleRuedas: ronda.tornoG.detalleRuedas,
+        }
+      : null,
+    tieneIncidente: ronda.incidentes.length > 0,
+    incidentes: ronda.incidentes,
+  }));
+
+  return ok(res, historial);
 }
 
 export async function getRondaServicio(req: Request, res: Response) {
@@ -106,4 +186,3 @@ export async function deleteRondaServicio(req: Request, res: Response) {
   await prismaTorno.rondaServicio.delete({ where: { id } });
   return ok(res, { ok: true });
 }
-

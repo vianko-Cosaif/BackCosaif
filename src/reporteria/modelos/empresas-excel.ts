@@ -133,6 +133,14 @@ function toExcelTime(min: number | null | undefined) {
   return min / 1440;
 }
 
+type FormulaResult = NonNullable<ExcelJS.CellFormulaValue['result']>;
+
+function formulaCell(formula: string, result?: FormulaResult | null): ExcelJS.CellFormulaValue {
+  const value: ExcelJS.CellFormulaValue = { formula, date1904: false };
+  if (result !== null && result !== undefined) value.result = result;
+  return value;
+}
+
 function fillMovimientosSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte) {
   clearSheetKeepHeader(ws);
   setAutoFilterOnHeader(ws);
@@ -197,38 +205,20 @@ function fillResumenSheet(ws: ExcelJS.Worksheet, data: EmpresasReporte, movSheet
     ]);
 
     // Fórmulas con resultados precargados
-    row.getCell(3).value = {
-      formula: `COUNTIF(${movRef}!$A:$A, A${rowIndex})`,
-      result: emp.totalMovimientos,
-    };
-    row.getCell(5).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "SI")`,
-      result: emp.totalTorno,
-    };
-    row.getCell(6).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$M:$M, "SI")`,
-      result: emp.totalLavado,
-    };
-    row.getCell(7).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "SI", ${movRef}!$M:$M, "SI")`,
-      result: emp.totalTornoLavado,
-    };
-    row.getCell(8).value = {
-      formula: `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "NO", ${movRef}!$M:$M, "NO")`,
-      result: emp.totalSinTornoLavado,
-    };
-    row.getCell(9).value = {
-      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`,
-      result: toExcelTime(emp.promEsperaMin) ?? undefined,
-    };
-    row.getCell(10).value = {
-      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$H:$H)`,
-      result: toExcelTime(emp.promDuracionMin) ?? undefined,
-    };
-    row.getCell(11).value = {
-      formula: `AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$I:$I)`,
-      result: toExcelTime(emp.promTotalMin) ?? undefined,
-    };
+    row.getCell(3).value = formulaCell(`COUNTIF(${movRef}!$A:$A, A${rowIndex})`, emp.totalMovimientos);
+    row.getCell(5).value = formulaCell(`COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "SI")`, emp.totalTorno);
+    row.getCell(6).value = formulaCell(`COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$M:$M, "SI")`, emp.totalLavado);
+    row.getCell(7).value = formulaCell(
+      `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "SI", ${movRef}!$M:$M, "SI")`,
+      emp.totalTornoLavado
+    );
+    row.getCell(8).value = formulaCell(
+      `COUNTIFS(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$L:$L, "NO", ${movRef}!$M:$M, "NO")`,
+      emp.totalSinTornoLavado
+    );
+    row.getCell(9).value = formulaCell(`AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$G:$G)`, toExcelTime(emp.promEsperaMin));
+    row.getCell(10).value = formulaCell(`AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$H:$H)`, toExcelTime(emp.promDuracionMin));
+    row.getCell(11).value = formulaCell(`AVERAGEIF(${movRef}!$A:$A, A${rowIndex}, ${movRef}!$I:$I)`, toExcelTime(emp.promTotalMin));
 
     rowIndex += 1;
   }
@@ -364,10 +354,10 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
       const row = startRow + idx;
       ws.getCell(`D${row}`).value = e.empresa;
       ws.getCell(`E${row}`).value = e.totalMovimientos;
-      ws.getCell(`F${row}`).value = {
-        formula: `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${startRow}:$E$${endRow})})`,
-        result: 0,
-      };
+      ws.getCell(`F${row}`).value = formulaCell(
+        `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${startRow}:$E$${endRow})})`,
+        0
+      );
 
       ws.getCell(`H${row}`).value = e.empresa;
       ws.getCell(`I${row}`).value = toExcelTime(e.promEsperaMin);
@@ -376,10 +366,7 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
       ws.getCell(`I${row}`).numFmt = TIME_FMT;
       ws.getCell(`J${row}`).numFmt = TIME_FMT;
       ws.getCell(`K${row}`).numFmt = TIME_FMT;
-      ws.getCell(`L${row}`).value = {
-        formula: `SPARKLINE(I${row}:K${row}, {\"charttype\",\"column\"})`,
-        result: 0,
-      };
+      ws.getCell(`L${row}`).value = formulaCell(`SPARKLINE(I${row}:K${row}, {\"charttype\",\"column\"})`, 0);
     });
 
     // ---- Top vias + sparklines ----
@@ -405,10 +392,10 @@ function tryWriteDashboard(wb: ExcelJS.Workbook, data: EmpresasReporte) {
       const row = viaStart + idx;
       ws.getCell(`D${row}`).value = via;
       ws.getCell(`E${row}`).value = count;
-      ws.getCell(`F${row}`).value = {
-        formula: `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${viaStart}:$E$${viaEnd})})`,
-        result: 0,
-      };
+      ws.getCell(`F${row}`).value = formulaCell(
+        `SPARKLINE(E${row}, {\"charttype\",\"bar\";\"max\",MAX($E$${viaStart}:$E$${viaEnd})})`,
+        0
+      );
     });
   } catch {
     // noop
