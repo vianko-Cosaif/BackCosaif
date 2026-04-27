@@ -9,6 +9,7 @@ import { incidenteTornoRouter } from "../modules/incidenteTorno/incidenteTorno.r
 import { incidenteTornoHijoRouter } from "../modules/incidenteTornoHijo/incidenteTornoHijo.routes";
 import { navaRouter } from "../modules/nava/nava.routes";
 import { cambioRouter } from "../modules/cambio/cambio.routes";
+import { imagenesRouter } from "./imagenes";
 
 export const apiRouter = Router();
 
@@ -21,3 +22,4 @@ apiRouter.use("/incidentes", incidenteTornoRouter);
 apiRouter.use("/incidentes-hijos", incidenteTornoHijoRouter);
 apiRouter.use("/navajas", navaRouter);
 apiRouter.use("/cambios-navaja", cambioRouter);
+apiRouter.use("/imagenes", imagenesRouter);

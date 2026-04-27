@@ -48,7 +48,7 @@ export function iniciarServidor(): void {
     app.use(traceLoginTraffic);
 
     // Parseo de JSON para todo el API
-    app.use(express.json());
+    app.use(express.json({ limit: '50mb' }));
 
     // CORS abierto (ajustar origin en producción)
     app.use(cors());

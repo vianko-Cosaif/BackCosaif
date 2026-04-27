@@ -10,7 +10,9 @@
     "build": "tsc && node scripts/copy-config-json.cjs",
     "preinstall": "npx npm-force-resolutions",
     "dev:torno": "ts-node-dev --project msTorno/tsconfig.json msTorno/src/index.ts",
-    "build:torno": "tsc -p msTorno/tsconfig.json"
+    "build:torno": "tsc -p msTorno/tsconfig.json",
+    "prisma:torno:push": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema msTorno/prisma/schema.prisma",
+    "prisma:torno:generate": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema msTorno/prisma/schema.prisma"
   },
   "resolutions": {
     "braces": "3.0.2",
@@ -33,7 +35,7 @@
     "dotenv": "^16.5.0",
     "env": "^0.0.2",
     "envalid": "^8.0.0",
-    "exceljs": "^4.4.0",
+    "exceljs": "^3.4.0",
     "express": "^4.21.2",
     "firebase-admin": "^13.8.0",
     "jsonwebtoken": "^9.0.2",
@@ -44,7 +46,7 @@
     "passport-jwt": "^4.0.1",
     "puppeteer": "^24.34.0",
     "sharp": "^0.34.2",
-    "uuid": "^11.1.0",
+    "uuid": "^14.0.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "zod": "^3.24.2"

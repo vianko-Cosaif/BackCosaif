@@ -4,6 +4,7 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { incidenteTornoCreateSchema, incidenteTornoUpdateSchema } from "./incidenteTorno.schemas";
 import { incidenteTornoHijoCreateSchema } from "../incidenteTornoHijo/incidenteTornoHijo.schemas";
+import { guardarImagenesTorno } from "../../utils/tornoImagenes";
 
 export async function listIncidentes(req: Request, res: Response) {
   const ruedaSolicitudIdRaw = req.query.ruedaSolicitudId?.toString();
@@ -37,30 +38,42 @@ export async function createIncidente(req: Request, res: Response) {
       ...input,
       comentario: input.comentario ?? undefined,
       atendidoPorId: input.atendidoPorId ?? undefined,
-      imagen1: input.imagen1 ?? undefined,
-      imagen2: input.imagen2 ?? undefined,
-      imagen3: input.imagen3 ?? undefined,
+      imagen1: undefined,
+      imagen2: undefined,
+      imagen3: undefined,
       fechaAtencion: input.fechaAtencion ?? undefined,
       fechaTerminacion: input.fechaTerminacion ?? undefined,
       ruedaSolicitudId: input.ruedaSolicitudId ?? undefined,
       rondaServicioId: input.rondaServicioId ?? undefined,
     },
   });
-  return ok(res, data);
+
+  const imagenes = await guardarImagenesTorno(
+    [input.imagen1, input.imagen2, input.imagen3],
+    `incidente_torno_${data.id}`
+  );
+  const dataConImagenes = await prismaTorno.incidenteTorno.update({
+    where: { id: data.id },
+    data: imagenes,
+  });
+
+  return ok(res, dataConImagenes);
 }
 
 export async function updateIncidente(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const input = incidenteTornoUpdateSchema.parse(req.body);
+  const shouldUpdateImages = input.imagen1 !== undefined || input.imagen2 !== undefined || input.imagen3 !== undefined;
+  const imagenes = shouldUpdateImages
+    ? await guardarImagenesTorno([input.imagen1, input.imagen2, input.imagen3], `incidente_torno_${id}`)
+    : {};
   const data = await prismaTorno.incidenteTorno.update({
     where: { id },
     data: {
       ...input,
       comentario: input.comentario ?? undefined,
       atendidoPorId: input.atendidoPorId ?? undefined,
-      imagen1: input.imagen1 ?? undefined,
-      imagen2: input.imagen2 ?? undefined,
-      imagen3: input.imagen3 ?? undefined,
+      ...imagenes,
       fechaAtencion: input.fechaAtencion ?? undefined,
       fechaTerminacion: input.fechaTerminacion ?? undefined,
       ruedaSolicitudId: input.ruedaSolicitudId ?? undefined,
@@ -92,10 +105,18 @@ export async function createHijo(req: Request, res: Response) {
     data: {
       ...input,
       comentario: input.comentario ?? undefined,
-      imagen1: input.imagen1 ?? undefined,
-      imagen2: input.imagen2 ?? undefined,
-      imagen3: input.imagen3 ?? undefined,
+      imagen1: undefined,
+      imagen2: undefined,
+      imagen3: undefined,
     },
   });
-  return ok(res, data);
+  const imagenes = await guardarImagenesTorno(
+    [input.imagen1, input.imagen2, input.imagen3],
+    `incidente_torno_hijo_${data.id}`
+  );
+  const dataConImagenes = await prismaTorno.incidenteTornoHijo.update({
+    where: { id: data.id },
+    data: imagenes,
+  });
+  return ok(res, dataConImagenes);
 }

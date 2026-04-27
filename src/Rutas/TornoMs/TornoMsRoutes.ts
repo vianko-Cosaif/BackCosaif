@@ -44,6 +44,39 @@ async function enrichHistorialWithLocomotora(data: unknown) {
   });
 }
 
+// Ruta especial: el proxy genérico lee las respuestas como texto y corrompe binarios.
+// Las imágenes se deben servir con arrayBuffer para preservar el binario original.
+router.get("/imagenes", async (req, res) => {
+  try {
+    const tornoMsUrl = process.env.TORNO_MS_URL;
+    const serviceToken = process.env.TORNO_SERVICE_TOKEN;
+    if (!tornoMsUrl || !serviceToken) {
+      return res.status(500).json({ error: "msTorno no configurado" });
+    }
+
+    const ruta = String(req.query.ruta ?? "");
+    if (!ruta) return res.status(400).json({ error: "Ruta requerida" });
+
+    const url = `${tornoMsUrl}/api/imagenes?ruta=${encodeURIComponent(ruta)}`;
+    const imgResp = await fetch(url, {
+      headers: { "x-service-token": serviceToken },
+    });
+
+    if (!imgResp.ok) {
+      return res.status(imgResp.status).json({ error: "Imagen no encontrada" });
+    }
+
+    const contentType = imgResp.headers.get("content-type") ?? "image/jpeg";
+    const buffer = Buffer.from(await imgResp.arrayBuffer());
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.send(buffer);
+  } catch {
+    return res.status(502).json({ error: "Error al obtener imagen de msTorno" });
+  }
+});
+
 // Proxy: /torno/... -> http://TORNO_MS_URL/api/...
 router.all("/*", async (req, res) => {
   try {
