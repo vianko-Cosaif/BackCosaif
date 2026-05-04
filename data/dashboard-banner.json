@@ -1,156 +1,360 @@
 {
   "version": "multi-banner-v2-role-aware",
-  "exportedAt": "2026-03-23T15:03:47.210Z",
-  "activeBannerId": "vprj-1774276905558-63692",
+  "exportedAt": "2026-04-30T21:29:46.000Z",
+  "activeBannerId": "bnr-1777581691610-2",
   "bannerTools": {
     "mode": "auto",
     "autoplay": true,
-    "intervalMs": 8000,
+    "intervalMs": 10000,
     "transition": "zoom"
   },
   "banner": {
-    "id": "vprj-1774276905558-63692",
+    "id": "bnr-1777581691610-2",
     "width": "100%",
-    "height": "120px",
-    "designWidth": 800,
-    "designHeight": 120,
-    "aspectRatio": 6.666666666666667,
-    
+    "height": "200px",
+    "designWidth": 1200,
+    "designHeight": 200,
+    "aspectRatio": 6,
     "background": {
       "type": "image",
       "bgType": "image",
-      "value": "/banner/assets/abril.webp",
-      "image": "/banner/assets/abril.webp"
+      "value": "/banner/assets/2.webp",
+      "image": "/banner/assets/2.webp",
+      "fit": "cover",
+      "position": "center"
     },
     "styles": {
-      "borderRadius": "12px",
+      "borderRadius": "24px",
       "position": "relative",
       "overflow": "hidden"
     },
     "nativeStyles": {
       "overflow": "hidden"
     },
-    "layers": []
+    "layers": [
+      {
+        "id": "layer-1777583382424-28458",
+        "visible": true,
+        "styles": {
+          "position": "absolute",
+          "top": "154px",
+          "left": "1136px",
+          "width": "150px",
+          "height": "100px",
+          "backgroundColor": "#55d1f7",
+          "borderRadius": "8px",
+          "transform": "rotate(-41deg)",
+          "filter": "blur(6px)"
+        },
+        "type": "background",
+        "bgType": "solid",
+        "value": "#55d1f7"
+      }
+    ]
   },
   "banners": [
     {
-      "id": "vprj-1773849087531",
+      "id": "bnr-1777581641412-1",
       "width": "100%",
-      "height": "120px",
-      "designWidth": 800,
-      "designHeight": 120,
-      "aspectRatio": 6.666666666666667,
-      
+      "height": "200px",
+      "designWidth": 1200,
+      "designHeight": 200,
+      "aspectRatio": 6,
+      "background": {
+        "type": "image",
+        "bgType": "image",
+        "value": "/banner/assets/1.webp",
+        "image": "/banner/assets/1.webp",
+        "fit": "cover",
+        "position": "center"
+      },
+      "styles": {
+        "borderRadius": "24px",
+        "position": "relative",
+        "overflow": "hidden"
+      },
+      "nativeStyles": {
+        "overflow": "hidden"
+      },
+      "layers": [
+        {
+          "id": "layer-1777583367132-62969",
+          "visible": true,
+          "styles": {
+            "position": "absolute",
+            "top": "146px",
+            "left": "1140px",
+            "width": "150px",
+            "height": "100px",
+            "backgroundColor": "#55d1f7",
+            "borderRadius": "8px",
+            "transform": "rotate(-44deg)"
+          },
+          "type": "background",
+          "bgType": "solid",
+          "value": "#55d1f7"
+        }
+      ]
+    },
+    {
+      "id": "bnr-1777581691610-2",
+      "width": "100%",
+      "height": "200px",
+      "designWidth": 1200,
+      "designHeight": 200,
+      "aspectRatio": 6,
+      "background": {
+        "type": "image",
+        "bgType": "image",
+        "value": "/banner/assets/2.webp",
+        "image": "/banner/assets/2.webp",
+        "fit": "cover",
+        "position": "center"
+      },
+      "styles": {
+        "borderRadius": "24px",
+        "position": "relative",
+        "overflow": "hidden"
+      },
+      "nativeStyles": {
+        "overflow": "hidden"
+      },
+      "layers": [
+        {
+          "id": "layer-1777583382424-28458",
+          "visible": true,
+          "styles": {
+            "position": "absolute",
+            "top": "154px",
+            "left": "1136px",
+            "width": "150px",
+            "height": "100px",
+            "backgroundColor": "#55d1f7",
+            "borderRadius": "8px",
+            "transform": "rotate(-41deg)",
+            "filter": "blur(6px)"
+          },
+          "type": "background",
+          "bgType": "solid",
+          "value": "#55d1f7"
+        }
+      ]
+    },
+    {
+      "id": "bnr-1777581693529-3",
+      "width": "100%",
+      "height": "200px",
+      "designWidth": 1200,
+      "designHeight": 200,
+      "aspectRatio": 6,
       "background": {
         "type": "image",
         "bgType": "image",
         "value": "/banner/assets/3.webp",
-        "image": "/banner/assets/3.webp"
+        "image": "/banner/assets/3.webp",
+        "fit": "cover",
+        "position": "center"
       },
       "styles": {
-        "borderRadius": "0px",
+        "borderRadius": "24px",
         "position": "relative",
         "overflow": "hidden"
       },
       "nativeStyles": {
         "overflow": "hidden"
       },
-      "layers": []
-    },
-    {
-      "id": "vprj-1774276905558-63692",
-      "width": "100%",
-      "height": "120px",
-      "designWidth": 800,
-      "designHeight": 120,
-      "aspectRatio": 6.666666666666667,
-      
-      "background": {
-        "type": "image",
-        "bgType": "image",
-        "value": "/banner/assets/abril.webp",
-        "image": "/banner/assets/abril.webp"
-      },
-      "styles": {
-        "borderRadius": "12px",
-        "position": "relative",
-        "overflow": "hidden"
-      },
-      "nativeStyles": {
-        "overflow": "hidden"
-      },
-      "layers": []
+      "layers": [
+        {
+          "id": "layer-1777583394510-52313",
+          "visible": true,
+          "styles": {
+            "position": "absolute",
+            "top": "157px",
+            "left": "1130px",
+            "width": "150px",
+            "height": "100px",
+            "backgroundColor": "#55d1f7",
+            "borderRadius": "8px",
+            "transform": "rotate(-40deg)",
+            "opacity": 1,
+            "filter": "blur(6px)"
+          },
+          "animation": {
+            "fillMode": "forwards"
+          },
+          "type": "background",
+          "bgType": "solid",
+          "value": "#55d1f7"
+        }
+      ]
     }
   ],
   "availableBanners": [
     {
-      "id": "vprj-1773849087531",
-      "name": "Nuevo Banner",
+      "id": "bnr-1777581641412-1",
+      "name": "Banner Sin Nombre 1",
       "order": 0
     },
     {
-      "id": "vprj-1774276905558-63692",
-      "name": "Nuevo Banner copia",
+      "id": "bnr-1777581691610-2",
+      "name": "Banner Sin Nombre 2",
       "order": 1
+    },
+    {
+      "id": "bnr-1777581693529-3",
+      "name": "Banner Sin Nombre 3",
+      "order": 2
     }
   ],
   "bannerItems": [
     {
-      "id": "vprj-1773849087531",
-      "name": "Nuevo Banner",
+      "id": "bnr-1777581641412-1",
+      "name": "Banner Sin Nombre 1",
       "order": 0,
       "banner": {
-        "id": "vprj-1773849087531",
+        "id": "bnr-1777581641412-1",
         "width": "100%",
-        "height": "120px",
-        "designWidth": 800,
-        "designHeight": 120,
-        "aspectRatio": 6.666666666666667,
-        
+        "height": "200px",
+        "designWidth": 1200,
+        "designHeight": 200,
+        "aspectRatio": 6,
+        "background": {
+          "type": "image",
+          "bgType": "image",
+          "value": "/banner/assets/1.webp",
+          "image": "/banner/assets/1.webp",
+          "fit": "cover",
+          "position": "center"
+        },
+        "styles": {
+          "borderRadius": "24px",
+          "position": "relative",
+          "overflow": "hidden"
+        },
+        "nativeStyles": {
+          "overflow": "hidden"
+        },
+        "layers": [
+          {
+            "id": "layer-1777583367132-62969",
+            "visible": true,
+            "styles": {
+              "position": "absolute",
+              "top": "146px",
+              "left": "1140px",
+              "width": "150px",
+              "height": "100px",
+              "backgroundColor": "#55d1f7",
+              "borderRadius": "8px",
+              "transform": "rotate(-44deg)"
+            },
+            "type": "background",
+            "bgType": "solid",
+            "value": "#55d1f7"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bnr-1777581691610-2",
+      "name": "Banner Sin Nombre 2",
+      "order": 1,
+      "banner": {
+        "id": "bnr-1777581691610-2",
+        "width": "100%",
+        "height": "200px",
+        "designWidth": 1200,
+        "designHeight": 200,
+        "aspectRatio": 6,
+        "background": {
+          "type": "image",
+          "bgType": "image",
+          "value": "/banner/assets/2.webp",
+          "image": "/banner/assets/2.webp",
+          "fit": "cover",
+          "position": "center"
+        },
+        "styles": {
+          "borderRadius": "24px",
+          "position": "relative",
+          "overflow": "hidden"
+        },
+        "nativeStyles": {
+          "overflow": "hidden"
+        },
+        "layers": [
+          {
+            "id": "layer-1777583382424-28458",
+            "visible": true,
+            "styles": {
+              "position": "absolute",
+              "top": "154px",
+              "left": "1136px",
+              "width": "150px",
+              "height": "100px",
+              "backgroundColor": "#55d1f7",
+              "borderRadius": "8px",
+              "transform": "rotate(-41deg)",
+              "filter": "blur(6px)"
+            },
+            "type": "background",
+            "bgType": "solid",
+            "value": "#55d1f7"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bnr-1777581693529-3",
+      "name": "Banner Sin Nombre 3",
+      "order": 2,
+      "banner": {
+        "id": "bnr-1777581693529-3",
+        "width": "100%",
+        "height": "200px",
+        "designWidth": 1200,
+        "designHeight": 200,
+        "aspectRatio": 6,
         "background": {
           "type": "image",
           "bgType": "image",
           "value": "/banner/assets/3.webp",
-          "image": "/banner/assets/3.webp"
+          "image": "/banner/assets/3.webp",
+          "fit": "cover",
+          "position": "center"
         },
         "styles": {
-          "borderRadius": "0px",
+          "borderRadius": "24px",
           "position": "relative",
           "overflow": "hidden"
         },
         "nativeStyles": {
           "overflow": "hidden"
         },
-        "layers": []
-      }
-    },
-    {
-      "id": "vprj-1774276905558-63692",
-      "name": "Nuevo Banner copia",
-      "order": 1,
-      "banner": {
-        "id": "vprj-1774276905558-63692",
-        "width": "100%",
-        "height": "120px",
-        "designWidth": 800,
-        "designHeight": 120,
-        "aspectRatio": 6.666666666666667,
-        
-        "background": {
-          "type": "image",
-          "bgType": "image",
-          "value": "/banner/assets/abril.webp",
-          "image": "/banner/assets/abril.webp"
-        },
-        "styles": {
-          "borderRadius": "12px",
-          "position": "relative",
-          "overflow": "hidden"
-        },
-        "nativeStyles": {
-          "overflow": "hidden"
-        },
-        "layers": []
+        "layers": [
+          {
+            "id": "layer-1777583394510-52313",
+            "visible": true,
+            "styles": {
+              "position": "absolute",
+              "top": "157px",
+              "left": "1130px",
+              "width": "150px",
+              "height": "100px",
+              "backgroundColor": "#55d1f7",
+              "borderRadius": "8px",
+              "transform": "rotate(-40deg)",
+              "opacity": 1,
+              "filter": "blur(6px)"
+            },
+            "animation": {
+              "fillMode": "forwards"
+            },
+            "type": "background",
+            "bgType": "solid",
+            "value": "#55d1f7"
+          }
+        ]
       }
     }
   ]
