@@ -72,32 +72,54 @@ export async function historialRondasServicio(req: Request, res: Response) {
     },
   });
 
-  const historial = data.map((ronda) => ({
-    servicioId: ronda.id,
-    rondaServicioId: ronda.id,
-    movimientoId: ronda.ruedaSolicitud?.movimientoId ?? null,
-    status: ronda.status,
-    torneroId: ronda.torneroId,
-    inicio: ronda.inicio,
-    fin: ronda.fin,
-    creadoEn: ronda.createdAt,
-    actualizadoEn: ronda.updatedAt,
-    medidasSolicitadas: pickMedidas(ronda.ruedaSolicitud as Record<string, unknown> | null),
-    medidasFinales: pickMedidas(ronda.ruedasFinal as Record<string, unknown> | null),
-    torno: ronda.tornoG
-      ? {
-          id: ronda.tornoG.id,
-          estado: ronda.tornoG.estado,
-          cantidadRuedas: ronda.tornoG.cantidadRuedas,
-          ruedasTerminadas: ronda.tornoG.ruedasTerminadas,
-          fechaInicio: ronda.tornoG.fechaInicio,
-          fechaFin: ronda.tornoG.fechaFin,
-          detalleRuedas: ronda.tornoG.detalleRuedas,
-        }
-      : null,
-    tieneIncidente: ronda.incidentes.length > 0,
-    incidentes: ronda.incidentes,
-  }));
+  const historial = data.map((ronda) => {
+    // Calcular estado real basado en incidentes activos:
+    // - Si hay incidentes NO RESUELTOS → EN_PROCESO (independiente del estado almacenado)
+    // - Si TODOS están RESUELTOS pero status=DETENIDO/CANCELADO → volver a SOLICITADO
+    const incidentesActivos = ronda.incidentes.filter(
+      (inc) => inc.resuelto === false || inc.status === 'EN_PROCESO'
+    );
+
+    let statusReal = ronda.status;
+    if (incidentesActivos.length > 0) {
+      statusReal = 'EN_PROCESO';
+    } else if (
+      (ronda.status === 'DETENIDO' || ronda.status === 'CANCELADO') &&
+      ronda.incidentes.length > 0
+    ) {
+      // Si fue detenido por un incidente pero ya todos están resueltos → volver a SOLICITADO
+      statusReal = 'SOLICITADO';
+    }
+
+    return {
+      servicioId: ronda.id,
+      rondaServicioId: ronda.id,
+      movimientoId: ronda.ruedaSolicitud?.movimientoId ?? null,
+      status: statusReal,
+      statusAlmacenado: ronda.status,
+      torneroId: ronda.torneroId,
+      inicio: ronda.inicio,
+      fin: ronda.fin,
+      creadoEn: ronda.createdAt,
+      actualizadoEn: ronda.updatedAt,
+      medidasSolicitadas: pickMedidas(ronda.ruedaSolicitud as Record<string, unknown> | null),
+      medidasFinales: pickMedidas(ronda.ruedasFinal as Record<string, unknown> | null),
+      torno: ronda.tornoG
+        ? {
+            id: ronda.tornoG.id,
+            estado: ronda.tornoG.estado,
+            cantidadRuedas: ronda.tornoG.cantidadRuedas,
+            ruedasTerminadas: ronda.tornoG.ruedasTerminadas,
+            fechaInicio: ronda.tornoG.fechaInicio,
+            fechaFin: ronda.tornoG.fechaFin,
+            detalleRuedas: ronda.tornoG.detalleRuedas,
+          }
+        : null,
+      tieneIncidente: ronda.incidentes.length > 0,
+      incidentesActivos: incidentesActivos.length,
+      incidentes: ronda.incidentes,
+    };
+  });
 
   return ok(res, historial);
 }
@@ -134,7 +156,10 @@ export async function updateRondaServicio(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const input = rondaServicioUpdateSchema.parse(req.body);
 
-  const current = await prismaTorno.rondaServicio.findUnique({ where: { id } });
+  const current = await prismaTorno.rondaServicio.findUnique({
+    where: { id },
+    include: { incidentes: true },
+  });
   if (!current) return fail(res, 404, "Not found");
 
   if (current.status === "CANCELADO") {

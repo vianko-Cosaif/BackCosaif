@@ -141,14 +141,23 @@ model Nava {
 }
 
 model Cambio {
-  id           Int      @id @default(autoincrement())
-  localidadId  Int
-  numeroNavaja Int
-  createdAt    DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  localidadId   Int
+  numeroNavaja  Int
+  comentario    String?
+  creadoPorId   Int?
+  imagen1       String?
+  imagen2       String?
+  imagen3       String?
+  fechaCambio   DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   nava Nava @relation(fields: [localidadId], references: [localidadId], onDelete: Cascade)
 
   @@index([localidadId])
+  @@index([numeroNavaja])
+  @@index([creadoPorId])
+  @@index([fechaCambio])
 }
 
 model IncidenteTorno {
@@ -159,6 +168,7 @@ model IncidenteTorno {
   comentario         String?
   creadoPorId        Int
   atendidoPorId      Int?
+  numeroLocomotora   Int?
   imagen1            String?
   imagen2            String?
   imagen3            String?
@@ -184,6 +194,7 @@ model IncidenteTorno {
   @@index([tipoFalla])
   @@index([creadoPorId])
   @@index([atendidoPorId])
+  @@index([numeroLocomotora])
 }
 
 model IncidenteTornoHijo {

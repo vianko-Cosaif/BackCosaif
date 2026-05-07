@@ -266,7 +266,7 @@ export class MovimientoReadModel {
       const where: any = {
         finalizado: false,
         OR: [{ lavado: true }, { torno: true }],
-        estado: { in: ['SOLICITADO', 'DETENIDO', 'ESPERA'] },
+        estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] },
       };
       if (filters.localidadId) where.localidadId = filters.localidadId;
       if (filters.empresaId) where.empresaId = filters.empresaId;
@@ -623,7 +623,7 @@ export class MovimientoReadModel {
       const where: any = {
         finalizado: false,
         OR: [{ lavado: true }, { torno: true }],
-        estado: { in: ['SOLICITADO', 'DETENIDO'] },
+        estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] },
       };
       if (filters.localidadId) where.localidadId = filters.localidadId;
       if (filters.empresaId) where.empresaId = filters.empresaId;
