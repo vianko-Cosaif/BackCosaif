@@ -1,12 +1,19 @@
 import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
-import { sincronizarStatusRonda } from "../../utils/sincronizarStatusRonda";
 import { parseIntParam } from "../../utils/parse";
 import { incidenteTornoCreateSchema, incidenteTornoUpdateSchema } from "./incidenteTorno.schemas";
 import { incidenteTornoHijoCreateSchema } from "../incidenteTornoHijo/incidenteTornoHijo.schemas";
 import { rondaServicioUpdateSchema } from "../rondaServicio/rondaServicio.schemas";
 import { guardarImagenesTorno } from "../../utils/tornoImagenes";
+import { incidenteTornoService, TornoIncidentDomainError } from "./incidenteTorno.service";
+
+function handleDomainError(res: Response, error: unknown) {
+  if (error instanceof TornoIncidentDomainError) {
+    return fail(res, error.statusCode, error.message, error.details);
+  }
+  throw error;
+}
 
 async function rondaEstaCancelada(rondaServicioId?: number | null) {
   if (!rondaServicioId) return false;
@@ -17,12 +24,9 @@ async function rondaEstaCancelada(rondaServicioId?: number | null) {
   return ronda?.status === "CANCELADO";
 }
 
-async function incidenteApuntaARondaCancelada(input: {
-  rondaServicioId?: number | null;
-}) {
-  return await rondaEstaCancelada(input.rondaServicioId);
+async function incidenteApuntaARondaCancelada(input: { rondaServicioId?: number | null }) {
+  return rondaEstaCancelada(input.rondaServicioId);
 }
-
 
 export async function listIncidentes(req: Request, res: Response) {
   const ruedaSolicitudIdRaw = req.query.ruedaSolicitudId?.toString();
@@ -33,6 +37,7 @@ export async function listIncidentes(req: Request, res: Response) {
   if (ruedaSolicitudIdRaw) where.ruedaSolicitudId = parseIntParam(ruedaSolicitudIdRaw, "ruedaSolicitudId");
   if (rondaServicioIdRaw) where.rondaServicioId = parseIntParam(rondaServicioIdRaw, "rondaServicioId");
   if (numeroLocomotoraRaw) where.numeroLocomotora = parseIntParam(numeroLocomotoraRaw, "numeroLocomotora");
+
   const data = await prismaTorno.incidenteTorno.findMany({
     where: where as never,
     orderBy: { id: "desc" },
@@ -56,20 +61,13 @@ export async function createIncidente(req: Request, res: Response) {
   if (await incidenteApuntaARondaCancelada(input)) {
     return fail(res, 409, "Ronda CANCELADO no puede modificarse");
   }
-  const data = await prismaTorno.incidenteTorno.create({
-    data: {
-      ...input,
-      comentario: input.comentario ?? undefined,
-      atendidoPorId: input.atendidoPorId ?? undefined,
-      imagen1: undefined,
-      imagen2: undefined,
-      imagen3: undefined,
-      fechaAtencion: input.fechaAtencion ?? undefined,
-      fechaTerminacion: input.fechaTerminacion ?? undefined,
-      ruedaSolicitudId: input.ruedaSolicitudId ?? undefined,
-      rondaServicioId: input.rondaServicioId ?? undefined,
-    },
-  });
+
+  let data;
+  try {
+    data = await incidenteTornoService.createParent(input);
+  } catch (error) {
+    return handleDomainError(res, error);
+  }
 
   const imagenes = await guardarImagenesTorno(
     [input.imagen1, input.imagen2, input.imagen3],
@@ -78,6 +76,7 @@ export async function createIncidente(req: Request, res: Response) {
   const dataConImagenes = await prismaTorno.incidenteTorno.update({
     where: { id: data.id },
     data: imagenes,
+    include: { hijos: true, ruedaSolicitud: true, rondaServicio: true },
   });
 
   return ok(res, dataConImagenes);
@@ -94,25 +93,67 @@ export async function updateIncidente(req: Request, res: Response) {
   if (await incidenteApuntaARondaCancelada(input)) {
     return fail(res, 409, "Ronda CANCELADO no puede modificarse");
   }
+
+  const { imagen1: _imagen1, imagen2: _imagen2, imagen3: _imagen3, ...domainInput } = input;
   const shouldUpdateImages = input.imagen1 !== undefined || input.imagen2 !== undefined || input.imagen3 !== undefined;
   const imagenes = shouldUpdateImages
     ? await guardarImagenesTorno([input.imagen1, input.imagen2, input.imagen3], `incidente_torno_${id}`)
     : {};
-  const data = await prismaTorno.incidenteTorno.update({
-    where: { id },
-    data: {
-      ...input,
-      comentario: input.comentario ?? undefined,
-      atendidoPorId: input.atendidoPorId ?? undefined,
-      ...imagenes,
-      fechaAtencion: input.fechaAtencion ?? undefined,
-      fechaTerminacion: input.fechaTerminacion ?? undefined,
-      ruedaSolicitudId: input.ruedaSolicitudId ?? undefined,
-      rondaServicioId: input.rondaServicioId ?? undefined,
-    },
-  });
-  sincronizarStatusRonda(data.rondaServicioId ?? current.rondaServicioId).catch(() => {});
+
+  let data;
+  try {
+    data = await incidenteTornoService.updateParent(id, {
+      ...domainInput,
+      comentario: domainInput.comentario ?? undefined,
+      atendidoPorId: domainInput.atendidoPorId ?? undefined,
+      fechaAtencion: domainInput.fechaAtencion ?? undefined,
+      fechaTerminacion: domainInput.fechaTerminacion ?? undefined,
+      ruedaSolicitudId: domainInput.ruedaSolicitudId ?? undefined,
+      rondaServicioId: domainInput.rondaServicioId ?? undefined,
+    });
+  } catch (error) {
+    return handleDomainError(res, error);
+  }
+
+  if (Object.keys(imagenes).length) {
+    data = await prismaTorno.incidenteTorno.update({
+      where: { id },
+      data: imagenes,
+      include: { hijos: true, ruedaSolicitud: true, rondaServicio: true },
+    });
+  }
+
   return ok(res, data);
+}
+
+export async function resolveIncidente(req: Request, res: Response) {
+  const id = parseIntParam(req.params.id, "id");
+  const input = incidenteTornoUpdateSchema
+    .pick({
+      comentario: true,
+      atendidoPorId: true,
+      fechaAtencion: true,
+      fechaTerminacion: true,
+    })
+    .partial()
+    .parse(req.body ?? {});
+
+  try {
+    const data = await incidenteTornoService.resolveParent(id, input);
+    return ok(res, data);
+  } catch (error) {
+    return handleDomainError(res, error);
+  }
+}
+
+export async function getResolutionSummary(req: Request, res: Response) {
+  const id = parseIntParam(req.params.id, "id");
+  try {
+    const data = await incidenteTornoService.resolutionSummary(id);
+    return ok(res, data);
+  } catch (error) {
+    return handleDomainError(res, error);
+  }
 }
 
 export async function deleteIncidente(req: Request, res: Response) {
@@ -135,21 +176,25 @@ export async function createHijo(req: Request, res: Response) {
   const input = incidenteTornoHijoCreateSchema.parse({ ...req.body, incidenteTornoId });
   const parent = await prismaTorno.incidenteTorno.findUnique({
     where: { id: incidenteTornoId },
-    select: { rondaServicioId: true, ruedaSolicitudId: true },
+    select: { rondaServicioId: true },
   });
   if (!parent) return fail(res, 404, "Not found");
   if (await incidenteApuntaARondaCancelada(parent)) {
     return fail(res, 409, "Ronda CANCELADO no puede modificarse");
   }
-  const data = await prismaTorno.incidenteTornoHijo.create({
-    data: {
-      ...input,
+
+  let data;
+  try {
+    data = await incidenteTornoService.createChild({
+      incidenteTornoId: input.incidenteTornoId,
+      status: input.status,
+      resuelto: input.resuelto,
       comentario: input.comentario ?? undefined,
-      imagen1: undefined,
-      imagen2: undefined,
-      imagen3: undefined,
-    },
-  });
+    });
+  } catch (error) {
+    return handleDomainError(res, error);
+  }
+
   const imagenes = await guardarImagenesTorno(
     [input.imagen1, input.imagen2, input.imagen3],
     `incidente_torno_hijo_${data.id}`
@@ -160,7 +205,6 @@ export async function createHijo(req: Request, res: Response) {
   });
   return ok(res, dataConImagenes);
 }
-
 
 export async function updateRondaStatusFromIncidente(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
@@ -185,18 +229,17 @@ export async function updateRondaStatusFromIncidente(req: Request, res: Response
     return fail(res, 400, "Incidente sin ronda asociada");
   }
 
-  const current = rondaServicio;
-  if (current.status === "CANCELADO") {
+  if (rondaServicio.status === "CANCELADO") {
     return fail(res, 409, "Ronda CANCELADO no puede modificarse");
   }
 
   if (input.status === "EN_PROCESO") {
-    const torneroId = input.torneroId ?? current.torneroId;
+    const torneroId = input.torneroId ?? rondaServicio.torneroId;
     if (!torneroId) return fail(res, 400, "torneroId requerido para EN_PROCESO");
   }
 
   if (input.status === "CONCLUIDO") {
-    const ruedasFinalId = input.ruedasFinalId ?? current.ruedasFinalId;
+    const ruedasFinalId = input.ruedasFinalId ?? rondaServicio.ruedasFinalId;
     if (!ruedasFinalId) return fail(res, 400, "ruedasFinalId requerido para CONCLUIDO");
   }
 

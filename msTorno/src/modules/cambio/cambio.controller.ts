@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { Prisma } from "../../../generated";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
@@ -60,7 +61,7 @@ export async function createCambio(req: Request, res: Response) {
   const imagenes = await guardarImagenesTorno([imagen1, imagen2, imagen3], `cambio_navaja_${data.id}`);
   const dataConImagenes = await prismaTorno.cambio.update({
     where: { id: data.id },
-    data: imagenes,
+    data: imagenes as Prisma.CambioUncheckedUpdateInput,
     include: { nava: true },
   });
   return ok(res, dataConImagenes);
@@ -87,7 +88,7 @@ export async function updateCambio(req: Request, res: Response) {
     data: {
       ...dataInput,
       ...imagenes,
-    },
+    } as Prisma.CambioUncheckedUpdateInput,
     include: { nava: true },
   });
   return ok(res, data);

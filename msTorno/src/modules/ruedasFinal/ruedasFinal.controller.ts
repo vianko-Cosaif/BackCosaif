@@ -22,7 +22,11 @@ export async function getRuedasFinal(req: Request, res: Response) {
 
 export async function createRuedasFinal(req: Request, res: Response) {
   const input = ruedasFinalCreateSchema.parse(req.body);
-  const data = await prismaTorno.ruedasFinal.create({ data: input });
+  const data = await prismaTorno.ruedasFinal.upsert({
+    where: { ruedaSolicitudId: input.ruedaSolicitudId },
+    create: input,
+    update: input,
+  });
   return ok(res, data);
 }
 

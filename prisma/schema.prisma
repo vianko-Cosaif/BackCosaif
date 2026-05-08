@@ -548,6 +548,7 @@ enum EstadoMovimiento {
   MODIFICADO
   CONCLUIDO
   CANCELADO
+  AGENDADO
 }
 
 enum Lavado {

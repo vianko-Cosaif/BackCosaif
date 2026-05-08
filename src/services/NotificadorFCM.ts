@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import { PrismaClient, Incidente } from '@prisma/client';
 import { messaging } from '../config/firebase';
+import { sendMulticastCompat } from './fcmCompat';
 
 const prisma = new PrismaClient();
 
@@ -94,7 +95,7 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
     const title = `🆕 Movimiento creado (${mov.prioridad ?? 'N/D'})`;
     const body  = `Loco ${mov.locomotiveNumber} · ${mov.viaOrigen?.nombre ?? 'N/D'} → ${mov.viaDestino?.nombre ?? 'N/D'} · ${mov.empresa?.nombre ?? 'N/D'}`;
 
-    const resp = await admin.messaging().sendEachForMulticast({
+    const resp = await sendMulticastCompat({
       notification: { title, body },
       data: {
         tipo: 'nuevo_movimiento',
@@ -200,7 +201,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
 
     if (!admin.apps.length) admin.initializeApp();
 
-    const resp = await admin.messaging().sendEachForMulticast({
+    const resp = await sendMulticastCompat({
       notification: {
         title: '🚨 Incidente reportado',
         body : `ID #${inc.id} • Loco ${mov.locomotiveNumber} • ${empresa}: ${corta}`
@@ -308,7 +309,7 @@ static async notificarCambioEstado(
       incidente.estado === 'CERRADO'  ? '❌ Incidente cerrado'  :
                                          'ℹ️ Incidente actualizado';
 
-    const resp = await admin.messaging().sendEachForMulticast({
+    const resp = await sendMulticastCompat({
       notification: {
         title: titulo,
         body: `ID #${incidente.id} • Loco ${mov.locomotiveNumber} • ${mov.empresa?.nombre ?? 'Sin Empresa'}`,
@@ -417,7 +418,7 @@ static async notificarCambioEstado(
         };
       }
 
-      await admin.messaging().sendEachForMulticast(mensaje_config);
+      await sendMulticastCompat(mensaje_config);
       
     } catch (error) {
       console.error('Error enviando notificacion personalizada:', error);
@@ -440,7 +441,7 @@ static async notificarCambioEstado(
 
       if (notificacion.tokens && notificacion.tokens.length > 0) {
         message.tokens = notificacion.tokens;
-        await admin.messaging().sendEachForMulticast(message);
+        await sendMulticastCompat(message);
       } else if (notificacion.topico) {
         message.topic = notificacion.topico;
         await admin.messaging().send(message);
@@ -526,7 +527,7 @@ static async notificarContinuarMovimiento(
     const empresaNombre = movimiento.empresa?.nombre || 'Empresa';
     const loco = movimiento.locomotiveNumber;
 
-    await admin.messaging().sendEachForMulticast({
+    await sendMulticastCompat({
       notification: {
         title: '? Incidente resuelto con comentario',
         body: `Loco ${loco} � ${empresaNombre}: "${comentario.slice(0, 80)}�"`
@@ -597,7 +598,7 @@ static async notificarIncidenteOmitido(
   ];
   if (tokens.length === 0) return;
 
-  await admin.messaging().sendEachForMulticast({
+  await sendMulticastCompat({
     notification: {
       title: 'Incidente pospuesto por cliente',
       body : `Incidente #${incidente.id} — Locomotora ${mov.locomotiveNumber}`
@@ -655,7 +656,7 @@ static async notificarCancelacionMovimiento(
   ];
   if (tokens.length === 0) return;
 
-  await admin.messaging().sendEachForMulticast({
+  await sendMulticastCompat({
     notification: {
       title: 'Movimiento cancelado',
       body : `Locomotora ${movimiento.locomotiveNumber} — ${motivoExtra || 'Por reincidencia de incidentes'}`

@@ -13,6 +13,20 @@ function isHistorialRondasRequest(method: string, rest: string) {
   return method === "GET" && rest.split("?")[0] === "/rondas-servicio/historial";
 }
 
+function tornoMsBaseIncludesApi() {
+  return /\/api\/?$/.test(String(process.env.TORNO_MS_URL ?? ""));
+}
+
+function buildTornoMsPath(rest: string) {
+  if (rest.startsWith("/health")) return rest;
+  return tornoMsBaseIncludesApi() ? rest : `/api${rest}`;
+}
+
+function buildTornoMsUrl(rest: string) {
+  const base = String(process.env.TORNO_MS_URL ?? "").replace(/\/+$/, "");
+  return `${base}${buildTornoMsPath(rest)}`;
+}
+
 async function enrichHistorialWithLocomotora(data: unknown) {
   if (!Array.isArray(data)) return data;
 
@@ -57,7 +71,7 @@ router.get("/imagenes", async (req, res) => {
     const ruta = String(req.query.ruta ?? "");
     if (!ruta) return res.status(400).json({ error: "Ruta requerida" });
 
-    const url = `${tornoMsUrl}/api/imagenes?ruta=${encodeURIComponent(ruta)}`;
+    const url = buildTornoMsUrl(`/imagenes?ruta=${encodeURIComponent(ruta)}`);
     const imgResp = await fetch(url, {
       headers: { "x-service-token": serviceToken },
     });
@@ -82,7 +96,7 @@ router.all("/*", async (req, res) => {
   try {
     const base = req.baseUrl; // "/torno"
     const rest = req.originalUrl.startsWith(base) ? req.originalUrl.slice(base.length) : req.originalUrl;
-    const target = rest.startsWith("/health") ? rest : `/api${rest}`;
+    const target = buildTornoMsPath(rest);
 
     const user = (req as any).user as AuthenticatedUser | undefined;
 

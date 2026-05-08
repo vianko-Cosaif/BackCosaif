@@ -192,7 +192,7 @@ export class RondaController {
    */
   static obtenerRondasPorLocalidadConEstado: RequestHandler = async (req, res) => {
     const localidadId = Number(req.params.localidadId);
-    const concluidoParam = req.params.concluido?.toLowerCase();
+    const concluidoParam = String(req.params.concluido ?? '').toLowerCase();
     const concluido = concluidoParam === "true";
 
     if (isNaN(localidadId) || !["true", "false"].includes(concluidoParam)) {

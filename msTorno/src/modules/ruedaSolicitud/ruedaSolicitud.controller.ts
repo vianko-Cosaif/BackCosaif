@@ -15,7 +15,7 @@ export async function listRuedaSolicitudes(req: Request, res: Response) {
 }
 
 export async function getRuedaSolicitud(req: Request, res: Response) {
-  const id = parseIntParam(req.params.id, "id");
+  const id = parseIntParam(String(req.params.id), "id");
   const data = await prismaTorno.ruedaSolicitud.findUnique({ where: { id } });
   if (!data) return fail(res, 404, "Not found");
   return ok(res, data);
@@ -28,14 +28,14 @@ export async function createRuedaSolicitud(req: Request, res: Response) {
 }
 
 export async function updateRuedaSolicitud(req: Request, res: Response) {
-  const id = parseIntParam(req.params.id, "id");
+  const id = parseIntParam(String(req.params.id), "id");
   const input = ruedaSolicitudUpdateSchema.parse(req.body);
   const data = await prismaTorno.ruedaSolicitud.update({ where: { id }, data: input });
   return ok(res, data);
 }
 
 export async function deleteRuedaSolicitud(req: Request, res: Response) {
-  const id = parseIntParam(req.params.id, "id");
+  const id = parseIntParam(String(req.params.id), "id");
   await prismaTorno.ruedaSolicitud.delete({ where: { id } });
   return ok(res, { ok: true });
 }

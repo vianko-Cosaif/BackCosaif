@@ -90,7 +90,7 @@ export class EmpresaController {
    * Actualiza el nombre de una empresa existente mediante su `id`.
    */
   static editarEmpresa: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
     const { nombre } = req.body;
 
     if (!nombre || typeof nombre !== 'string' || isNaN(id)) {
@@ -113,7 +113,7 @@ export class EmpresaController {
    * Elimina una empresa existente por su ID.
    */
   static eliminarEmpresa: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
 
     if (isNaN(id)) {
       fail(res, 400, 'ID inválido. Debe ser un número válido.');

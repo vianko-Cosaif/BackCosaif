@@ -287,7 +287,7 @@ export class MovimientoWriteService {
   static async cambiarEstadoMovimiento(
     id: number,
     nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean; fechaInicio?: Date; fechaFin?: Date } = {}
   ) {
     try {
       const { razon, forzar = false } = opciones;
@@ -299,6 +299,40 @@ export class MovimientoWriteService {
       });
       if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
 
+      if (movimientoActual.torno === true && movimientoActual.estado === 'CONCLUIDO' && nuevoEstado === 'EN_PROCESO') {
+        movimientoError.info('Movimiento de torno ya concluido; se omite reapertura', {
+          movimientoId: id,
+          estadoActual: movimientoActual.estado,
+          estadoSolicitado: nuevoEstado,
+          empresa: movimientoActual.empresa?.nombre,
+          localidad: movimientoActual.localidad?.nombre,
+        });
+        return movimientoActual;
+      }
+
+      if (String(movimientoActual.estado) === nuevoEstado) {
+        const data: any = { updatedAt: new Date() };
+        if (nuevoEstado === 'EN_PROCESO' && maquinistaId) {
+          data.operadorId = maquinistaId;
+        }
+
+        const movimientoIdempotente = await prisma.movimiento.update({
+          where: { id },
+          data,
+          include: { ronda: true },
+        });
+
+        movimientoError.info('Estado de movimiento sin cambios', {
+          movimientoId: id,
+          estadoActual: movimientoActual.estado,
+          maquinistaId: maquinistaId ?? 'No especificado',
+          empresa: movimientoActual.empresa?.nombre,
+          localidad: movimientoActual.localidad?.nombre,
+        });
+
+        return movimientoIdempotente;
+      }
+
       const responsablesActivos =
         nuevoEstado === 'EN_PROCESO'
           ? await this.resolverResponsablesActivos(movimientoActual.localidadId, movimientoActual.empresaId)
@@ -309,10 +343,16 @@ export class MovimientoWriteService {
       }
 
       if (!forzar) {
+        const cierreAutomaticoTorno =
+          movimientoActual.torno === true &&
+          nuevoEstado === 'CONCLUIDO' &&
+          ['SOLICITADO', 'ESPERA', 'MODIFICADO'].includes(String(movimientoActual.estado));
         const transiciones: Record<string, string[]> = {
-          SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
+          SOLICITADO: cierreAutomaticoTorno ? ['EN_PROCESO', 'DETENIDO', 'CANCELADO', 'CONCLUIDO'] : ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
           EN_PROCESO: ['DETENIDO', 'CONCLUIDO', 'CANCELADO'],
           DETENIDO: ['EN_PROCESO', 'CANCELADO', 'CONCLUIDO'],
+          ESPERA: cierreAutomaticoTorno ? ['CONCLUIDO', 'CANCELADO'] : ['CANCELADO'],
+          MODIFICADO: cierreAutomaticoTorno ? ['CONCLUIDO', 'CANCELADO'] : ['CANCELADO'],
           CONCLUIDO: [],
           CANCELADO: [],
         };
@@ -325,10 +365,12 @@ export class MovimientoWriteService {
       const movimientoActualizado = await prisma.$transaction(async (tx) => {
         const ahora = new Date();
         const data: any = { estado: nuevoEstado, updatedAt: ahora };
+        const fechaInicio = opciones.fechaInicio ?? ahora;
+        const fechaFin = opciones.fechaFin ?? ahora;
 
         if (nuevoEstado === 'EN_PROCESO') {
           Object.assign(data, {
-            fechaInicio: ahora,
+            fechaInicio,
             fechaPausa: null,
             incidenteGlobal: false,
             ...(maquinistaId && { operadorId: maquinistaId }),
@@ -339,7 +381,12 @@ export class MovimientoWriteService {
           Object.assign(data, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
         }
         if (nuevoEstado === 'CONCLUIDO') {
-          Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false });
+          Object.assign(data, {
+            fechaInicio: movimientoActual.fechaInicio ?? opciones.fechaInicio ?? undefined,
+            fechaFin,
+            finalizado: true,
+            incidenteGlobal: false,
+          });
         }
         if (nuevoEstado === 'CANCELADO') {
           Object.assign(data, {
@@ -445,6 +492,19 @@ export class MovimientoWriteService {
 
       const movimiento = await prisma.movimiento.create({ data: movData });
 
+      if (String(movimiento.estado) === 'AGENDADO') {
+        movimientoError.info('Movimiento de torno agendado creado sin ronda', {
+          movimientoId: movimiento.id,
+          localidadId: movimiento.localidadId,
+          fechaSolicitud: movimiento.fechaSolicitud,
+        });
+
+        return await prisma.movimiento.findUnique({
+          where: { id: movimiento.id },
+          include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+        });
+      }
+
       await RondaModel.generarRondaParaMovimiento({
         movimientoId: movimiento.id,
         empresaId: movimiento.empresaId,
@@ -465,7 +525,7 @@ export class MovimientoWriteService {
 
       return await prisma.movimiento.findUnique({
         where: { id: movimiento.id },
-        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
       });
     } catch (error: any) {
       movimientoError.error('Error al crear movimiento', {
@@ -476,10 +536,62 @@ export class MovimientoWriteService {
     }
   }
 
+  static async activarMovimientoTornoAgendado(id: number) {
+    try {
+      const actual = await prisma.movimiento.findUnique({
+        where: { id },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+      if (!actual) throw new Error(`No se encontro movimiento con id ${id}`);
+      if (String(actual.estado) !== 'AGENDADO' || actual.torno !== true || actual.finalizado) {
+        throw new Error('El movimiento no es una solicitud de torno agendada disponible');
+      }
+
+      const movimiento = await prisma.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'SOLICITADO',
+          fechaSolicitud: new Date(),
+          updatedAt: new Date(),
+        },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+
+      await RondaModel.generarRondaParaMovimiento({
+        movimientoId: movimiento.id,
+        empresaId: movimiento.empresaId,
+        localidadId: movimiento.localidadId,
+        prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+      });
+
+      try {
+        await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
+      } catch (error: any) {
+        movimientoError.error('Error notificando movimiento agendado activado', {
+          movId: movimiento.id,
+          err: error?.message,
+        });
+      }
+
+      await RondaModel.siguienteInteligente(movimiento.localidadId);
+
+      return await prisma.movimiento.findUnique({
+        where: { id: movimiento.id },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al activar movimiento de torno agendado', {
+        id,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error(error?.message || 'Error al activar movimiento de torno agendado');
+    }
+  }
+
   static async actualizarEstadoServicio(
     id: number,
-    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; fechaInicio?: Date; fechaFin?: Date } = {}
   ) {
     try {
       const movimiento = await prisma.movimiento.findUnique({
@@ -494,6 +606,8 @@ export class MovimientoWriteService {
       return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
         maquinistaId: getMaquinistaId(opciones),
         razon: opciones.razon,
+        fechaInicio: opciones.fechaInicio,
+        fechaFin: opciones.fechaFin,
         forzar: false,
       });
     } catch (error: any) {

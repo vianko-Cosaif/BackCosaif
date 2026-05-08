@@ -2,6 +2,7 @@ import { Rol } from '@prisma/client';
 import admin from 'firebase-admin';
 import { prisma } from '../../lib/prisma';
 import { movimientoError } from './movimiento.logger';
+import { sendMulticastCompat } from '../../services/fcmCompat';
 
 function ensureAdmin() {
   if (!admin.apps.length) {
@@ -60,7 +61,7 @@ async function enviarMulticastMovimiento(
   for (let index = 0; index < batches.length; index++) {
     const slice = batches[index];
     try {
-      const response = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
+      const response = await sendMulticastCompat({ ...payload, tokens: slice });
       movimientoError.info('FCM movimiento', {
         ...logCtx,
         lote: `${index + 1}/${batches.length}`,

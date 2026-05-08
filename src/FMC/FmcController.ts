@@ -20,7 +20,7 @@ export class FmcController {
 
   /** GET /fcm/usuario/:usuarioId — tokens de un usuario */
   static obtenerTokensPorUsuario: RequestHandler = async (req, res) => {
-    const { usuarioId } = req.params;
+    const usuarioId = String(req.params.usuarioId);
 
     if (!/^\d+$/.test(usuarioId)) {
       res.status(400).json({ error: 'usuarioId debe ser numérico' });
@@ -56,7 +56,7 @@ export class FmcController {
 
   /** DELETE /fcm/:token — elimina token concreto */
   static eliminarToken: RequestHandler = async (req, res) => {
-    const { token } = req.params;
+    const token = String(req.params.token);
 
     if (!token) {
       res.status(400).json({ error: 'Token requerido' });
@@ -74,7 +74,7 @@ export class FmcController {
 
   /** DELETE /fcm/usuario/:usuarioId — elimina todos los tokens de un usuario */
   static eliminarTokensPorUsuario: RequestHandler = async (req, res) => {
-    const { usuarioId } = req.params;
+    const usuarioId = String(req.params.usuarioId);
 
     if (!/^\d+$/.test(usuarioId)) {
       res.status(400).json({ error: 'usuarioId debe ser numérico' });

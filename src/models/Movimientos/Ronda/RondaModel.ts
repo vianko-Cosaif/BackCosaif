@@ -3,6 +3,7 @@ import { movimientoError } from "../movimiento.logger";
 import { Prisma, PrismaClient } from '@prisma/client';
 import type { Ronda } from '@prisma/client';
 import admin from 'firebase-admin';
+import { sendMulticastCompat } from "../../../services/fcmCompat";
 
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
@@ -1364,7 +1365,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     const tokens = await tokensDeUsuarios(ids);
     if (!tokens.length) return;
 
-    await admin.messaging().sendEachForMulticast({
+    await sendMulticastCompat({
       notification: {
         title: `${tipo} concluido`,
         body: `Concluido ${tipo.toLowerCase()} de la locomotora ${m.locomotiveNumber}. Crear movimiento para desocupar la sección.`

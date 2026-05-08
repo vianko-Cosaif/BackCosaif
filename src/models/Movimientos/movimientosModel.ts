@@ -63,7 +63,7 @@ export class MovimientoModel {
   static async cambiarEstadoMovimiento(
     id: number,
     nuevoEstado: EstadoMovimiento,
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
+    opciones: Parameters<typeof MovimientoWriteService.cambiarEstadoMovimiento>[2] = {}
   ) {
     return MovimientoWriteService.cambiarEstadoMovimiento(id, nuevoEstado, opciones);
   }
@@ -72,10 +72,14 @@ export class MovimientoModel {
     return MovimientoWriteService.nuevoMovimiento(data);
   }
 
+  static async activarMovimientoTornoAgendado(id: number) {
+    return MovimientoWriteService.activarMovimientoTornoAgendado(id);
+  }
+
   static async actualizarEstadoServicio(
     id: number,
     nuevoEstado: EstadoServicio,
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+    opciones: Parameters<typeof MovimientoWriteService.actualizarEstadoServicio>[2] = {}
   ) {
     return MovimientoWriteService.actualizarEstadoServicio(id, nuevoEstado, opciones);
   }

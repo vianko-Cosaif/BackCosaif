@@ -4,7 +4,7 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { rondaServicioCreateSchema, rondaServicioUpdateSchema } from "./rondaServicio.schemas";
 
-const HISTORIAL_STATUSES = ["EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"];
+const HISTORIAL_STATUSES = ["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"];
 const MEDIDA_KEYS = ["l1", "l2", "l3", "l4", "l5", "l6", "r1", "r2", "r3", "r4", "r5", "r6"] as const;
 
 function parseStatusFilter(value: unknown) {

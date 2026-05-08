@@ -19,6 +19,12 @@ function getEnv() {
   return parsed.data;
 }
 
+function joinTornoUrl(baseUrl: string, pathWithQuery: string) {
+  const base = baseUrl.replace(/\/+$/, "");
+  const path = pathWithQuery.startsWith("/") ? pathWithQuery : `/${pathWithQuery}`;
+  return `${base}${path}`;
+}
+
 type Json = Record<string, unknown> | unknown[] | string | number | boolean | null;
 
 async function requestTornoMs<T extends Json>(
@@ -26,7 +32,7 @@ async function requestTornoMs<T extends Json>(
   init: { method: string; body?: unknown; headers?: Record<string, string> } = { method: "GET" }
 ): Promise<{ status: number; data: T }> {
   const { TORNO_MS_URL, TORNO_SERVICE_TOKEN } = getEnv();
-  const url = `${TORNO_MS_URL}${pathWithQuery.startsWith("/") ? "" : "/"}${pathWithQuery}`;
+  const url = joinTornoUrl(TORNO_MS_URL, pathWithQuery);
 
   const headers: Record<string, string> = {
     "x-service-token": TORNO_SERVICE_TOKEN,
@@ -100,57 +106,17 @@ const MEDIDA_KEYS = [
   "r6",
 ] as const;
 
-const MEDIDA_PAIR_KEYS = [
-  ["l1", "r1"],
-  ["l2", "r2"],
-  ["l3", "r3"],
-  ["l4", "r4"],
-  ["l5", "r5"],
-  ["l6", "r6"],
-] as const;
-
 const NO_APLICA_MEASURE = "NO_APLICA";
 
 function hasMeasureValue(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function inferWheelCount(medidas: MedidasRuedaDraftInput): TornoWheelCount {
-  let activePairs = 0;
-
-  for (let index = 0; index < MEDIDA_PAIR_KEYS.length; index += 1) {
-    const [leftKey, rightKey] = MEDIDA_PAIR_KEYS[index];
-    if (hasMeasureValue(medidas[leftKey]) || hasMeasureValue(medidas[rightKey])) {
-      activePairs = index + 1;
-    }
-  }
-
-  if (activePairs <= 2) return 4;
-  if (activePairs === 3) return 6;
-  if (activePairs === 4) return 8;
-  return 12;
-}
-
 export function normalizeMedidasRuedaInput(input: MedidasRuedaDraftInput): MedidasRuedaInput {
-  const wheelCount = input.wheelCount ?? inferWheelCount(input);
-  const activePairs = wheelCount / 2;
+  const hasAtLeastOneMeasure = MEDIDA_KEYS.some((key) => hasMeasureValue(input[key]));
 
-  for (let index = 0; index < MEDIDA_PAIR_KEYS.length; index += 1) {
-    const [leftKey, rightKey] = MEDIDA_PAIR_KEYS[index];
-    const leftValue = input[leftKey];
-    const rightValue = input[rightKey];
-    const isActive = index < activePairs;
-
-    if (isActive) {
-      if (!hasMeasureValue(leftValue) || !hasMeasureValue(rightValue)) {
-        throw new Error(`Faltan medidas activas para ${leftKey.toUpperCase()} / ${rightKey.toUpperCase()}`);
-      }
-      continue;
-    }
-
-    if (hasMeasureValue(leftValue) || hasMeasureValue(rightValue)) {
-      throw new Error(`Se recibieron medidas fuera del rango activo para ${leftKey.toUpperCase()} / ${rightKey.toUpperCase()}`);
-    }
+  if (!hasAtLeastOneMeasure) {
+    throw new Error("Debe capturar al menos una medida de torno");
   }
 
   const normalized = {} as MedidasRuedaInput;
@@ -165,28 +131,34 @@ export function normalizeMedidasRuedaInput(input: MedidasRuedaDraftInput): Medid
 
 export async function ensureSolicitudYRondaForMovimiento(movimientoId: number, medidas: MedidasRuedaInput) {
   // 1) RuedaSolicitud por movimiento (idempotente)
-  const existing = await requestTornoMs<any[]>(`/api/rueda-solicitudes?movimientoId=${movimientoId}`, {
+  const existing = await requestTornoMs<any[]>(`/rueda-solicitudes?movimientoId=${movimientoId}`, {
     method: "GET",
   });
   let ruedaSolicitud = existing.data?.[0] ?? null;
 
   if (!ruedaSolicitud) {
-    const created = await requestTornoMs<any>(`/api/rueda-solicitudes`, {
+    const created = await requestTornoMs<any>(`/rueda-solicitudes`, {
       method: "POST",
       body: { movimientoId, ...medidas },
     });
     ruedaSolicitud = created.data;
+  } else if (ruedaSolicitud.id) {
+    const updated = await requestTornoMs<any>(`/rueda-solicitudes/${ruedaSolicitud.id}`, {
+      method: "PATCH",
+      body: medidas,
+    });
+    ruedaSolicitud = updated.data;
   }
 
   // 2) RondaServicio por ruedaSolicitudId (idempotente)
   const rondaExisting = await requestTornoMs<any[]>(
-    `/api/rondas-servicio?ruedaSolicitudId=${ruedaSolicitud.id}`,
+    `/rondas-servicio?ruedaSolicitudId=${ruedaSolicitud.id}`,
     { method: "GET" }
   );
   let ronda = rondaExisting.data?.[0] ?? null;
 
   if (!ronda) {
-    const rondaCreated = await requestTornoMs<any>(`/api/rondas-servicio`, {
+    const rondaCreated = await requestTornoMs<any>(`/rondas-servicio`, {
       method: "POST",
       body: { ruedaSolicitudId: ruedaSolicitud.id },
     });
@@ -197,7 +169,7 @@ export async function ensureSolicitudYRondaForMovimiento(movimientoId: number, m
 }
 
 export async function getRuedaSolicitudPorMovimiento(movimientoId: number) {
-  const existing = await requestTornoMs<any[]>(`/api/rueda-solicitudes?movimientoId=${movimientoId}`, {
+  const existing = await requestTornoMs<any[]>(`/rueda-solicitudes?movimientoId=${movimientoId}`, {
     method: "GET",
   });
   return existing.data?.[0] ?? null;
@@ -207,20 +179,20 @@ export async function upsertRuedaSolicitudPorMovimiento(
   movimientoId: number,
   medidas: MedidasRuedaInput
 ) {
-  const existing = await requestTornoMs<any[]>(`/api/rueda-solicitudes?movimientoId=${movimientoId}`, {
+  const existing = await requestTornoMs<any[]>(`/rueda-solicitudes?movimientoId=${movimientoId}`, {
     method: "GET",
   });
   const current = existing.data?.[0] ?? null;
 
   if (!current?.id) {
-    const created = await requestTornoMs<any>(`/api/rueda-solicitudes`, {
+    const created = await requestTornoMs<any>(`/rueda-solicitudes`, {
       method: "POST",
       body: { movimientoId, ...medidas },
     });
     return created.data;
   }
 
-  const updated = await requestTornoMs<any>(`/api/rueda-solicitudes/${current.id}`, {
+  const updated = await requestTornoMs<any>(`/rueda-solicitudes/${current.id}`, {
     method: "PATCH",
     body: medidas,
   });

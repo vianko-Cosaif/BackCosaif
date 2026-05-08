@@ -38,7 +38,7 @@ export class ViaController {
    * Devuelve todas las vías asociadas a una localidad.
    */
   static obtenerViasPorLocalidad: RequestHandler = async (req: Request, res: Response) => {
-    const localidadId = parseInt(req.params.localidadId, 10);
+    const localidadId = parseInt(String(req.params.localidadId), 10);
     if (isNaN(localidadId)) {
       fail(res, 400, 'localidadId inválido');
       return;
@@ -58,7 +58,7 @@ export class ViaController {
    * Devuelve vías ligeras por localidad.
    */
   static obtenerViasLitePorLocalidad: RequestHandler = async (req: Request, res: Response) => {
-    const localidadId = parseInt(req.params.localidadId, 10);
+    const localidadId = parseInt(String(req.params.localidadId), 10);
     if (isNaN(localidadId)) {
       fail(res, 400, 'localidadId inválido');
       return;
@@ -97,7 +97,7 @@ export class ViaController {
    * Edita una vía existente.
    */
   static editarVia: RequestHandler = async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params.id), 10);
     const { numero, nombre, localidadId } = req.body;
     if (isNaN(id)) {
       fail(res, 400, 'ID inválido');
@@ -122,7 +122,7 @@ export class ViaController {
    * Elimina una vía por su ID.
    */
   static eliminarVia: RequestHandler = async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id, 10);
+    const id = parseInt(String(req.params.id), 10);
     if (isNaN(id)) {
       fail(res, 400, 'ID inválido');
       return;

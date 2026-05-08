@@ -116,6 +116,10 @@ router.get('/empresa/:empresaId/pendientes', MovimientoController.obtenerMovimie
 
 router.get('/servicios/espera', MovimientoController.listarServiciosPendientesFIFO);
 router.patch('/servicios/:id/solicitar', MovimientoController.solicitarServicioYEncolarFrenteR1);
+router.get('/torno/agendados/activable', MovimientoController.buscarTornoAgendadoActivable);
+router.get('/torno/agendados', MovimientoController.listarTornoAgendadosPendientes);
+router.post('/torno/agendados/:id/activar', MovimientoController.activarTornoAgendadoDirecto);
+router.delete('/torno/agendados/vencidos', MovimientoController.limpiarTornoAgendadosVencidos);
 
 /**
  * GET /movimientos/empresa/:empresaId
