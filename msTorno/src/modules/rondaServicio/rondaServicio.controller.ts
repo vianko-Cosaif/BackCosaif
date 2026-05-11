@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
+<<<<<<< Updated upstream
 import {
   rondaServicioConcluirSchema,
   rondaServicioCreateSchema,
@@ -9,6 +10,10 @@ import {
   rondaServicioIniciarSchema,
   rondaServicioUpdateSchema,
 } from "./rondaServicio.schemas";
+=======
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
+import { rondaServicioCreateSchema, rondaServicioUpdateSchema } from "./rondaServicio.schemas";
+>>>>>>> Stashed changes
 
 const HISTORIAL_STATUSES = ["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"];
 const MEDIDA_KEYS = ["l1", "l2", "l3", "l4", "l5", "l6", "r1", "r2", "r3", "r4", "r5", "r6"] as const;
@@ -129,12 +134,17 @@ export async function listRondasServicio(req: Request, res: Response) {
   if (torneroIdRaw) where.torneroId = parseIntParam(torneroIdRaw, "torneroId");
   if (statusRaw) where.status = statusRaw;
 
-  const data = await prismaTorno.rondaServicio.findMany({
-    where: where as never,
-    orderBy: { id: "desc" },
-    include: { tornoG: true },
-  });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.rondaServicio.findMany({
+      where: where as never,
+      orderBy: { id: "desc" },
+      include: { tornoG: true },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.rondaServicio.count({ where: where as never }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function historialRondasServicio(req: Request, res: Response) {
@@ -155,16 +165,21 @@ export async function historialRondasServicio(req: Request, res: Response) {
     };
   }
 
-  const data = await prismaTorno.rondaServicio.findMany({
-    where: where as never,
-    orderBy: { updatedAt: "desc" },
-    include: {
-      ruedaSolicitud: true,
-      ruedasFinal: true,
-      tornoG: { include: { detalleRuedas: true } },
-      incidentes: { include: { hijos: true } },
-    },
-  });
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.rondaServicio.findMany({
+      where: where as never,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        ruedaSolicitud: true,
+        ruedasFinal: true,
+        tornoG: { include: { detalleRuedas: true } },
+        incidentes: { include: { hijos: true } },
+      },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.rondaServicio.count({ where: where as never }) : Promise.resolve(0),
+  ]);
 
   const historial = data.map((ronda) => {
     // Calcular estado real basado en incidentes activos:
@@ -209,7 +224,7 @@ export async function historialRondasServicio(req: Request, res: Response) {
     };
   });
 
-  return ok(res, historial);
+  return respondPaginated(res, historial, total, pagination);
 }
 
 export async function getRondaServicio(req: Request, res: Response) {

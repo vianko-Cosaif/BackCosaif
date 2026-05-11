@@ -4,6 +4,7 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { incidenteTornoHijoCreateSchema, incidenteTornoHijoUpdateSchema } from "./incidenteTornoHijo.schemas";
 import { guardarImagenesTorno } from "../../utils/tornoImagenes";
+<<<<<<< Updated upstream
 import { incidenteTornoService, TornoIncidentDomainError } from "../incidenteTorno/incidenteTorno.service";
 
 function handleDomainError(res: Response, error: unknown) {
@@ -12,6 +13,10 @@ function handleDomainError(res: Response, error: unknown) {
   }
   throw error;
 }
+=======
+import { sincronizarStatusRonda } from "../../utils/sincronizarStatusRonda";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
+>>>>>>> Stashed changes
 
 async function rondaDelHijoEstaCancelada(hijoId?: number, incidenteTornoId?: number) {
   const parentId = hijoId
@@ -40,8 +45,16 @@ export async function listIncidentesHijos(req: Request, res: Response) {
   const where = incidenteTornoIdRaw
     ? { incidenteTornoId: parseIntParam(incidenteTornoIdRaw, "incidenteTornoId") }
     : {};
-  const data = await prismaTorno.incidenteTornoHijo.findMany({ where, orderBy: { id: "desc" } });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.incidenteTornoHijo.findMany({
+      where,
+      orderBy: { id: "desc" },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.incidenteTornoHijo.count({ where }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getIncidenteHijo(req: Request, res: Response) {

@@ -13,6 +13,7 @@ function isHistorialRondasRequest(method: string, rest: string) {
   return method === "GET" && rest.split("?")[0] === "/rondas-servicio/historial";
 }
 
+<<<<<<< Updated upstream
 function tornoMsBaseIncludesApi() {
   return /\/api\/?$/.test(String(process.env.TORNO_MS_URL ?? ""));
 }
@@ -28,6 +29,21 @@ function buildTornoMsUrl(rest: string) {
 }
 
 async function enrichHistorialWithLocomotora(data: unknown) {
+=======
+async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
+  if (
+    data &&
+    typeof data === "object" &&
+    "data" in data &&
+    Array.isArray((data as { data?: unknown }).data)
+  ) {
+    return {
+      ...data,
+      data: await enrichHistorialWithLocomotora((data as { data: unknown[] }).data),
+    };
+  }
+
+>>>>>>> Stashed changes
   if (!Array.isArray(data)) return data;
 
   const movimientoIds = Array.from(
