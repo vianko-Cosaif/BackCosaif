@@ -4,7 +4,7 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { incidenteTornoHijoCreateSchema, incidenteTornoHijoUpdateSchema } from "./incidenteTornoHijo.schemas";
 import { guardarImagenesTorno } from "../../utils/tornoImagenes";
-<<<<<<< Updated upstream
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { incidenteTornoService, TornoIncidentDomainError } from "../incidenteTorno/incidenteTorno.service";
 
 function handleDomainError(res: Response, error: unknown) {
@@ -13,10 +13,6 @@ function handleDomainError(res: Response, error: unknown) {
   }
   throw error;
 }
-=======
-import { sincronizarStatusRonda } from "../../utils/sincronizarStatusRonda";
-import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
->>>>>>> Stashed changes
 
 async function rondaDelHijoEstaCancelada(hijoId?: number, incidenteTornoId?: number) {
   const parentId = hijoId

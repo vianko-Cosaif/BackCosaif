@@ -6,7 +6,7 @@ import { incidenteTornoCreateSchema, incidenteTornoUpdateSchema } from "./incide
 import { incidenteTornoHijoCreateSchema } from "../incidenteTornoHijo/incidenteTornoHijo.schemas";
 import { rondaServicioUpdateSchema } from "../rondaServicio/rondaServicio.schemas";
 import { guardarImagenesTorno } from "../../utils/tornoImagenes";
-<<<<<<< Updated upstream
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { incidenteTornoService, TornoIncidentDomainError } from "./incidenteTorno.service";
 
 function handleDomainError(res: Response, error: unknown) {
@@ -15,9 +15,6 @@ function handleDomainError(res: Response, error: unknown) {
   }
   throw error;
 }
-=======
-import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
->>>>>>> Stashed changes
 
 async function rondaEstaCancelada(rondaServicioId?: number | null) {
   if (!rondaServicioId) return false;
@@ -41,15 +38,6 @@ export async function listIncidentes(req: Request, res: Response) {
   if (ruedaSolicitudIdRaw) where.ruedaSolicitudId = parseIntParam(ruedaSolicitudIdRaw, "ruedaSolicitudId");
   if (rondaServicioIdRaw) where.rondaServicioId = parseIntParam(rondaServicioIdRaw, "rondaServicioId");
   if (numeroLocomotoraRaw) where.numeroLocomotora = parseIntParam(numeroLocomotoraRaw, "numeroLocomotora");
-<<<<<<< Updated upstream
-
-  const data = await prismaTorno.incidenteTorno.findMany({
-    where: where as never,
-    orderBy: { id: "desc" },
-    include: { hijos: true, rondaServicio: true },
-  });
-  return ok(res, data);
-=======
   const pagination = getPagination(req);
   const [data, total] = await Promise.all([
     prismaTorno.incidenteTorno.findMany({
@@ -61,7 +49,6 @@ export async function listIncidentes(req: Request, res: Response) {
     pagination.enabled ? prismaTorno.incidenteTorno.count({ where: where as never }) : Promise.resolve(0),
   ]);
   return respondPaginated(res, data, total, pagination);
->>>>>>> Stashed changes
 }
 
 export async function getIncidente(req: Request, res: Response) {

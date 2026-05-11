@@ -6,8 +6,10 @@ uploads/
 
 node_modules
 logs/
+logs/*
 .env
 .env.torno
 msTorno/generated
 src/logs
 dist
+logs

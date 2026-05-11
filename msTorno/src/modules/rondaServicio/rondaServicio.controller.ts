@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
-<<<<<<< Updated upstream
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import {
   rondaServicioConcluirSchema,
   rondaServicioCreateSchema,
@@ -10,10 +10,6 @@ import {
   rondaServicioIniciarSchema,
   rondaServicioUpdateSchema,
 } from "./rondaServicio.schemas";
-=======
-import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
-import { rondaServicioCreateSchema, rondaServicioUpdateSchema } from "./rondaServicio.schemas";
->>>>>>> Stashed changes
 
 const HISTORIAL_STATUSES = ["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"];
 const MEDIDA_KEYS = ["l1", "l2", "l3", "l4", "l5", "l6", "r1", "r2", "r3", "r4", "r5", "r6"] as const;
