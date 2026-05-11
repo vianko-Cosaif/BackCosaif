@@ -18,10 +18,10 @@ export async function sincronizarStatusRonda(rondaServicioId: number | null | un
   });
 
   let nuevoStatus: EstadoRondaServicio | null = null;
-  if (incidentesActivos > 0 && ronda.status !== EstadoRondaServicio.EN_PROCESO) {
+  if (incidentesActivos > 0 && ronda.status !== EstadoRondaServicio.DETENIDO) {
+    nuevoStatus = EstadoRondaServicio.DETENIDO;
+  } else if (incidentesActivos === 0 && ronda.status === EstadoRondaServicio.DETENIDO) {
     nuevoStatus = EstadoRondaServicio.EN_PROCESO;
-  } else if (incidentesActivos === 0 && (ronda.status === EstadoRondaServicio.DETENIDO || ronda.status === EstadoRondaServicio.EN_PROCESO)) {
-    nuevoStatus = EstadoRondaServicio.SOLICITADO;
   }
 
   if (nuevoStatus) {

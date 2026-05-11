@@ -18,3 +18,19 @@ export const rondaServicioUpdateSchema = z.object({
   canceladoPorIncidenteId: z.number().int().optional().nullable(),
 });
 
+export const rondaServicioIniciarSchema = z.object({
+  torneroId: z.number().int(),
+  inicio: z.coerce.date().optional().nullable(),
+});
+
+export const rondaServicioFinalizarEjeSchema = z.object({
+  posicion: z.coerce.number().int().min(1).max(6),
+  lados: z.array(z.enum(["L", "R"])).optional(),
+  fechaFin: z.coerce.date().optional().nullable(),
+});
+
+export const rondaServicioConcluirSchema = z.object({
+  ruedasFinalId: z.number().int(),
+  fin: z.coerce.date().optional().nullable(),
+});
+
