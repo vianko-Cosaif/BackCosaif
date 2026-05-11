@@ -13,3 +13,6 @@ msTorno/generated
 src/logs
 dist
 logs
+logs/empresa-controller-errors.log
+*.log
+/logs
