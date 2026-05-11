@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { tornoGCreateSchema, tornoGUpdateSchema } from "./tornoG.schemas";
 
 export async function listTornoG(req: Request, res: Response) {
@@ -11,12 +12,17 @@ export async function listTornoG(req: Request, res: Response) {
   const where: Record<string, unknown> = {};
   if (torneroIdRaw) where.torneroId = parseIntParam(torneroIdRaw, "torneroId");
   if (rondaServicioIdRaw) where.rondaServicioId = parseIntParam(rondaServicioIdRaw, "rondaServicioId");
-  const data = await prismaTorno.tornoG.findMany({
-    where: where as never,
-    orderBy: { id: "desc" },
-    include: { detalleRuedas: true, rondaServicio: true },
-  });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.tornoG.findMany({
+      where: where as never,
+      orderBy: { id: "desc" },
+      include: { detalleRuedas: true, rondaServicio: true },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.tornoG.count({ where: where as never }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getTornoG(req: Request, res: Response) {

@@ -2,13 +2,23 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { navaCreateSchema, navaUpdateSchema } from "./nava.schemas";
 
 export async function listNavas(req: Request, res: Response) {
   const localidadIdRaw = req.query.localidadId?.toString();
   const where = localidadIdRaw ? { localidadId: parseIntParam(localidadIdRaw, "localidadId") } : {};
-  const data = await prismaTorno.nava.findMany({ where, orderBy: { id: "desc" }, include: { cambios: true } });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.nava.findMany({
+      where,
+      orderBy: { id: "desc" },
+      include: { cambios: true },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.nava.count({ where }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getNava(req: Request, res: Response) {
@@ -36,4 +46,3 @@ export async function deleteNava(req: Request, res: Response) {
   await prismaTorno.nava.delete({ where: { id } });
   return ok(res, { ok: true });
 }
-

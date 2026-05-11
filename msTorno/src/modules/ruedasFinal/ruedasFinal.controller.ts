@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { ruedasFinalCreateSchema, ruedasFinalUpdateSchema } from "./ruedasFinal.schemas";
 
 export async function listRuedasFinal(req: Request, res: Response) {
@@ -9,8 +10,16 @@ export async function listRuedasFinal(req: Request, res: Response) {
   const where = ruedaSolicitudIdRaw
     ? { ruedaSolicitudId: parseIntParam(ruedaSolicitudIdRaw, "ruedaSolicitudId") }
     : {};
-  const data = await prismaTorno.ruedasFinal.findMany({ where, orderBy: { id: "desc" } });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.ruedasFinal.findMany({
+      where,
+      orderBy: { id: "desc" },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.ruedasFinal.count({ where }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getRuedasFinal(req: Request, res: Response) {
@@ -42,4 +51,3 @@ export async function deleteRuedasFinal(req: Request, res: Response) {
   await prismaTorno.ruedasFinal.delete({ where: { id } });
   return ok(res, { ok: true });
 }
-

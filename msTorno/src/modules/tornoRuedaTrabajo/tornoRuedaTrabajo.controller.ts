@@ -2,13 +2,22 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { tornoRuedaTrabajoCreateSchema, tornoRuedaTrabajoUpdateSchema } from "./tornoRuedaTrabajo.schemas";
 
 export async function listTornoRuedas(req: Request, res: Response) {
   const tornoGIdRaw = req.query.tornoGId?.toString();
   const where = tornoGIdRaw ? { tornoGId: parseIntParam(tornoGIdRaw, "tornoGId") } : {};
-  const data = await prismaTorno.tornoRuedaTrabajo.findMany({ where, orderBy: { id: "desc" } });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.tornoRuedaTrabajo.findMany({
+      where,
+      orderBy: { id: "desc" },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.tornoRuedaTrabajo.count({ where }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getTornoRueda(req: Request, res: Response) {
@@ -51,4 +60,3 @@ export async function deleteTornoRueda(req: Request, res: Response) {
   await prismaTorno.tornoRuedaTrabajo.delete({ where: { id } });
   return ok(res, { ok: true });
 }
-

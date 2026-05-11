@@ -2,16 +2,22 @@ import type { Request, Response } from "express";
 import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { ruedaSolicitudCreateSchema, ruedaSolicitudUpdateSchema } from "./ruedaSolicitud.schemas";
 
 export async function listRuedaSolicitudes(req: Request, res: Response) {
   const movimientoIdRaw = req.query.movimientoId?.toString();
   const where = movimientoIdRaw ? { movimientoId: parseIntParam(movimientoIdRaw, "movimientoId") } : {};
-  const data = await prismaTorno.ruedaSolicitud.findMany({
-    where,
-    orderBy: { id: "desc" },
-  });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.ruedaSolicitud.findMany({
+      where,
+      orderBy: { id: "desc" },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.ruedaSolicitud.count({ where }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getRuedaSolicitud(req: Request, res: Response) {
@@ -39,4 +45,3 @@ export async function deleteRuedaSolicitud(req: Request, res: Response) {
   await prismaTorno.ruedaSolicitud.delete({ where: { id } });
   return ok(res, { ok: true });
 }
-

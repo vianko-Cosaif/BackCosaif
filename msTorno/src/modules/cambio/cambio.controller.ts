@@ -4,6 +4,7 @@ import { prismaTorno } from "../../db/prisma";
 import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { guardarImagenesTorno } from "../../utils/tornoImagenes";
+import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { cambioCreateSchema, cambioUpdateSchema } from "./cambio.schemas";
 
 async function validarNavaja(localidadId: number, numeroNavaja: number) {
@@ -36,12 +37,17 @@ export async function listCambios(req: Request, res: Response) {
     };
   }
 
-  const data = await prismaTorno.cambio.findMany({
-    where: where as never,
-    orderBy: { id: "desc" },
-    include: { nava: true },
-  });
-  return ok(res, data);
+  const pagination = getPagination(req);
+  const [data, total] = await Promise.all([
+    prismaTorno.cambio.findMany({
+      where: where as never,
+      orderBy: { id: "desc" },
+      include: { nava: true },
+      ...paginationArgs(pagination),
+    }),
+    pagination.enabled ? prismaTorno.cambio.count({ where: where as never }) : Promise.resolve(0),
+  ]);
+  return respondPaginated(res, data, total, pagination);
 }
 
 export async function getCambio(req: Request, res: Response) {
