@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 
-const PORT = process.env.TORNO_PORT || "3003";
+const PORT = process.env.TORNO_PORT || "3001";
 
 export function iniciarServidorTorno(): void {
   try {
