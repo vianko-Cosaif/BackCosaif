@@ -32,6 +32,31 @@ function isResolvedPatch(input: { status?: string; resuelto?: boolean }) {
   return input.status === "RESUELTO" || input.resuelto === true;
 }
 
+async function deriveLocalidadId(
+  tx: TransactionClient,
+  input: { localidadId?: number | null; rondaServicioId?: number | null; ruedaSolicitudId?: number | null }
+) {
+  if (input.localidadId !== undefined) return input.localidadId ?? null;
+
+  if (input.rondaServicioId) {
+    const ronda = await tx.rondaServicio.findUnique({
+      where: { id: input.rondaServicioId },
+      select: { localidadId: true },
+    });
+    return ronda?.localidadId ?? undefined;
+  }
+
+  if (input.ruedaSolicitudId) {
+    const ronda = await tx.rondaServicio.findUnique({
+      where: { ruedaSolicitudId: input.ruedaSolicitudId },
+      select: { localidadId: true },
+    });
+    return ronda?.localidadId ?? undefined;
+  }
+
+  return undefined;
+}
+
 async function pauseRondaForIncident(
   tx: TransactionClient,
   incidente: { id: number; rondaServicioId: number | null }
@@ -112,6 +137,7 @@ export const incidenteTornoService = {
     comentario?: string | null;
     creadoPorId: number;
     atendidoPorId?: number | null;
+    localidadId?: number | null;
     numeroLocomotora?: number | null;
     fechaAtencion?: Date | null;
     fechaTerminacion?: Date | null;
@@ -120,6 +146,7 @@ export const incidenteTornoService = {
   }) {
     return prismaTorno.$transaction(async (tx) => {
       const resolved = isResolvedPatch(input);
+      const localidadId = await deriveLocalidadId(tx, input);
       const incidente = await tx.incidenteTorno.create({
         data: {
           tipoFalla: input.tipoFalla,
@@ -128,6 +155,7 @@ export const incidenteTornoService = {
           comentario: input.comentario ?? undefined,
           creadoPorId: input.creadoPorId,
           atendidoPorId: input.atendidoPorId ?? undefined,
+          localidadId: localidadId ?? undefined,
           numeroLocomotora: input.numeroLocomotora ?? undefined,
           fechaAtencion: input.fechaAtencion ?? undefined,
           fechaTerminacion: resolved ? input.fechaTerminacion ?? now() : input.fechaTerminacion ?? undefined,
@@ -153,6 +181,7 @@ export const incidenteTornoService = {
       resuelto?: boolean;
       comentario?: string | null;
       atendidoPorId?: number | null;
+      localidadId?: number | null;
       numeroLocomotora?: number | null;
       fechaAtencion?: Date | null;
       fechaTerminacion?: Date | null;
@@ -171,10 +200,13 @@ export const incidenteTornoService = {
         throw new TornoIncidentDomainError(409, "Incidente resuelto no puede reabrirse desde PATCH generico");
       }
 
+      const localidadId = await deriveLocalidadId(tx, input);
+      const localidadPatch = localidadId === undefined ? {} : { localidadId };
       const data = await tx.incidenteTorno.update({
         where: { id },
         data: {
           ...input,
+          ...localidadPatch,
           comentario: input.comentario ?? undefined,
           atendidoPorId: input.atendidoPorId ?? undefined,
           fechaAtencion: input.fechaAtencion ?? undefined,

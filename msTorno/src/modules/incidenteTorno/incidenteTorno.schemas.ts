@@ -10,6 +10,7 @@ export const incidenteTornoCreateSchema = z.object({
   comentario: z.string().optional().nullable(),
   creadoPorId: z.number().int(),
   atendidoPorId: z.number().int().optional().nullable(),
+  localidadId: z.number().int().optional().nullable(),
   numeroLocomotora: z.number().int().optional().nullable(),
   imagen1: z.string().optional().nullable(),
   imagen2: z.string().optional().nullable(),

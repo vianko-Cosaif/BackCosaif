@@ -14,6 +14,7 @@ import {
 const HISTORIAL_STATUSES = ["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"];
 const MEDIDA_KEYS = ["l1", "l2", "l3", "l4", "l5", "l6", "r1", "r2", "r3", "r4", "r5", "r6"] as const;
 const EMPTY_MEASURE_VALUES = new Set(["", "0", "0.0", "0.00", "0.000", "N/A", "NA", "NO APLICA", "SIN DATO", "NULL", "UNDEFINED"]);
+const RONDA_FINAL_STATUSES = new Set(["CONCLUIDO", "CANCELADO"]);
 
 function parseStatusFilter(value: unknown) {
   if (!value) return HISTORIAL_STATUSES;
@@ -23,6 +24,10 @@ function parseStatusFilter(value: unknown) {
     .map((s) => s.trim())
     .filter(Boolean);
   return statuses.length ? statuses : HISTORIAL_STATUSES;
+}
+
+function isRondaFinal(status: string) {
+  return RONDA_FINAL_STATUSES.has(status);
 }
 
 function pickMedidas(source: Record<string, unknown> | null | undefined) {
@@ -122,11 +127,13 @@ async function ensureTornoGForRonda(
 
 export async function listRondasServicio(req: Request, res: Response) {
   const ruedaSolicitudIdRaw = req.query.ruedaSolicitudId?.toString();
+  const localidadIdRaw = req.query.localidadId?.toString();
   const torneroIdRaw = req.query.torneroId?.toString();
   const statusRaw = req.query.status?.toString();
 
   const where: Record<string, unknown> = {};
   if (ruedaSolicitudIdRaw) where.ruedaSolicitudId = parseIntParam(ruedaSolicitudIdRaw, "ruedaSolicitudId");
+  if (localidadIdRaw) where.localidadId = parseIntParam(localidadIdRaw, "localidadId");
   if (torneroIdRaw) where.torneroId = parseIntParam(torneroIdRaw, "torneroId");
   if (statusRaw) where.status = statusRaw;
 
@@ -145,6 +152,7 @@ export async function listRondasServicio(req: Request, res: Response) {
 
 export async function historialRondasServicio(req: Request, res: Response) {
   const statusFilter = parseStatusFilter(req.query.status);
+  const localidadIdRaw = req.query.localidadId?.toString();
   const torneroIdRaw = req.query.torneroId?.toString();
   const movimientoIdRaw = req.query.movimientoId?.toString();
   const servicioIdRaw = req.query.servicioId?.toString() ?? req.query.rondaServicioId?.toString();
@@ -154,6 +162,7 @@ export async function historialRondasServicio(req: Request, res: Response) {
   };
 
   if (servicioIdRaw) where.id = parseIntParam(servicioIdRaw, "servicioId");
+  if (localidadIdRaw) where.localidadId = parseIntParam(localidadIdRaw, "localidadId");
   if (torneroIdRaw) where.torneroId = parseIntParam(torneroIdRaw, "torneroId");
   if (movimientoIdRaw) {
     where.ruedaSolicitud = {
@@ -194,6 +203,7 @@ export async function historialRondasServicio(req: Request, res: Response) {
       servicioId: ronda.id,
       rondaServicioId: ronda.id,
       movimientoId: ronda.ruedaSolicitud?.movimientoId ?? null,
+      localidadId: ronda.localidadId,
       status: statusReal,
       statusAlmacenado: ronda.status,
       torneroId: ronda.torneroId,
@@ -244,6 +254,7 @@ export async function createRondaServicio(req: Request, res: Response) {
   const data = await prismaTorno.rondaServicio.create({
     data: {
       ruedaSolicitudId: input.ruedaSolicitudId,
+      localidadId: input.localidadId ?? undefined,
       status: "SOLICITADO",
     },
   });
@@ -261,8 +272,8 @@ export async function updateRondaServicio(req: Request, res: Response) {
   });
   if (!current) return fail(res, 404, "Not found");
 
-  if (current.status === "CANCELADO") {
-    return fail(res, 409, "Ronda CANCELADO no puede modificarse");
+  if (isRondaFinal(current.status)) {
+    return fail(res, 409, `Ronda ${current.status} no puede modificarse`);
   }
 
   // Reglas mínimas: DETENIDO/CANCELADO deben ir amarrados a un incidente padre
@@ -283,16 +294,11 @@ export async function updateRondaServicio(req: Request, res: Response) {
     if (!torneroId) return fail(res, 400, "torneroId requerido para EN_PROCESO");
   }
 
-  // CONCLUIDO requiere ruedasFinalId
-  if (input.status === "CONCLUIDO") {
-    const ruedasFinalId = input.ruedasFinalId ?? current.ruedasFinalId;
-    if (!ruedasFinalId) return fail(res, 400, "ruedasFinalId requerido para CONCLUIDO");
-  }
-
   const data = await prismaTorno.rondaServicio.update({
     where: { id },
     data: {
       ...input,
+      localidadId: input.localidadId ?? undefined,
       torneroId: input.torneroId ?? undefined,
       inicio: input.inicio ?? undefined,
       fin: input.fin ?? undefined,
@@ -419,13 +425,13 @@ export async function concluirRondaServicio(req: Request, res: Response) {
       include: { tornoG: true },
     });
     if (!current) throw new Error("RondaServicio no encontrada");
-    if (current.status === "CANCELADO") throw new Error("Ronda CANCELADO no puede concluirse");
+    if (isRondaFinal(current.status)) throw new Error(`Ronda ${current.status} no puede modificarse`);
 
     const ronda = await tx.rondaServicio.update({
       where: { id },
       data: {
         status: "CONCLUIDO",
-        ruedasFinalId: input.ruedasFinalId,
+        ...(input.ruedasFinalId !== undefined ? { ruedasFinalId: input.ruedasFinalId } : {}),
         fin,
       },
       include: { ruedaSolicitud: true, ruedasFinal: true, incidentes: true },
@@ -444,7 +450,7 @@ export async function concluirRondaServicio(req: Request, res: Response) {
         where: { id: tornoG.id },
         data: {
           estado: "TERMINADO",
-          ruedasFinalId: input.ruedasFinalId,
+          ...(input.ruedasFinalId !== undefined ? { ruedasFinalId: input.ruedasFinalId } : {}),
           ruedasTerminadas,
           fechaFin: fin,
         },
@@ -460,6 +466,14 @@ export async function concluirRondaServicio(req: Request, res: Response) {
 
 export async function deleteRondaServicio(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
+  const current = await prismaTorno.rondaServicio.findUnique({
+    where: { id },
+    select: { status: true },
+  });
+  if (!current) return fail(res, 404, "Not found");
+  if (isRondaFinal(current.status)) {
+    return fail(res, 409, `Ronda ${current.status} no puede modificarse`);
+  }
   await prismaTorno.rondaServicio.delete({ where: { id } });
   return ok(res, { ok: true });
 }

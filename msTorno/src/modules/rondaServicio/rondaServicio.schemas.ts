@@ -4,6 +4,7 @@ const estadoRondaSchema = z.enum(["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETE
 
 export const rondaServicioCreateSchema = z.object({
   ruedaSolicitudId: z.number().int(),
+  localidadId: z.number().int().optional().nullable(),
   // Al crearse normalmente debe quedar SOLICITADO y sin tornero.
   status: z.literal("SOLICITADO").optional(),
 });
@@ -11,6 +12,7 @@ export const rondaServicioCreateSchema = z.object({
 export const rondaServicioUpdateSchema = z.object({
   status: estadoRondaSchema.optional(),
   torneroId: z.number().int().optional().nullable(),
+  localidadId: z.number().int().optional().nullable(),
   inicio: z.coerce.date().optional().nullable(),
   fin: z.coerce.date().optional().nullable(),
   ruedasFinalId: z.number().int().optional().nullable(),
@@ -30,7 +32,6 @@ export const rondaServicioFinalizarEjeSchema = z.object({
 });
 
 export const rondaServicioConcluirSchema = z.object({
-  ruedasFinalId: z.number().int(),
+  ruedasFinalId: z.number().int().optional().nullable(),
   fin: z.coerce.date().optional().nullable(),
 });
-

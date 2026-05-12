@@ -22,7 +22,9 @@ function getEnv() {
 function joinTornoUrl(baseUrl: string, pathWithQuery: string) {
   const base = baseUrl.replace(/\/+$/, "");
   const path = pathWithQuery.startsWith("/") ? pathWithQuery : `/${pathWithQuery}`;
-  return `${base}${path}`;
+  if (path.startsWith("/health")) return `${base}${path}`;
+  if (/\/api\/?$/.test(base) || path.startsWith("/api/")) return `${base}${path}`;
+  return `${base}/api${path}`;
 }
 
 type Json = Record<string, unknown> | unknown[] | string | number | boolean | null;
@@ -129,7 +131,11 @@ export function normalizeMedidasRuedaInput(input: MedidasRuedaDraftInput): Medid
   return normalized;
 }
 
-export async function ensureSolicitudYRondaForMovimiento(movimientoId: number, medidas: MedidasRuedaInput) {
+export async function ensureSolicitudYRondaForMovimiento(
+  movimientoId: number,
+  medidas: MedidasRuedaInput,
+  options: { localidadId?: number | null } = {}
+) {
   // 1) RuedaSolicitud por movimiento (idempotente)
   const existing = await requestTornoMs<any[]>(`/rueda-solicitudes?movimientoId=${movimientoId}`, {
     method: "GET",
@@ -160,9 +166,18 @@ export async function ensureSolicitudYRondaForMovimiento(movimientoId: number, m
   if (!ronda) {
     const rondaCreated = await requestTornoMs<any>(`/rondas-servicio`, {
       method: "POST",
-      body: { ruedaSolicitudId: ruedaSolicitud.id },
+      body: {
+        ruedaSolicitudId: ruedaSolicitud.id,
+        localidadId: options.localidadId ?? undefined,
+      },
     });
     ronda = rondaCreated.data;
+  } else if (ronda.id && options.localidadId && !ronda.localidadId) {
+    const updated = await requestTornoMs<any>(`/rondas-servicio/${ronda.id}`, {
+      method: "PATCH",
+      body: { localidadId: options.localidadId },
+    });
+    ronda = updated.data;
   }
 
   return { ruedaSolicitud, ronda };
@@ -205,4 +220,3 @@ export async function proxyToTornoMs(
 ) {
   return requestTornoMs<Json>(pathWithQuery, init);
 }
-

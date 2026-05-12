@@ -5,6 +5,9 @@ import { proxyToTornoMs } from "../../services/tornoMs/tornoMsClient";
 import { prisma } from "../../lib/prisma";
 
 const router = Router();
+const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
+const CLIENTE_ROLES = new Set(["CLIENTE"]);
+const TORNERO_ROLES = new Set(["TORNERO"]);
 
 // Todas las rutas de torno pasan por auth del API principal.
 router.use(authenticateAccess);
@@ -25,6 +28,55 @@ function buildTornoMsPath(rest: string) {
 function buildTornoMsUrl(rest: string) {
   const base = String(process.env.TORNO_MS_URL ?? "").replace(/\/+$/, "");
   return `${base}${buildTornoMsPath(rest)}`;
+}
+
+function canCancelTorneado(user?: AuthenticatedUser) {
+  return CANCELAR_TORNEADO_ROLES.has(String(user?.rol ?? "").toUpperCase());
+}
+
+function userRole(user?: AuthenticatedUser) {
+  return String(user?.rol ?? "").toUpperCase();
+}
+
+function isCliente(user?: AuthenticatedUser) {
+  return CLIENTE_ROLES.has(userRole(user));
+}
+
+function cancelTorneadoDeniedMessage(user?: AuthenticatedUser) {
+  return TORNERO_ROLES.has(userRole(user))
+    ? "No puedes cancelar el movimiento. Habla con tu supervisor."
+    : "Solo ADMINISTRADOR, COORDINADOR o SUPERVISOR pueden cancelar torneados";
+}
+
+function isCancelTorneadoRequest(method: string, rest: string, body: unknown) {
+  if (!["PATCH", "PUT", "POST"].includes(method.toUpperCase())) return false;
+  if (!body || typeof body !== "object") return false;
+
+  const status = String(
+    (body as { status?: unknown; estado?: unknown }).status ??
+      (body as { status?: unknown; estado?: unknown }).estado ??
+      ""
+  ).toUpperCase();
+  if (status !== "CANCELADO") return false;
+
+  const path = rest.split("?")[0];
+  return path.startsWith("/rondas-servicio/") || /^\/incidentes\/\d+\/ronda-status$/.test(path);
+}
+
+function hasEstadoPayload(body: unknown) {
+  if (!body || typeof body !== "object") return false;
+  return ["status", "estado", "inicio", "fin", "fechaInicio", "fechaFin"].some((key) =>
+    Object.prototype.hasOwnProperty.call(body, key)
+  );
+}
+
+function isTornoStateMutationRequest(method: string, rest: string, body: unknown) {
+  if (!["PATCH", "PUT", "POST"].includes(method.toUpperCase())) return false;
+  const path = rest.split("?")[0];
+  if (/^\/rondas-servicio\/\d+\/(iniciar|concluir)$/.test(path)) return true;
+  if (/^\/rondas-servicio\/\d+\/ejes\/\d+\/finalizar$/.test(path)) return true;
+  if (/^\/incidentes\/\d+\/ronda-status$/.test(path)) return true;
+  return path.startsWith("/rondas-servicio/") && hasEstadoPayload(body);
 }
 
 async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
@@ -111,12 +163,26 @@ router.all("/*", async (req, res) => {
     const target = buildTornoMsPath(rest);
 
     const user = (req as any).user as AuthenticatedUser | undefined;
+    if (isCliente(user) && isTornoStateMutationRequest(req.method, rest, req.body)) {
+      return res.status(403).json({
+        error: "No autorizado para modificar estados",
+        message: "CLIENTE no puede modificar estados del movimiento",
+      });
+    }
+
+    if (isCancelTorneadoRequest(req.method, rest, req.body) && !canCancelTorneado(user)) {
+      return res.status(403).json({
+        error: "No autorizado para cancelar torneados",
+        message: cancelTorneadoDeniedMessage(user),
+      });
+    }
 
     const result = await proxyToTornoMs(target, {
       method: req.method,
       body: req.method === "GET" || req.method === "DELETE" ? undefined : req.body,
       headers: {
         ...(user?.id ? { "x-user-id": String(user.id) } : {}),
+        ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
       },
     });
 

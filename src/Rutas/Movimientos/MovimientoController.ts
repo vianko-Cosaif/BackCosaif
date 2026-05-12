@@ -44,6 +44,59 @@ const medidaSchema = z.preprocess(
 );
 
 const wheelCountSchema = z.union([z.literal(4), z.literal(6), z.literal(8), z.literal(12)]);
+const CANCELAR_TORNEADO_ROLES = new Set(['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR']);
+const CLIENTE_ROLES = new Set(['CLIENTE']);
+const TORNERO_ROLES = new Set(['TORNERO']);
+
+function getRequestRole(req: Parameters<RequestHandler>[0]) {
+  return String((req as any).user?.rol ?? '').toUpperCase();
+}
+
+function esCliente(req: Parameters<RequestHandler>[0]) {
+  return CLIENTE_ROLES.has(getRequestRole(req));
+}
+
+function esTornero(req: Parameters<RequestHandler>[0]) {
+  return TORNERO_ROLES.has(getRequestRole(req));
+}
+
+function bloquearClienteEstadoMovimiento(req: Parameters<RequestHandler>[0], res: Parameters<RequestHandler>[1]) {
+  if (!esCliente(req)) return false;
+  res.status(403).json({
+    message: 'CLIENTE no puede modificar estados del movimiento',
+  });
+  return true;
+}
+
+function bloquearCancelacionNoPermitida(
+  req: Parameters<RequestHandler>[0],
+  res: Parameters<RequestHandler>[1],
+  movimiento?: { torno?: boolean | null }
+) {
+  const rol = String((req as any).user?.rol ?? '').toUpperCase();
+  if (CLIENTE_ROLES.has(rol)) {
+    res.status(403).json({ message: 'CLIENTE no puede modificar estados del movimiento' });
+    return true;
+  }
+  if (TORNERO_ROLES.has(rol)) {
+    res.status(403).json({ message: 'No puedes cancelar el movimiento. Habla con tu supervisor.' });
+    return true;
+  }
+  if (movimiento?.torno === true && !CANCELAR_TORNEADO_ROLES.has(rol)) {
+    res.status(403).json({
+      message: 'Solo ADMINISTRADOR, COORDINADOR o SUPERVISOR pueden cancelar torneados',
+    });
+    return true;
+  }
+  return false;
+}
+
+function bodyIntentaCambiarEstadoMovimiento(body: unknown) {
+  if (!body || typeof body !== 'object') return false;
+  return ['estado', 'status', 'finalizado', 'fechaInicio', 'fechaFin', 'fechaPausa'].some((key) =>
+    Object.prototype.hasOwnProperty.call(body, key)
+  );
+}
 
 const medidasTornoSchema = z.object({
   wheelCount: wheelCountSchema.optional(),
@@ -278,8 +331,18 @@ export class MovimientoController {
     if (operadorId !== undefined && typeof operadorId !== 'number') {
       return res.status(400).json({ message: 'operadorId debe ser numérico si se envía' });
     }
+    if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
+      if (estado === 'CANCELADO') {
+        const movimiento = await prisma.movimiento.findUnique({
+          where: { id },
+          select: { id: true, torno: true },
+        });
+        if (!movimiento) return res.status(404).json({ message: 'Movimiento no encontrado' });
+        if (bloquearCancelacionNoPermitida(req, res, movimiento)) return;
+      }
+
       const parseOptionalDate = (value?: string) => {
         if (!value) return undefined;
         const date = new Date(value);
@@ -313,8 +376,16 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
   const usuarioId = Number((req as any).user?.id || 0);
 
   if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+  if (bloquearClienteEstadoMovimiento(req, res)) return;
 
   try {
+    const movimiento = await prisma.movimiento.findUnique({
+      where: { id },
+      select: { id: true, torno: true },
+    });
+    if (!movimiento) return res.status(404).json({ message: 'Movimiento no encontrado' });
+    if (bloquearCancelacionNoPermitida(req, res, movimiento)) return;
+
     const mov = await MovimientoModel.cancelarMovimiento(id, razon, usuarioId || undefined);
     return res.status(200).json({ message: 'Movimiento cancelado y removido de la ronda', movimiento: mov });
   } catch (error: any) {
@@ -536,7 +607,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         const movimiento = await MovimientoModel.activarMovimientoTornoAgendado(agendado.id);
         let tornoMs: any = null;
         try {
-          tornoMs = await ensureSolicitudYRondaForMovimiento(agendado.id, scheduledMeasures);
+          tornoMs = await ensureSolicitudYRondaForMovimiento(agendado.id, scheduledMeasures, {
+            localidadId: agendado.localidadId,
+          });
         } catch (error: any) {
           log.error('Error registrando medidas/ronda en msTorno al activar agendado', {
             movId: agendado.id,
@@ -594,7 +667,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
 
       if (esViaParaServicioTorno) {
         try {
-          tornoMs = await ensureSolicitudYRondaForMovimiento(movimiento.id, medidasTorno!);
+          tornoMs = await ensureSolicitudYRondaForMovimiento(movimiento.id, medidasTorno!, {
+            localidadId: movimiento.localidadId,
+          });
         } catch (error: any) {
           // Si falla msTorno, cancelamos la creación del movimiento para que quede consistente.
           try {
@@ -726,7 +801,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const movimiento = await MovimientoModel.activarMovimientoTornoAgendado(agendado.id);
       let tornoMs: any = null;
       try {
-        tornoMs = await ensureSolicitudYRondaForMovimiento(agendado.id, scheduledMeta.medidasTorno);
+        tornoMs = await ensureSolicitudYRondaForMovimiento(agendado.id, scheduledMeta.medidasTorno, {
+          localidadId: agendado.localidadId,
+        });
       } catch (error: any) {
         log.error('Error registrando medidas/ronda en msTorno al activar agendado directo', {
           movId: agendado.id,
@@ -804,6 +881,13 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
       if (!actorId) return res.status(401).json({ error: 'No autenticado' });
 
       const rawBody = { ...(req.body ?? {}) } as Record<string, unknown>;
+      if (esCliente(req) && bodyIntentaCambiarEstadoMovimiento(rawBody)) {
+        return res.status(403).json({ error: 'CLIENTE no puede modificar estados del movimiento' });
+      }
+      if (esTornero(req) && String(rawBody.estado ?? rawBody.status ?? '').toUpperCase() === 'CANCELADO') {
+        return res.status(403).json({ error: 'No puedes cancelar el movimiento. Habla con tu supervisor.' });
+      }
+
       const medidasTornoRaw = rawBody.medidasTorno ?? rawBody.tornoMedidas ?? null;
       delete rawBody.medidasTorno;
       delete rawBody.tornoMedidas;
@@ -1339,6 +1423,7 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     if (!Number.isInteger(id) || typeof operadorId !== 'number') {
       return res.status(400).json({ message: 'Datos inválidos: id o operadorId faltante o incorrecto' });
     }
+    if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
       const movimiento = await MovimientoModel.iniciarMovimiento(id, operadorId);
@@ -1360,6 +1445,7 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
   static pausarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
       const movimiento = await MovimientoModel.pausarMovimiento(id);
@@ -1381,6 +1467,7 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
   static reanudarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
       const movimiento = await MovimientoModel.reanudarMovimiento(id);
@@ -1408,6 +1495,7 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
   static finalizarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
+    if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
       // Obtenemos el movimiento actual para leer origen+meta antes de finalizar

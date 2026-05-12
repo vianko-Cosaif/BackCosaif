@@ -9,6 +9,8 @@ import { guardarImagenesTorno } from "../../utils/tornoImagenes";
 import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import { incidenteTornoService, TornoIncidentDomainError } from "./incidenteTorno.service";
 
+const RONDA_FINAL_STATUSES = new Set(["CONCLUIDO", "CANCELADO"]);
+
 function handleDomainError(res: Response, error: unknown) {
   if (error instanceof TornoIncidentDomainError) {
     return fail(res, error.statusCode, error.message, error.details);
@@ -16,27 +18,29 @@ function handleDomainError(res: Response, error: unknown) {
   throw error;
 }
 
-async function rondaEstaCancelada(rondaServicioId?: number | null) {
-  if (!rondaServicioId) return false;
+async function getRondaNoModificableStatus(rondaServicioId?: number | null) {
+  if (!rondaServicioId) return null;
   const ronda = await prismaTorno.rondaServicio.findUnique({
     where: { id: rondaServicioId },
     select: { status: true },
   });
-  return ronda?.status === "CANCELADO";
+  return ronda?.status && RONDA_FINAL_STATUSES.has(ronda.status) ? ronda.status : null;
 }
 
-async function incidenteApuntaARondaCancelada(input: { rondaServicioId?: number | null }) {
-  return rondaEstaCancelada(input.rondaServicioId);
+async function incidenteApuntaARondaNoModificable(input: { rondaServicioId?: number | null }) {
+  return getRondaNoModificableStatus(input.rondaServicioId);
 }
 
 export async function listIncidentes(req: Request, res: Response) {
   const ruedaSolicitudIdRaw = req.query.ruedaSolicitudId?.toString();
   const rondaServicioIdRaw = req.query.rondaServicioId?.toString();
+  const localidadIdRaw = req.query.localidadId?.toString();
   const numeroLocomotoraRaw = req.query.numeroLocomotora?.toString() ?? req.query.locomotiveNumber?.toString();
 
   const where: Record<string, unknown> = {};
   if (ruedaSolicitudIdRaw) where.ruedaSolicitudId = parseIntParam(ruedaSolicitudIdRaw, "ruedaSolicitudId");
   if (rondaServicioIdRaw) where.rondaServicioId = parseIntParam(rondaServicioIdRaw, "rondaServicioId");
+  if (localidadIdRaw) where.localidadId = parseIntParam(localidadIdRaw, "localidadId");
   if (numeroLocomotoraRaw) where.numeroLocomotora = parseIntParam(numeroLocomotoraRaw, "numeroLocomotora");
   const pagination = getPagination(req);
   const [data, total] = await Promise.all([
@@ -63,8 +67,9 @@ export async function getIncidente(req: Request, res: Response) {
 
 export async function createIncidente(req: Request, res: Response) {
   const input = incidenteTornoCreateSchema.parse(req.body);
-  if (await incidenteApuntaARondaCancelada(input)) {
-    return fail(res, 409, "Ronda CANCELADO no puede modificarse");
+  const rondaStatus = await incidenteApuntaARondaNoModificable(input);
+  if (rondaStatus) {
+    return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
   }
 
   let data;
@@ -92,11 +97,13 @@ export async function updateIncidente(req: Request, res: Response) {
   const input = incidenteTornoUpdateSchema.parse(req.body);
   const current = await prismaTorno.incidenteTorno.findUnique({ where: { id } });
   if (!current) return fail(res, 404, "Not found");
-  if (await incidenteApuntaARondaCancelada(current)) {
-    return fail(res, 409, "Ronda CANCELADO no puede modificarse");
+  const currentRondaStatus = await incidenteApuntaARondaNoModificable(current);
+  if (currentRondaStatus) {
+    return fail(res, 409, `Ronda ${currentRondaStatus} no puede modificarse`);
   }
-  if (await incidenteApuntaARondaCancelada(input)) {
-    return fail(res, 409, "Ronda CANCELADO no puede modificarse");
+  const inputRondaStatus = await incidenteApuntaARondaNoModificable(input);
+  if (inputRondaStatus) {
+    return fail(res, 409, `Ronda ${inputRondaStatus} no puede modificarse`);
   }
 
   const { imagen1: _imagen1, imagen2: _imagen2, imagen3: _imagen3, ...domainInput } = input;
@@ -111,6 +118,7 @@ export async function updateIncidente(req: Request, res: Response) {
       ...domainInput,
       comentario: domainInput.comentario ?? undefined,
       atendidoPorId: domainInput.atendidoPorId ?? undefined,
+      localidadId: domainInput.localidadId ?? undefined,
       fechaAtencion: domainInput.fechaAtencion ?? undefined,
       fechaTerminacion: domainInput.fechaTerminacion ?? undefined,
       ruedaSolicitudId: domainInput.ruedaSolicitudId ?? undefined,
@@ -142,6 +150,13 @@ export async function resolveIncidente(req: Request, res: Response) {
     })
     .partial()
     .parse(req.body ?? {});
+  const current = await prismaTorno.incidenteTorno.findUnique({
+    where: { id },
+    select: { rondaServicioId: true },
+  });
+  if (!current) return fail(res, 404, "Incidente no encontrado");
+  const rondaStatus = await incidenteApuntaARondaNoModificable(current);
+  if (rondaStatus) return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
 
   try {
     const data = await incidenteTornoService.resolveParent(id, input);
@@ -163,21 +178,34 @@ export async function getResolutionSummary(req: Request, res: Response) {
 
 export async function deleteIncidente(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
+  const current = await prismaTorno.incidenteTorno.findUnique({
+    where: { id },
+    select: { rondaServicioId: true },
+  });
+  if (!current) return fail(res, 404, "Not found");
+  const rondaStatus = await incidenteApuntaARondaNoModificable(current);
+  if (rondaStatus) return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
   await prismaTorno.incidenteTorno.delete({ where: { id } });
   return ok(res, { ok: true });
 }
 
 export async function listHijos(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
-  const where = { incidenteTornoId: id };
+  const localidadIdRaw = req.query.localidadId?.toString();
+  const where: Record<string, unknown> = { incidenteTornoId: id };
+  if (localidadIdRaw) {
+    where.incidenteTorno = {
+      is: { localidadId: parseIntParam(localidadIdRaw, "localidadId") },
+    };
+  }
   const pagination = getPagination(req);
   const [data, total] = await Promise.all([
     prismaTorno.incidenteTornoHijo.findMany({
-      where,
+      where: where as never,
       orderBy: { id: "desc" },
       ...paginationArgs(pagination),
     }),
-    pagination.enabled ? prismaTorno.incidenteTornoHijo.count({ where }) : Promise.resolve(0),
+    pagination.enabled ? prismaTorno.incidenteTornoHijo.count({ where: where as never }) : Promise.resolve(0),
   ]);
   return respondPaginated(res, data, total, pagination);
 }
@@ -190,8 +218,9 @@ export async function createHijo(req: Request, res: Response) {
     select: { rondaServicioId: true },
   });
   if (!parent) return fail(res, 404, "Not found");
-  if (await incidenteApuntaARondaCancelada(parent)) {
-    return fail(res, 409, "Ronda CANCELADO no puede modificarse");
+  const rondaStatus = await incidenteApuntaARondaNoModificable(parent);
+  if (rondaStatus) {
+    return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
   }
 
   let data;
@@ -240,18 +269,13 @@ export async function updateRondaStatusFromIncidente(req: Request, res: Response
     return fail(res, 400, "Incidente sin ronda asociada");
   }
 
-  if (rondaServicio.status === "CANCELADO") {
-    return fail(res, 409, "Ronda CANCELADO no puede modificarse");
+  if (RONDA_FINAL_STATUSES.has(rondaServicio.status)) {
+    return fail(res, 409, `Ronda ${rondaServicio.status} no puede modificarse`);
   }
 
   if (input.status === "EN_PROCESO") {
     const torneroId = input.torneroId ?? rondaServicio.torneroId;
     if (!torneroId) return fail(res, 400, "torneroId requerido para EN_PROCESO");
-  }
-
-  if (input.status === "CONCLUIDO") {
-    const ruedasFinalId = input.ruedasFinalId ?? rondaServicio.ruedasFinalId;
-    if (!ruedasFinalId) return fail(res, 400, "ruedasFinalId requerido para CONCLUIDO");
   }
 
   const data = await prismaTorno.rondaServicio.update({

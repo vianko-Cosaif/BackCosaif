@@ -106,6 +106,7 @@ model RuedasFinal {
 model RondaServicio {
   id                      Int                 @id @default(autoincrement())
   ruedaSolicitudId        Int                 @unique
+  localidadId             Int?
   ruedasFinalId           Int?                @unique
   status                  EstadoRondaServicio @default(SOLICITADO)
   torneroId               Int?
@@ -124,6 +125,7 @@ model RondaServicio {
   canceladoPorIncidente IncidenteTorno?  @relation("RondaCanceladoPor", fields: [canceladoPorIncidenteId], references: [id], onDelete: SetNull)
 
   @@index([status])
+  @@index([localidadId])
   @@index([torneroId, status])
 }
 
@@ -141,16 +143,16 @@ model Nava {
 }
 
 model Cambio {
-  id            Int      @id @default(autoincrement())
-  localidadId   Int
-  numeroNavaja  Int
-  comentario    String?
-  creadoPorId   Int?
-  imagen1       String?
-  imagen2       String?
-  imagen3       String?
-  fechaCambio   DateTime @default(now())
-  createdAt     DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  localidadId  Int
+  numeroNavaja Int
+  comentario   String?
+  creadoPorId  Int?
+  imagen1      String?
+  imagen2      String?
+  imagen3      String?
+  fechaCambio  DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   nava Nava @relation(fields: [localidadId], references: [localidadId], onDelete: Cascade)
 
@@ -168,6 +170,7 @@ model IncidenteTorno {
   comentario         String?
   creadoPorId        Int
   atendidoPorId      Int?
+  localidadId        Int?
   numeroLocomotora   Int?
   imagen1            String?
   imagen2            String?
@@ -194,6 +197,7 @@ model IncidenteTorno {
   @@index([tipoFalla])
   @@index([creadoPorId])
   @@index([atendidoPorId])
+  @@index([localidadId])
   @@index([numeroLocomotora])
 }
 
