@@ -93,6 +93,16 @@ export type MedidasRuedaDraftInput = Partial<MedidasRuedaInput> & {
   wheelCount?: TornoWheelCount;
 };
 
+export type TornoAgendadoInput = {
+  locomotive: number;
+  tipo?: string;
+  localidad?: number | null;
+  idMovimiento: number;
+  fechaProgramada: string | Date;
+  fechaLimiteActivacion: string | Date;
+  activo?: boolean;
+};
+
 const MEDIDA_KEYS = [
   "l1",
   "r1",
@@ -212,6 +222,73 @@ export async function upsertRuedaSolicitudPorMovimiento(
     body: medidas,
   });
   return updated.data;
+}
+
+export async function crearTornoAgendado(input: TornoAgendadoInput) {
+  const created = await requestTornoMs<any>(`/torno/agendados`, {
+    method: "POST",
+    body: {
+      ...input,
+      tipo: input.tipo ?? "TORNO",
+      fechaProgramada:
+        input.fechaProgramada instanceof Date ? input.fechaProgramada.toISOString() : input.fechaProgramada,
+      fechaLimiteActivacion:
+        input.fechaLimiteActivacion instanceof Date
+          ? input.fechaLimiteActivacion.toISOString()
+          : input.fechaLimiteActivacion,
+    },
+  });
+  return created.data;
+}
+
+export async function buscarTornoAgendadoActivable(params: {
+  locomotive: number;
+  tipo?: string;
+  localidad?: number | null;
+}) {
+  const query = new URLSearchParams({
+    locomotive: String(params.locomotive),
+    tipo: params.tipo ?? "TORNO",
+  });
+  if (params.localidad) query.set("localidad", String(params.localidad));
+
+  const result = await requestTornoMs<any>(`/torno/agendados/activable?${query.toString()}`, {
+    method: "GET",
+  });
+  return result.data;
+}
+
+export async function listarTornoAgendados(params: {
+  locomotive?: number;
+  tipo?: string;
+  localidad?: number | null;
+  activo?: boolean;
+} = {}) {
+  const query = new URLSearchParams();
+  if (params.locomotive) query.set("locomotive", String(params.locomotive));
+  if (params.tipo) query.set("tipo", params.tipo);
+  if (params.localidad) query.set("localidad", String(params.localidad));
+  if (params.activo !== undefined) query.set("activo", String(params.activo));
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const result = await requestTornoMs<any>(`/torno/agendados${suffix}`, {
+    method: "GET",
+  });
+  return result.data;
+}
+
+export async function eliminarTornoAgendadoPorMovimiento(idMovimiento: number) {
+  const result = await requestTornoMs<any>(`/torno/agendados/${idMovimiento}`, {
+    method: "DELETE",
+  });
+  return result.data;
+}
+
+export async function limpiarTornoAgendadosVencidosMs() {
+  const result = await requestTornoMs<any>(`/torno/agendados/vencidos`, {
+    method: "DELETE",
+  });
+  return result.data;
 }
 
 export async function proxyToTornoMs(

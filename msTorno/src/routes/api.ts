@@ -9,6 +9,7 @@ import { incidenteTornoRouter } from "../modules/incidenteTorno/incidenteTorno.r
 import { incidenteTornoHijoRouter } from "../modules/incidenteTornoHijo/incidenteTornoHijo.routes";
 import { navaRouter } from "../modules/nava/nava.routes";
 import { cambioRouter } from "../modules/cambio/cambio.routes";
+import { tornoAgendadoRouter } from "../modules/tornoAgendado/tornoAgendado.routes";
 import { imagenesRouter } from "./imagenes";
 
 export const apiRouter = Router();
@@ -18,6 +19,7 @@ apiRouter.use("/ruedas-finales", ruedasFinalRouter);
 apiRouter.use("/rondas-servicio", rondaServicioRouter);
 apiRouter.use("/torno-g", tornoGRouter);
 apiRouter.use("/torno-ruedas", tornoRuedaTrabajoRouter);
+apiRouter.use("/torno/agendados", tornoAgendadoRouter);
 apiRouter.use("/incidentes", incidenteTornoRouter);
 apiRouter.use("/incidentes-hijos", incidenteTornoHijoRouter);
 apiRouter.use("/navajas", navaRouter);

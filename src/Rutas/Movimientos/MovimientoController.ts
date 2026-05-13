@@ -32,8 +32,13 @@ import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimient
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { readMovimientoPagination } from './movimiento.pagination';
 import {
+  buscarTornoAgendadoActivable,
+  crearTornoAgendado,
+  eliminarTornoAgendadoPorMovimiento,
   ensureSolicitudYRondaForMovimiento,
   getRuedaSolicitudPorMovimiento,
+  limpiarTornoAgendadosVencidosMs,
+  listarTornoAgendados,
   normalizeMedidasRuedaInput,
   upsertRuedaSolicitudPorMovimiento,
 } from '../../services/tornoMs/tornoMsClient';
@@ -157,9 +162,14 @@ const canActivateScheduledTorno = (movimiento: { fechaSolicitud?: Date | string 
   return new Date() <= limit;
 };
 
-const getScheduledPayload = (movimiento: any) => {
+const getScheduledPayload = (movimiento: any, helper?: any) => {
   const meta = decodeTornoAgendadoMeta(movimiento?.instrucciones);
-  const fechaProgramada = meta?.fechaProgramada ?? movimiento?.fechaSolicitud?.toISOString?.() ?? movimiento?.fechaSolicitud ?? null;
+  const fechaProgramada =
+    helper?.fechaProgramada ??
+    meta?.fechaProgramada ??
+    movimiento?.fechaSolicitud?.toISOString?.() ??
+    movimiento?.fechaSolicitud ??
+    null;
   return {
     id: movimiento?.id,
     locomotiveNumber: movimiento?.locomotiveNumber,
@@ -174,13 +184,65 @@ const getScheduledPayload = (movimiento: any) => {
     posicionChimenea: movimiento?.posicionChimenea,
     polo: movimiento?.polo,
     fechaProgramada,
-    fechaLimiteActivacion: meta?.fechaLimiteActivacion ?? (fechaProgramada ? addMinutes(new Date(fechaProgramada), 10).toISOString() : null),
-    medidasTorno: meta?.medidasTorno ?? null,
+    fechaLimiteActivacion:
+      helper?.fechaLimiteActivacion ??
+      meta?.fechaLimiteActivacion ??
+      (fechaProgramada ? addMinutes(new Date(fechaProgramada), 10).toISOString() : null),
+    medidasTorno: helper?.medidasTorno ?? helper?.ruedaSolicitud ?? meta?.medidasTorno ?? null,
     instrucciones: movimiento?.instrucciones ?? null,
   };
 };
 
+const extractMedidasFromRuedaSolicitud = (ruedaSolicitud: any): ReturnType<typeof normalizeMedidasRuedaInput> | null => {
+  if (!ruedaSolicitud) return null;
+  const draft = {
+    l1: ruedaSolicitud.l1,
+    l2: ruedaSolicitud.l2,
+    l3: ruedaSolicitud.l3,
+    l4: ruedaSolicitud.l4,
+    l5: ruedaSolicitud.l5,
+    l6: ruedaSolicitud.l6,
+    r1: ruedaSolicitud.r1,
+    r2: ruedaSolicitud.r2,
+    r3: ruedaSolicitud.r3,
+    r4: ruedaSolicitud.r4,
+    r5: ruedaSolicitud.r5,
+    r6: ruedaSolicitud.r6,
+  };
+  try {
+    return normalizeMedidasRuedaInput(draft);
+  } catch {
+    return null;
+  }
+};
+
 const cleanupExpiredTornoSchedules = async () => {
+  try {
+    const expiredMs = await limpiarTornoAgendadosVencidosMs();
+    const items = Array.isArray(expiredMs?.items) ? expiredMs.items : [];
+    let deleted = 0;
+
+    for (const item of items) {
+      const idMovimiento = Number(item?.idMovimiento);
+      if (!Number.isInteger(idMovimiento) || idMovimiento <= 0) continue;
+      try {
+        await MovimientoModel.eliminarMovimiento(idMovimiento);
+        deleted += 1;
+      } catch (error: any) {
+        log.error('No se pudo eliminar movimiento agendado vencido desde índice msTorno', {
+          movId: idMovimiento,
+          err: error?.message,
+        });
+      }
+    }
+
+    return { found: items.length, deleted, source: 'msTorno' };
+  } catch (error: any) {
+    log.error('No se pudo limpiar índice TornoAgendado en msTorno; usando limpieza legacy', {
+      err: error?.message,
+    });
+  }
+
   const fechaMaxima = new Date(Date.now() - TORNO_AGENDADO_WINDOW_MS);
   const vencidos = await prisma.movimiento.findMany({
     where: {
@@ -196,6 +258,11 @@ const cleanupExpiredTornoSchedules = async () => {
   for (const mov of vencidos) {
     try {
       await MovimientoModel.eliminarMovimiento(mov.id);
+      try {
+        await eliminarTornoAgendadoPorMovimiento(mov.id);
+      } catch (msError: any) {
+        log.error('No se pudo limpiar índice TornoAgendado legacy', { movId: mov.id, err: msError?.message });
+      }
       deleted += 1;
     } catch (error: any) {
       log.error('No se pudo eliminar solicitud agendada vencida', { movId: mov.id, err: error?.message });
@@ -556,6 +623,15 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         let tornoMs: any = null;
         try {
           tornoMs = await upsertRuedaSolicitudPorMovimiento(movimiento.id, medidasTorno!);
+          const tornoAgendado = await crearTornoAgendado({
+            locomotive: Number(movimiento.locomotiveNumber),
+            tipo: 'TORNO',
+            localidad: Number(movimiento.localidadId) || null,
+            idMovimiento: movimiento.id,
+            fechaProgramada,
+            fechaLimiteActivacion,
+          });
+          tornoMs = { ruedaSolicitud: tornoMs, tornoAgendado };
         } catch (error: any) {
           try {
             await MovimientoModel.eliminarMovimiento(movimiento.id);
@@ -599,11 +675,17 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         }
         if (!canActivateScheduledTorno(agendado)) {
           await MovimientoModel.eliminarMovimiento(agendado.id);
+          await eliminarTornoAgendadoPorMovimiento(agendado.id).catch((error: any) =>
+            log.error('No se pudo eliminar índice TornoAgendado vencido', { movId: agendado.id, err: error?.message })
+          );
           return res.status(410).json({ message: 'La ventana de activacion de la solicitud agendada vencio.' });
         }
 
         const scheduledMeta = decodeTornoAgendadoMeta(agendado.instrucciones);
-        const scheduledMeasures = scheduledMeta?.medidasTorno ?? medidasTorno!;
+        const scheduledMeasures =
+          scheduledMeta?.medidasTorno ??
+          extractMedidasFromRuedaSolicitud(await getRuedaSolicitudPorMovimiento(agendado.id)) ??
+          medidasTorno!;
         const movimiento = await MovimientoModel.activarMovimientoTornoAgendado(agendado.id);
         let tornoMs: any = null;
         try {
@@ -621,6 +703,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
             movimiento,
           });
         }
+        await eliminarTornoAgendadoPorMovimiento(agendado.id).catch((error: any) =>
+          log.error('No se pudo eliminar índice TornoAgendado tras activar', { movId: agendado.id, err: error?.message })
+        );
         return res.status(200).json({
           message: 'Solicitud agendada activada.',
           activatedScheduled: true,
@@ -630,31 +715,57 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       }
 
       if (esViaParaServicioTorno && !ignoreScheduledMatch) {
-        const candidatos = await prisma.movimiento.findMany({
-          where: {
-            torno: true,
-            estado: 'AGENDADO' as any,
-            finalizado: false,
-            locomotiveNumber: Number(raw.locomotiveNumber),
-          },
-          orderBy: { fechaSolicitud: 'asc' },
-          take: 5,
-        });
-        const compatible = candidatos.find(canActivateScheduledTorno);
-        const vencidos = candidatos.filter((mov) => !canActivateScheduledTorno(mov));
-        for (const vencido of vencidos) {
-          try {
-            await MovimientoModel.eliminarMovimiento(vencido.id);
-          } catch (error: any) {
-            log.error('No se pudo eliminar solicitud agendada vencida', { movId: vencido.id, err: error?.message });
-          }
-        }
-        if (compatible) {
-          return res.status(409).json({
-            message: 'Existe una solicitud agendada de torno activable para esta locomotora.',
-            requiresScheduledConfirmation: true,
-            scheduledMovement: getScheduledPayload(compatible),
+        await cleanupExpiredTornoSchedules();
+        try {
+          const helperResult = await buscarTornoAgendadoActivable({
+            locomotive: Number(raw.locomotiveNumber),
+            tipo: 'TORNO',
+            localidad: Number((data as any).localidadId) || null,
           });
+          const helper = helperResult?.scheduled ?? null;
+          const idMovimiento = Number(helper?.idMovimiento);
+          if (helperResult?.activable && Number.isInteger(idMovimiento) && idMovimiento > 0) {
+            const compatible = await prisma.movimiento.findUnique({
+              where: { id: idMovimiento },
+              include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+            });
+            if (compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado) {
+              return res.status(409).json({
+                message: 'Existe una solicitud agendada de torno activable para esta locomotora.',
+                requiresScheduledConfirmation: true,
+                scheduledMovement: getScheduledPayload(compatible, helper),
+              });
+            }
+          }
+        } catch (error: any) {
+          log.error('No se pudo consultar índice TornoAgendado; usando búsqueda legacy', { err: error?.message });
+          const candidatos = await prisma.movimiento.findMany({
+            where: {
+              torno: true,
+              estado: 'AGENDADO' as any,
+              finalizado: false,
+              locomotiveNumber: Number(raw.locomotiveNumber),
+            },
+            orderBy: { fechaSolicitud: 'asc' },
+            take: 5,
+          });
+          const compatible = candidatos.find(canActivateScheduledTorno);
+          const vencidos = candidatos.filter((mov) => !canActivateScheduledTorno(mov));
+          for (const vencido of vencidos) {
+            try {
+              await MovimientoModel.eliminarMovimiento(vencido.id);
+              await eliminarTornoAgendadoPorMovimiento(vencido.id).catch(() => undefined);
+            } catch (deleteError: any) {
+              log.error('No se pudo eliminar solicitud agendada vencida', { movId: vencido.id, err: deleteError?.message });
+            }
+          }
+          if (compatible) {
+            return res.status(409).json({
+              message: 'Existe una solicitud agendada de torno activable para esta locomotora.',
+              requiresScheduledConfirmation: true,
+              scheduledMovement: getScheduledPayload(compatible),
+            });
+          }
         }
       }
 
@@ -726,6 +837,34 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         return res.status(400).json({ message: 'locomotiveNumber es requerido y debe ser numerico.' });
       }
 
+      const localidadRaw = Number(req.query.localidadId ?? req.query.localidad);
+      try {
+        const helperResult = await buscarTornoAgendadoActivable({
+          locomotive: locomotiveNumber,
+          tipo: 'TORNO',
+          localidad: Number.isFinite(localidadRaw) && localidadRaw > 0 ? localidadRaw : null,
+        });
+        const helper = helperResult?.scheduled ?? null;
+        const idMovimiento = Number(helper?.idMovimiento);
+        if (helperResult?.activable && Number.isInteger(idMovimiento) && idMovimiento > 0) {
+          const compatible = await prisma.movimiento.findUnique({
+            where: { id: idMovimiento },
+            include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+          });
+          if (compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado) {
+            return res.status(200).json({
+              activable: true,
+              scheduledMovement: getScheduledPayload(compatible, helper),
+            });
+          }
+          await eliminarTornoAgendadoPorMovimiento(idMovimiento).catch((error: any) =>
+            log.error('No se pudo limpiar índice TornoAgendado huérfano', { movId: idMovimiento, err: error?.message })
+          );
+        }
+      } catch (error: any) {
+        log.error('No se pudo consultar índice TornoAgendado; usando búsqueda legacy', { err: error?.message });
+      }
+
       const candidatos = await prisma.movimiento.findMany({
         where: {
           torno: true,
@@ -736,15 +875,10 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         orderBy: { fechaSolicitud: 'asc' },
         take: 5,
       });
-
       const compatible = candidatos.find(canActivateScheduledTorno);
-      if (!compatible) {
-        return res.status(200).json({ activable: false, scheduledMovement: null });
-      }
-
       return res.status(200).json({
-        activable: true,
-        scheduledMovement: getScheduledPayload(compatible),
+        activable: Boolean(compatible),
+        scheduledMovement: compatible ? getScheduledPayload(compatible) : null,
       });
     } catch (error: any) {
       log.error('Error al buscar solicitud agendada activable de torno', { error, query: req.query });
@@ -755,6 +889,35 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
   static listarTornoAgendadosPendientes: RequestHandler = async (_req, res) => {
     try {
       await cleanupExpiredTornoSchedules();
+      try {
+        const helperResult = await listarTornoAgendados({ tipo: 'TORNO', activo: true });
+        const helpers = Array.isArray(helperResult?.items) ? helperResult.items : [];
+        const ids = helpers
+          .map((item: any) => Number(item?.idMovimiento))
+          .filter((id: number) => Number.isInteger(id) && id > 0);
+        if (ids.length) {
+          const movimientos = await prisma.movimiento.findMany({
+            where: {
+              id: { in: ids },
+              torno: true,
+              estado: 'AGENDADO' as any,
+              finalizado: false,
+            },
+            include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+          });
+          const byId = new Map(movimientos.map((mov) => [mov.id, mov]));
+          const items = helpers
+            .map((helper: any) => {
+              const movimiento = byId.get(Number(helper?.idMovimiento));
+              return movimiento ? getScheduledPayload(movimiento, helper) : null;
+            })
+            .filter(Boolean);
+          return res.status(200).json({ items });
+        }
+      } catch (error: any) {
+        log.error('No se pudo listar índice TornoAgendado; usando búsqueda legacy', { err: error?.message });
+      }
+
       const candidatos = await prisma.movimiento.findMany({
         where: {
           torno: true,
@@ -790,18 +953,23 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       }
       if (!canActivateScheduledTorno(agendado)) {
         await MovimientoModel.eliminarMovimiento(agendado.id);
+        await eliminarTornoAgendadoPorMovimiento(agendado.id).catch((error: any) =>
+          log.error('No se pudo eliminar índice TornoAgendado vencido', { movId: agendado.id, err: error?.message })
+        );
         return res.status(410).json({ message: 'La ventana de activacion de la solicitud agendada vencio.' });
       }
 
       const scheduledMeta = decodeTornoAgendadoMeta(agendado.instrucciones);
-      if (!scheduledMeta?.medidasTorno) {
+      const scheduledMeasures =
+        scheduledMeta?.medidasTorno ?? extractMedidasFromRuedaSolicitud(await getRuedaSolicitudPorMovimiento(agendado.id));
+      if (!scheduledMeasures) {
         return res.status(409).json({ message: 'La solicitud agendada no contiene medidas de torno precargadas.' });
       }
 
       const movimiento = await MovimientoModel.activarMovimientoTornoAgendado(agendado.id);
       let tornoMs: any = null;
       try {
-        tornoMs = await ensureSolicitudYRondaForMovimiento(agendado.id, scheduledMeta.medidasTorno, {
+        tornoMs = await ensureSolicitudYRondaForMovimiento(agendado.id, scheduledMeasures, {
           localidadId: agendado.localidadId,
         });
       } catch (error: any) {
@@ -815,6 +983,12 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           movimiento,
         });
       }
+      await eliminarTornoAgendadoPorMovimiento(agendado.id).catch((error: any) =>
+        log.error('No se pudo eliminar índice TornoAgendado tras activación directa', {
+          movId: agendado.id,
+          err: error?.message,
+        })
+      );
 
       return res.status(200).json({
         message: 'Solicitud agendada activada.',
