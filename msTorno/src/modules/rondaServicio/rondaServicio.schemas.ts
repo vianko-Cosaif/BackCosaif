@@ -1,27 +1,28 @@
 import { z } from "zod";
 
 const estadoRondaSchema = z.enum(["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETENIDO", "CANCELADO"]);
+const idSchema = z.coerce.number().int();
 
 export const rondaServicioCreateSchema = z.object({
-  ruedaSolicitudId: z.number().int(),
-  localidadId: z.number().int().optional().nullable(),
+  ruedaSolicitudId: idSchema,
+  localidadId: idSchema.optional().nullable(),
   // Al crearse normalmente debe quedar SOLICITADO y sin tornero.
   status: z.literal("SOLICITADO").optional(),
 });
 
 export const rondaServicioUpdateSchema = z.object({
   status: estadoRondaSchema.optional(),
-  torneroId: z.number().int().optional().nullable(),
-  localidadId: z.number().int().optional().nullable(),
+  torneroId: idSchema.optional().nullable(),
+  localidadId: idSchema.optional().nullable(),
   inicio: z.coerce.date().optional().nullable(),
   fin: z.coerce.date().optional().nullable(),
-  ruedasFinalId: z.number().int().optional().nullable(),
-  detenidoPorIncidenteId: z.number().int().optional().nullable(),
-  canceladoPorIncidenteId: z.number().int().optional().nullable(),
+  ruedasFinalId: idSchema.optional().nullable(),
+  detenidoPorIncidenteId: idSchema.optional().nullable(),
+  canceladoPorIncidenteId: idSchema.optional().nullable(),
 });
 
 export const rondaServicioIniciarSchema = z.object({
-  torneroId: z.number().int(),
+  torneroId: idSchema,
   inicio: z.coerce.date().optional().nullable(),
 });
 
@@ -32,6 +33,6 @@ export const rondaServicioFinalizarEjeSchema = z.object({
 });
 
 export const rondaServicioConcluirSchema = z.object({
-  ruedasFinalId: z.number().int().optional().nullable(),
+  ruedasFinalId: idSchema.optional().nullable(),
   fin: z.coerce.date().optional().nullable(),
 });

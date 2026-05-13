@@ -1,9 +1,10 @@
 import { z } from "zod";
 
 const estadoHijoSchema = z.enum(["EN_PROCESO", "RESUELTO"]);
+const idSchema = z.coerce.number().int();
 
 export const incidenteTornoHijoCreateSchema = z.object({
-  incidenteTornoId: z.number().int(),
+  incidenteTornoId: idSchema,
   status: estadoHijoSchema.optional(),
   resuelto: z.boolean().optional(),
   comentario: z.string().optional().nullable(),
@@ -15,4 +16,3 @@ export const incidenteTornoHijoCreateSchema = z.object({
 export const incidenteTornoHijoUpdateSchema = incidenteTornoHijoCreateSchema.partial().omit({
   incidenteTornoId: true,
 });
-

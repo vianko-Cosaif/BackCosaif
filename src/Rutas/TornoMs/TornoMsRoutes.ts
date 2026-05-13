@@ -7,7 +7,7 @@ import { prisma } from "../../lib/prisma";
 const router = Router();
 const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
 const CLIENTE_ROLES = new Set(["CLIENTE"]);
-const TORNERO_ROLES = new Set(["TORNERO"]);
+const TORNERO_ROLES = new Set(["TORNO", "TORNERO"]);
 
 // Todas las rutas de torno pasan por auth del API principal.
 router.use(authenticateAccess);
@@ -77,6 +77,47 @@ function isTornoStateMutationRequest(method: string, rest: string, body: unknown
   if (/^\/rondas-servicio\/\d+\/ejes\/\d+\/finalizar$/.test(path)) return true;
   if (/^\/incidentes\/\d+\/ronda-status$/.test(path)) return true;
   return path.startsWith("/rondas-servicio/") && hasEstadoPayload(body);
+}
+
+function withTornoIncidentActorDefaults(
+  method: string,
+  rest: string,
+  body: unknown,
+  user?: AuthenticatedUser
+) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return body;
+  const userId = user?.id;
+  if (!userId) return body;
+
+  const upperMethod = method.toUpperCase();
+  const path = rest.split("?")[0];
+  const nextBody = body as Record<string, unknown>;
+
+  if (upperMethod === "POST" && path === "/incidentes") {
+    return {
+      ...nextBody,
+      creadoPorId: nextBody.creadoPorId ?? userId,
+    };
+  }
+
+  const isResolveIncidentRequest =
+    path.endsWith("/resolver") ||
+    String(nextBody.status ?? nextBody.estado ?? "").toUpperCase() === "RESUELTO" ||
+    nextBody.resuelto === true ||
+    nextBody.fechaTerminacion != null;
+
+  if (
+    ["PATCH", "PUT", "POST"].includes(upperMethod) &&
+    /^\/incidentes\/\d+(?:\/resolver)?$/.test(path) &&
+    isResolveIncidentRequest
+  ) {
+    return {
+      ...nextBody,
+      atendidoPorId: nextBody.atendidoPorId ?? userId,
+    };
+  }
+
+  return body;
 }
 
 async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
@@ -179,7 +220,10 @@ router.all("/*", async (req, res) => {
 
     const result = await proxyToTornoMs(target, {
       method: req.method,
-      body: req.method === "GET" || req.method === "DELETE" ? undefined : req.body,
+      body:
+        req.method === "GET" || req.method === "DELETE"
+          ? undefined
+          : withTornoIncidentActorDefaults(req.method, rest, req.body, user),
       headers: {
         ...(user?.id ? { "x-user-id": String(user.id) } : {}),
         ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
