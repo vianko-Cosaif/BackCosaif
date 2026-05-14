@@ -3,6 +3,7 @@ import { authenticateAccess } from "../../auth/authenticateAccess";
 import type { AuthenticatedUser } from "../../types/auth";
 import { proxyToTornoMs } from "../../services/tornoMs/tornoMsClient";
 import { prisma } from "../../lib/prisma";
+import { MovimientoWriteService } from "../../models/Movimientos/movimientoWriteService";
 
 const router = Router();
 const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
@@ -77,6 +78,55 @@ function isTornoStateMutationRequest(method: string, rest: string, body: unknown
   if (/^\/rondas-servicio\/\d+\/ejes\/\d+\/finalizar$/.test(path)) return true;
   if (/^\/incidentes\/\d+\/ronda-status$/.test(path)) return true;
   return path.startsWith("/rondas-servicio/") && hasEstadoPayload(body);
+}
+
+function isStartTorneadoRequest(method: string, rest: string) {
+  return method.toUpperCase() === "POST" && /^\/rondas-servicio\/\d+\/iniciar$/.test(rest.split("?")[0]);
+}
+
+function getMovimientoIdFromTornoStartResponse(data: unknown) {
+  if (!data || typeof data !== "object") return null;
+  const source = data as Record<string, any>;
+  const raw =
+    source?.ruedaSolicitud?.movimientoId ??
+    source?.movimientoId ??
+    source?.tornoG?.ruedaSolicitud?.movimientoId ??
+    null;
+  const numeric = Number(raw);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function getInicioFromTornoStartResponse(data: unknown, body: unknown) {
+  const source = data && typeof data === "object" ? (data as Record<string, any>) : {};
+  const bodySource = body && typeof body === "object" ? (body as Record<string, any>) : {};
+  const raw =
+    source.inicio ??
+    source.tornoG?.fechaInicio ??
+    bodySource.inicio ??
+    bodySource.fechaInicio ??
+    null;
+  const parsed = raw ? new Date(raw) : new Date();
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+async function concludeMovimientoForStartedTorneado(data: unknown, body: unknown) {
+  const movimientoId = getMovimientoIdFromTornoStartResponse(data);
+  if (movimientoId == null) return;
+
+  const inicio = getInicioFromTornoStartResponse(data, body);
+  const fin = new Date(inicio.getTime() + 10 * 60 * 1000);
+
+  const movimiento = await prisma.movimiento.findUnique({
+    where: { id: movimientoId },
+    select: { id: true, torno: true, estado: true, finalizado: true },
+  });
+  if (!movimiento || movimiento.torno !== true) return;
+  if (movimiento.finalizado || ["CONCLUIDO", "CANCELADO"].includes(String(movimiento.estado))) return;
+
+  await MovimientoWriteService.actualizarEstadoServicio(movimientoId, "CONCLUIDO", {
+    fechaInicio: inicio,
+    fechaFin: fin,
+  });
 }
 
 function withTornoIncidentActorDefaults(
@@ -232,6 +282,10 @@ router.all("/*", async (req, res) => {
 
     if (isHistorialRondasRequest(req.method, rest)) {
       result.data = (await enrichHistorialWithLocomotora(result.data)) as typeof result.data;
+    }
+
+    if (result.status >= 200 && result.status < 300 && isStartTorneadoRequest(req.method, rest)) {
+      await concludeMovimientoForStartedTorneado(result.data, req.body);
     }
 
     return res.status(result.status).send(result.data);
