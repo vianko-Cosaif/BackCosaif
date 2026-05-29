@@ -26,6 +26,12 @@ export const rondaServicioIniciarSchema = z.object({
   inicio: z.coerce.date().optional().nullable(),
 });
 
+export const rondaServicioIniciarEjeSchema = z.object({
+  posicion: z.coerce.number().int().min(1).max(6),
+  lados: z.array(z.enum(["L", "R"])).optional(),
+  fechaInicio: z.coerce.date().optional().nullable(),
+});
+
 export const rondaServicioFinalizarEjeSchema = z.object({
   posicion: z.coerce.number().int().min(1).max(6),
   lados: z.array(z.enum(["L", "R"])).optional(),
@@ -35,4 +41,9 @@ export const rondaServicioFinalizarEjeSchema = z.object({
 export const rondaServicioConcluirSchema = z.object({
   ruedasFinalId: idSchema.optional().nullable(),
   fin: z.coerce.date().optional().nullable(),
+});
+
+export const rondaServicioCancelarExternoSchema = z.object({
+  fin: z.coerce.date().optional().nullable(),
+  razon: z.string().trim().max(500).optional().nullable(),
 });

@@ -4,9 +4,11 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
 import {
+  rondaServicioCancelarExternoSchema,
   rondaServicioConcluirSchema,
   rondaServicioCreateSchema,
   rondaServicioFinalizarEjeSchema,
+  rondaServicioIniciarEjeSchema,
   rondaServicioIniciarSchema,
   rondaServicioUpdateSchema,
 } from "./rondaServicio.schemas";
@@ -53,6 +55,11 @@ function getActiveWheelPositions(ruedaSolicitud: Record<string, unknown>) {
     });
   }
   return active;
+}
+
+function calculateDurationSeconds(start: Date | null | undefined, end: Date) {
+  if (!start) return 0;
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000));
 }
 
 async function ensureTornoGForRonda(
@@ -142,7 +149,11 @@ export async function listRondasServicio(req: Request, res: Response) {
     prismaTorno.rondaServicio.findMany({
       where: where as never,
       orderBy: { id: "desc" },
-      include: { tornoG: true },
+      include: {
+        ruedaSolicitud: true,
+        ruedasFinal: true,
+        tornoG: { include: { detalleRuedas: true } },
+      },
       ...paginationArgs(pagination),
     }),
     pagination.enabled ? prismaTorno.rondaServicio.count({ where: where as never }) : Promise.resolve(0),
@@ -311,6 +322,69 @@ export async function updateRondaServicio(req: Request, res: Response) {
   return ok(res, data);
 }
 
+export async function cancelarRondaServicioExterna(req: Request, res: Response) {
+  const id = parseIntParam(req.params.id, "id");
+  const input = rondaServicioCancelarExternoSchema.parse(req.body ?? {});
+  const fin = input.fin ?? new Date();
+
+  const data = await prismaTorno.$transaction(async (tx) => {
+    const current = await tx.rondaServicio.findUnique({
+      where: { id },
+      include: {
+        ruedaSolicitud: true,
+        ruedasFinal: true,
+        incidentes: true,
+        tornoG: { include: { detalleRuedas: true } },
+      },
+    });
+    if (!current) throw new Error("RondaServicio no encontrada");
+
+    if (isRondaFinal(current.status)) {
+      return current;
+    }
+
+    const ronda = await tx.rondaServicio.update({
+      where: { id },
+      data: {
+        status: "CANCELADO",
+        fin,
+      },
+      include: {
+        ruedaSolicitud: true,
+        ruedasFinal: true,
+        incidentes: true,
+      },
+    });
+
+    let tornoG = current.tornoG;
+    if (tornoG?.id) {
+      await tx.tornoRuedaTrabajo.updateMany({
+        where: {
+          tornoGId: tornoG.id,
+          estado: "EN_PROCESO",
+        },
+        data: {
+          estado: "PAUSADO",
+          fechaFin: fin,
+        },
+      });
+
+      tornoG = await tx.tornoG.update({
+        where: { id: tornoG.id },
+        data: {
+          estado: "PAUSADO",
+          fechaFin: fin,
+        },
+        include: { detalleRuedas: true },
+      });
+    }
+
+    return { ...ronda, tornoG };
+  });
+
+  return ok(res, data);
+}
+
 export async function iniciarRondaServicio(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const input = rondaServicioIniciarSchema.parse(req.body);
@@ -349,6 +423,83 @@ export async function iniciarRondaServicio(req: Request, res: Response) {
   return ok(res, data);
 }
 
+export async function iniciarEjeRondaServicio(req: Request, res: Response) {
+  const id = parseIntParam(req.params.id, "id");
+  const body = rondaServicioIniciarEjeSchema.parse({
+    ...req.body,
+    posicion: req.params.posicion ?? req.body?.posicion,
+  });
+  const fechaInicio = body.fechaInicio ?? new Date();
+
+  const data = await prismaTorno.$transaction(async (tx) => {
+    const ronda = await tx.rondaServicio.findUnique({
+      where: { id },
+      include: { tornoG: { include: { detalleRuedas: true } }, ruedaSolicitud: true },
+    });
+    if (!ronda) throw new Error("RondaServicio no encontrada");
+    if (!ronda.tornoG) throw new Error("Torneado no iniciado");
+    if (ronda.status === "CANCELADO" || ronda.status === "CONCLUIDO") {
+      throw new Error(`Ronda ${ronda.status} no puede modificar ejes`);
+    }
+
+    const requestedSides = body.lados?.length ? body.lados : (["L", "R"] as const);
+    const updatedIds: number[] = [];
+
+    for (const lado of requestedSides) {
+      const existing = await tx.tornoRuedaTrabajo.findUnique({
+        where: {
+          tornoGId_lado_posicion: {
+            tornoGId: ronda.tornoG.id,
+            lado,
+            posicion: body.posicion,
+          },
+        },
+      });
+
+      if (existing?.estado === "TERMINADO") {
+        updatedIds.push(existing.id);
+        continue;
+      }
+
+      const work = existing
+        ? await tx.tornoRuedaTrabajo.update({
+            where: { id: existing.id },
+            data: {
+              estado: "EN_PROCESO",
+              fechaInicio: existing.fechaInicio ?? fechaInicio,
+              fechaFin: null,
+              duracionSegundos: null,
+            },
+          })
+        : await tx.tornoRuedaTrabajo.create({
+            data: {
+              tornoGId: ronda.tornoG.id,
+              lado,
+              posicion: body.posicion,
+              estado: "EN_PROCESO",
+              fechaInicio,
+              fechaFin: null,
+              duracionSegundos: null,
+            },
+          });
+      updatedIds.push(work.id);
+    }
+
+    const tornoG = await tx.tornoG.update({
+      where: { id: ronda.tornoG.id },
+      data: {
+        estado: "EN_PROCESO",
+        fechaInicio: ronda.tornoG.fechaInicio ?? fechaInicio,
+      },
+      include: { detalleRuedas: true },
+    });
+
+    return { tornoG, updatedIds };
+  });
+
+  return ok(res, data);
+}
+
 export async function finalizarEjeRondaServicio(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const body = rondaServicioFinalizarEjeSchema.parse({
@@ -372,7 +523,7 @@ export async function finalizarEjeRondaServicio(req: Request, res: Response) {
     const updatedIds: number[] = [];
 
     for (const lado of requestedSides) {
-      const work = await tx.tornoRuedaTrabajo.upsert({
+      const existing = await tx.tornoRuedaTrabajo.findUnique({
         where: {
           tornoGId_lado_posicion: {
             tornoGId: ronda.tornoG.id,
@@ -380,21 +531,31 @@ export async function finalizarEjeRondaServicio(req: Request, res: Response) {
             posicion: body.posicion,
           },
         },
-        create: {
-          tornoGId: ronda.tornoG.id,
-          lado,
-          posicion: body.posicion,
-          estado: "TERMINADO",
-          fechaInicio: fechaFin,
-          fechaFin,
-          duracionSegundos: 0,
-        },
-        update: {
-          estado: "TERMINADO",
-          fechaFin,
-          duracionSegundos: undefined,
-        },
       });
+      const fechaInicio = existing?.fechaInicio ?? fechaFin;
+      const duracionSegundos = calculateDurationSeconds(fechaInicio, fechaFin);
+
+      const work = existing
+        ? await tx.tornoRuedaTrabajo.update({
+            where: { id: existing.id },
+            data: {
+              estado: "TERMINADO",
+              fechaInicio,
+              fechaFin,
+              duracionSegundos,
+            },
+          })
+        : await tx.tornoRuedaTrabajo.create({
+            data: {
+              tornoGId: ronda.tornoG.id,
+              lado,
+              posicion: body.posicion,
+              estado: "TERMINADO",
+              fechaInicio,
+              fechaFin,
+              duracionSegundos,
+            },
+          });
       updatedIds.push(work.id);
     }
 

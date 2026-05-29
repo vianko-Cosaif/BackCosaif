@@ -16,6 +16,10 @@ import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
+import {
+  cancelarRondaTornoPorMovimiento,
+  crearRecuperacionTemporalTornoCancelado,
+} from '../../services/tornoMs/tornoMsClient';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
@@ -560,6 +564,24 @@ export class IncidenteModel {
           });
 
           if (movimientoCancelado) {
+            if (movimientoCancelado.torno === true) {
+              await bestEffort(
+                'msTorno.cancelarRondaTornoPorMovimiento(limite_incidentes)',
+                () =>
+                  cancelarRondaTornoPorMovimiento(movimientoCancelado.id, {
+                    fin: ahora,
+                    razon: comentarioCancelacion,
+                  }),
+                { rid, incidenteId, movimientoId }
+              );
+
+              await bestEffort(
+                'msTorno.crearRecuperacionTemporalTornoCancelado(limite_incidentes)',
+                () => crearRecuperacionTemporalTornoCancelado(movimientoCancelado),
+                { rid, incidenteId, movimientoId }
+              );
+            }
+
             await bestEffort(
               'NotificadorFCM.notificarCancelacionMovimiento(limite_incidentes)',
               () =>
@@ -1461,6 +1483,110 @@ export class IncidenteModel {
             imagen4: rutasImagenes[3] ?? null,
           },
         });
+
+        const cadenaMovimientos = await this.obtenerCadenaMovimientos(data.movimientoId);
+        const totalIncidentesCadena = await prisma.incidente.count({
+          where: { movimientoId: { in: cadenaMovimientos } },
+        });
+
+        if (!movimiento.finalizado && totalIncidentesCadena >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
+          const ahora = new Date();
+          const comentarioCancelacion =
+            `Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${movimiento.locomotiveNumber}.`;
+
+          await prisma.$transaction(async (tx) => {
+            await tx.movimiento.update({
+              where: { id: movimiento.id },
+              data: {
+                estado: 'CANCELADO',
+                finalizado: true,
+                fechaFin: ahora,
+                fechaPausa: null,
+                updatedAt: ahora,
+                incidenteGlobal: false,
+                instrucciones: this.appendMovimientoComentario(movimiento.instrucciones, comentarioCancelacion),
+              },
+            });
+
+            await tx.incidente.updateMany({
+              where: { movimientoId: { in: cadenaMovimientos }, estado: 'ABIERTO' },
+              data: { estado: 'CERRADO', fechaFin: ahora },
+            });
+
+            await tx.ronda.deleteMany({ where: { movimientoId: movimiento.id } });
+          });
+
+          for (const movimientoId of cadenaMovimientos) {
+            const incidentes = await prisma.incidente.findMany({
+              where: { movimientoId },
+              select: { id: true },
+            });
+            for (const inc of incidentes) this.clearIncidentTimer(inc.id);
+          }
+
+          await bestEffort(
+            'RondaModel.recomponerRondasLocalidad(cancelado_por_incidentes_al_crear)',
+            () => RondaModel.recomponerRondasLocalidad(movimiento.localidadId),
+            { rid, incidenteId: nuevoIncidente.id, localidadId: movimiento.localidadId }
+          );
+
+          await bestEffort(
+            'RondaModel.siguienteInteligente(cancelado_por_incidentes_al_crear)',
+            () => RondaModel.siguienteInteligente(movimiento.localidadId),
+            { rid, incidenteId: nuevoIncidente.id, localidadId: movimiento.localidadId }
+          );
+
+          const movimientoCancelado = await prisma.movimiento.findUnique({
+            where: { id: movimiento.id },
+            include: { empresa: true, localidad: true },
+          });
+
+          if (movimientoCancelado?.torno === true) {
+            await bestEffort(
+              'msTorno.cancelarRondaTornoPorMovimiento(limite_incidentes_al_crear)',
+              () =>
+                cancelarRondaTornoPorMovimiento(movimientoCancelado.id, {
+                  fin: ahora,
+                  razon: comentarioCancelacion,
+                }),
+              { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
+            );
+
+            await bestEffort(
+              'msTorno.crearRecuperacionTemporalTornoCancelado(limite_incidentes_al_crear)',
+              () => crearRecuperacionTemporalTornoCancelado(movimientoCancelado),
+              { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
+            );
+          }
+
+          if (movimientoCancelado) {
+            await bestEffort(
+              'NotificadorFCM.notificarCancelacionMovimiento(limite_incidentes_al_crear)',
+              () =>
+                NotificadorFCM.notificarCancelacionMovimiento(
+                  movimientoCancelado,
+                  `Límite de ${this.MAX_INCIDENTES_POR_LOCOMOTORA} incidentes para locomotora ${movimientoCancelado.locomotiveNumber}`
+                ),
+              { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
+            );
+          }
+
+          trace('warn', 'Movimiento cancelado al levantar incidente por límite de incidentes', {
+            rid,
+            incidenteId: nuevoIncidente.id,
+            movimientoId: movimiento.id,
+            locomotiveNumber: movimiento.locomotiveNumber,
+            totalIncidentesCadena,
+          });
+
+          return await prisma.incidente.findUnique({
+            where: { id: nuevoIncidente.id },
+            include: {
+              movimiento: { include: { empresa: true, localidad: true, ronda: true } },
+              usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+            },
+          });
+        }
 
         await prisma.movimiento.update({
           where: { id: data.movimientoId },

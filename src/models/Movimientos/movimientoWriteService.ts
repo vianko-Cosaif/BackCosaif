@@ -6,6 +6,14 @@ import { movimientoError } from './movimiento.logger';
 import { notificarCambioPrioridad, notificarMovimientoFinalizado, notificarMovimientoIniciado } from './movimiento.notifications';
 import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
 
+function stripTornoAgendadoMeta(instrucciones?: string | null) {
+  const clean = String(instrucciones ?? '')
+    .replace(/\s*\[TORNO_AGENDADO:[^\]]+\]\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return clean || null;
+}
+
 export class MovimientoWriteService {
   private static async assertMovimientoNoBloqueadoPorIncidente(id: number) {
     const movimiento = await prisma.movimiento.findUnique({
@@ -552,6 +560,7 @@ export class MovimientoWriteService {
         data: {
           estado: 'SOLICITADO',
           fechaSolicitud: new Date(),
+          instrucciones: stripTornoAgendadoMeta(actual.instrucciones),
           updatedAt: new Date(),
         },
         include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },

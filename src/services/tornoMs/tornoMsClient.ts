@@ -103,6 +103,9 @@ export type TornoAgendadoInput = {
   activo?: boolean;
 };
 
+export const TORNO_RECUPERACION_TIPO = "TORNO_RECUPERACION";
+export const TORNO_RECUPERACION_WINDOW_MINUTES = 120;
+
 const MEDIDA_KEYS = [
   "l1",
   "r1",
@@ -119,6 +122,10 @@ const MEDIDA_KEYS = [
 ] as const;
 
 const NO_APLICA_MEASURE = "NO_APLICA";
+
+function addMinutes(date: Date, minutes: number) {
+  return new Date(date.getTime() + minutes * 60_000);
+}
 
 function hasMeasureValue(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -289,6 +296,60 @@ export async function limpiarTornoAgendadosVencidosMs() {
     method: "DELETE",
   });
   return result.data;
+}
+
+export async function cancelarRondaTornoPorMovimiento(
+  movimientoId: number,
+  options: { fin?: string | Date; razon?: string } = {}
+) {
+  const solicitud = await getRuedaSolicitudPorMovimiento(movimientoId);
+  if (!solicitud?.id) return null;
+
+  const rondas = await requestTornoMs<any[]>(`/rondas-servicio?ruedaSolicitudId=${solicitud.id}`, {
+    method: "GET",
+  });
+  const ronda = rondas.data?.[0] ?? null;
+  if (!ronda?.id) return { ruedaSolicitud: solicitud, ronda: null };
+
+  const status = String(ronda.status ?? "").toUpperCase();
+  if (status === "CANCELADO" || status === "CONCLUIDO") {
+    return { ruedaSolicitud: solicitud, ronda };
+  }
+
+  const canceled = await requestTornoMs<any>(`/rondas-servicio/${ronda.id}/cancelar-externo`, {
+    method: "POST",
+    body: {
+      fin: options.fin instanceof Date ? options.fin.toISOString() : options.fin,
+      razon: options.razon,
+    },
+  });
+
+  return { ruedaSolicitud: solicitud, ronda: canceled.data };
+}
+
+export async function crearRecuperacionTemporalTornoCancelado(movimiento: {
+  id: number;
+  torno?: boolean | null;
+  locomotiveNumber?: number | null;
+  localidadId?: number | null;
+}) {
+  if (movimiento.torno !== true) return null;
+  const locomotive = Number(movimiento.locomotiveNumber);
+  if (!Number.isFinite(locomotive)) return null;
+
+  const ruedaSolicitud = await getRuedaSolicitudPorMovimiento(movimiento.id).catch(() => null);
+  if (!ruedaSolicitud?.id) return null;
+
+  const now = new Date();
+  return crearTornoAgendado({
+    locomotive,
+    tipo: TORNO_RECUPERACION_TIPO,
+    localidad: movimiento.localidadId ?? null,
+    idMovimiento: movimiento.id,
+    fechaProgramada: now,
+    fechaLimiteActivacion: addMinutes(now, TORNO_RECUPERACION_WINDOW_MINUTES),
+    activo: true,
+  });
 }
 
 export async function proxyToTornoMs(
