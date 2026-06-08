@@ -9,6 +9,7 @@
  */
 
 import express, { Express, Request, Response } from "express";
+import { createServer } from "http";
 import cors from "cors";
 import dotenv from "dotenv";
 import passport from "../middlewares/passport";
@@ -29,6 +30,8 @@ import Reporte from "../reporteria/rutas/rutasPdf";
 import Excel from "../reporteria/rutas/rutasExcel";
 import bannerRoutes from "../Rutas/Banner/BannerRoutes";
 import tornoMsRoutes from "../Rutas/TornoMs/TornoMsRoutes";
+import realtimeRoutes from "../Rutas/Realtime/RealtimeRoutes";
+import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
 // Carga variables de entorno
 dotenv.config();
 
@@ -78,9 +81,13 @@ export function iniciarServidor(): void {
     app.use("/reporterias", Excel);
     app.use("/banner", bannerRoutes);
     app.use("/torno", tornoMsRoutes);
+    app.use("/realtime", realtimeRoutes);
 
     // ---------------- Arranque del servidor ----------------
-    app.listen(Number(PORT), HOST, () => {
+    const server = createServer(app);
+    bindRealtimeWebSocketServer(server);
+
+    server.listen(Number(PORT), HOST, () => {
       console.log(`Servidor corriendo en ${HOST}:${PORT}`);
       console.log('Autenticacion por sesion cargada con renovacion por rol');
     });

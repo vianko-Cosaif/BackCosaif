@@ -5,6 +5,7 @@ import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import { notificarCambioPrioridad, notificarMovimientoFinalizado, notificarMovimientoIniciado } from './movimiento.notifications';
 import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
+import { publishMovimientoEstadoEvent } from '../../realtime/realtimeHub';
 
 function stripTornoAgendadoMeta(instrucciones?: string | null) {
   const clean = String(instrucciones ?? '')
@@ -96,6 +97,7 @@ export class MovimientoWriteService {
       });
 
       await RondaModel.siguienteInteligente(movimientoDetenido.localidadId);
+      publishMovimientoEstadoEvent(movimientoDetenido);
       return movimientoDetenido;
     } catch (error: any) {
       movimientoError.error('Error al detener movimiento', {
@@ -147,6 +149,7 @@ export class MovimientoWriteService {
       });
 
       await RondaModel.siguienteInteligente(movimientoCancelado.localidadId);
+      publishMovimientoEstadoEvent(movimientoCancelado);
       return movimientoCancelado;
     } catch (error: any) {
       movimientoError.error('Error al cancelar movimiento', {
@@ -281,6 +284,10 @@ export class MovimientoWriteService {
 
       await notificarMovimientoIniciado(movimientoReactivado.id);
       await RondaModel.siguienteInteligente(movimientoReactivado.localidadId);
+      publishMovimientoEstadoEvent({
+        ...movimientoReactivado,
+        estadoAnterior: movimientoActual.estado,
+      });
       return movimientoReactivado;
     } catch (error: any) {
       movimientoError.error('Error al reactivar movimiento', {
@@ -441,6 +448,10 @@ export class MovimientoWriteService {
         });
       }
 
+      publishMovimientoEstadoEvent({
+        ...movimientoActualizado,
+        estadoAnterior: movimientoActual.estado,
+      });
       await RondaModel.siguienteInteligente(movimientoActual.localidadId);
       return movimientoActualizado;
     } catch (error: any) {
@@ -853,6 +864,7 @@ export class MovimientoWriteService {
 
       await notificarMovimientoIniciado(movimiento.id);
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al iniciar movimiento', {
@@ -873,6 +885,7 @@ export class MovimientoWriteService {
       });
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al pausar movimiento', {
@@ -903,6 +916,7 @@ export class MovimientoWriteService {
 
       await notificarMovimientoIniciado(movimiento.id);
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al reanudar movimiento', {
@@ -939,6 +953,7 @@ export class MovimientoWriteService {
 
       await notificarMovimientoFinalizado(movimiento.id);
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al finalizar movimiento', {

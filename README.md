@@ -113,6 +113,54 @@ Reglas relevantes:
 
 ---
 
+### Reportería para cliente
+Reporte operativo por empresa, sin métricas de duración ni tiempo total. Usa `fechaSolicitud` como base para agrupar carga por locomotora, vía, día, hora, turno y usuario solicitante.
+
+**JSON**
+- `GET /reporteria/cliente/carga-operativa`
+
+**PDF**
+- `GET /reporteria/cliente/carga-operativa/pdf`
+
+**Query**
+- `fecha`: `YYYY-MM-DD`
+- `periodo`: `DIA`, `SEMANA`, `QUINCENA`, `MES`, `BIMESTRE`, `SEMESTRE`, `ANUAL`
+- `empresaId`: requerido para `ADMINISTRADOR`; otros roles usan su propia empresa autenticada
+- `localidadId`: opcional
+- `tz`: opcional, default `America/Mexico_City`
+- `detalleLimit`: opcional, default `500`, máximo `1000`
+
+Ejemplo:
+- `/reporteria/cliente/carga-operativa/pdf?empresaId=1&fecha=2026-06-03&periodo=MES`
+
+Reportes adicionales por empresa:
+- `GET /reporteria/cliente/vias`
+- `GET /reporteria/cliente/vias/pdf`
+- `GET /reporteria/cliente/turnos`
+- `GET /reporteria/cliente/turnos/pdf`
+- `GET /reporteria/cliente/usuarios`
+- `GET /reporteria/cliente/usuarios/pdf`
+- `GET /reporteria/cliente/cumplimiento`
+- `GET /reporteria/cliente/cumplimiento/pdf`
+- `GET /reporteria/cliente/incidentes`
+- `GET /reporteria/cliente/incidentes/pdf`
+- `GET /reporteria/cliente/cronologia`
+- `GET /reporteria/cliente/cronologia/pdf`
+
+Estos reportes aceptan los mismos filtros base y agregan:
+- `umbralMin`: opcional para demoras/excedidos, default `90`
+- `detalleLimit`: opcional para incidentes/cronología, default `500`, máximo `1000`
+
+Notas:
+- `vias`: usos por vía, entradas, salidas, pendientes, cancelados, demoras e incidentes.
+- `turnos`: Turno 1, 2 y 3 con solicitados, iniciados, finalizados, inicio+fin, cancelados, incidentes y promedios.
+- `usuarios`: solicitudes por usuario, movimientos atendidos por operador, finalizados, cancelaciones y actividad por día/turno.
+- `cumplimiento`: concluidos, pendientes, excedidos por umbral y promedios por locomotora/turno.
+- `incidentes`: incidentes por locomotora, vía, turno y cancelaciones relacionadas.
+- `cronologia`: datos crudos por movimiento, sin hora ni duraciones.
+
+---
+
 ### Auth/Sesiones
 **JWT + Tokens**: `src/middlewares/passport.ts`, `src/middlewares/token.service.ts`  
 **Session policy**: `src/auth/sessionPolicy.ts`
@@ -128,4 +176,3 @@ Para listados que aceptan paginación:
 - `page` inicia en 1
 - `pageSize` default 20, máximo 50
 - respuesta paginada: `{ data, meta }`
-

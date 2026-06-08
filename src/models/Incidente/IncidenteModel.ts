@@ -16,6 +16,7 @@ import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
+import { publishMovimientoEstadoEvent, publishRealtimeEvent } from '../../realtime/realtimeHub';
 import {
   cancelarRondaTornoPorMovimiento,
   crearRecuperacionTemporalTornoCancelado,
@@ -1164,6 +1165,28 @@ export class IncidenteModel {
             () => NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior),
             { rid, incidenteId: id, estadoAnterior, estadoNuevo: data.estado }
           );
+
+          publishRealtimeEvent({
+            type: 'incidente.estado',
+            movimientoId: incidenteActualizado.movimientoId,
+            empresaId: incidenteActualizado.movimiento?.empresaId,
+            localidadId: incidenteActualizado.movimiento?.localidadId,
+            clienteId: incidenteActualizado.movimiento?.clienteId,
+            incidenteId: incidenteActualizado.id,
+            estado: data.estado,
+            estadoAnterior,
+            incidenteGlobal: data.estado === 'ABIERTO',
+            locomotiveNumber: incidenteActualizado.movimiento?.locomotiveNumber,
+          });
+
+          if (data.estado === 'RESUELTO') {
+            publishMovimientoEstadoEvent({
+              ...incidenteActualizado.movimiento,
+              estado: 'EN_PROCESO',
+              estadoAnterior: 'DETENIDO',
+              incidenteGlobal: false,
+            });
+          }
         }
 
         if (data.estado === 'CERRADO' || data.estado === 'RESUELTO') {
@@ -1606,6 +1629,19 @@ export class IncidenteModel {
           });
         }
 
+        publishRealtimeEvent({
+          type: 'movimiento.incidente',
+          movimientoId: movimiento.id,
+          empresaId: movimiento.empresaId,
+          localidadId: movimiento.localidadId,
+          clienteId: movimiento.clienteId,
+          estado: 'DETENIDO',
+          incidenteGlobal: true,
+          incidenteId: nuevoIncidente.id,
+          descripcion: nuevoIncidente.descripcion,
+          locomotiveNumber: movimiento.locomotiveNumber,
+        });
+
         this.ensureIncidentScheduler();
         this.scheduleIncidentAutoClose(nuevoIncidente.id, nuevoIncidente.fechaInicio);
 
@@ -1759,7 +1795,7 @@ export class IncidenteModel {
           include: { movimiento: true },
         });
 
-        await prisma.movimiento.update({
+        const movimientoContinuado = await prisma.movimiento.update({
           where: { id: incidente.movimientoId },
           data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
         });
@@ -1772,6 +1808,23 @@ export class IncidenteModel {
         );
 
         this.clearIncidentTimer(id);
+
+        publishRealtimeEvent({
+          type: 'incidente.estado',
+          movimientoId: actualizado.movimientoId,
+          empresaId: movimientoContinuado.empresaId,
+          localidadId: movimientoContinuado.localidadId,
+          clienteId: movimientoContinuado.clienteId,
+          incidenteId: actualizado.id,
+          estado: RESUELTO,
+          estadoAnterior: incidente.estado,
+          incidenteGlobal: false,
+          locomotiveNumber: movimientoContinuado.locomotiveNumber,
+        });
+        publishMovimientoEstadoEvent({
+          ...movimientoContinuado,
+          estadoAnterior: 'DETENIDO',
+        });
 
         return actualizado;
       },

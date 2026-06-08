@@ -11,6 +11,8 @@ import { EmpresaLocomotorasController } from '../controller/empresaLocomotorasCo
 import { CronologiaEmpresasController } from '../controller/cronologiaEmpresasController';
 import { LocomotorasPdfController } from '../controller/locomotorasPdf';
 import { EmpresasPdfController } from '../controller/empresasPdf';
+import { ClienteCargaOperativaController } from '../controller/clienteCargaOperativaController';
+import { ClienteReportesOperativosController } from '../controller/clienteReportesOperativosController';
 
 const router = Router();
 
@@ -42,6 +44,20 @@ router.use(authenticateAccess);
  *   GET /reporteria/cronologia-empresas/pdf
  *   GET /reporteria/locomotoras/pdf
  *   GET /reporteria/empresas/pdf
+ *   GET /reporteria/cliente/carga-operativa
+ *   GET /reporteria/cliente/carga-operativa/pdf
+ *   GET /reporteria/cliente/vias
+ *   GET /reporteria/cliente/vias/pdf
+ *   GET /reporteria/cliente/turnos
+ *   GET /reporteria/cliente/turnos/pdf
+ *   GET /reporteria/cliente/usuarios
+ *   GET /reporteria/cliente/usuarios/pdf
+ *   GET /reporteria/cliente/cumplimiento
+ *   GET /reporteria/cliente/cumplimiento/pdf
+ *   GET /reporteria/cliente/incidentes
+ *   GET /reporteria/cliente/incidentes/pdf
+ *   GET /reporteria/cliente/cronologia
+ *   GET /reporteria/cliente/cronologia/pdf
  */
 router.get('/movimientos/pdf', MovimientoPdfController.generar);
 router.get('/admin', AdminReporteriaController.getJSON);
@@ -64,5 +80,19 @@ router.get('/cronologia-empresas', CronologiaEmpresasController.getJSON);
 router.get('/cronologia-empresas/pdf', CronologiaEmpresasController.getPDF);
 router.get('/locomotoras/pdf', LocomotorasPdfController.generar);
 router.get('/empresas/pdf', EmpresasPdfController.generar);
+router.get('/cliente/carga-operativa', ClienteCargaOperativaController.getJSON);
+router.get('/cliente/carga-operativa/pdf', ClienteCargaOperativaController.getPDF);
+router.get('/cliente/vias', ClienteReportesOperativosController.viasJSON);
+router.get('/cliente/vias/pdf', ClienteReportesOperativosController.viasPDF);
+router.get('/cliente/turnos', ClienteReportesOperativosController.turnosJSON);
+router.get('/cliente/turnos/pdf', ClienteReportesOperativosController.turnosPDF);
+router.get('/cliente/usuarios', ClienteReportesOperativosController.usuariosJSON);
+router.get('/cliente/usuarios/pdf', ClienteReportesOperativosController.usuariosPDF);
+router.get('/cliente/cumplimiento', ClienteReportesOperativosController.cumplimientoJSON);
+router.get('/cliente/cumplimiento/pdf', ClienteReportesOperativosController.cumplimientoPDF);
+router.get('/cliente/incidentes', ClienteReportesOperativosController.incidentesJSON);
+router.get('/cliente/incidentes/pdf', ClienteReportesOperativosController.incidentesPDF);
+router.get('/cliente/cronologia', ClienteReportesOperativosController.cronologiaJSON);
+router.get('/cliente/cronologia/pdf', ClienteReportesOperativosController.cronologiaPDF);
 
 export default router;
