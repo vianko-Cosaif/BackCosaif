@@ -95,14 +95,15 @@ export async function createIncidente(req: Request, res: Response) {
 export async function updateIncidente(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const input = incidenteTornoUpdateSchema.parse(req.body);
+  const resolving = input.status === "RESUELTO" || input.resuelto === true;
   const current = await prismaTorno.incidenteTorno.findUnique({ where: { id } });
   if (!current) return fail(res, 404, "Not found");
   const currentRondaStatus = await incidenteApuntaARondaNoModificable(current);
-  if (currentRondaStatus) {
+  if (!resolving && currentRondaStatus) {
     return fail(res, 409, `Ronda ${currentRondaStatus} no puede modificarse`);
   }
   const inputRondaStatus = await incidenteApuntaARondaNoModificable(input);
-  if (inputRondaStatus) {
+  if (!resolving && inputRondaStatus) {
     return fail(res, 409, `Ronda ${inputRondaStatus} no puede modificarse`);
   }
 
@@ -155,8 +156,6 @@ export async function resolveIncidente(req: Request, res: Response) {
     select: { rondaServicioId: true },
   });
   if (!current) return fail(res, 404, "Incidente no encontrado");
-  const rondaStatus = await incidenteApuntaARondaNoModificable(current);
-  if (rondaStatus) return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
 
   try {
     const data = await incidenteTornoService.resolveParent(id, input);
@@ -218,10 +217,6 @@ export async function createHijo(req: Request, res: Response) {
     select: { rondaServicioId: true },
   });
   if (!parent) return fail(res, 404, "Not found");
-  const rondaStatus = await incidenteApuntaARondaNoModificable(parent);
-  if (rondaStatus) {
-    return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
-  }
 
   let data;
   try {
@@ -256,6 +251,9 @@ export async function updateRondaStatusFromIncidente(req: Request, res: Response
     include: { rondaServicio: true },
   });
   if (!incidente) return fail(res, 404, "Incidente no encontrado");
+  if (incidente.status === "RESUELTO" || incidente.resuelto) {
+    return fail(res, 409, "Incidente resuelto no puede modificar el status del torno");
+  }
 
   const rondaServicio =
     incidente.rondaServicio ??

@@ -70,10 +70,6 @@ export async function getIncidenteHijo(req: Request, res: Response) {
 
 export async function createIncidenteHijo(req: Request, res: Response) {
   const input = incidenteTornoHijoCreateSchema.parse(req.body);
-  const rondaStatus = await getRondaNoModificableStatusDelHijo(undefined, input.incidenteTornoId);
-  if (rondaStatus) {
-    return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
-  }
 
   let data;
   try {
@@ -101,8 +97,9 @@ export async function createIncidenteHijo(req: Request, res: Response) {
 export async function updateIncidenteHijo(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const input = incidenteTornoHijoUpdateSchema.parse(req.body);
+  const resolving = input.status === "RESUELTO" || input.resuelto === true;
   const rondaStatus = await getRondaNoModificableStatusDelHijo(id);
-  if (rondaStatus) {
+  if (!resolving && rondaStatus) {
     return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
   }
 
@@ -138,8 +135,6 @@ export async function resolveIncidenteHijo(req: Request, res: Response) {
     .pick({ comentario: true })
     .partial()
     .parse(req.body ?? {});
-  const rondaStatus = await getRondaNoModificableStatusDelHijo(id);
-  if (rondaStatus) return fail(res, 409, `Ronda ${rondaStatus} no puede modificarse`);
 
   try {
     const data = await incidenteTornoService.resolveChild(id, {

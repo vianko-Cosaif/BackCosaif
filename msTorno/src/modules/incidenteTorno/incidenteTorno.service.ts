@@ -32,6 +32,10 @@ function isResolvedPatch(input: { status?: string; resuelto?: boolean }) {
   return input.status === "RESUELTO" || input.resuelto === true;
 }
 
+function isReopenPatch(input: { status?: string; resuelto?: boolean }) {
+  return input.status === "EN_PROCESO" || input.resuelto === false;
+}
+
 async function deriveLocalidadId(
   tx: TransactionClient,
   input: { localidadId?: number | null; rondaServicioId?: number | null; ruedaSolicitudId?: number | null }
@@ -196,7 +200,8 @@ export const incidenteTornoService = {
     return prismaTorno.$transaction(async (tx) => {
       const current = await tx.incidenteTorno.findUnique({ where: { id } });
       if (!current) throw new TornoIncidentDomainError(404, "Incidente no encontrado");
-      if (current.status === "RESUELTO" || current.resuelto) {
+      const reopen = isReopenPatch(input);
+      if ((current.status === "RESUELTO" || current.resuelto) && !reopen) {
         throw new TornoIncidentDomainError(409, "Incidente resuelto no puede reabrirse desde PATCH generico");
       }
 
@@ -207,10 +212,11 @@ export const incidenteTornoService = {
         data: {
           ...input,
           ...localidadPatch,
+          ...(reopen ? { status: "EN_PROCESO", resuelto: false } : {}),
           comentario: input.comentario ?? undefined,
           atendidoPorId: input.atendidoPorId ?? undefined,
           fechaAtencion: input.fechaAtencion ?? undefined,
-          fechaTerminacion: input.fechaTerminacion ?? undefined,
+          fechaTerminacion: reopen ? null : input.fechaTerminacion ?? undefined,
           ruedaSolicitudId: input.ruedaSolicitudId ?? undefined,
           rondaServicioId: input.rondaServicioId ?? undefined,
         } as any,
@@ -244,19 +250,13 @@ export const incidenteTornoService = {
         });
       }
 
-      const openChildren = current.hijos.filter(
-        (child) => !child.resuelto || child.status !== "RESUELTO"
-      );
-      if (openChildren.length) {
-        throw new TornoIncidentDomainError(
-          409,
-          "No se puede resolver el incidente padre: existen seguimientos hijos pendientes",
-          {
-            hijosPendientes: openChildren.length,
-            hijosPendientesIds: openChildren.map((child) => child.id),
-          }
-        );
-      }
+      await tx.incidenteTornoHijo.updateMany({
+        where: openChildWhere(current.id),
+        data: {
+          status: "RESUELTO",
+          resuelto: true,
+        },
+      });
 
       const data = await tx.incidenteTorno.update({
         where: { id },
@@ -294,7 +294,8 @@ export const incidenteTornoService = {
       totalHijos: current.hijos.length,
       hijosPendientes: hijosPendientes.length,
       hijosPendientesIds: hijosPendientes.map((child) => child.id),
-      puedeResolverPadre: hijosPendientes.length === 0,
+      puedeResolverPadre: true,
+      cerraraHijosPendientes: hijosPendientes.length > 0,
     };
   },
 
@@ -378,7 +379,8 @@ export const incidenteTornoService = {
         padre: {
           incidenteTornoId: hijo.incidenteTornoId,
           hijosPendientes,
-          puedeResolverPadre: hijosPendientes === 0,
+          puedeResolverPadre: true,
+          cerraraHijosPendientes: hijosPendientes > 0,
         },
       };
     });
