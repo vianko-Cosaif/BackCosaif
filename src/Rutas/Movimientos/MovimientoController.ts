@@ -77,11 +77,21 @@ function bloquearClienteEstadoMovimiento(req: Parameters<RequestHandler>[0], res
 function bloquearCancelacionNoPermitida(
   req: Parameters<RequestHandler>[0],
   res: Parameters<RequestHandler>[1],
-  movimiento?: { torno?: boolean | null }
+  movimiento?: {
+    torno?: boolean | null;
+    clienteId?: number | null;
+    creadoPorId?: number | null;
+  }
 ) {
   const rol = String((req as any).user?.rol ?? '').toUpperCase();
   if (CLIENTE_ROLES.has(rol)) {
-    res.status(403).json({ message: 'CLIENTE no puede modificar estados del movimiento' });
+    const usuarioId = Number((req as any).user?.id || 0);
+    const esPropietario =
+      usuarioId > 0 &&
+      (movimiento?.clienteId === usuarioId || movimiento?.creadoPorId === usuarioId);
+    if (esPropietario) return false;
+
+    res.status(403).json({ message: 'Solo puedes cancelar movimientos propios' });
     return true;
   }
   if (TORNERO_ROLES.has(rol)) {
@@ -123,7 +133,7 @@ const medidasTornoSchema = z.object({
 const TORNO_AGENDADO_PREFIX = '[TORNO_AGENDADO:';
 const TORNO_AGENDADO_WINDOW_MS = 10 * 60 * 1000;
 const TORNO_RECUPERACION_TIPO = 'TORNO_RECUPERACION';
-const TORNO_RECUPERACION_WINDOW_MINUTES = 120;
+const TORNO_RECUPERACION_WINDOW_MINUTES = 5 * 60;
 
 type TornoAgendadoMeta = {
   version: 1;
@@ -206,7 +216,29 @@ const getScheduledPayload = (movimiento: any, helper?: any) => {
     tipo,
     temporaryRecovery,
     recovery: temporaryRecovery,
+    usuarioIntentoNombre: temporaryRecovery
+      ? movimiento?.cliente?.nombre ?? movimiento?.creadoPor?.nombre ?? 'correspondiente'
+      : undefined,
+    fechaIntento: temporaryRecovery
+      ? movimiento?.fechaFin?.toISOString?.() ?? movimiento?.fechaFin ?? movimiento?.fechaSolicitud?.toISOString?.() ?? movimiento?.fechaSolicitud ?? fechaProgramada
+      : undefined,
   };
+};
+
+const isTornoRecoveryCompatible = (
+  movimiento: any,
+  input: {
+    userId?: number | null;
+    locomotiveNumber?: number | null;
+    localidadId?: number | null;
+    viaOrigenId?: number | null;
+  }
+) => {
+  return (
+    movimiento?.torno === true &&
+    String(movimiento?.estado).toUpperCase() === 'CANCELADO' &&
+    Number(movimiento?.locomotiveNumber) === Number(input.locomotiveNumber)
+  );
 };
 
 const extractMedidasFromRuedaSolicitud = (ruedaSolicitud: any): ReturnType<typeof normalizeMedidasRuedaInput> | null => {
@@ -314,6 +346,83 @@ const saveTemporaryTornoRecovery = async (movimiento: {
     fechaProgramada,
     fechaLimiteActivacion,
   });
+};
+
+const reconcileRecentTornoRecoveries = async (
+  _authenticatedUserId: number,
+  excludedMovementIds: number[] = []
+) => {
+  const now = new Date();
+  const recoveryStart = addMinutes(now, -TORNO_RECUPERACION_WINDOW_MINUTES);
+  const candidates = await prisma.movimiento.findMany({
+    where: {
+      torno: true,
+      estado: 'CANCELADO' as any,
+      fechaFin: { gte: recoveryStart },
+      ...(excludedMovementIds.length ? { id: { notIn: excludedMovementIds } } : {}),
+    },
+    include: {
+      empresa: true,
+      localidad: true,
+      viaOrigen: true,
+      viaDestino: true,
+      ronda: true,
+      cliente: { select: { nombre: true } },
+      creadoPor: { select: { nombre: true } },
+    },
+    orderBy: { fechaFin: 'desc' },
+    take: 20,
+  });
+
+  const recovered: any[] = [];
+  for (const movimiento of candidates) {
+    const ruedaSolicitud = await getRuedaSolicitudPorMovimiento(movimiento.id).catch(() => null);
+    const medidasTorno = extractMedidasFromRuedaSolicitud(ruedaSolicitud);
+    if (!medidasTorno) continue;
+
+    const fechaProgramada = movimiento.fechaFin ?? movimiento.updatedAt ?? now;
+    const fechaLimiteActivacion = addMinutes(fechaProgramada, TORNO_RECUPERACION_WINDOW_MINUTES);
+    if (fechaLimiteActivacion.getTime() < now.getTime()) continue;
+
+    let helper: any = {
+      idMovimiento: movimiento.id,
+      locomotive: movimiento.locomotiveNumber,
+      tipo: TORNO_RECUPERACION_TIPO,
+      localidad: movimiento.localidadId,
+      fechaProgramada,
+      fechaLimiteActivacion,
+      activo: true,
+      medidasTorno,
+      ruedaSolicitud,
+    };
+
+    try {
+      helper = await crearTornoAgendado({
+        locomotive: Number(movimiento.locomotiveNumber),
+        tipo: TORNO_RECUPERACION_TIPO,
+        localidad: movimiento.localidadId ?? null,
+        idMovimiento: movimiento.id,
+        fechaProgramada,
+        fechaLimiteActivacion,
+      });
+    } catch (error: any) {
+      log.warn('No se pudo reconciliar índice de recuperación de torno; se devolverá desde el movimiento', {
+        movId: movimiento.id,
+        err: error?.message,
+      });
+    }
+
+    recovered.push(getScheduledPayload(movimiento, {
+      ...helper,
+      tipo: TORNO_RECUPERACION_TIPO,
+      fechaProgramada,
+      fechaLimiteActivacion,
+      medidasTorno: helper?.medidasTorno ?? medidasTorno,
+      ruedaSolicitud: helper?.ruedaSolicitud ?? ruedaSolicitud,
+    }));
+  }
+
+  return recovered;
 };
 
 const cancelAndSaveTemporaryTornoRecovery = async (
@@ -523,12 +632,16 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
   const usuarioId = Number((req as any).user?.id || 0);
 
   if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
-  if (bloquearClienteEstadoMovimiento(req, res)) return;
 
   try {
     const movimiento = await prisma.movimiento.findUnique({
       where: { id },
-      select: { id: true, torno: true },
+      select: {
+        id: true,
+        torno: true,
+        clienteId: true,
+        creadoPorId: true,
+      },
     });
     if (!movimiento) return res.status(404).json({ message: 'Movimiento no encontrado' });
     if (bloquearCancelacionNoPermitida(req, res, movimiento)) return;
@@ -605,6 +718,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
   static nuevoMovimiento: RequestHandler = async (req, res) => {
     try {
       const raw = { ...req.body };
+      const authenticatedUserId = Number((req as any).user?.id || 0);
       await cleanupExpiredTornoSchedules();
       const wantsTornoSchedule = raw.agendado === true || raw.agendado === 'true';
       const ignoreScheduledMatch = raw.ignorarAgendado === true || raw.ignorarAgendado === 'true';
@@ -688,6 +802,32 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
             details: error?.message,
           });
         }
+      }
+
+      if (esViaParaServicioTorno && recuperarTornoCanceladoId) {
+        const cancelado = await prisma.movimiento.findUnique({
+          where: { id: recuperarTornoCanceladoId },
+        });
+        if (
+          !cancelado ||
+          !isTornoRecoveryCompatible(cancelado, {
+            locomotiveNumber: Number(raw.locomotiveNumber),
+          })
+        ) {
+          return res.status(404).json({
+            message: 'El respaldo de torneado cancelado no está disponible para esta locomotora.',
+          });
+        }
+
+        const medidasRecuperadas = extractMedidasFromRuedaSolicitud(
+          await getRuedaSolicitudPorMovimiento(cancelado.id)
+        );
+        if (!medidasRecuperadas) {
+          return res.status(409).json({
+            message: 'El movimiento cancelado no tiene medidas de torneado recuperables.',
+          });
+        }
+        medidasTorno = medidasRecuperadas;
       }
 
       if (wantsTornoSchedule) {
@@ -832,7 +972,15 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           if (helperResult?.activable && Number.isInteger(idMovimiento) && idMovimiento > 0) {
             const compatible = await prisma.movimiento.findUnique({
               where: { id: idMovimiento },
-              include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+              include: {
+                empresa: true,
+                localidad: true,
+                viaOrigen: true,
+                viaDestino: true,
+                ronda: true,
+                cliente: { select: { nombre: true } },
+                creadoPor: { select: { nombre: true } },
+              },
             });
             if (compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado) {
               return res.status(409).json({
@@ -846,18 +994,30 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           const recoveryResult = await buscarTornoAgendadoActivable({
             locomotive: Number(raw.locomotiveNumber),
             tipo: TORNO_RECUPERACION_TIPO,
-            localidad: Number((data as any).localidadId) || null,
           });
           const recoveryHelper = recoveryResult?.scheduled ?? null;
           const recoveryMovimientoId = Number(recoveryHelper?.idMovimiento);
           if (recoveryResult?.activable && Number.isInteger(recoveryMovimientoId) && recoveryMovimientoId > 0) {
             const compatible = await prisma.movimiento.findUnique({
               where: { id: recoveryMovimientoId },
-              include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+              include: {
+                empresa: true,
+                localidad: true,
+                viaOrigen: true,
+                viaDestino: true,
+                ronda: true,
+                cliente: { select: { nombre: true } },
+                creadoPor: { select: { nombre: true } },
+              },
             });
-            if (compatible && compatible.torno === true && String(compatible.estado).toUpperCase() === 'CANCELADO') {
+            if (
+              compatible &&
+              isTornoRecoveryCompatible(compatible, {
+                locomotiveNumber: Number(raw.locomotiveNumber),
+              })
+            ) {
               return res.status(409).json({
-                message: 'Este movimiento con torneado se cancelo poco tiempo atras. Puedes recuperar las medidas capturadas.',
+                message: 'Este movimiento con torneado se canceló hace menos de 5 horas. ¿Deseas recuperar sus datos?',
                 requiresScheduledConfirmation: true,
                 recoveryTemporary: true,
                 scheduledMovement: getScheduledPayload(compatible, recoveryHelper),
@@ -973,6 +1133,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       }
 
       const localidadRaw = Number(req.query.localidadId ?? req.query.localidad);
+      const viaOrigenRaw = Number(req.query.viaOrigenId);
+      const authenticatedUserId = Number((req as any).user?.id || 0);
       try {
         const helperResult = await buscarTornoAgendadoActivable({
           locomotive: locomotiveNumber,
@@ -984,7 +1146,15 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         if (helperResult?.activable && Number.isInteger(idMovimiento) && idMovimiento > 0) {
           const compatible = await prisma.movimiento.findUnique({
             where: { id: idMovimiento },
-            include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+            include: {
+              empresa: true,
+              localidad: true,
+              viaOrigen: true,
+              viaDestino: true,
+              ronda: true,
+              cliente: { select: { nombre: true } },
+              creadoPor: { select: { nombre: true } },
+            },
           });
           if (compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado) {
             return res.status(200).json({
@@ -999,16 +1169,28 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         const recoveryResult = await buscarTornoAgendadoActivable({
           locomotive: locomotiveNumber,
           tipo: TORNO_RECUPERACION_TIPO,
-          localidad: Number.isFinite(localidadRaw) && localidadRaw > 0 ? localidadRaw : null,
         });
         const recoveryHelper = recoveryResult?.scheduled ?? null;
         const recoveryMovimientoId = Number(recoveryHelper?.idMovimiento);
         if (recoveryResult?.activable && Number.isInteger(recoveryMovimientoId) && recoveryMovimientoId > 0) {
           const compatible = await prisma.movimiento.findUnique({
             where: { id: recoveryMovimientoId },
-            include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+            include: {
+              empresa: true,
+              localidad: true,
+              viaOrigen: true,
+              viaDestino: true,
+              ronda: true,
+              cliente: { select: { nombre: true } },
+              creadoPor: { select: { nombre: true } },
+            },
           });
-          if (compatible && compatible.torno === true && String(compatible.estado).toUpperCase() === 'CANCELADO') {
+          if (
+            compatible &&
+            isTornoRecoveryCompatible(compatible, {
+              locomotiveNumber,
+            })
+          ) {
             return res.status(200).json({
               activable: true,
               recoveryTemporary: true,
@@ -1047,8 +1229,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
     }
   };
 
-  static listarTornoAgendadosPendientes: RequestHandler = async (_req, res) => {
+  static listarTornoAgendadosPendientes: RequestHandler = async (req, res) => {
     try {
+      const authenticatedUserId = Number((req as any).user?.id || 0);
       await cleanupExpiredTornoSchedules();
       try {
         const [helperResult, recoveryResult] = await Promise.all([
@@ -1069,7 +1252,15 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               torno: true,
               estado: { in: ['AGENDADO', 'CANCELADO'] as any },
             },
-            include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+            include: {
+              empresa: true,
+              localidad: true,
+              viaOrigen: true,
+              viaDestino: true,
+              ronda: true,
+              cliente: { select: { nombre: true } },
+              creadoPor: { select: { nombre: true } },
+            },
           });
           const byId = new Map(movimientos.map((mov) => [mov.id, mov]));
           const items = helpers
@@ -1079,11 +1270,17 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               const tipo = String(helper?.tipo ?? 'TORNO').toUpperCase();
               const isRecovery = tipo === TORNO_RECUPERACION_TIPO;
               const isScheduled = String(movimiento.estado) === 'AGENDADO' && movimiento.torno === true && !movimiento.finalizado;
-              const isRecoveryValid = isRecovery && String(movimiento.estado).toUpperCase() === 'CANCELADO' && movimiento.torno === true;
+              const isRecoveryValid =
+                isRecovery &&
+                String(movimiento.estado).toUpperCase() === 'CANCELADO' &&
+                movimiento.torno === true;
               return isScheduled || isRecoveryValid ? getScheduledPayload(movimiento, helper) : null;
             })
             .filter(Boolean);
-          return res.status(200).json({ items });
+          const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, ids);
+          return res.status(200).json({
+            items: [...items, ...reconciled],
+          });
         }
       } catch (error: any) {
         log.error('No se pudo listar índice TornoAgendado; usando búsqueda legacy', { err: error?.message });
@@ -1102,8 +1299,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const items = candidatos
         .filter(canActivateScheduledTorno)
         .map(getScheduledPayload);
+      const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId);
 
-      return res.status(200).json({ items });
+      return res.status(200).json({ items: [...items, ...reconciled] });
     } catch (error: any) {
       log.error('Error al listar solicitudes agendadas de torno', { error });
       return res.status(500).json({ message: 'Error al listar solicitudes agendadas de torno', details: error?.message });

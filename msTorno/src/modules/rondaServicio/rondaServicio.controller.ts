@@ -390,6 +390,15 @@ export async function iniciarRondaServicio(req: Request, res: Response) {
   const input = rondaServicioIniciarSchema.parse(req.body);
   const inicio = input.inicio ?? new Date();
 
+  const existing = await prismaTorno.rondaServicio.findUnique({
+    where: { id },
+    select: { id: true, status: true },
+  });
+  if (!existing) return fail(res, 404, "RondaServicio no encontrada");
+  if (existing.status === "CANCELADO" || existing.status === "CONCLUIDO") {
+    return fail(res, 409, `Ronda ${existing.status} no puede iniciarse`);
+  }
+
   const data = await prismaTorno.$transaction(async (tx) => {
     const current = await tx.rondaServicio.findUnique({
       where: { id },

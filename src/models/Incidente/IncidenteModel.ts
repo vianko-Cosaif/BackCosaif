@@ -131,6 +131,104 @@ async function bestEffort<T>(name: string, fn: () => Promise<T>, meta?: Record<s
   }
 }
 
+async function cancelarTornoRequeridoPorMovimiento(
+  movimientoId: number,
+  options: { fin: Date; razon: string },
+  meta?: Record<string, any>
+) {
+  let lastError: unknown;
+
+  for (let intento = 1; intento <= 3; intento += 1) {
+    try {
+      const result = await cancelarRondaTornoPorMovimiento(movimientoId, options);
+      const status = String(result?.ronda?.status ?? '').toUpperCase();
+
+      if (!result?.ronda?.id) {
+        throw new Error(`No se encontró RondaServicio de torno para el movimiento ${movimientoId}`);
+      }
+      if (status !== 'CANCELADO') {
+        throw new Error(`La ronda de torno quedó en estado ${status || 'DESCONOCIDO'}`);
+      }
+
+      trace('info', 'Torneado cancelado por límite de incidentes', {
+        ...(meta ?? {}),
+        movimientoId,
+        rondaServicioId: result.ronda.id,
+        intento,
+      });
+      return result;
+    } catch (error) {
+      lastError = error;
+      trace('warn', 'Falló la cancelación obligatoria del torneado', {
+        ...(meta ?? {}),
+        movimientoId,
+        intento,
+        error: String((error as any)?.stack ?? error),
+      });
+      if (intento < 3) {
+        await new Promise((resolve) => setTimeout(resolve, intento * 150));
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`No se pudo cancelar el torneado del movimiento ${movimientoId}`);
+}
+
+async function crearRecuperacionTornoRequerida(
+  movimiento: {
+    id: number;
+    torno?: boolean | null;
+    locomotiveNumber?: number | null;
+    localidadId?: number | null;
+  },
+  meta?: Record<string, any>
+) {
+  let lastError: unknown;
+
+  for (let intento = 1; intento <= 3; intento += 1) {
+    try {
+      const recovery = await crearRecuperacionTemporalTornoCancelado(movimiento);
+      const limite = new Date(recovery?.fechaLimiteActivacion ?? '');
+
+      if (!recovery?.id || recovery?.activo !== true) {
+        throw new Error(`msTorno no creó una recuperación activa para el movimiento ${movimiento.id}`);
+      }
+      if (String(recovery?.tipo ?? '').toUpperCase() !== 'TORNO_RECUPERACION') {
+        throw new Error(`msTorno devolvió un tipo de recuperación inválido para el movimiento ${movimiento.id}`);
+      }
+      if (Number.isNaN(limite.getTime()) || limite.getTime() <= Date.now()) {
+        throw new Error(`La recuperación del movimiento ${movimiento.id} no tiene una ventana válida`);
+      }
+
+      trace('info', 'Recuperación de torneado creada tras cancelación por incidentes', {
+        ...(meta ?? {}),
+        movimientoId: movimiento.id,
+        tornoAgendadoId: recovery.id,
+        fechaLimiteActivacion: limite.toISOString(),
+        intento,
+      });
+      return recovery;
+    } catch (error) {
+      lastError = error;
+      trace('warn', 'Falló la creación obligatoria de recuperación del torneado', {
+        ...(meta ?? {}),
+        movimientoId: movimiento.id,
+        intento,
+        error: String((error as any)?.stack ?? error),
+      });
+      if (intento < 3) {
+        await new Promise((resolve) => setTimeout(resolve, intento * 150));
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`No se pudo crear la recuperación del torneado ${movimiento.id}`);
+}
+
 /* =========================================================
  *                    CONSTANTES / CONFIG
  * ========================================================= */
@@ -566,19 +664,17 @@ export class IncidenteModel {
 
           if (movimientoCancelado) {
             if (movimientoCancelado.torno === true) {
-              await bestEffort(
-                'msTorno.cancelarRondaTornoPorMovimiento(limite_incidentes)',
-                () =>
-                  cancelarRondaTornoPorMovimiento(movimientoCancelado.id, {
-                    fin: ahora,
-                    razon: comentarioCancelacion,
-                  }),
+              await cancelarTornoRequeridoPorMovimiento(
+                movimientoCancelado.id,
+                {
+                  fin: ahora,
+                  razon: comentarioCancelacion,
+                },
                 { rid, incidenteId, movimientoId }
               );
 
-              await bestEffort(
-                'msTorno.crearRecuperacionTemporalTornoCancelado(limite_incidentes)',
-                () => crearRecuperacionTemporalTornoCancelado(movimientoCancelado),
+              await crearRecuperacionTornoRequerida(
+                movimientoCancelado,
                 { rid, incidenteId, movimientoId }
               );
             }
@@ -1565,19 +1661,17 @@ export class IncidenteModel {
           });
 
           if (movimientoCancelado?.torno === true) {
-            await bestEffort(
-              'msTorno.cancelarRondaTornoPorMovimiento(limite_incidentes_al_crear)',
-              () =>
-                cancelarRondaTornoPorMovimiento(movimientoCancelado.id, {
-                  fin: ahora,
-                  razon: comentarioCancelacion,
-                }),
+            await cancelarTornoRequeridoPorMovimiento(
+              movimientoCancelado.id,
+              {
+                fin: ahora,
+                razon: comentarioCancelacion,
+              },
               { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
             );
 
-            await bestEffort(
-              'msTorno.crearRecuperacionTemporalTornoCancelado(limite_incidentes_al_crear)',
-              () => crearRecuperacionTemporalTornoCancelado(movimientoCancelado),
+            await crearRecuperacionTornoRequerida(
+              movimientoCancelado,
               { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
             );
           }

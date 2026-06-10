@@ -104,7 +104,7 @@ export type TornoAgendadoInput = {
 };
 
 export const TORNO_RECUPERACION_TIPO = "TORNO_RECUPERACION";
-export const TORNO_RECUPERACION_WINDOW_MINUTES = 120;
+export const TORNO_RECUPERACION_WINDOW_MINUTES = 5 * 60;
 
 const MEDIDA_KEYS = [
   "l1",
@@ -308,7 +308,13 @@ export async function cancelarRondaTornoPorMovimiento(
   const rondas = await requestTornoMs<any[]>(`/rondas-servicio?ruedaSolicitudId=${solicitud.id}`, {
     method: "GET",
   });
-  const ronda = rondas.data?.[0] ?? null;
+  const ronda =
+    rondas.data?.find((item) => {
+      const status = String(item?.status ?? "").toUpperCase();
+      return status !== "CANCELADO" && status !== "CONCLUIDO";
+    }) ??
+    rondas.data?.[0] ??
+    null;
   if (!ronda?.id) return { ruedaSolicitud: solicitud, ronda: null };
 
   const status = String(ronda.status ?? "").toUpperCase();
@@ -323,6 +329,10 @@ export async function cancelarRondaTornoPorMovimiento(
       razon: options.razon,
     },
   });
+
+  if (String(canceled.data?.status ?? "").toUpperCase() !== "CANCELADO") {
+    throw new Error(`msTorno no confirmó la cancelación de la ronda ${ronda.id}`);
+  }
 
   return { ruedaSolicitud: solicitud, ronda: canceled.data };
 }
