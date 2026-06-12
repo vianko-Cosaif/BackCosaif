@@ -182,10 +182,19 @@ export async function historialRondasServicio(req: Request, res: Response) {
   }
 
   const pagination = getPagination(req);
+  const isOnlyActive =
+    statusFilter.every((s) => ["SOLICITADO", "EN_PROCESO", "DETENIDO"].includes(s)) &&
+    !statusFilter.includes("CONCLUIDO") &&
+    !statusFilter.includes("CANCELADO");
+
+  const orderOptions = isOnlyActive
+    ? [{ createdAt: "asc" as const }, { id: "asc" as const }]
+    : [{ updatedAt: "desc" as const }, { id: "desc" as const }];
+
   const [data, total] = await Promise.all([
     prismaTorno.rondaServicio.findMany({
       where: where as never,
-      orderBy: { updatedAt: "desc" },
+      orderBy: orderOptions,
       include: {
         ruedaSolicitud: true,
         ruedasFinal: true,
