@@ -1,9 +1,9 @@
 import admin from 'firebase-admin';
-import { PrismaClient, Incidente } from '@prisma/client';
+import type { Incidente } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { messaging } from '../config/firebase';
 import { sendMulticastCompat } from './fcmCompat';
-
-const prisma = new PrismaClient();
+import { tokensAudienciaOperacion } from './fcmAudience';
 
 type NotificacionFCM = {
   titulo: string;
@@ -149,47 +149,13 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
     });
     if (!mov) return;
 
-    // 1) Empresa en la misma localidad (todos) MENOS MAQUINISTA
-    const empresaLocal = await prisma.usuario.findMany({
-      where: {
-        activo: true,
-        empresaId: mov.empresaId,
-        localidadId: mov.localidadId,
-        NOT: { rol: 'MAQUINISTA' },           // excluye rol maquinista
-      },
-      select: { id: true, fcmTokens: { select: { token: true } } },
+    const { tokens } = await tokensAudienciaOperacion({
+      empresaId: mov.empresaId,
+      localidadId: mov.localidadId,
     });
-
-    // 2) Staff de la misma localidad (si no estuvieran ya): SUPERVISOR/COORDINADOR
-    const staffLocal = await prisma.usuario.findMany({
-      where: {
-        activo: true,
-        localidadId: mov.localidadId,
-        rol: { in: ['SUPERVISOR', 'COORDINADOR'] },
-      },
-      select: { id: true, fcmTokens: { select: { token: true } } },
-    });
-
-    // 3) Asignados explícitos (cliente/supervisor/coordinador/creador), excluye maquinista
-    const idsAsignados = [
-      mov.clienteId, mov.supervisorId, mov.coordinadorId, mov.creadoPorId
-    ].filter((x): x is number => Boolean(x));
-    const asignados = idsAsignados.length
-      ? await prisma.usuario.findMany({
-          where: { id: { in: idsAsignados }, activo: true },
-          select: { id: true, fcmTokens: { select: { token: true } } },
-        })
-      : [];
-
-    // 4) Fusiona, deduplica y excluye explícitamente al maquinista por ID
-    const usuarios = [...empresaLocal, ...staffLocal, ...asignados]
-      .filter(u => u.id !== mov.operadorId);
-    const tokens = [...new Set(
-      usuarios.flatMap(u => u.fcmTokens.map(t => t.token).filter(Boolean) as string[])
-    )];
     if (!tokens.length) return;
 
-    // 5) Mensaje limpio y con truncado correcto
+    // Mensaje limpio y con truncado correcto
     const empresa   = mov.empresa?.nombre   ?? 'Sin Empresa';
     const localidad = mov.localidad?.nombre ?? 'Sin Localidad';
     const corta     = inc.descripcion.length > 50 ? inc.descripcion.slice(0, 50) + '…' : inc.descripcion;
@@ -265,41 +231,10 @@ static async notificarCambioEstado(
     });
     if (!mov) return;
 
-    // 1) Empresa + localidad: TODOS los usuarios (incluye MAQUINISTA)
-    const empresaLocal = await prisma.usuario.findMany({
-      where: {
-        activo: true,
-        empresaId: mov.empresaId,
-        localidadId: mov.localidadId,
-      },
-      select: { id: true, fcmTokens: { select: { token: true } } },
+    const { tokens } = await tokensAudienciaOperacion({
+      empresaId: mov.empresaId,
+      localidadId: mov.localidadId,
     });
-
-    // 2) Staff de la misma localidad (por si no pertenecen a esa empresa)
-    const staffLocal = await prisma.usuario.findMany({
-      where: {
-        activo: true,
-        localidadId: mov.localidadId,
-        rol: { in: ['SUPERVISOR', 'COORDINADOR'] },
-      },
-      select: { id: true, fcmTokens: { select: { token: true } } },
-    });
-
-    // 3) Asignados explícitos (cliente, supervisor, coordinador, creador)
-    const idsAsignados = [mov.clienteId, mov.supervisorId, mov.coordinadorId, mov.creadoPorId]
-      .filter((x): x is number => Boolean(x));
-    const asignados = idsAsignados.length
-      ? await prisma.usuario.findMany({
-          where: { id: { in: idsAsignados }, activo: true },
-          select: { id: true, fcmTokens: { select: { token: true } } },
-        })
-      : [];
-
-    // 4) Fusiona y deduplica (ahora SIN excluir al maquinista)
-    const tokens = [...new Set(
-      [...empresaLocal, ...staffLocal, ...asignados]
-        .flatMap(u => u.fcmTokens.map(t => t.token).filter(Boolean) as string[])
-    )];
     if (!tokens.length) return;
 
     if (!admin.apps.length) admin.initializeApp();
@@ -499,29 +434,10 @@ static async notificarContinuarMovimiento(
     });
     if (!movimiento || !movimiento.empresaId || !movimiento.localidadId) return;
 
-    // 1. Obtener usuarios internos de la localidad (SUPERVISOR, COORDINADOR, MAQUINISTA, OPERADOR)
-    const internos = await prisma.usuario.findMany({
-      where: {
-        localidadId: movimiento.localidadId,
-        rol: { in: ['SUPERVISOR', 'COORDINADOR', 'MAQUINISTA', 'OPERADOR'] },
-        activo: true
-      },
-      include: { fcmTokens: true }
+    const { tokens } = await tokensAudienciaOperacion({
+      empresaId: movimiento.empresaId,
+      localidadId: movimiento.localidadId,
     });
-
-    // 2. Obtener todos los CLIENTES de la empresa (de cualquier localidad)
-    const clientes = await prisma.usuario.findMany({
-      where: {
-        empresaId: movimiento.empresaId,
-        rol: 'CLIENTE',
-        activo: true
-      },
-      include: { fcmTokens: true }
-    });
-
-    // Combinar todos los usuarios
-    const usuarios = [...internos, ...clientes];
-    const tokens = usuarios.flatMap(u => u.fcmTokens.map(t => t.token));
     if (tokens.length === 0) return;
 
     const empresaNombre = movimiento.empresa?.nombre || 'Empresa';
@@ -564,38 +480,10 @@ static async notificarIncidenteOmitido(
   });
   if (!mov) return;
 
-  /* Personal interno de la localidad + administradores */
-  const internos = await prisma.usuario.findMany({
-    where: {
-      localidadId: mov.localidadId,
-      rol: {
-        in: [
-          'SUPERVISOR',
-          'COORDINADOR',
-          'MAQUINISTA',
-          'OPERADOR',
-          'ADMINISTRADOR'
-        ]
-      },
-      activo: true
-    },
-    include: { fcmTokens: true }
+  const { tokens } = await tokensAudienciaOperacion({
+    empresaId: mov.empresaId,
+    localidadId: mov.localidadId,
   });
-
-  /* Clientes de la empresa */
-  const clientes = await prisma.usuario.findMany({
-    where: {
-      empresaId: mov.empresaId,
-      rol: 'CLIENTE',
-      activo: true
-    },
-    include: { fcmTokens: true }
-  });
-
-  const tokens = [
-    ...internos.flatMap(u  => u.fcmTokens.map(t => t.token)),
-    ...clientes.flatMap(u => u.fcmTokens.map(t => t.token))
-  ];
   if (tokens.length === 0) return;
 
   await sendMulticastCompat({
@@ -618,6 +506,57 @@ static async notificarIncidenteOmitido(
 }
 
 /* ----------------------------------------------------------- */
+/*  INCIDENTE DE TORNO RELACIONADO A MOVIMIENTO                 */
+/* ----------------------------------------------------------- */
+static async notificarIncidenteTornoPorMovimiento(params: {
+  movimientoId: number;
+  incidenteId?: number | string | null;
+  status?: string | null;
+  tipoFalla?: string | null;
+  comentario?: string | null;
+  resuelto?: boolean | null;
+  numeroLocomotora?: number | null;
+}): Promise<void> {
+  const movimiento = await prisma.movimiento.findUnique({
+    where: { id: params.movimientoId },
+    include: { empresa: true, localidad: true },
+  });
+  if (!movimiento?.empresaId || !movimiento.localidadId) return;
+
+  const { tokens } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+  });
+  if (tokens.length === 0) return;
+
+  const status = String(params.status ?? (params.resuelto ? 'RESUELTO' : 'EN_PROCESO'));
+  const tipoFalla = String(params.tipoFalla ?? 'TORNO');
+  const comentario = String(params.comentario ?? '').trim();
+  const locomotora = params.numeroLocomotora ?? movimiento.locomotiveNumber;
+
+  await sendMulticastCompat({
+    notification: {
+      title: params.resuelto ? 'Incidente de torno resuelto' : 'Incidente de torno reportado',
+      body: `Movimiento #${movimiento.id} · Loco ${locomotora} · ${movimiento.empresa?.nombre ?? 'Empresa'}${comentario ? `: ${comentario.slice(0, 80)}` : ''}`,
+    },
+    data: {
+      pantalla: 'Torno',
+      tipo: params.resuelto ? 'incidente_torno_resuelto' : 'incidente_torno',
+      incidenteTornoId: String(params.incidenteId ?? ''),
+      movimientoId: String(movimiento.id),
+      empresa: movimiento.empresa?.nombre ?? 'Empresa',
+      localidad: movimiento.localidad?.nombre ?? 'Localidad',
+      localidadId: String(movimiento.localidadId),
+      locomotora: String(locomotora ?? ''),
+      tipoFalla,
+      estado: status,
+      timestamp: new Date().toISOString(),
+    },
+    tokens,
+  });
+}
+
+/* ----------------------------------------------------------- */
 /*  CANCELACIÓN DE MOVIMIENTO (tres incidentes)                 */
 /* ----------------------------------------------------------- */
 static async notificarCancelacionMovimiento(
@@ -626,34 +565,10 @@ static async notificarCancelacionMovimiento(
 ): Promise<void> {
   if (!movimiento.localidadId || !movimiento.empresaId) return;
 
-  const cliente = movimiento.clienteId
-    ? await prisma.usuario.findUnique({
-        where  : { id: movimiento.clienteId },
-        include: { fcmTokens: true }
-      })
-    : null;
-
-  const internos = await prisma.usuario.findMany({
-    where: {
-      localidadId: movimiento.localidadId,
-      rol: {
-        in: [
-          'SUPERVISOR',
-          'COORDINADOR',
-          'MAQUINISTA',
-          'OPERADOR',
-          'ADMINISTRADOR'
-        ]
-      },
-      activo: true
-    },
-    include: { fcmTokens: true }
+  const { tokens } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
   });
-
-  const tokens = [
-    ...(cliente?.fcmTokens.map(t => t.token) ?? []),
-    ...internos.flatMap(u => u.fcmTokens.map(t => t.token))
-  ];
   if (tokens.length === 0) return;
 
   await sendMulticastCompat({

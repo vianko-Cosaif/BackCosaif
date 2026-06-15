@@ -1,6 +1,5 @@
-import { PrismaClient, FcmToken } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { FcmToken } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 
 export class FmcModel {
   /**
@@ -11,7 +10,7 @@ export class FmcModel {
   }
 
   /**
-   * Retorna todos los tokens asociados a un usuario espec�fico.
+   * Retorna todos los tokens asociados a un usuario especifico.
    * @param usuarioId - ID del usuario
    */
   static async obtenerTokensPorUsuario(usuarioId: number): Promise<FcmToken[]> {
@@ -34,19 +33,23 @@ export class FmcModel {
   }
 
   /**
-   * Elimina un token espec�fico.
+   * Elimina un token especifico.
    * @param token - Token FCM
    */
-  static async eliminarToken(token: string): Promise<void> {
-    await prisma.fcmToken.delete({
-      where: { token },
+  static async eliminarToken(token: string, usuarioId?: number): Promise<number> {
+    const result = await prisma.fcmToken.deleteMany({
+      where: {
+        token,
+        ...(usuarioId ? { usuarioId } : {}),
+      },
     });
+    return result.count;
   }
 
   /**
-   * Elimina todos los tokens de un usuario espec�fico.
+   * Elimina todos los tokens de un usuario especifico.
    * @param usuarioId - ID del usuario
-   * @returns N�mero de tokens eliminados
+   * @returns Numero de tokens eliminados
    */
   static async eliminarTokensPorUsuario(usuarioId: number): Promise<number> {
     const result = await prisma.fcmToken.deleteMany({

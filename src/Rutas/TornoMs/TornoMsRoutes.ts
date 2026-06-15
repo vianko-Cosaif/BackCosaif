@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from "../../types/auth";
 import { proxyToTornoMs } from "../../services/tornoMs/tornoMsClient";
 import { prisma } from "../../lib/prisma";
 import { MovimientoWriteService } from "../../models/Movimientos/movimientoWriteService";
+import { NotificadorFCM } from "../../services/NotificadorFCM";
 
 const router = Router();
 const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
@@ -94,6 +95,75 @@ function getMovimientoIdFromTornoStartResponse(data: unknown) {
     null;
   const numeric = Number(raw);
   return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function isTornoIncidentNotificationRequest(method: string, rest: string) {
+  const upperMethod = method.toUpperCase();
+  const path = rest.split("?")[0];
+
+  if (upperMethod === "POST" && path === "/incidentes") return true;
+  if (["PATCH", "PUT", "POST"].includes(upperMethod) && /^\/incidentes\/\d+(?:\/resolver)?$/.test(path)) {
+    return true;
+  }
+
+  return false;
+}
+
+function readPositiveInt(value: unknown) {
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function getRuedaSolicitudIdFromTornoIncident(data: unknown) {
+  if (!data || typeof data !== "object") return null;
+  const source = data as Record<string, any>;
+  return (
+    readPositiveInt(source.ruedaSolicitud?.id) ??
+    readPositiveInt(source.ruedaSolicitudId) ??
+    readPositiveInt(source.rondaServicio?.ruedaSolicitudId) ??
+    null
+  );
+}
+
+function getMovimientoIdFromTornoIncident(data: unknown) {
+  if (!data || typeof data !== "object") return null;
+  const source = data as Record<string, any>;
+  return (
+    readPositiveInt(source.movimientoId) ??
+    readPositiveInt(source.ruedaSolicitud?.movimientoId) ??
+    readPositiveInt(source.rondaServicio?.ruedaSolicitud?.movimientoId) ??
+    null
+  );
+}
+
+async function resolveMovimientoIdFromTornoIncident(data: unknown) {
+  const direct = getMovimientoIdFromTornoIncident(data);
+  if (direct) return direct;
+
+  const ruedaSolicitudId = getRuedaSolicitudIdFromTornoIncident(data);
+  if (!ruedaSolicitudId) return null;
+
+  const solicitud = await proxyToTornoMs(`/rueda-solicitudes/${ruedaSolicitudId}`, { method: "GET" });
+  return getMovimientoIdFromTornoIncident(solicitud.data);
+}
+
+async function notifyTornoIncidentIfNeeded(method: string, rest: string, data: unknown) {
+  if (!isTornoIncidentNotificationRequest(method, rest)) return;
+  if (!data || typeof data !== "object") return;
+
+  const source = data as Record<string, any>;
+  const movimientoId = await resolveMovimientoIdFromTornoIncident(source);
+  if (!movimientoId) return;
+
+  await NotificadorFCM.notificarIncidenteTornoPorMovimiento({
+    movimientoId,
+    incidenteId: source.id,
+    status: source.status,
+    tipoFalla: source.tipoFalla,
+    comentario: source.comentario,
+    resuelto: source.resuelto,
+    numeroLocomotora: source.numeroLocomotora,
+  });
 }
 
 function getInicioFromTornoStartResponse(data: unknown, body: unknown) {
@@ -286,6 +356,17 @@ router.all("/*", async (req, res) => {
 
     if (result.status >= 200 && result.status < 300 && isStartTorneadoRequest(req.method, rest)) {
       await concludeMovimientoForStartedTorneado(result.data, req.body);
+    }
+
+    if (result.status >= 200 && result.status < 300) {
+      try {
+        await notifyTornoIncidentIfNeeded(req.method, rest, result.data);
+      } catch (error) {
+        console.warn("No se pudo notificar incidente de torno", {
+          rest,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     return res.status(result.status).send(result.data);

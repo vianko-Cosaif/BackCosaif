@@ -1,16 +1,9 @@
 import { Rol } from '@prisma/client';
-import admin from 'firebase-admin';
+import '../../config/firebase';
 import { prisma } from '../../lib/prisma';
 import { movimientoError } from './movimiento.logger';
 import { sendMulticastCompat } from '../../services/fcmCompat';
-
-function ensureAdmin() {
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-  }
-}
+import { tokensAudienciaOperacion } from '../../services/fcmAudience';
 
 function chunk<T>(items: T[], size = 500): T[][] {
   const chunks: T[][] = [];
@@ -30,46 +23,74 @@ function uniqueTokensFromUsers(
   ];
 }
 
-async function usuariosPorRolesLocalidadEmpresa(
-  localidadId: number,
-  empresaId?: number,
-  roles?: Rol[]
-) {
-  const rolesBase: Rol[] = roles?.length
-    ? roles
-    : [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.CLIENTE];
-
-  const where: any = { activo: true, localidadId, rol: { in: rolesBase } };
-  if (empresaId) where.empresaId = empresaId;
-
-  return prisma.usuario.findMany({ where, include: { fcmTokens: true } });
-}
-
 async function enviarMulticastMovimiento(
   tokens: string[],
   payload: { notification: { title: string; body: string }; data: Record<string, string> },
   logCtx: Record<string, any>
 ) {
-  ensureAdmin();
-
   if (!tokens.length) {
     movimientoError.warn('FCM movimiento: sin tokens', logCtx);
+    console.warn('FCM movimiento: sin tokens', logCtx);
     return;
   }
+
+  const invalidCodes = new Set([
+    'messaging/registration-token-not-registered',
+    'messaging/invalid-registration-token',
+  ]);
 
   const batches = chunk(tokens, 500);
   for (let index = 0; index < batches.length; index++) {
     const slice = batches[index];
     try {
       const response = await sendMulticastCompat({ ...payload, tokens: slice });
+      const invalidTokens = response.responses
+        .map((result, tokenIndex) =>
+          !result.success && result.error && invalidCodes.has(result.error.code) ? slice[tokenIndex] : null
+        )
+        .filter(Boolean) as string[];
+
+      if (invalidTokens.length) {
+        await prisma.fcmToken.deleteMany({ where: { token: { in: invalidTokens } } });
+      }
+
+      const details = response.responses
+        .map((result, tokenIndex) =>
+          !result.success
+            ? {
+                tokenIndex,
+                code: result.error?.code,
+                message: result.error?.message,
+              }
+            : null
+        )
+        .filter(Boolean);
+
       movimientoError.info('FCM movimiento', {
         ...logCtx,
         lote: `${index + 1}/${batches.length}`,
         enviados: response.successCount,
         fallidos: response.failureCount,
+        tokensInvalidos: invalidTokens.length,
+        errores: details,
+      });
+      console.info('FCM movimiento', {
+        ...logCtx,
+        lote: `${index + 1}/${batches.length}`,
+        enviados: response.successCount,
+        fallidos: response.failureCount,
+        tokensInvalidos: invalidTokens.length,
+        errores: details,
       });
     } catch (error: any) {
       movimientoError.error('FCM movimiento error', {
+        ...logCtx,
+        lote: `${index + 1}/${batches.length}`,
+        errName: error?.name,
+        errMsg: error?.message,
+        errCode: error?.errorInfo?.code,
+      });
+      console.error('FCM movimiento error', {
         ...logCtx,
         lote: `${index + 1}/${batches.length}`,
         errName: error?.name,
@@ -81,8 +102,6 @@ async function enviarMulticastMovimiento(
 }
 
 export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
-  ensureAdmin();
-
   const movimiento = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -144,8 +163,6 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
 }
 
 export async function notificarMovimientoIniciado(movId: number) {
-  ensureAdmin();
-
   const movimiento = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -157,14 +174,10 @@ export async function notificarMovimientoIniciado(movId: number) {
   });
   if (!movimiento) return;
 
-  const roles: Rol[] = [Rol.SUPERVISOR, Rol.CLIENTE, Rol.COORDINADOR, Rol.OPERADOR];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(movimiento.localidadId, movimiento.empresaId, roles);
-  const tokens = uniqueTokensFromUsers(usuarios);
-
-  const roleCounts = roles.reduce<Record<string, number>>((acc, rol) => {
-    acc[rol] = usuarios.filter((usuario) => usuario.rol === rol).length;
-    return acc;
-  }, {});
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+  });
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_iniciado', {
@@ -205,8 +218,6 @@ export async function notificarMovimientoIniciado(movId: number) {
 }
 
 export async function notificarMovimientoFinalizado(movId: number) {
-  ensureAdmin();
-
   const movimiento = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -216,14 +227,10 @@ export async function notificarMovimientoFinalizado(movId: number) {
   });
   if (!movimiento) return;
 
-  const roles: Rol[] = [Rol.CLIENTE, Rol.COORDINADOR, Rol.SUPERVISOR];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(movimiento.localidadId, movimiento.empresaId, roles);
-  const tokens = uniqueTokensFromUsers(usuarios);
-
-  const roleCounts = roles.reduce<Record<string, number>>((acc, rol) => {
-    acc[rol] = usuarios.filter((usuario) => usuario.rol === rol).length;
-    return acc;
-  }, {});
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+  });
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_concluido', {

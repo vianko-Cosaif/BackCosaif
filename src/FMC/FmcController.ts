@@ -2,13 +2,35 @@
 import { Request, Response, RequestHandler } from 'express';
 import { FmcModel } from '../models/FMC/modelFMC';      // nuevo modelo en forma de clase
 import { fmcControllerLogger } from './fmc.controller.logger';
+import type { AuthenticatedUser } from '../types/auth';
+
+const ADMIN_ROLES = new Set(['ADMINISTRADOR', 'COORDINADOR']);
+
+function getAuthUser(req: Request) {
+  return req.user as AuthenticatedUser | undefined;
+}
+
+function isAdminRole(user?: AuthenticatedUser) {
+  return ADMIN_ROLES.has(String(user?.rol ?? '').toUpperCase());
+}
+
+function readToken(body: unknown) {
+  if (!body || typeof body !== 'object') return '';
+  return String((body as { token?: unknown }).token ?? '').trim();
+}
 
 /**
  * Controlador para gestionar los tokens FCM
  */
 export class FmcController {
-  /** GET /fcm — lista todos los tokens (debug / panel admin) */
-  static obtenerTokens: RequestHandler = async (_req, res) => {
+  /** GET /fcm â€” lista todos los tokens (debug / panel admin) */
+  static obtenerTokens: RequestHandler = async (req, res) => {
+    const user = getAuthUser(req);
+    if (!isAdminRole(user)) {
+      res.status(403).json({ error: 'No autorizado' });
+      return;
+    }
+
     try {
       const tokens = await FmcModel.obtenerTokens();
       res.json(tokens);
@@ -18,12 +40,18 @@ export class FmcController {
     }
   };
 
-  /** GET /fcm/usuario/:usuarioId — tokens de un usuario */
+  /** GET /fcm/usuario/:usuarioId â€” tokens de un usuario */
   static obtenerTokensPorUsuario: RequestHandler = async (req, res) => {
     const usuarioId = String(req.params.usuarioId);
+    const user = getAuthUser(req);
 
     if (!/^\d+$/.test(usuarioId)) {
-      res.status(400).json({ error: 'usuarioId debe ser numérico' });
+      res.status(400).json({ error: 'usuarioId debe ser numÃ©rico' });
+      return;
+    }
+
+    if (!isAdminRole(user) && Number(usuarioId) !== user?.id) {
+      res.status(403).json({ error: 'No autorizado' });
       return;
     }
 
@@ -36,27 +64,29 @@ export class FmcController {
     }
   };
 
-  /** POST /fcm — upsert token  */
+  /** POST /fcm â€” upsert token  */
   static registrarToken: RequestHandler = async (req, res) => {
-    const { usuarioId, token } = req.body;
+    const user = getAuthUser(req);
+    const token = readToken(req.body);
 
-    if (!usuarioId || !token) {
-      res.status(400).json({ error: 'Faltan usuarioId o token' });
+    if (!user?.id || !token) {
+      res.status(400).json({ error: 'Faltan usuario autenticado o token' });
       return;
     }
 
     try {
-      await FmcModel.upsertToken(Number(usuarioId), token);
-      res.sendStatus(204); // No Content
+      await FmcModel.upsertToken(user.id, token);
+      res.status(201).json({ ok: true });
     } catch (error) {
-      fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId, token });
+      fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId: user.id });
       res.status(500).json({ error: 'Error al registrar token', details: error });
     }
   };
 
-  /** DELETE /fcm/:token — elimina token concreto */
+  /** DELETE /fcm/:token â€” elimina token concreto */
   static eliminarToken: RequestHandler = async (req, res) => {
     const token = String(req.params.token);
+    const user = getAuthUser(req);
 
     if (!token) {
       res.status(400).json({ error: 'Token requerido' });
@@ -64,20 +94,26 @@ export class FmcController {
     }
 
     try {
-      await FmcModel.eliminarToken(token);
-      res.sendStatus(204);
+      const eliminados = await FmcModel.eliminarToken(token, isAdminRole(user) ? undefined : user?.id);
+      res.json({ eliminados });
     } catch (error) {
       fmcControllerLogger.error(`Error al eliminar token ${token}`, { error });
       res.status(500).json({ error: 'Error al eliminar token', details: error });
     }
   };
 
-  /** DELETE /fcm/usuario/:usuarioId — elimina todos los tokens de un usuario */
+  /** DELETE /fcm/usuario/:usuarioId â€” elimina todos los tokens de un usuario */
   static eliminarTokensPorUsuario: RequestHandler = async (req, res) => {
     const usuarioId = String(req.params.usuarioId);
+    const user = getAuthUser(req);
 
     if (!/^\d+$/.test(usuarioId)) {
-      res.status(400).json({ error: 'usuarioId debe ser numérico' });
+      res.status(400).json({ error: 'usuarioId debe ser numÃ©rico' });
+      return;
+    }
+
+    if (!isAdminRole(user) && Number(usuarioId) !== user?.id) {
+      res.status(403).json({ error: 'No autorizado' });
       return;
     }
 
