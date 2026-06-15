@@ -6,10 +6,11 @@ import { PrismaClient } from '@prisma/client';
 
 export type EmpresaLocomotorasFilters = {
   empresaId: number;
-  desde: string; // YYYY-MM-DD
-  hasta: string; // YYYY-MM-DD
+  desde: string; // YYYY-MM-DD o ISO local con hora
+  hasta: string; // YYYY-MM-DD o ISO local con hora
   tz?: string;
   localidadId?: number;
+  usuarioNombre?: string;
 };
 
 export type EstadoCounts = Record<
@@ -27,6 +28,8 @@ export type MovimientoDetalle = {
   id: number;
   locomotiveNumber: number;
   estado: string;
+  solicitadoPor: string | null;
+  cliente: string | null;
   fechaSolicitudMX: string;
   fechaInicioMX: string | null;
   fechaFinMX: string | null;
@@ -52,13 +55,18 @@ export type ReporteEmpresaLocomotoras = {
     totalMovimientos: number;
     totalLocomotoras: number;
     estadosGeneral: EstadoCounts;
+    usuarioCliente: string;
+    totalUsuarioCliente: number;
+    estadosUsuarioCliente: EstadoCounts;
   };
   locomotoras: LocomotoraConcentrado[];
   movimientos: MovimientoDetalle[];
+  movimientosUsuarioCliente: MovimientoDetalle[];
 };
 
 const prisma = new PrismaClient();
 const MX_TZ = 'America/Mexico_City';
+const DEFAULT_USUARIO_CLIENTE = 'Jesus Rodriguez';
 
 const ESTADOS: Array<keyof EstadoCounts> = [
   'SOLICITADO',
@@ -79,19 +87,26 @@ function initEstadoCounts(): EstadoCounts {
 
 function parseDateLocal(iso: string, tz: string) {
   const dt = DateTime.fromISO(iso, { zone: tz });
-  if (!dt.isValid) throw new Error('Fecha inválida, usa YYYY-MM-DD');
+  if (!dt.isValid) throw new Error('Fecha inválida, usa YYYY-MM-DD o YYYY-MM-DDTHH:mm');
   return dt;
 }
 
 function rangeFromDates(desde: string, hasta: string, tz: string) {
-  const startLocal = parseDateLocal(desde, tz).startOf('day');
-  const endLocal = parseDateLocal(hasta, tz).startOf('day').plus({ days: 1 });
-  if (endLocal <= startLocal) throw new Error('Rango inválido (hasta debe ser >= desde)');
+  const desdeEsDia = /^\d{4}-\d{2}-\d{2}$/.test(desde);
+  const hastaEsDia = /^\d{4}-\d{2}-\d{2}$/.test(hasta);
+  const exactoConHora = !desdeEsDia || !hastaEsDia;
+
+  const startLocal = desdeEsDia ? parseDateLocal(desde, tz).startOf('day') : parseDateLocal(desde, tz);
+  const endLocal = hastaEsDia ? parseDateLocal(hasta, tz).startOf('day').plus({ days: 1 }) : parseDateLocal(hasta, tz);
+  if (exactoConHora ? endLocal < startLocal : endLocal <= startLocal) {
+    throw new Error('Rango inválido (hasta debe ser >= desde)');
+  }
   return {
     startLocal,
     endLocal,
     startUTC: startLocal.toUTC(),
     endUTC: endLocal.toUTC(),
+    exactoConHora,
   };
 }
 
@@ -123,10 +138,21 @@ function descripcionMovimiento(data: {
   return 'Movimiento sin vía';
 }
 
+function normalizeName(value: string | null | undefined) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 export class EmpresaLocomotorasModel {
   static async reporte(filters: EmpresaLocomotorasFilters): Promise<ReporteEmpresaLocomotoras> {
     const tz = filters.tz ?? MX_TZ;
-    const { startLocal, endLocal, startUTC, endUTC } = rangeFromDates(filters.desde, filters.hasta, tz);
+    const { startLocal, endLocal, startUTC, endUTC, exactoConHora } = rangeFromDates(filters.desde, filters.hasta, tz);
+    const usuarioCliente = String(filters.usuarioNombre ?? DEFAULT_USUARIO_CLIENTE).trim() || DEFAULT_USUARIO_CLIENTE;
+    const usuarioClienteNorm = normalizeName(usuarioCliente);
 
     const empresa = await prisma.empresa.findUnique({
       where: { id: filters.empresaId },
@@ -137,11 +163,9 @@ export class EmpresaLocomotorasModel {
       where: {
         empresaId: filters.empresaId,
         localidadId: filters.localidadId,
-        fechaSolicitud: { gte: startUTC.toJSDate(), lt: endUTC.toJSDate() },
-        OR: [
-          { locomotiveNumber: { lt: 2000 } },
-          { locomotiveNumber: { gte: 4000 } },
-        ],
+        fechaSolicitud: exactoConHora
+          ? { gte: startUTC.toJSDate(), lte: endUTC.toJSDate() }
+          : { gte: startUTC.toJSDate(), lt: endUTC.toJSDate() },
       },
       select: {
         id: true,
@@ -154,6 +178,8 @@ export class EmpresaLocomotorasModel {
         torno: true,
         tipoMovimiento: true,
         prioridad: true,
+        creadoPor: { select: { nombre: true } },
+        cliente: { select: { nombre: true } },
         viaOrigen: { select: { nombre: true } },
         viaDestino: { select: { nombre: true } },
       },
@@ -161,6 +187,7 @@ export class EmpresaLocomotorasModel {
     });
 
     const estadosGeneral = initEstadoCounts();
+    const estadosUsuarioCliente = initEstadoCounts();
     const locomap = new Map<number, LocomotoraConcentrado>();
 
     const detalles: MovimientoDetalle[] = movimientos.map((m) => {
@@ -178,11 +205,15 @@ export class EmpresaLocomotorasModel {
 
       const viaOrigen = m.viaOrigen?.nombre ?? null;
       const viaDestino = m.viaDestino?.nombre ?? null;
+      const solicitadoPor = m.creadoPor?.nombre ?? null;
+      const cliente = m.cliente?.nombre ?? null;
 
       return {
         id: m.id,
         locomotiveNumber: m.locomotiveNumber,
         estado: String(m.estado),
+        solicitadoPor,
+        cliente,
         fechaSolicitudMX: fmtMX(m.fechaSolicitud, tz) ?? '',
         fechaInicioMX: fmtMX(m.fechaInicio, tz),
         fechaFinMX: fmtMX(m.fechaFin, tz),
@@ -195,6 +226,17 @@ export class EmpresaLocomotorasModel {
         descripcion: descripcionMovimiento({ viaOrigen, viaDestino, lavado: Boolean(m.lavado), torno: Boolean(m.torno) }),
       };
     });
+
+    const movimientosUsuarioCliente = detalles.filter((m) => {
+      const creadoPorNorm = normalizeName(m.solicitadoPor);
+      const clienteNorm = normalizeName(m.cliente);
+      return creadoPorNorm === usuarioClienteNorm || clienteNorm === usuarioClienteNorm;
+    });
+
+    for (const m of movimientosUsuarioCliente) {
+      const st = String(m.estado) as keyof EstadoCounts;
+      if (estadosUsuarioCliente[st] !== undefined) estadosUsuarioCliente[st] += 1;
+    }
 
     const locomotoras = Array.from(locomap.values()).sort(
       (a, b) => b.totalMovimientos - a.totalMovimientos
@@ -213,9 +255,13 @@ export class EmpresaLocomotorasModel {
         totalMovimientos: movimientos.length,
         totalLocomotoras: locomotoras.length,
         estadosGeneral,
+        usuarioCliente,
+        totalUsuarioCliente: movimientosUsuarioCliente.length,
+        estadosUsuarioCliente,
       },
       locomotoras,
       movimientos: detalles,
+      movimientosUsuarioCliente,
     };
   }
 }

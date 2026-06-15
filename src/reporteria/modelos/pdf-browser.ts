@@ -6,11 +6,20 @@ import * as puppeteer from 'puppeteer';
 let browserSingleton: puppeteer.Browser | null = null;
 
 export async function getBrowser() {
-  if (browserSingleton) return browserSingleton;
+  if (browserSingleton) {
+    const connected =
+      typeof (browserSingleton as any).connected === 'boolean'
+        ? (browserSingleton as any).connected
+        : typeof (browserSingleton as any).isConnected === 'function'
+          ? (browserSingleton as any).isConnected()
+          : true;
+    if (connected) return browserSingleton;
+    browserSingleton = null;
+  }
 
   const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN || undefined;
 
-  browserSingleton = await puppeteer.launch({
+  const browser = await puppeteer.launch({
     headless: 'new' as any,
     executablePath,
     args: [
@@ -22,6 +31,11 @@ export async function getBrowser() {
     ],
   });
 
+  browser.on('disconnected', () => {
+    if (browserSingleton === browser) browserSingleton = null;
+  });
+
+  browserSingleton = browser;
   return browserSingleton;
 }
 
