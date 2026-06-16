@@ -1,4 +1,3 @@
-import { Rol } from '@prisma/client';
 import '../../config/firebase';
 import { prisma } from '../../lib/prisma';
 import { movimientoError } from './movimiento.logger';
@@ -11,16 +10,6 @@ function chunk<T>(items: T[], size = 500): T[][] {
     chunks.push(items.slice(index, index + size));
   }
   return chunks;
-}
-
-function uniqueTokensFromUsers(
-  users: Array<{ fcmTokens?: Array<{ token: string | null }> }>
-) {
-  return [
-    ...new Set(
-      users.flatMap((user) => (user.fcmTokens ?? []).map((token) => token.token).filter(Boolean) as string[])
-    ),
-  ];
 }
 
 async function enviarMulticastMovimiento(
@@ -114,21 +103,23 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
   });
   if (!movimiento) return;
 
-  const admins = await prisma.usuario.findMany({
-    where: {
-      localidadId: movimiento.localidadId,
-      activo: true,
-      rol: { in: [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.SUPERVISOR] },
-      ...(movimiento.empresaId ? { empresaId: movimiento.empresaId } : {}),
-    },
-    include: { fcmTokens: true },
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
   });
 
-  const tokens = uniqueTokensFromUsers(admins);
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para cambio_prioridad', {
       movId: movimiento.id,
       localidadId: movimiento.localidadId,
+      roleCounts,
     });
     return;
   }
@@ -150,6 +141,8 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
         fecha: new Date().toISOString(),
         empresa: String(movimiento.empresa?.nombre ?? ''),
         localidadId: String(movimiento.localidadId),
+        url: '/movimientos',
+        tag: `movimiento:${movimiento.id}:prioridad:${nueva}`,
       },
     },
     {
@@ -158,6 +151,7 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
       localidadId: movimiento.localidadId,
       prioridad: nueva,
       tokens: tokens.length,
+      roleCounts,
     }
   );
 }
@@ -177,6 +171,13 @@ export async function notificarMovimientoIniciado(movId: number) {
   const { tokens, roleCounts } = await tokensAudienciaOperacion({
     empresaId: movimiento.empresaId,
     localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
   });
 
   if (!tokens.length) {
@@ -204,6 +205,8 @@ export async function notificarMovimientoIniciado(movId: number) {
         localidadId: String(movimiento.localidadId),
         viaOrigen: String(movimiento.viaOrigen?.nombre ?? ''),
         viaDestino: String(movimiento.viaDestino?.nombre ?? ''),
+        url: '/movimientos',
+        tag: `movimiento:${movimiento.id}:iniciado`,
         fecha: new Date().toISOString(),
       },
     },
@@ -230,6 +233,13 @@ export async function notificarMovimientoFinalizado(movId: number) {
   const { tokens, roleCounts } = await tokensAudienciaOperacion({
     empresaId: movimiento.empresaId,
     localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
   });
 
   if (!tokens.length) {
@@ -253,6 +263,8 @@ export async function notificarMovimientoFinalizado(movId: number) {
         movimientoId: String(movimiento.id),
         empresa: String(movimiento.empresa?.nombre ?? ''),
         localidadId: String(movimiento.localidadId),
+        url: '/movimientos',
+        tag: `movimiento:${movimiento.id}:concluido`,
         fecha: new Date().toISOString(),
       },
     },

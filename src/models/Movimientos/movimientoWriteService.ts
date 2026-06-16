@@ -5,7 +5,7 @@ import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
 import { notificarCambioPrioridad, notificarMovimientoFinalizado, notificarMovimientoIniciado } from './movimiento.notifications';
 import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
-import { publishMovimientoEstadoEvent } from '../../realtime/realtimeHub';
+import { publishMovimientoCreadoEvent, publishMovimientoEstadoEvent } from '../../realtime/realtimeHub';
 
 function stripTornoAgendadoMeta(instrucciones?: string | null) {
   const clean = String(instrucciones ?? '')
@@ -540,6 +540,8 @@ export class MovimientoWriteService {
         });
       }
 
+      publishMovimientoCreadoEvent(movimiento);
+
       await RondaModel.siguienteInteligente(movimiento.localidadId);
 
       return await prisma.movimiento.findUnique({
@@ -592,6 +594,8 @@ export class MovimientoWriteService {
           err: error?.message,
         });
       }
+
+      publishMovimientoCreadoEvent(movimiento);
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
 

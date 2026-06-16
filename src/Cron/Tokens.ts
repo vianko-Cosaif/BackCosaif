@@ -22,11 +22,11 @@ cron.schedule(
       // 2. borrar sesiones (tokens de acceso)
       const { count: tokenCount } = await prisma.token.deleteMany({});
 
-      // 3. borrar FCM para que no lleguen notificaciones a quien ya no debe
-      const { count: fcmCount } = await prisma.fcmToken.deleteMany({});
+      // 3. Los tokens FCM no se borran por rotación de sesión.
+      // Se eliminan solo al hacer logout/eliminar usuario o cuando Firebase los marca inválidos.
 
       console.log(
-        `[revokeEvery2h] usuarios rotados, ${tokenCount} tokens borrados, ${fcmCount} FCM borrados @ ${new Date().toISOString()}`
+        `[revokeEvery2h] usuarios rotados, ${tokenCount} tokens de sesion borrados, FCM conservados @ ${new Date().toISOString()}`
       );
     } catch (err) {
       console.error('[revokeEvery2h] error:', err);

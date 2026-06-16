@@ -19,6 +19,12 @@ function readToken(body: unknown) {
   return String((body as { token?: unknown }).token ?? '').trim();
 }
 
+function readLocalidadId(body: unknown, user?: AuthenticatedUser) {
+  const raw = body && typeof body === 'object' ? (body as { localidadId?: unknown }).localidadId : undefined;
+  const parsed = Number(raw ?? user?.localidad?.id ?? NaN);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+}
+
 /**
  * Controlador para gestionar los tokens FCM
  */
@@ -68,6 +74,7 @@ export class FmcController {
   static registrarToken: RequestHandler = async (req, res) => {
     const user = getAuthUser(req);
     const token = readToken(req.body);
+    const localidadId = readLocalidadId(req.body, user);
 
     if (!user?.id || !token) {
       res.status(400).json({ error: 'Faltan usuario autenticado o token' });
@@ -75,10 +82,11 @@ export class FmcController {
     }
 
     try {
-      await FmcModel.upsertToken(user.id, token);
-      res.status(201).json({ ok: true });
+      await FmcModel.upsertToken(user.id, token, localidadId);
+      fmcControllerLogger.info('Token FCM registrado', { usuarioId: user.id, localidadId });
+      res.status(201).json({ ok: true, localidadId });
     } catch (error) {
-      fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId: user.id });
+      fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId: user.id, localidadId });
       res.status(500).json({ error: 'Error al registrar token', details: error });
     }
   };

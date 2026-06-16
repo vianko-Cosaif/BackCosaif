@@ -24,11 +24,16 @@ export class FmcModel {
    * @param usuarioId - ID del usuario
    * @param token - Token FCM
    */
-  static async upsertToken(usuarioId: number, token: string): Promise<FcmToken> {
+  static async upsertToken(usuarioId: number, token: string, localidadId?: number | null): Promise<FcmToken> {
+    const data = {
+      usuarioId,
+      localidadId: localidadId && localidadId > 0 ? localidadId : null,
+    };
+
     return await prisma.fcmToken.upsert({
       where: { token },
-      update: { usuarioId },
-      create: { usuarioId, token },
+      update: data,
+      create: { ...data, token },
     });
   }
 

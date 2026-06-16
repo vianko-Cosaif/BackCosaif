@@ -21,11 +21,13 @@ export type RealtimeRequestedScope = {
 type RealtimeAudience =
   | { mode: 'all' }
   | { mode: 'empresa'; id: number }
+  | { mode: 'empresaLocalidad'; empresaId: number; localidadId: number }
   | { mode: 'localidad'; id: number }
   | { mode: 'cliente'; id: number }
   | { mode: 'none' };
 
 export type RealtimeEventType =
+  | 'movimiento.creado'
   | 'movimiento.estado'
   | 'movimiento.incidente'
   | 'incidente.estado';
@@ -92,7 +94,11 @@ function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: Realti
 
   if (role === 'CLIENTE') {
     const empresaId = toPositiveInt(user.empresa?.id);
-    return empresaId ? { mode: 'empresa', id: empresaId } : { mode: 'cliente', id: user.id };
+    const localidadId = requestedScope.localidadId ?? toPositiveInt(user.localidad?.id);
+    if (empresaId && localidadId) {
+      return { mode: 'empresaLocalidad', empresaId, localidadId };
+    }
+    return { mode: 'none' };
   }
 
   if (role === 'COORDINADOR') {
@@ -107,6 +113,9 @@ function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: Realti
 function roomsForAudience(audience: RealtimeAudience): string[] {
   if (audience.mode === 'all') return ['scope:all'];
   if (audience.mode === 'none') return [];
+  if (audience.mode === 'empresaLocalidad') {
+    return [room('empresa', audience.empresaId), room('localidad', audience.localidadId)].filter(Boolean) as string[];
+  }
   return [room(audience.mode, audience.id)].filter(Boolean) as string[];
 }
 
@@ -243,6 +252,13 @@ function isAuthorizedForEvent(client: RealtimeClient, event: RealtimeScope): boo
     return Number(event.empresaId) === client.audience.id;
   }
 
+  if (client.audience.mode === 'empresaLocalidad') {
+    return (
+      Number(event.empresaId) === client.audience.empresaId &&
+      Number(event.localidadId) === client.audience.localidadId
+    );
+  }
+
   if (client.audience.mode === 'localidad') {
     return Number(event.localidadId) === client.audience.id;
   }
@@ -334,6 +350,25 @@ export function publishMovimientoEstadoEvent(
     estadoAnterior: movimiento.estadoAnterior,
     incidenteGlobal: movimiento.incidenteGlobal,
     finalizado: movimiento.finalizado,
+    locomotiveNumber: movimiento.locomotiveNumber,
+  });
+}
+
+export function publishMovimientoCreadoEvent(
+  movimiento: RealtimeScope & {
+    id?: number | null;
+    estado?: string | null;
+    locomotiveNumber?: number | string | null;
+  }
+) {
+  const movimientoId = movimiento.movimientoId ?? movimiento.id ?? null;
+  publishRealtimeEvent({
+    type: 'movimiento.creado',
+    movimientoId,
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    clienteId: movimiento.clienteId,
+    estado: movimiento.estado,
     locomotiveNumber: movimiento.locomotiveNumber,
   });
 }

@@ -40,53 +40,19 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
     });
     if (!mov) return;
 
-    const ROLES_LOCALIDAD = ['MAQUINISTA','OPERADOR'] as const;
-    const ROLES_STAFF     = ['SUPERVISOR','COORDINADOR','ADMINISTRADOR'] as const;
-
-    const idsForzados = [mov.operadorId, mov.supervisorId, mov.coordinadorId]
-      .filter(Boolean) as number[];
-
-    const [uLocal, uStaffLocal, uClientesEmpLoc, uForz] = await Promise.all([
-      // maquinistas/operadores de la localidad del movimiento
-      prisma.usuario.findMany({
-        where: { activo: true, localidadId: mov.localidadId, rol: { in: ROLES_LOCALIDAD as any } },
-        select: { id: true, rol: true, fcmTokens: { select: { token: true } } },
-      }),
-      // staff de la MISMA empresa Y MISMA localidad (aunque no estén asignados)
-      prisma.usuario.findMany({
-        where: {
-          activo: true,
-          empresaId: mov.empresaId,
-          localidadId: mov.localidadId,
-          rol: { in: ROLES_STAFF as any },
-        },
-        select: { id: true, rol: true, fcmTokens: { select: { token: true } } },
-      }),
-      // usuarios CLIENTE de esa empresa en esa localidad
-      prisma.usuario.findMany({
-        where: {
-          activo: true,
-          empresaId: mov.empresaId,
-          localidadId: mov.localidadId,
-          rol: 'CLIENTE',
-        },
-        select: { id: true, rol: true, fcmTokens: { select: { token: true } } },
-      }),
-      // asignados explícitos (si existen), por si están en otra localidad
-      idsForzados.length
-        ? prisma.usuario.findMany({
-            where: { id: { in: idsForzados }, activo: true },
-            select: { id: true, rol: true, fcmTokens: { select: { token: true } } },
-          })
-        : Promise.resolve([]),
-    ]);
-
-    const tokens = [...new Set(
-      [...uLocal, ...uStaffLocal, ...uClientesEmpLoc, ...uForz]
-        .flatMap(u => u.fcmTokens.map(t => t.token).filter(Boolean) as string[])
-    )];
+    const { tokens, roleCounts } = await tokensAudienciaOperacion({
+      empresaId: mov.empresaId,
+      localidadId: mov.localidadId,
+      usuarioIds: [mov.operadorId, mov.supervisorId, mov.coordinadorId],
+    });
     if (!tokens.length) {
-      console.warn('FCM: sin tokens', { movId: mov.id, loc: mov.localidadId, emp: mov.empresaId });
+      console.warn('FCM: sin tokens', {
+        evento: 'nuevo_movimiento',
+        movId: mov.id,
+        loc: mov.localidadId,
+        emp: mov.empresaId,
+        roleCounts,
+      });
       return;
     }
 
@@ -107,6 +73,8 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
         viaOrigen: String(mov.viaOrigen?.nombre ?? ''),
         viaDestino: String(mov.viaDestino?.nombre ?? ''),
         locomotora: String(mov.locomotiveNumber),
+        url: '/movimientos',
+        tag: `movimiento:${mov.id}:nuevo`,
         timestamp: new Date().toISOString(),
       },
       tokens,
@@ -152,6 +120,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
     const { tokens } = await tokensAudienciaOperacion({
       empresaId: mov.empresaId,
       localidadId: mov.localidadId,
+      usuarioIds: [mov.operadorId, mov.clienteId, mov.supervisorId, mov.coordinadorId, mov.creadoPorId],
     });
     if (!tokens.length) return;
 
@@ -183,6 +152,8 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
         descripcion : inc.descripcion,
         estado      : inc.estado,
         fecha       : legible,
+        url         : '/incidentes',
+        tag         : `incidente:${inc.id}:nuevo`,
         timestamp   : iso
       },
       tokens
@@ -234,6 +205,7 @@ static async notificarCambioEstado(
     const { tokens } = await tokensAudienciaOperacion({
       empresaId: mov.empresaId,
       localidadId: mov.localidadId,
+      usuarioIds: [mov.operadorId, mov.clienteId, mov.supervisorId, mov.coordinadorId, mov.creadoPorId],
     });
     if (!tokens.length) return;
 
@@ -258,6 +230,8 @@ static async notificarCambioEstado(
         localidad:    String(mov.localidad?.nombre ?? ''),
         estadoAnterior,
         estadoNuevo:  incidente.estado,
+        url:          '/incidentes',
+        tag:          `incidente:${incidente.id}:estado:${incidente.estado}`,
         timestamp:    new Date().toISOString(),
       },
       tokens,
@@ -437,6 +411,13 @@ static async notificarContinuarMovimiento(
     const { tokens } = await tokensAudienciaOperacion({
       empresaId: movimiento.empresaId,
       localidadId: movimiento.localidadId,
+      usuarioIds: [
+        movimiento.operadorId,
+        movimiento.clienteId,
+        movimiento.supervisorId,
+        movimiento.coordinadorId,
+        movimiento.creadoPorId,
+      ],
     });
     if (tokens.length === 0) return;
 
@@ -455,6 +436,9 @@ static async notificarContinuarMovimiento(
         empresa: empresaNombre,
         locomotora: String(loco),
         tipo: 'incidente_continuado',
+        localidadId: String(movimiento.localidadId),
+        url: '/incidentes',
+        tag: `incidente:${incidente.id}:continuado`,
         timestamp: new Date().toISOString()
       },
       tokens
@@ -483,6 +467,7 @@ static async notificarIncidenteOmitido(
   const { tokens } = await tokensAudienciaOperacion({
     empresaId: mov.empresaId,
     localidadId: mov.localidadId,
+    usuarioIds: [mov.operadorId, mov.clienteId, mov.supervisorId, mov.coordinadorId, mov.creadoPorId],
   });
   if (tokens.length === 0) return;
 
@@ -499,6 +484,8 @@ static async notificarIncidenteOmitido(
       localidad   : mov.localidad?.nombre ?? 'Localidad',
       tipo        : 'incidente_omitido',
       comentario,
+      url         : '/incidentes',
+      tag         : `incidente:${incidente.id}:omitido`,
       timestamp   : new Date().toISOString()
     },
     tokens
@@ -526,6 +513,13 @@ static async notificarIncidenteTornoPorMovimiento(params: {
   const { tokens } = await tokensAudienciaOperacion({
     empresaId: movimiento.empresaId,
     localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
   });
   if (tokens.length === 0) return;
 
@@ -550,6 +544,8 @@ static async notificarIncidenteTornoPorMovimiento(params: {
       locomotora: String(locomotora ?? ''),
       tipoFalla,
       estado: status,
+      url: '/incidentes',
+      tag: `incidente-torno:${params.incidenteId ?? movimiento.id}:${status}`,
       timestamp: new Date().toISOString(),
     },
     tokens,
@@ -568,6 +564,13 @@ static async notificarCancelacionMovimiento(
   const { tokens } = await tokensAudienciaOperacion({
     empresaId: movimiento.empresaId,
     localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
   });
   if (tokens.length === 0) return;
 
@@ -581,7 +584,10 @@ static async notificarCancelacionMovimiento(
       movimientoId: String(movimiento.id),
       empresa     : movimiento.empresa?.nombre   ?? 'Empresa',
       localidad   : movimiento.localidad?.nombre ?? 'Localidad',
+      localidadId : String(movimiento.localidadId),
       tipo        : 'movimiento_cancelado',
+      url         : '/movimientos',
+      tag         : `movimiento:${movimiento.id}:cancelado`,
       timestamp   : new Date().toISOString()
     },
     tokens

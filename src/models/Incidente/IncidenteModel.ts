@@ -1576,7 +1576,7 @@ export class IncidenteModel {
         });
         if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
 
-        const fechaBaseIncidente = movimiento.fechaInicio ?? movimiento.fechaSolicitud ?? new Date();
+        const fechaInicioIncidente = new Date();
 
         const nuevoIncidente = await prisma.incidente.create({
           data: {
@@ -1584,7 +1584,7 @@ export class IncidenteModel {
             movimientoId: data.movimientoId,
             usuarioId: data.usuarioId,
             estado: 'ABIERTO',
-            fechaInicio: fechaBaseIncidente,
+            fechaInicio: fechaInicioIncidente,
           },
         });
 
@@ -1709,9 +1709,9 @@ export class IncidenteModel {
           where: { id: data.movimientoId },
           data: {
             estado: 'DETENIDO',
-            fechaPausa: new Date(),
+            fechaPausa: fechaInicioIncidente,
             incidenteGlobal: true,
-            ...(movimiento.fechaInicio ? {} : { fechaInicio: fechaBaseIncidente }),
+            ...(movimiento.fechaInicio ? {} : { fechaInicio: fechaInicioIncidente }),
           },
         });
 
