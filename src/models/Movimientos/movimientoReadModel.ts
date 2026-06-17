@@ -294,7 +294,7 @@ export class MovimientoReadModel {
   static async obtenerMovimientosPendientes() {
     try {
       return await prisma.movimiento.findMany({
-        where: { finalizado: false, estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
+        where: { finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: this.MOVIMIENTO_LIST_INCLUDE,
       });
     } catch (error: any) {
@@ -308,7 +308,7 @@ export class MovimientoReadModel {
   static async obtenerMovimientosPendientesPaginados(pagination: MovimientoPagination) {
     try {
       return await this.listarMovimientosColeccion({
-        where: { finalizado: false, estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
+        where: { finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         orderBy: this.MOVIMIENTOS_ORDER_PENDIENTES,
         pagination,
       });

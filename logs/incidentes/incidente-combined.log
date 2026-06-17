@@ -1,0 +1,12 @@
+{
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  rid: 'mqgxh02y-r0b684',
+  incidenteId: 928,
+  movimientoId: 8931,
+  locomotiveNumber: 4055,
+  totalIncidentesCadena: 3,
+  level: 'warn',
+  message: 'Movimiento cancelado al levantar incidente por límite de incidentes',
+  timestamp: '2026-06-16 11:40:30'
+}

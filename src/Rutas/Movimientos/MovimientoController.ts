@@ -1923,7 +1923,7 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
         estadosFinal = ['CONCLUIDO', 'DETENIDO', 'CANCELADO'];
         ambitoFinal = 'pasados';
       } else {
-        estadosFinal = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'];
+        estadosFinal = ['SOLICITADO', 'EN_PROCESO', 'ESPERA'];
         ambitoFinal = 'actuales';
       }
       // Si se usa finalizado como scope, no filtramos por el flag para permitir DETENIDO en ambos listados.
