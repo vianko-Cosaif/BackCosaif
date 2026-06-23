@@ -240,7 +240,106 @@ function withTornoIncidentActorDefaults(
   return body;
 }
 
-async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
+const TORNO_FINAL_STATUSES = new Set(["CONCLUIDO", "CANCELADO"]);
+
+function readPositiveNumber(value: unknown) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+function readDateTime(value: unknown) {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(String(value));
+  const time = date.getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function readHistorialMovimientoId(item: Record<string, any>) {
+  return readPositiveNumber(
+    item.movimientoId ??
+      item.ruedaSolicitud?.movimientoId ??
+      item.movimiento?.id ??
+      item.movimiento?.movimientoId
+  );
+}
+
+function readHistorialStatus(item: Record<string, any>) {
+  return String(
+    item.historialStatus ??
+      item.status ??
+      item.estado ??
+      item.statusAlmacenado ??
+      item.rondaStatus ??
+      ""
+  )
+    .trim()
+    .toUpperCase();
+}
+
+function readQueueNumber(item: Record<string, any>, key: "rondaNumero" | "orden") {
+  return (
+    readPositiveNumber(item[`movimiento${key === "rondaNumero" ? "RondaNumero" : "Orden"}`]) ??
+    readPositiveNumber(item[key]) ??
+    readPositiveNumber(item.ronda?.[key]) ??
+    readPositiveNumber(item.movimiento?.ronda?.[key]) ??
+    Number.MAX_SAFE_INTEGER
+  );
+}
+
+function compareHistorialTornoQueue(left: Record<string, any>, right: Record<string, any>) {
+  const leftFinal = TORNO_FINAL_STATUSES.has(readHistorialStatus(left));
+  const rightFinal = TORNO_FINAL_STATUSES.has(readHistorialStatus(right));
+
+  if (leftFinal !== rightFinal) return leftFinal ? 1 : -1;
+
+  if (!leftFinal) {
+    const rondaDiff = readQueueNumber(left, "rondaNumero") - readQueueNumber(right, "rondaNumero");
+    if (rondaDiff !== 0) return rondaDiff;
+
+    const ordenDiff = readQueueNumber(left, "orden") - readQueueNumber(right, "orden");
+    if (ordenDiff !== 0) return ordenDiff;
+
+    const leftCreatedAt =
+      left.movimientoFechaSolicitud ??
+      left.fechaSolicitud ??
+      left.movimiento?.fechaSolicitud ??
+      left.creadoEn ??
+      left.createdAt;
+    const rightCreatedAt =
+      right.movimientoFechaSolicitud ??
+      right.fechaSolicitud ??
+      right.movimiento?.fechaSolicitud ??
+      right.creadoEn ??
+      right.createdAt;
+    const fechaDiff = readDateTime(leftCreatedAt) - readDateTime(rightCreatedAt);
+    if (fechaDiff !== 0) return fechaDiff;
+
+    return (
+      readPositiveNumber(left.servicioId ?? left.rondaServicioId ?? left.id) ??
+      Number.MAX_SAFE_INTEGER
+    ) - (
+      readPositiveNumber(right.servicioId ?? right.rondaServicioId ?? right.id) ??
+      Number.MAX_SAFE_INTEGER
+    );
+  }
+
+  const rightUpdatedAt =
+    right.actualizadoEn ?? right.updatedAt ?? right.fechaActualizacion ?? right.fin ?? right.fechaFin;
+  const leftUpdatedAt =
+    left.actualizadoEn ?? left.updatedAt ?? left.fechaActualizacion ?? left.fin ?? left.fechaFin;
+  const updatedDiff = readDateTime(rightUpdatedAt) - readDateTime(leftUpdatedAt);
+  if (updatedDiff !== 0) return updatedDiff;
+
+  return (
+    readPositiveNumber(right.servicioId ?? right.rondaServicioId ?? right.id) ??
+    Number.MAX_SAFE_INTEGER
+  ) - (
+    readPositiveNumber(left.servicioId ?? left.rondaServicioId ?? left.id) ??
+    Number.MAX_SAFE_INTEGER
+  );
+}
+
+async function enrichHistorialWithMovimientoContext(data: unknown): Promise<unknown> {
   if (
     data &&
     typeof data === "object" &&
@@ -249,7 +348,7 @@ async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
   ) {
     return {
       ...data,
-      data: await enrichHistorialWithLocomotora((data as { data: unknown[] }).data),
+      data: await enrichHistorialWithMovimientoContext((data as { data: unknown[] }).data),
     };
   }
 
@@ -258,8 +357,9 @@ async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
   const movimientoIds = Array.from(
     new Set(
       data
-        .map((item) => Number((item as { movimientoId?: unknown }).movimientoId))
-        .filter((id) => Number.isInteger(id) && id > 0)
+        .filter((item): item is Record<string, any> => !!item && typeof item === "object")
+        .map((item) => readHistorialMovimientoId(item))
+        .filter((id): id is number => id != null)
     )
   );
 
@@ -267,20 +367,83 @@ async function enrichHistorialWithLocomotora(data: unknown): Promise<unknown> {
 
   const movimientos = await prisma.movimiento.findMany({
     where: { id: { in: movimientoIds } },
-    select: { id: true, locomotiveNumber: true },
+    select: {
+      id: true,
+      empresaId: true,
+      localidadId: true,
+      locomotiveNumber: true,
+      prioridad: true,
+      estado: true,
+      fechaSolicitud: true,
+      createdAt: true,
+      empresa: { select: { id: true, nombre: true } },
+      localidad: { select: { id: true, nombre: true } },
+      viaOrigen: { select: { id: true, numero: true, nombre: true } },
+      viaDestino: { select: { id: true, numero: true, nombre: true } },
+      ronda: {
+        select: {
+          id: true,
+          movimientoId: true,
+          empresaId: true,
+          localidadId: true,
+          concluido: true,
+          orden: true,
+          rondaNumero: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+    },
   });
-  const locomotoraByMovimiento = new Map(movimientos.map((mov) => [mov.id, mov.locomotiveNumber]));
+  const movimientoById = new Map(movimientos.map((mov) => [mov.id, mov]));
 
   return data.map((item) => {
     if (!item || typeof item !== "object") return item;
-    const movimientoId = Number((item as { movimientoId?: unknown }).movimientoId);
-    const locomotiveNumber = locomotoraByMovimiento.get(movimientoId) ?? null;
+    const source = item as Record<string, any>;
+    const movimientoId = readHistorialMovimientoId(source);
+    const movimiento = movimientoId ? movimientoById.get(movimientoId) ?? null : null;
+    const ronda = movimiento?.ronda ?? null;
+    const locomotiveNumber = movimiento?.locomotiveNumber ?? source.locomotiveNumber ?? source.numeroLocomotora ?? null;
+    const empresaNombre = movimiento?.empresa?.nombre ?? source.empresaNombre ?? source.companyName ?? null;
+    const movimientoResumen = movimiento
+      ? {
+          ...(source.movimiento && typeof source.movimiento === "object" ? source.movimiento : {}),
+          id: movimiento.id,
+          empresaId: movimiento.empresaId,
+          localidadId: movimiento.localidadId,
+          locomotiveNumber: movimiento.locomotiveNumber,
+          prioridad: movimiento.prioridad,
+          estado: movimiento.estado,
+          fechaSolicitud: movimiento.fechaSolicitud,
+          createdAt: movimiento.createdAt,
+          empresa: movimiento.empresa,
+          localidad: movimiento.localidad,
+          viaOrigen: movimiento.viaOrigen,
+          viaDestino: movimiento.viaDestino,
+          ronda,
+        }
+      : source.movimiento;
+
     return {
-      ...item,
+      ...source,
       locomotiveNumber,
       numeroLocomotora: locomotiveNumber,
+      empresaId: source.empresaId ?? movimiento?.empresaId ?? ronda?.empresaId ?? null,
+      empresa: source.empresa ?? movimiento?.empresa ?? null,
+      empresaNombre,
+      companyName: source.companyName ?? empresaNombre,
+      prioridad: source.prioridad ?? movimiento?.prioridad ?? null,
+      fechaSolicitud: source.fechaSolicitud ?? movimiento?.fechaSolicitud ?? null,
+      movimientoFechaSolicitud: source.movimientoFechaSolicitud ?? movimiento?.fechaSolicitud ?? null,
+      movimiento: movimientoResumen,
+      ronda: source.ronda ?? ronda ?? null,
+      rondaId: source.rondaId ?? ronda?.id ?? null,
+      rondaNumero: source.rondaNumero ?? ronda?.rondaNumero ?? null,
+      orden: source.orden ?? ronda?.orden ?? null,
+      movimientoRondaNumero: source.movimientoRondaNumero ?? ronda?.rondaNumero ?? null,
+      movimientoOrden: source.movimientoOrden ?? ronda?.orden ?? null,
     };
-  });
+  }).sort(compareHistorialTornoQueue);
 }
 
 // Ruta especial: el proxy genérico lee las respuestas como texto y corrompe binarios.
@@ -351,7 +514,7 @@ router.all("/*", async (req, res) => {
     });
 
     if (isHistorialRondasRequest(req.method, rest)) {
-      result.data = (await enrichHistorialWithLocomotora(result.data)) as typeof result.data;
+      result.data = (await enrichHistorialWithMovimientoContext(result.data)) as typeof result.data;
     }
 
     if (result.status >= 200 && result.status < 300 && isStartTorneadoRequest(req.method, rest)) {
