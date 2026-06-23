@@ -102,6 +102,48 @@ function necesitaReequilibrarBajas(rondas: any[]): boolean {
   return false;
 }
 
+function tieneEstructuraDeOrdenInvalida(rondas: any[]): boolean {
+  let rondaActual: number | null = null;
+  let siguienteRondaEsperada = 1;
+  let siguienteOrdenEsperado = 1;
+
+  for (const r of rondas) {
+    if (!Number.isInteger(r.rondaNumero) || r.rondaNumero <= 0) return true;
+    if (!Number.isInteger(r.orden) || r.orden <= 0) return true;
+
+    if (r.rondaNumero !== rondaActual) {
+      if (r.rondaNumero !== siguienteRondaEsperada) return true;
+      rondaActual = r.rondaNumero;
+      siguienteRondaEsperada += 1;
+      siguienteOrdenEsperado = 1;
+    }
+
+    if (r.orden !== siguienteOrdenEsperado) return true;
+    siguienteOrdenEsperado += 1;
+  }
+
+  return false;
+}
+
+function tieneAltasR1Desordenadas(rondas: any[]): boolean {
+  const r1 = rondas.filter((r) => r.rondaNumero === 1);
+  const altasActivas = r1
+    .filter((r) => r.movimiento?.prioridad === 'ALTA' && !_isOnHold(r.movimiento.id))
+    .sort(
+      (a, b) =>
+        +new Date(a.movimiento.createdAt) -
+        +new Date(b.movimiento.createdAt)
+    );
+
+  if (!altasActivas.length) return false;
+
+  for (let i = 0; i < altasActivas.length; i++) {
+    if (r1[i]?.id !== altasActivas[i].id) return true;
+  }
+
+  return false;
+}
+
 // ================== MODELO ==================
 export class RondaModel {
   // ---------- HELPERS INTERNOS (SIN CRON) ----------
@@ -628,6 +670,50 @@ export class RondaModel {
     // 5) Si quedaron rondas vacías tras reordenar, limpiar y renumerar de nuevo
     await this.eliminarRondasCompletadas(tx, localidadId);
     await this.renumerarRondas(tx, localidadId);
+  }
+
+  public static async asegurarOrdenRondasLocalidad(localidadId: number) {
+    await this.normalizarMovimientosEnProceso(localidadId);
+
+    const rondas = await prisma.ronda.findMany({
+      where: {
+        localidadId,
+        concluido: false,
+      },
+      include: {
+        movimiento: {
+          select: {
+            id: true,
+            prioridad: true,
+            estado: true,
+            fechaSolicitud: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: [
+        { rondaNumero: 'asc' },
+        { orden: 'asc' },
+        { id: 'asc' },
+      ],
+    });
+
+    if (!rondas.length) {
+      return { reorganizado: false, motivo: 'sin_rondas' as const };
+    }
+
+    const requiereRecomponer =
+      tieneEstructuraDeOrdenInvalida(rondas) ||
+      tieneAltasR1Desordenadas(rondas) ||
+      necesitaReequilibrarBajas(rondas);
+
+    if (!requiereRecomponer) {
+      return { reorganizado: false, motivo: 'orden_ok' as const };
+    }
+
+    await this.recomponerRondasLocalidad(localidadId);
+    return { reorganizado: true, motivo: 'orden_recompuesto' as const };
   }
 
 
