@@ -287,6 +287,10 @@ function readQueueNumber(item: Record<string, any>, key: "rondaNumero" | "orden"
   );
 }
 
+function readTornoActiveStatusRank(item: Record<string, any>) {
+  return readHistorialStatus(item) === "EN_PROCESO" ? 0 : 1;
+}
+
 function compareHistorialTornoQueue(left: Record<string, any>, right: Record<string, any>) {
   const leftFinal = TORNO_FINAL_STATUSES.has(readHistorialStatus(left));
   const rightFinal = TORNO_FINAL_STATUSES.has(readHistorialStatus(right));
@@ -294,6 +298,9 @@ function compareHistorialTornoQueue(left: Record<string, any>, right: Record<str
   if (leftFinal !== rightFinal) return leftFinal ? 1 : -1;
 
   if (!leftFinal) {
+    const statusDiff = readTornoActiveStatusRank(left) - readTornoActiveStatusRank(right);
+    if (statusDiff !== 0) return statusDiff;
+
     const rondaDiff = readQueueNumber(left, "rondaNumero") - readQueueNumber(right, "rondaNumero");
     if (rondaDiff !== 0) return rondaDiff;
 

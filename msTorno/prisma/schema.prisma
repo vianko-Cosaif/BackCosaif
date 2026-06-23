@@ -46,6 +46,11 @@ enum EstadoTornoRueda {
   TERMINADO
 }
 
+enum EstadoCambioNavaja {
+  PENDIENTE
+  CONCLUIDO
+}
+
 enum LadoRueda {
   L
   R
@@ -169,6 +174,7 @@ model Cambio {
   imagen1      String?
   imagen2      String?
   imagen3      String?
+  status       EstadoCambioNavaja @default(PENDIENTE)
   fechaCambio  DateTime @default(now())
   createdAt    DateTime @default(now())
 
@@ -177,6 +183,7 @@ model Cambio {
   @@index([localidadId])
   @@index([numeroNavaja])
   @@index([creadoPorId])
+  @@index([status])
   @@index([fechaCambio])
 }
 
