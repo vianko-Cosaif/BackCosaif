@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from "../../types/auth";
 import { proxyToTornoMs } from "../../services/tornoMs/tornoMsClient";
 import { prisma } from "../../lib/prisma";
 import { MovimientoWriteService } from "../../models/Movimientos/movimientoWriteService";
+import { RondaModel } from "../../models/Movimientos/Ronda/RondaModel";
 import { NotificadorFCM } from "../../services/NotificadorFCM";
 
 const router = Router();
@@ -339,6 +340,58 @@ function compareHistorialTornoQueue(left: Record<string, any>, right: Record<str
   );
 }
 
+function firstQueryValue(value: unknown) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function collectLocalidadIdsFromHistorial(data: unknown, into = new Set<number>()) {
+  if (Array.isArray(data)) {
+    for (const item of data) collectLocalidadIdsFromHistorial(item, into);
+    return into;
+  }
+
+  if (!data || typeof data !== "object") return into;
+
+  const source = data as Record<string, any>;
+  const localidadId = readPositiveNumber(
+    source.localidadId ??
+      source.movimiento?.localidadId ??
+      source.ronda?.localidadId ??
+      source.ruedaSolicitud?.movimiento?.localidadId
+  );
+  if (localidadId) into.add(localidadId);
+
+  for (const key of ["data", "items", "rows", "results", "historial", "rondasServicio"]) {
+    if (source[key]) collectLocalidadIdsFromHistorial(source[key], into);
+  }
+
+  return into;
+}
+
+async function asegurarOrdenRondasTornoSiAplica(
+  method: string,
+  rest: string,
+  query: Record<string, unknown>,
+  data?: unknown
+) {
+  if (!isHistorialRondasRequest(method, rest)) return;
+
+  const localidadIds = collectLocalidadIdsFromHistorial(data);
+  const localidadIdFromQuery = readPositiveNumber(firstQueryValue(query.localidadId));
+  if (localidadIdFromQuery) localidadIds.add(localidadIdFromQuery);
+  if (!localidadIds.size) return;
+
+  for (const localidadId of localidadIds) {
+    const result = await RondaModel.asegurarOrdenRondasLocalidad(localidadId);
+    if (result.reorganizado) {
+      console.info("Rondas recompuestas antes de consultar historial de torno", {
+        localidadId,
+        motivo: result.motivo,
+      });
+    }
+  }
+}
+
 async function enrichHistorialWithMovimientoContext(data: unknown): Promise<unknown> {
   if (
     data &&
@@ -512,6 +565,13 @@ router.all("/*", async (req, res) => {
         ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
       },
     });
+
+    await asegurarOrdenRondasTornoSiAplica(
+      req.method,
+      rest,
+      req.query as Record<string, unknown>,
+      result.data
+    );
 
     if (isHistorialRondasRequest(req.method, rest)) {
       result.data = (await enrichHistorialWithMovimientoContext(result.data)) as typeof result.data;
