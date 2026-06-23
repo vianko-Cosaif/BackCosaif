@@ -5,7 +5,7 @@ import { ok, fail } from "../../utils/http";
 import { parseIntParam } from "../../utils/parse";
 import { guardarImagenesTorno } from "../../utils/tornoImagenes";
 import { getPagination, paginationArgs, respondPaginated } from "../../utils/pagination";
-import { cambioCreateSchema, cambioUpdateSchema } from "./cambio.schemas";
+import { cambioCreateSchema, cambioStatusSchema, cambioUpdateSchema } from "./cambio.schemas";
 
 async function validarNavaja(localidadId: number, numeroNavaja: number) {
   const nava = await prismaTorno.nava.findUnique({
@@ -24,12 +24,18 @@ async function validarNavaja(localidadId: number, numeroNavaja: number) {
 export async function listCambios(req: Request, res: Response) {
   const localidadIdRaw = req.query.localidadId?.toString();
   const numeroNavajaRaw = req.query.numeroNavaja?.toString();
+  const statusRaw = req.query.status?.toString();
   const fechaInicioRaw = req.query.fechaInicio?.toString();
   const fechaFinRaw = req.query.fechaFin?.toString();
   const where: Record<string, unknown> = {};
 
   if (localidadIdRaw) where.localidadId = parseIntParam(localidadIdRaw, "localidadId");
   if (numeroNavajaRaw) where.numeroNavaja = parseIntParam(numeroNavajaRaw, "numeroNavaja");
+  if (statusRaw) {
+    const parsedStatus = cambioStatusSchema.safeParse(statusRaw.trim().toUpperCase());
+    if (!parsedStatus.success) return fail(res, 400, "status invalido");
+    where.status = parsedStatus.data;
+  }
   if (fechaInicioRaw || fechaFinRaw) {
     where.fechaCambio = {
       ...(fechaInicioRaw ? { gte: new Date(fechaInicioRaw) } : {}),
