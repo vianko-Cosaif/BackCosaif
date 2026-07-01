@@ -55,7 +55,7 @@ model Usuario {
   empresaId          Int
   localidadId        Int
   fcmTokens          FcmToken[]
-  activo             Boolean             @default(false)
+  activo             Boolean             @default(true)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   incidentes         Incidente[]

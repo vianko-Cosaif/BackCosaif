@@ -12,7 +12,12 @@
     "dev:torno": "ts-node-dev --project msTorno/tsconfig.json msTorno/src/index.ts",
     "build:torno": "tsc -p msTorno/tsconfig.json",
     "prisma:torno:push": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema msTorno/prisma/schema.prisma",
-    "prisma:torno:generate": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema msTorno/prisma/schema.prisma"
+    "prisma:torno:generate": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema msTorno/prisma/schema.prisma",
+    "ms:torreon": "ts-node-dev --project ms_torreon/tsconfig.json ms_torreon/src/index.ts",
+    "build:torreon": "tsc -p ms_torreon/tsconfig.json",
+    "prisma:torreon:push": "DOTENV_CONFIG_PATH=ms_torreon/.env.torreon node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema ms_torreon/prisma/schema.prisma",
+    "prisma:torreon:generate": "DOTENV_CONFIG_PATH=ms_torreon/.env.torreon node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema ms_torreon/prisma/schema.prisma",
+    "seed:torreon:cosaif": "node scripts/seed-torreon-cosaif.cjs"
   },
   "resolutions": {
     "braces": "3.0.2",

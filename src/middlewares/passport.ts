@@ -29,14 +29,16 @@ const opts: StrategyOptions = {
   ignoreExpiration: true,
 };
 
+const userIdFromPayload = (jwtPayload: JwtPayload) =>
+  (typeof jwtPayload.id === 'number' ? jwtPayload.id : undefined) ??
+  (typeof jwtPayload.sub === 'string' ? Number(jwtPayload.sub) : undefined) ??
+  (typeof jwtPayload.userId === 'number' ? jwtPayload.userId : undefined);
+
 passport.use(
   new JwtStrategy(opts, async (jwtPayload: JwtPayload, done: VerifiedCallback) => {
     try {
       // 1. normalizar userId
-      const userIdRaw =
-        (typeof jwtPayload.id === 'number' ? jwtPayload.id : null) ??
-        (typeof jwtPayload.sub === 'string' ? Number(jwtPayload.sub) : null) ??
-        (typeof jwtPayload.userId === 'number' ? jwtPayload.userId : null);
+      const userIdRaw = userIdFromPayload(jwtPayload);
 
       if (!userIdRaw || Number.isNaN(userIdRaw)) {
         logger.warn('Token inválido: ID/SUB faltante', { jwtPayload });
@@ -63,6 +65,7 @@ passport.use(
           id: true,
           nombre: true,
           rol: true,
+          activo: true,
           tokenVersion: true,
           empresa: { select: { id: true, nombre: true } },
           localidad: { select: { id: true, nombre: true, estado: true } },
@@ -72,6 +75,11 @@ passport.use(
       if (!user) {
         logger.warn('Usuario no encontrado', { userId: userIdRaw });
         return done(null, false, { message: 'Usuario no encontrado' });
+      }
+
+      if (!user.activo) {
+        logger.info('Usuario desactivado', { userId: user.id });
+        return done(null, false, { message: 'Usuario desactivado' });
       }
 
       const tokenVersion = typeof jwtPayload.v === 'number' ? jwtPayload.v : 0;

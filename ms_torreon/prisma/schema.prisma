@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("TORREON_DATABASE_URL")
+  shadowDatabaseUrl = env("TORREON_SHADOW_DATABASE_URL")
+}
+
+enum PrioridadTorreon {
+  BAJA
+  ALTA
+}
+
+enum EstadoMovimientoTorreon {
+  SOLICITADO
+  ASIGNADO
+  EN_PROCESO
+  DETENIDO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum TipoMovimientoTorreon {
+  MD_TRABAJANDO
+  REMOLCADA
+}
+
+enum PosicionCabinaTorreon {
+  Sin_Solicitar
+  DENTRO
+  AFUERA
+}
+
+enum PosicionChimeneaTorreon {
+  Sin_Solicitar
+  DENTRO
+  AFUERA
+}
+
+enum DireccionEmpujeTorreon {
+  Sin_Solicitar
+  EMPUJAR
+  JALAR
+}
+
+enum EstadoRondaTorreon {
+  ABIERTA
+  EN_PROCESO
+  CERRADA
+  CANCELADA
+}
+
+enum EstadoRondaMovimientoTorreon {
+  PENDIENTE
+  ACTIVO
+  BLOQUEADO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum EstadoIncidenteTorreon {
+  ABIERTO
+  RESUELTO
+}
+
+enum TipoFotoMovimientoTorreon {
+  ANTES_MOVIMIENTO
+  PROCESO_MOVIMIENTO
+  FIN_MOVIMIENTO
+}
+
+model MovimientoTorreonFerro {
+  id             Int  @id @default(autoincrement())
+  empresaId      Int  @map("empresa_id")
+  creadoPorId    Int  @map("creado_por_id")
+  clienteId      Int? @map("cliente_id")
+  supervisorId   Int? @map("supervisor_id")
+  coordinadorId  Int? @map("coordinador_id")
+  operadorId     Int? @map("operador_id")
+  localidadId    Int  @map("localidad_id")
+  viaOrigenId    Int? @map("via_origen_id")
+  viaDestinoId   Int? @map("via_destino_id")
+  seccionOrigenId  Int? @map("seccion_origen_id")
+  seccionDestinoId Int? @map("seccion_destino_id")
+
+  locomotiveNumber Int                      @map("locomotive_number")
+  prioridad        PrioridadTorreon         @default(BAJA)
+  tipoMovimiento   TipoMovimientoTorreon?   @map("tipo_movimiento")
+  estado           EstadoMovimientoTorreon  @default(SOLICITADO)
+
+  fechaSolicitud DateTime  @default(now()) @map("fecha_solicitud")
+  fechaInicio    DateTime? @map("fecha_inicio")
+  fechaFin       DateTime? @map("fecha_fin")
+  fechaPausa     DateTime? @map("fecha_pausa")
+
+  instrucciones    String?
+  posicionChimenea PosicionChimeneaTorreon? @map("posicion_chimenea")
+  finalizado       Boolean                  @default(false)
+  direccionEmpuje  DireccionEmpujeTorreon?  @default(Sin_Solicitar) @map("direccion_empuje")
+  posicionCabina   PosicionCabinaTorreon?   @map("posicion_cabina")
+
+  empresaNombreSnapshot         String? @map("empresa_nombre_snapshot")
+  localidadNombreSnapshot       String? @map("localidad_nombre_snapshot")
+  viaOrigenNombreSnapshot       String? @map("via_origen_nombre_snapshot")
+  viaDestinoNombreSnapshot      String? @map("via_destino_nombre_snapshot")
+  seccionOrigenNombreSnapshot   String? @map("seccion_origen_nombre_snapshot")
+  seccionDestinoNombreSnapshot  String? @map("seccion_destino_nombre_snapshot")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  rondas     RondaTorreonMovimiento[]
+  incidentes IncidenteTorreonFerro[]
+  fotos      MovimientoTorreonFoto[]
+
+  @@index([empresaId, estado])
+  @@index([fechaInicio, fechaFin])
+  @@index([estado, finalizado])
+  @@index([clienteId, estado])
+  @@index([supervisorId, estado])
+  @@index([coordinadorId, estado])
+  @@index([operadorId, estado])
+  @@index([localidadId, estado])
+  @@index([viaOrigenId, viaDestinoId])
+  @@index([seccionOrigenId, seccionDestinoId])
+  @@map("movimiento_torreon_ferro")
+}
+
+model RondaTorreon {
+  id            Int                 @id @default(autoincrement())
+  localidadId   Int                 @map("localidad_id")
+  numeroRonda   Int                 @map("numero_ronda")
+  estado        EstadoRondaTorreon  @default(ABIERTA)
+  fechaApertura DateTime            @default(now()) @map("fecha_apertura")
+  fechaCierre   DateTime?           @map("fecha_cierre")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  movimientos RondaTorreonMovimiento[]
+
+  @@index([localidadId, estado])
+  @@index([localidadId, numeroRonda])
+  @@index([fechaApertura])
+  @@map("ronda_torreon")
+}
+
+model RondaTorreonMovimiento {
+  id           Int                            @id @default(autoincrement())
+  rondaId      Int                            @map("ronda_id")
+  movimientoId Int                            @map("movimiento_id")
+  bloqueadoPorIncidenteId Int?                @map("bloqueado_por_incidente_id")
+  empresaId    Int                            @map("empresa_id")
+  orden        Int
+  prioridad    PrioridadTorreon               @default(BAJA)
+  estado       EstadoRondaMovimientoTorreon   @default(PENDIENTE)
+  fechaAsignado DateTime                      @default(now()) @map("fecha_asignado")
+  fechaInicio   DateTime?                     @map("fecha_inicio")
+  fechaFin      DateTime?                     @map("fecha_fin")
+  createdAt     DateTime                      @default(now()) @map("created_at")
+  updatedAt     DateTime                      @updatedAt @map("updated_at")
+
+  ronda      RondaTorreon          @relation(fields: [rondaId], references: [id], onDelete: Cascade)
+  movimiento MovimientoTorreonFerro @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  bloqueadoPorIncidente IncidenteTorreonFerro? @relation(fields: [bloqueadoPorIncidenteId], references: [id], onDelete: SetNull)
+
+  @@unique([rondaId, movimientoId])
+  @@unique([rondaId, orden])
+  @@index([rondaId, orden])
+  @@index([movimientoId])
+  @@index([bloqueadoPorIncidenteId])
+  @@index([empresaId, estado])
+  @@map("ronda_torreon_movimiento")
+}
+
+model IncidenteTorreonFerro {
+  id            Int                    @id @default(autoincrement())
+  movimientoId  Int                    @map("movimiento_id")
+  creadoPorId   Int                    @map("creado_por_id")
+  resueltoPorId Int?                   @map("resuelto_por_id")
+  estado        EstadoIncidenteTorreon @default(ABIERTO)
+  motivo        String
+  solucion      String?
+  localidadId   Int                    @map("localidad_id")
+  viaBloqueadaId     Int?              @map("via_bloqueada_id")
+  seccionBloqueadaId Int?              @map("seccion_bloqueada_id")
+  fechaInicio    DateTime              @default(now()) @map("fecha_inicio")
+  fechaResolucion DateTime?            @map("fecha_resolucion")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  movimiento MovimientoTorreonFerro @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  rondasBloqueadas RondaTorreonMovimiento[]
+  fotos IncidenteTorreonFoto[]
+
+  @@index([movimientoId, estado])
+  @@index([estado, localidadId, viaBloqueadaId])
+  @@index([estado, localidadId, seccionBloqueadaId])
+  @@map("incidente_torreon_ferro")
+}
+
+model MovimientoTorreonFoto {
+  id           Int                       @id @default(autoincrement())
+  movimientoId Int                       @map("movimiento_id")
+  tipo         TipoFotoMovimientoTorreon
+  orden        Int                       @default(1)
+  url          String
+  storageKey   String?                   @map("storage_key")
+  tomadaPorId  Int                       @map("tomada_por_id")
+  comentario   String?
+  tomadaAt     DateTime                  @default(now()) @map("tomada_at")
+  createdAt    DateTime                  @default(now()) @map("created_at")
+  updatedAt    DateTime                  @updatedAt @map("updated_at")
+
+  movimiento MovimientoTorreonFerro @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+
+  @@unique([movimientoId, tipo, orden])
+  @@index([movimientoId, tipo])
+  @@index([tomadaPorId, tomadaAt])
+  @@map("movimiento_torreon_foto")
+}
+
+model IncidenteTorreonFoto {
+  id          Int      @id @default(autoincrement())
+  incidenteId Int     @map("incidente_id")
+  orden       Int
+  url         String
+  storageKey  String? @map("storage_key")
+  tomadaPorId Int     @map("tomada_por_id")
+  comentario  String?
+  tomadaAt    DateTime @default(now()) @map("tomada_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  incidente IncidenteTorreonFerro @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+
+  @@unique([incidenteId, orden])
+  @@index([incidenteId])
+  @@index([tomadaPorId, tomadaAt])
+  @@map("incidente_torreon_foto")
+}
