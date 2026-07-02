@@ -10,8 +10,8 @@ const normalize = (value) => String(value ?? "")
   .trim()
   .toLowerCase();
 
-const VIAS = [1, 2, 3, 4, 5, 6];
-const SECCIONES_POR_VIA = [1, 2, 3, 4];
+const VIAS = Array.from({ length: 30 }, (_, index) => index + 1);
+const SECCIONES_POR_VIA = [1, 2, 3];
 
 async function getOrCreateTorreon() {
   const localidades = await prisma.localidad.findMany({

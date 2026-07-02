@@ -9,7 +9,7 @@ import { NotificadorFCM } from "../../services/NotificadorFCM";
 
 const router = Router();
 const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
-const CLIENTE_ROLES = new Set(["CLIENTE"]);
+const CLIENTE_ROLES = new Set(["CLIENTE", "CLIENTE_ADMIN", "CLIENTE_COOR", "ARRASTRE_TORREON"]);
 const TORNERO_ROLES = new Set(["TORNO", "TORNERO"]);
 
 // Todas las rutas de torno pasan por auth del API principal.

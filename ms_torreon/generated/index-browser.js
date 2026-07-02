@@ -228,6 +228,73 @@ exports.Prisma.IncidenteTorreonFotoScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ArrastreTorreonScalarFieldEnum = {
+  id: 'id',
+  empresaId: 'empresaId',
+  creadoPorId: 'creadoPorId',
+  operadorId: 'operadorId',
+  localidadId: 'localidadId',
+  viaOrigenId: 'viaOrigenId',
+  viaDestinoId: 'viaDestinoId',
+  seccionOrigenId: 'seccionOrigenId',
+  seccionDestinoId: 'seccionDestinoId',
+  estado: 'estado',
+  instrucciones: 'instrucciones',
+  fechaSolicitud: 'fechaSolicitud',
+  fechaInicio: 'fechaInicio',
+  fechaFin: 'fechaFin',
+  fechaPausa: 'fechaPausa',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ArrastreTorreonVagonScalarFieldEnum = {
+  id: 'id',
+  arrastreId: 'arrastreId',
+  orden: 'orden',
+  numeroVagon: 'numeroVagon',
+  carga: 'carga',
+  viaId: 'viaId',
+  seccionId: 'seccionId',
+  estado: 'estado',
+  fechaSolicitud: 'fechaSolicitud',
+  fechaInicio: 'fechaInicio',
+  fechaFin: 'fechaFin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.IncidenteArrastreTorreonScalarFieldEnum = {
+  id: 'id',
+  arrastreId: 'arrastreId',
+  vagonId: 'vagonId',
+  creadoPorId: 'creadoPorId',
+  resueltoPorId: 'resueltoPorId',
+  estado: 'estado',
+  motivo: 'motivo',
+  solucion: 'solucion',
+  localidadId: 'localidadId',
+  viaBloqueadaId: 'viaBloqueadaId',
+  seccionBloqueadaId: 'seccionBloqueadaId',
+  fechaInicio: 'fechaInicio',
+  fechaResolucion: 'fechaResolucion',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.IncidenteArrastreFotoScalarFieldEnum = {
+  id: 'id',
+  incidenteId: 'incidenteId',
+  orden: 'orden',
+  url: 'url',
+  storageKey: 'storageKey',
+  tomadaPorId: 'tomadaPorId',
+  comentario: 'comentario',
+  tomadaAt: 'tomadaAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -305,13 +372,42 @@ exports.TipoFotoMovimientoTorreon = exports.$Enums.TipoFotoMovimientoTorreon = {
   FIN_MOVIMIENTO: 'FIN_MOVIMIENTO'
 };
 
+exports.EstadoArrastreTorreon = exports.$Enums.EstadoArrastreTorreon = {
+  SOLICITADO: 'SOLICITADO',
+  EN_PROCESO: 'EN_PROCESO',
+  DETENIDO: 'DETENIDO',
+  CONCLUIDO: 'CONCLUIDO',
+  CANCELADO: 'CANCELADO'
+};
+
+exports.CargaVagonArrastreTorreon = exports.$Enums.CargaVagonArrastreTorreon = {
+  VACIO: 'VACIO',
+  LLENO: 'LLENO'
+};
+
+exports.EstadoVagonArrastreTorreon = exports.$Enums.EstadoVagonArrastreTorreon = {
+  PENDIENTE: 'PENDIENTE',
+  EN_PROCESO: 'EN_PROCESO',
+  CONCLUIDO: 'CONCLUIDO',
+  BLOQUEADO: 'BLOQUEADO'
+};
+
+exports.EstadoIncidenteArrastreTorreon = exports.$Enums.EstadoIncidenteArrastreTorreon = {
+  ABIERTO: 'ABIERTO',
+  RESUELTO: 'RESUELTO'
+};
+
 exports.Prisma.ModelName = {
   MovimientoTorreonFerro: 'MovimientoTorreonFerro',
   RondaTorreon: 'RondaTorreon',
   RondaTorreonMovimiento: 'RondaTorreonMovimiento',
   IncidenteTorreonFerro: 'IncidenteTorreonFerro',
   MovimientoTorreonFoto: 'MovimientoTorreonFoto',
-  IncidenteTorreonFoto: 'IncidenteTorreonFoto'
+  IncidenteTorreonFoto: 'IncidenteTorreonFoto',
+  ArrastreTorreon: 'ArrastreTorreon',
+  ArrastreTorreonVagon: 'ArrastreTorreonVagon',
+  IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
+  IncidenteArrastreFoto: 'IncidenteArrastreFoto'
 };
 
 /**

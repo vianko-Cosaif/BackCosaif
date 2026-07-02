@@ -3,17 +3,31 @@ import { z } from "zod";
 const idSchema = z.coerce.number().int().positive();
 
 export const fotoInputSchema = z.object({
-  url: z.string().min(1),
+  url: z.string().trim().min(1).optional(),
   storageKey: z.string().min(1).optional(),
+  base64: z.string().trim().min(1).optional(),
+  contenidoBase64: z.string().trim().min(1).optional(),
+  dataUrl: z.string().trim().min(1).optional(),
+  mimeType: z.string().trim().min(1).optional(),
   tomadaPorId: idSchema.optional(),
   comentario: z.string().min(1).optional(),
   tomadaAt: z.coerce.date().optional(),
+}).superRefine((data, ctx) => {
+  if (!data.url && !data.base64 && !data.contenidoBase64 && !data.dataUrl) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "La captura requiere url, base64, contenidoBase64 o dataUrl",
+      path: ["url"],
+    });
+  }
 });
 
 const withCapturas = z.object({
   fotos: z.array(fotoInputSchema).optional(),
   capturas: z.array(fotoInputSchema).optional(),
 });
+
+const maxDosCapturas = (data: { fotos: unknown[] }) => data.fotos.length <= 2;
 
 export const createMovimientoSchema = z.object({
   empresaId: idSchema,
@@ -55,6 +69,8 @@ export const iniciarMovimientoSchema = withCapturas.extend({
   fotos: data.fotos ?? data.capturas ?? [],
 })).refine((data) => data.fotos.length >= 1, {
   message: "Iniciar movimiento requiere al menos una captura",
+}).refine(maxDosCapturas, {
+  message: "Iniciar movimiento permite maximo 2 capturas",
 });
 
 export const registrarFotosMovimientoSchema = withCapturas.extend({
@@ -65,6 +81,8 @@ export const registrarFotosMovimientoSchema = withCapturas.extend({
   fotos: data.fotos ?? data.capturas ?? [],
 })).refine((data) => data.fotos.length >= 1, {
   message: "Debe enviar al menos una captura",
+}).refine(maxDosCapturas, {
+  message: "Cada etapa del movimiento permite maximo 2 capturas",
 });
 
 export const finalizarMovimientoSchema = withCapturas.extend({
@@ -75,6 +93,8 @@ export const finalizarMovimientoSchema = withCapturas.extend({
   fotos: data.fotos ?? data.capturas ?? [],
 })).refine((data) => data.fotos.length >= 1, {
   message: "Finalizar movimiento requiere al menos una captura",
+}).refine(maxDosCapturas, {
+  message: "Finalizar movimiento permite maximo 2 capturas",
 });
 
 export const reanudarMovimientoSchema = withCapturas.extend({
@@ -86,4 +106,6 @@ export const reanudarMovimientoSchema = withCapturas.extend({
 }).transform((data) => ({
   ...data,
   fotos: data.fotos ?? data.capturas ?? [],
-}));
+})).refine(maxDosCapturas, {
+  message: "Proceso de movimiento permite maximo 2 capturas",
+});

@@ -4,4 +4,6 @@ import { IncidenteController } from "./incidente.controller";
 
 export const incidenteRouter = Router();
 
+incidenteRouter.get("/", asyncHandler(IncidenteController.listar));
+incidenteRouter.get("/:id", asyncHandler(IncidenteController.obtener));
 incidenteRouter.patch("/:id/resolver", asyncHandler(IncidenteController.resolver));

@@ -55,11 +55,56 @@ const toDeviceType = (value?: unknown): DeviceType => {
 
 const USER_MANAGER_ROLES = new Set(['ADMINISTRADOR', 'COORDINADOR']);
 const ADMINISTRADOR = 'ADMINISTRADOR';
+const COORDINADOR = 'COORDINADOR';
+const COORDINADOR_LOCAL_ALLOWED_ROLES = new Set<Rol>([
+  Rol.CLIENTE,
+  Rol.ARRASTRE_TORREON,
+  Rol.MAQUINISTA,
+  Rol.MAQUINISTA_ARRASTRE,
+]);
 
 const getActor = (req: Request) => req.user as AuthenticatedUser | undefined;
 const getActorRole = (req: Request) => String(getActor(req)?.rol ?? '').toUpperCase();
 const canManageUsers = (req: Request) => USER_MANAGER_ROLES.has(getActorRole(req));
 const isAdministrator = (req: Request) => getActorRole(req) === ADMINISTRADOR;
+
+const normalizeLocalidadName = (value?: string | null) =>
+  String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+
+const isGdlLocalidad = (value?: string | null) => {
+  const name = normalizeLocalidadName(value);
+  return name === 'GDL' || name.includes('GUADALAJARA');
+};
+
+const isRestrictedLocalCoordinator = (req: Request) => {
+  const actor = getActor(req);
+  return getActorRole(req) === COORDINADOR && !isGdlLocalidad(actor?.localidad?.nombre);
+};
+
+const validateRestrictedCoordinatorScope = (
+  req: Request,
+  role: Rol,
+  localidadId: number,
+  action: 'crear' | 'editar' | 'desactivar'
+) => {
+  if (!isRestrictedLocalCoordinator(req)) return undefined;
+
+  const actor = getActor(req);
+  const actorLocalidadId = actor?.localidad?.id;
+  if (!actorLocalidadId || localidadId !== actorLocalidadId) {
+    return `Coordinador local solo puede ${action} usuarios de su localidad`;
+  }
+
+  if (!COORDINADOR_LOCAL_ALLOWED_ROLES.has(role)) {
+    return 'Coordinador local solo puede gestionar CLIENTE, ARRASTRE_TORREON, MAQUINISTA o MAQUINISTA_ARRASTRE';
+  }
+
+  return undefined;
+};
 
 const toPositiveInt = (value: unknown) => {
   const n = Number(value);
@@ -109,16 +154,22 @@ export class UsuarioController {
     }
     const { nombre, email, contrasena, empresaId, localidadId } = req.body || {};
     const rol = parseRequestedRole(req.body?.rol);
-    if (!nombre || !email || !contrasena || !rol || !empresaId || !localidadId) {
+    const empresaIdNum = toPositiveInt(empresaId);
+    const localidadIdNum = toPositiveInt(localidadId);
+    if (!nombre || !email || !contrasena || !rol || !empresaIdNum || !localidadIdNum) {
       log.warn('usuarios:create:bad_request', { reqId, bodyKeys: Object.keys(req.body||{}), ms: dt(t0) });
       return res.status(400).json({ error: 'Datos incompletos' });
     }
     if (rol === Rol.ADMINISTRADOR && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
+    const scopeError = validateRestrictedCoordinatorScope(req, rol, localidadIdNum, 'crear');
+    if (scopeError) {
+      return res.status(403).json({ error: scopeError });
+    }
     try {
-      log.info('usuarios:create:start', { reqId, nombre, email, rol, empresaId, localidadId });
-      const nuevo = await UsuarioModel.crearUsuario(nombre, email, contrasena, rol, Number(empresaId), Number(localidadId), { reqId });
+      log.info('usuarios:create:start', { reqId, nombre, email, rol, empresaId: empresaIdNum, localidadId: localidadIdNum });
+      const nuevo = await UsuarioModel.crearUsuario(nombre, email, contrasena, rol, empresaIdNum, localidadIdNum, { reqId });
       log.info('usuarios:create:ok', { reqId, id: nuevo.id, ms: dt(t0) });
       res.status(201).json(nuevo);
     } catch (error) {
@@ -156,6 +207,13 @@ export class UsuarioController {
     const touchesAdministrator = target.rol === Rol.ADMINISTRADOR || rol === Rol.ADMINISTRADOR;
     if (touchesAdministrator && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
+    }
+
+    const finalRole = rol ?? target.rol;
+    const finalLocalidadId = localidadId ?? target.localidadId;
+    const scopeError = validateRestrictedCoordinatorScope(req, finalRole, finalLocalidadId, 'editar');
+    if (scopeError) {
+      return res.status(403).json({ error: scopeError });
     }
 
     const input = {
@@ -208,6 +266,10 @@ export class UsuarioController {
     if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
     if (target.rol === Rol.ADMINISTRADOR && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
+    }
+    const scopeError = validateRestrictedCoordinatorScope(req, target.rol, target.localidadId, 'desactivar');
+    if (scopeError) {
+      return res.status(403).json({ error: scopeError });
     }
 
     try {

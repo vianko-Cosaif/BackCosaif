@@ -66,6 +66,31 @@ enum EstadoIncidenteTorreon {
   RESUELTO
 }
 
+enum EstadoArrastreTorreon {
+  SOLICITADO
+  EN_PROCESO
+  DETENIDO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum CargaVagonArrastreTorreon {
+  VACIO
+  LLENO
+}
+
+enum EstadoVagonArrastreTorreon {
+  PENDIENTE
+  EN_PROCESO
+  CONCLUIDO
+  BLOQUEADO
+}
+
+enum EstadoIncidenteArrastreTorreon {
+  ABIERTO
+  RESUELTO
+}
+
 enum TipoFotoMovimientoTorreon {
   ANTES_MOVIMIENTO
   PROCESO_MOVIMIENTO
@@ -240,4 +265,110 @@ model IncidenteTorreonFoto {
   @@index([incidenteId])
   @@index([tomadaPorId, tomadaAt])
   @@map("incidente_torreon_foto")
+}
+
+model ArrastreTorreon {
+  id               Int                   @id @default(autoincrement())
+  empresaId        Int                   @map("empresa_id")
+  creadoPorId      Int                   @map("creado_por_id")
+  operadorId       Int?                  @map("operador_id")
+  localidadId      Int                   @map("localidad_id")
+  viaOrigenId      Int?                  @map("via_origen_id")
+  viaDestinoId     Int?                  @map("via_destino_id")
+  seccionOrigenId  Int?                  @map("seccion_origen_id")
+  seccionDestinoId Int?                  @map("seccion_destino_id")
+  estado           EstadoArrastreTorreon @default(SOLICITADO)
+  instrucciones    String?
+
+  fechaSolicitud DateTime  @default(now()) @map("fecha_solicitud")
+  fechaInicio    DateTime? @map("fecha_inicio")
+  fechaFin       DateTime? @map("fecha_fin")
+  fechaPausa     DateTime? @map("fecha_pausa")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  vagones    ArrastreTorreonVagon[]
+  incidentes IncidenteArrastreTorreon[]
+
+  @@index([empresaId, estado])
+  @@index([localidadId, estado])
+  @@index([fechaInicio, fechaFin])
+  @@index([viaOrigenId, viaDestinoId])
+  @@index([seccionOrigenId, seccionDestinoId])
+  @@map("arrastre_torreon")
+}
+
+model ArrastreTorreonVagon {
+  id             Int                        @id @default(autoincrement())
+  arrastreId     Int                        @map("arrastre_id")
+  orden          Int
+  numeroVagon    String?                    @map("numero_vagon")
+  carga          CargaVagonArrastreTorreon
+  viaId          Int                        @map("via_id")
+  seccionId      Int                        @map("seccion_id")
+  estado         EstadoVagonArrastreTorreon @default(PENDIENTE)
+  fechaSolicitud DateTime                   @default(now()) @map("fecha_solicitud")
+  fechaInicio    DateTime?                  @map("fecha_inicio")
+  fechaFin       DateTime?                  @map("fecha_fin")
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  arrastre   ArrastreTorreon            @relation(fields: [arrastreId], references: [id], onDelete: Cascade)
+  incidentes IncidenteArrastreTorreon[]
+
+  @@unique([arrastreId, orden])
+  @@index([arrastreId, estado])
+  @@index([viaId, estado])
+  @@index([seccionId, estado])
+  @@index([viaId, seccionId, estado])
+  @@map("arrastre_torreon_vagon")
+}
+
+model IncidenteArrastreTorreon {
+  id                 Int                            @id @default(autoincrement())
+  arrastreId         Int                            @map("arrastre_id")
+  vagonId            Int?                           @map("vagon_id")
+  creadoPorId        Int                            @map("creado_por_id")
+  resueltoPorId      Int?                           @map("resuelto_por_id")
+  estado             EstadoIncidenteArrastreTorreon @default(ABIERTO)
+  motivo             String
+  solucion           String?
+  localidadId        Int                            @map("localidad_id")
+  viaBloqueadaId     Int?                           @map("via_bloqueada_id")
+  seccionBloqueadaId Int?                           @map("seccion_bloqueada_id")
+  fechaInicio        DateTime                       @default(now()) @map("fecha_inicio")
+  fechaResolucion    DateTime?                      @map("fecha_resolucion")
+  createdAt          DateTime                       @default(now()) @map("created_at")
+  updatedAt          DateTime                       @updatedAt @map("updated_at")
+
+  arrastre ArrastreTorreon         @relation(fields: [arrastreId], references: [id], onDelete: Cascade)
+  vagon    ArrastreTorreonVagon?   @relation(fields: [vagonId], references: [id], onDelete: SetNull)
+  fotos    IncidenteArrastreFoto[]
+
+  @@index([arrastreId, estado])
+  @@index([vagonId, estado])
+  @@index([estado, localidadId, viaBloqueadaId])
+  @@index([estado, localidadId, seccionBloqueadaId])
+  @@map("incidente_arrastre_torreon")
+}
+
+model IncidenteArrastreFoto {
+  id          Int      @id @default(autoincrement())
+  incidenteId Int      @map("incidente_id")
+  orden       Int
+  url         String
+  storageKey  String?  @map("storage_key")
+  tomadaPorId Int      @map("tomada_por_id")
+  comentario  String?
+  tomadaAt    DateTime @default(now()) @map("tomada_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  incidente IncidenteArrastreTorreon @relation(fields: [incidenteId], references: [id], onDelete: Cascade)
+
+  @@unique([incidenteId, orden])
+  @@index([incidenteId])
+  @@index([tomadaPorId, tomadaAt])
+  @@map("incidente_arrastre_foto")
 }

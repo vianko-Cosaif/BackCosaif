@@ -1,8 +1,9 @@
 import { Rol } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
-const CLIENT_ROLES: Rol[] = [Rol.CLIENTE];
-const LOCAL_OPERATION_ROLES: Rol[] = [Rol.SUPERVISOR, Rol.OPERADOR, Rol.MAQUINISTA];
+const CLIENT_ROLES: Rol[] = [Rol.CLIENTE, Rol.CLIENTE_ADMIN, Rol.ARRASTRE_TORREON];
+const CLIENT_COORDINATION_ROLES: Rol[] = [Rol.CLIENTE_COOR];
+const LOCAL_OPERATION_ROLES: Rol[] = [Rol.SUPERVISOR, Rol.OPERADOR, Rol.MAQUINISTA, Rol.MAQUINISTA_ARRASTRE];
 const LOCATION_AWARE_ROLES: Rol[] = [Rol.COORDINADOR, Rol.ADMINISTRADOR];
 
 type UserWithTokens = {
@@ -80,7 +81,7 @@ export async function usuariosAudienciaOperacion(params: {
     fcmTokens: { select: { token: true, localidadId: true } },
   } as const;
 
-  const [clientes, locales, coordinacion, usuariosForzados] = await Promise.all([
+  const [clientes, clientesCoordinacion, locales, coordinacion, usuariosForzados] = await Promise.all([
     empresaId && scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
@@ -88,6 +89,20 @@ export async function usuariosAudienciaOperacion(params: {
             empresaId,
             localidadId: scopeLocalidadId,
             rol: { in: CLIENT_ROLES },
+          },
+          select,
+        })
+      : Promise.resolve([]),
+    empresaId && scopeLocalidadId
+      ? prisma.usuario.findMany({
+          where: {
+            activo: true,
+            empresaId,
+            rol: { in: CLIENT_COORDINATION_ROLES },
+            OR: [
+              { fcmTokens: { some: { localidadId: scopeLocalidadId } } },
+              { fcmTokens: { some: { localidadId: null } } },
+            ],
           },
           select,
         })
@@ -126,7 +141,7 @@ export async function usuariosAudienciaOperacion(params: {
       : Promise.resolve([]),
   ]);
 
-  return uniqueUsers([...clientes, ...locales, ...coordinacion, ...usuariosForzados]);
+  return uniqueUsers([...clientes, ...clientesCoordinacion, ...locales, ...coordinacion, ...usuariosForzados]);
 }
 
 export async function tokensAudienciaOperacion(params: {

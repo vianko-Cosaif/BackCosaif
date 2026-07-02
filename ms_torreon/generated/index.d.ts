@@ -43,6 +43,26 @@ export type MovimientoTorreonFoto = $Result.DefaultSelection<Prisma.$MovimientoT
  * 
  */
 export type IncidenteTorreonFoto = $Result.DefaultSelection<Prisma.$IncidenteTorreonFotoPayload>
+/**
+ * Model ArrastreTorreon
+ * 
+ */
+export type ArrastreTorreon = $Result.DefaultSelection<Prisma.$ArrastreTorreonPayload>
+/**
+ * Model ArrastreTorreonVagon
+ * 
+ */
+export type ArrastreTorreonVagon = $Result.DefaultSelection<Prisma.$ArrastreTorreonVagonPayload>
+/**
+ * Model IncidenteArrastreTorreon
+ * 
+ */
+export type IncidenteArrastreTorreon = $Result.DefaultSelection<Prisma.$IncidenteArrastreTorreonPayload>
+/**
+ * Model IncidenteArrastreFoto
+ * 
+ */
+export type IncidenteArrastreFoto = $Result.DefaultSelection<Prisma.$IncidenteArrastreFotoPayload>
 
 /**
  * Enums
@@ -132,6 +152,43 @@ export const EstadoIncidenteTorreon: {
 export type EstadoIncidenteTorreon = (typeof EstadoIncidenteTorreon)[keyof typeof EstadoIncidenteTorreon]
 
 
+export const EstadoArrastreTorreon: {
+  SOLICITADO: 'SOLICITADO',
+  EN_PROCESO: 'EN_PROCESO',
+  DETENIDO: 'DETENIDO',
+  CONCLUIDO: 'CONCLUIDO',
+  CANCELADO: 'CANCELADO'
+};
+
+export type EstadoArrastreTorreon = (typeof EstadoArrastreTorreon)[keyof typeof EstadoArrastreTorreon]
+
+
+export const CargaVagonArrastreTorreon: {
+  VACIO: 'VACIO',
+  LLENO: 'LLENO'
+};
+
+export type CargaVagonArrastreTorreon = (typeof CargaVagonArrastreTorreon)[keyof typeof CargaVagonArrastreTorreon]
+
+
+export const EstadoVagonArrastreTorreon: {
+  PENDIENTE: 'PENDIENTE',
+  EN_PROCESO: 'EN_PROCESO',
+  CONCLUIDO: 'CONCLUIDO',
+  BLOQUEADO: 'BLOQUEADO'
+};
+
+export type EstadoVagonArrastreTorreon = (typeof EstadoVagonArrastreTorreon)[keyof typeof EstadoVagonArrastreTorreon]
+
+
+export const EstadoIncidenteArrastreTorreon: {
+  ABIERTO: 'ABIERTO',
+  RESUELTO: 'RESUELTO'
+};
+
+export type EstadoIncidenteArrastreTorreon = (typeof EstadoIncidenteArrastreTorreon)[keyof typeof EstadoIncidenteArrastreTorreon]
+
+
 export const TipoFotoMovimientoTorreon: {
   ANTES_MOVIMIENTO: 'ANTES_MOVIMIENTO',
   PROCESO_MOVIMIENTO: 'PROCESO_MOVIMIENTO',
@@ -177,6 +234,22 @@ export const EstadoRondaMovimientoTorreon: typeof $Enums.EstadoRondaMovimientoTo
 export type EstadoIncidenteTorreon = $Enums.EstadoIncidenteTorreon
 
 export const EstadoIncidenteTorreon: typeof $Enums.EstadoIncidenteTorreon
+
+export type EstadoArrastreTorreon = $Enums.EstadoArrastreTorreon
+
+export const EstadoArrastreTorreon: typeof $Enums.EstadoArrastreTorreon
+
+export type CargaVagonArrastreTorreon = $Enums.CargaVagonArrastreTorreon
+
+export const CargaVagonArrastreTorreon: typeof $Enums.CargaVagonArrastreTorreon
+
+export type EstadoVagonArrastreTorreon = $Enums.EstadoVagonArrastreTorreon
+
+export const EstadoVagonArrastreTorreon: typeof $Enums.EstadoVagonArrastreTorreon
+
+export type EstadoIncidenteArrastreTorreon = $Enums.EstadoIncidenteArrastreTorreon
+
+export const EstadoIncidenteArrastreTorreon: typeof $Enums.EstadoIncidenteArrastreTorreon
 
 export type TipoFotoMovimientoTorreon = $Enums.TipoFotoMovimientoTorreon
 
@@ -359,6 +432,46 @@ export class PrismaClient<
     * ```
     */
   get incidenteTorreonFoto(): Prisma.IncidenteTorreonFotoDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.arrastreTorreon`: Exposes CRUD operations for the **ArrastreTorreon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ArrastreTorreons
+    * const arrastreTorreons = await prisma.arrastreTorreon.findMany()
+    * ```
+    */
+  get arrastreTorreon(): Prisma.ArrastreTorreonDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.arrastreTorreonVagon`: Exposes CRUD operations for the **ArrastreTorreonVagon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ArrastreTorreonVagons
+    * const arrastreTorreonVagons = await prisma.arrastreTorreonVagon.findMany()
+    * ```
+    */
+  get arrastreTorreonVagon(): Prisma.ArrastreTorreonVagonDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.incidenteArrastreTorreon`: Exposes CRUD operations for the **IncidenteArrastreTorreon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more IncidenteArrastreTorreons
+    * const incidenteArrastreTorreons = await prisma.incidenteArrastreTorreon.findMany()
+    * ```
+    */
+  get incidenteArrastreTorreon(): Prisma.IncidenteArrastreTorreonDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.incidenteArrastreFoto`: Exposes CRUD operations for the **IncidenteArrastreFoto** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more IncidenteArrastreFotos
+    * const incidenteArrastreFotos = await prisma.incidenteArrastreFoto.findMany()
+    * ```
+    */
+  get incidenteArrastreFoto(): Prisma.IncidenteArrastreFotoDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -805,7 +918,11 @@ export namespace Prisma {
     RondaTorreonMovimiento: 'RondaTorreonMovimiento',
     IncidenteTorreonFerro: 'IncidenteTorreonFerro',
     MovimientoTorreonFoto: 'MovimientoTorreonFoto',
-    IncidenteTorreonFoto: 'IncidenteTorreonFoto'
+    IncidenteTorreonFoto: 'IncidenteTorreonFoto',
+    ArrastreTorreon: 'ArrastreTorreon',
+    ArrastreTorreonVagon: 'ArrastreTorreonVagon',
+    IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
+    IncidenteArrastreFoto: 'IncidenteArrastreFoto'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -824,7 +941,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto"
+      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1272,6 +1389,302 @@ export namespace Prisma {
           }
         }
       }
+      ArrastreTorreon: {
+        payload: Prisma.$ArrastreTorreonPayload<ExtArgs>
+        fields: Prisma.ArrastreTorreonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ArrastreTorreonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>
+          }
+          findFirst: {
+            args: Prisma.ArrastreTorreonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ArrastreTorreonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>
+          }
+          findMany: {
+            args: Prisma.ArrastreTorreonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>[]
+          }
+          create: {
+            args: Prisma.ArrastreTorreonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>
+          }
+          createMany: {
+            args: Prisma.ArrastreTorreonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ArrastreTorreonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>[]
+          }
+          delete: {
+            args: Prisma.ArrastreTorreonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>
+          }
+          update: {
+            args: Prisma.ArrastreTorreonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>
+          }
+          deleteMany: {
+            args: Prisma.ArrastreTorreonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ArrastreTorreonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>[]
+          }
+          upsert: {
+            args: Prisma.ArrastreTorreonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonPayload>
+          }
+          aggregate: {
+            args: Prisma.ArrastreTorreonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateArrastreTorreon>
+          }
+          groupBy: {
+            args: Prisma.ArrastreTorreonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ArrastreTorreonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ArrastreTorreonCountArgs<ExtArgs>
+            result: $Utils.Optional<ArrastreTorreonCountAggregateOutputType> | number
+          }
+        }
+      }
+      ArrastreTorreonVagon: {
+        payload: Prisma.$ArrastreTorreonVagonPayload<ExtArgs>
+        fields: Prisma.ArrastreTorreonVagonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ArrastreTorreonVagonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ArrastreTorreonVagonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>
+          }
+          findFirst: {
+            args: Prisma.ArrastreTorreonVagonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ArrastreTorreonVagonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>
+          }
+          findMany: {
+            args: Prisma.ArrastreTorreonVagonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>[]
+          }
+          create: {
+            args: Prisma.ArrastreTorreonVagonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>
+          }
+          createMany: {
+            args: Prisma.ArrastreTorreonVagonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ArrastreTorreonVagonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>[]
+          }
+          delete: {
+            args: Prisma.ArrastreTorreonVagonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>
+          }
+          update: {
+            args: Prisma.ArrastreTorreonVagonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>
+          }
+          deleteMany: {
+            args: Prisma.ArrastreTorreonVagonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ArrastreTorreonVagonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ArrastreTorreonVagonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>[]
+          }
+          upsert: {
+            args: Prisma.ArrastreTorreonVagonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ArrastreTorreonVagonPayload>
+          }
+          aggregate: {
+            args: Prisma.ArrastreTorreonVagonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateArrastreTorreonVagon>
+          }
+          groupBy: {
+            args: Prisma.ArrastreTorreonVagonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ArrastreTorreonVagonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ArrastreTorreonVagonCountArgs<ExtArgs>
+            result: $Utils.Optional<ArrastreTorreonVagonCountAggregateOutputType> | number
+          }
+        }
+      }
+      IncidenteArrastreTorreon: {
+        payload: Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>
+        fields: Prisma.IncidenteArrastreTorreonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.IncidenteArrastreTorreonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.IncidenteArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>
+          }
+          findFirst: {
+            args: Prisma.IncidenteArrastreTorreonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.IncidenteArrastreTorreonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>
+          }
+          findMany: {
+            args: Prisma.IncidenteArrastreTorreonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>[]
+          }
+          create: {
+            args: Prisma.IncidenteArrastreTorreonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>
+          }
+          createMany: {
+            args: Prisma.IncidenteArrastreTorreonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.IncidenteArrastreTorreonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>[]
+          }
+          delete: {
+            args: Prisma.IncidenteArrastreTorreonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>
+          }
+          update: {
+            args: Prisma.IncidenteArrastreTorreonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>
+          }
+          deleteMany: {
+            args: Prisma.IncidenteArrastreTorreonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.IncidenteArrastreTorreonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.IncidenteArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>[]
+          }
+          upsert: {
+            args: Prisma.IncidenteArrastreTorreonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreTorreonPayload>
+          }
+          aggregate: {
+            args: Prisma.IncidenteArrastreTorreonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateIncidenteArrastreTorreon>
+          }
+          groupBy: {
+            args: Prisma.IncidenteArrastreTorreonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<IncidenteArrastreTorreonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.IncidenteArrastreTorreonCountArgs<ExtArgs>
+            result: $Utils.Optional<IncidenteArrastreTorreonCountAggregateOutputType> | number
+          }
+        }
+      }
+      IncidenteArrastreFoto: {
+        payload: Prisma.$IncidenteArrastreFotoPayload<ExtArgs>
+        fields: Prisma.IncidenteArrastreFotoFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.IncidenteArrastreFotoFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.IncidenteArrastreFotoFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>
+          }
+          findFirst: {
+            args: Prisma.IncidenteArrastreFotoFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.IncidenteArrastreFotoFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>
+          }
+          findMany: {
+            args: Prisma.IncidenteArrastreFotoFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>[]
+          }
+          create: {
+            args: Prisma.IncidenteArrastreFotoCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>
+          }
+          createMany: {
+            args: Prisma.IncidenteArrastreFotoCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.IncidenteArrastreFotoCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>[]
+          }
+          delete: {
+            args: Prisma.IncidenteArrastreFotoDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>
+          }
+          update: {
+            args: Prisma.IncidenteArrastreFotoUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>
+          }
+          deleteMany: {
+            args: Prisma.IncidenteArrastreFotoDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.IncidenteArrastreFotoUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.IncidenteArrastreFotoUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>[]
+          }
+          upsert: {
+            args: Prisma.IncidenteArrastreFotoUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IncidenteArrastreFotoPayload>
+          }
+          aggregate: {
+            args: Prisma.IncidenteArrastreFotoAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateIncidenteArrastreFoto>
+          }
+          groupBy: {
+            args: Prisma.IncidenteArrastreFotoGroupByArgs<ExtArgs>
+            result: $Utils.Optional<IncidenteArrastreFotoGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.IncidenteArrastreFotoCountArgs<ExtArgs>
+            result: $Utils.Optional<IncidenteArrastreFotoCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1374,6 +1787,10 @@ export namespace Prisma {
     incidenteTorreonFerro?: IncidenteTorreonFerroOmit
     movimientoTorreonFoto?: MovimientoTorreonFotoOmit
     incidenteTorreonFoto?: IncidenteTorreonFotoOmit
+    arrastreTorreon?: ArrastreTorreonOmit
+    arrastreTorreonVagon?: ArrastreTorreonVagonOmit
+    incidenteArrastreTorreon?: IncidenteArrastreTorreonOmit
+    incidenteArrastreFoto?: IncidenteArrastreFotoOmit
   }
 
   /* Types for Logging */
@@ -1566,6 +1983,108 @@ export namespace Prisma {
    */
   export type IncidenteTorreonFerroCountOutputTypeCountFotosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: IncidenteTorreonFotoWhereInput
+  }
+
+
+  /**
+   * Count Type ArrastreTorreonCountOutputType
+   */
+
+  export type ArrastreTorreonCountOutputType = {
+    vagones: number
+    incidentes: number
+  }
+
+  export type ArrastreTorreonCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    vagones?: boolean | ArrastreTorreonCountOutputTypeCountVagonesArgs
+    incidentes?: boolean | ArrastreTorreonCountOutputTypeCountIncidentesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ArrastreTorreonCountOutputType without action
+   */
+  export type ArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonCountOutputType
+     */
+    select?: ArrastreTorreonCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ArrastreTorreonCountOutputType without action
+   */
+  export type ArrastreTorreonCountOutputTypeCountVagonesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ArrastreTorreonVagonWhereInput
+  }
+
+  /**
+   * ArrastreTorreonCountOutputType without action
+   */
+  export type ArrastreTorreonCountOutputTypeCountIncidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IncidenteArrastreTorreonWhereInput
+  }
+
+
+  /**
+   * Count Type ArrastreTorreonVagonCountOutputType
+   */
+
+  export type ArrastreTorreonVagonCountOutputType = {
+    incidentes: number
+  }
+
+  export type ArrastreTorreonVagonCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    incidentes?: boolean | ArrastreTorreonVagonCountOutputTypeCountIncidentesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ArrastreTorreonVagonCountOutputType without action
+   */
+  export type ArrastreTorreonVagonCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagonCountOutputType
+     */
+    select?: ArrastreTorreonVagonCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ArrastreTorreonVagonCountOutputType without action
+   */
+  export type ArrastreTorreonVagonCountOutputTypeCountIncidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IncidenteArrastreTorreonWhereInput
+  }
+
+
+  /**
+   * Count Type IncidenteArrastreTorreonCountOutputType
+   */
+
+  export type IncidenteArrastreTorreonCountOutputType = {
+    fotos: number
+  }
+
+  export type IncidenteArrastreTorreonCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    fotos?: boolean | IncidenteArrastreTorreonCountOutputTypeCountFotosArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * IncidenteArrastreTorreonCountOutputType without action
+   */
+  export type IncidenteArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreonCountOutputType
+     */
+    select?: IncidenteArrastreTorreonCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * IncidenteArrastreTorreonCountOutputType without action
+   */
+  export type IncidenteArrastreTorreonCountOutputTypeCountFotosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IncidenteArrastreFotoWhereInput
   }
 
 
@@ -9190,6 +9709,5044 @@ export namespace Prisma {
 
 
   /**
+   * Model ArrastreTorreon
+   */
+
+  export type AggregateArrastreTorreon = {
+    _count: ArrastreTorreonCountAggregateOutputType | null
+    _avg: ArrastreTorreonAvgAggregateOutputType | null
+    _sum: ArrastreTorreonSumAggregateOutputType | null
+    _min: ArrastreTorreonMinAggregateOutputType | null
+    _max: ArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  export type ArrastreTorreonAvgAggregateOutputType = {
+    id: number | null
+    empresaId: number | null
+    creadoPorId: number | null
+    operadorId: number | null
+    localidadId: number | null
+    viaOrigenId: number | null
+    viaDestinoId: number | null
+    seccionOrigenId: number | null
+    seccionDestinoId: number | null
+  }
+
+  export type ArrastreTorreonSumAggregateOutputType = {
+    id: number | null
+    empresaId: number | null
+    creadoPorId: number | null
+    operadorId: number | null
+    localidadId: number | null
+    viaOrigenId: number | null
+    viaDestinoId: number | null
+    seccionOrigenId: number | null
+    seccionDestinoId: number | null
+  }
+
+  export type ArrastreTorreonMinAggregateOutputType = {
+    id: number | null
+    empresaId: number | null
+    creadoPorId: number | null
+    operadorId: number | null
+    localidadId: number | null
+    viaOrigenId: number | null
+    viaDestinoId: number | null
+    seccionOrigenId: number | null
+    seccionDestinoId: number | null
+    estado: $Enums.EstadoArrastreTorreon | null
+    instrucciones: string | null
+    fechaSolicitud: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    fechaPausa: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ArrastreTorreonMaxAggregateOutputType = {
+    id: number | null
+    empresaId: number | null
+    creadoPorId: number | null
+    operadorId: number | null
+    localidadId: number | null
+    viaOrigenId: number | null
+    viaDestinoId: number | null
+    seccionOrigenId: number | null
+    seccionDestinoId: number | null
+    estado: $Enums.EstadoArrastreTorreon | null
+    instrucciones: string | null
+    fechaSolicitud: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    fechaPausa: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ArrastreTorreonCountAggregateOutputType = {
+    id: number
+    empresaId: number
+    creadoPorId: number
+    operadorId: number
+    localidadId: number
+    viaOrigenId: number
+    viaDestinoId: number
+    seccionOrigenId: number
+    seccionDestinoId: number
+    estado: number
+    instrucciones: number
+    fechaSolicitud: number
+    fechaInicio: number
+    fechaFin: number
+    fechaPausa: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ArrastreTorreonAvgAggregateInputType = {
+    id?: true
+    empresaId?: true
+    creadoPorId?: true
+    operadorId?: true
+    localidadId?: true
+    viaOrigenId?: true
+    viaDestinoId?: true
+    seccionOrigenId?: true
+    seccionDestinoId?: true
+  }
+
+  export type ArrastreTorreonSumAggregateInputType = {
+    id?: true
+    empresaId?: true
+    creadoPorId?: true
+    operadorId?: true
+    localidadId?: true
+    viaOrigenId?: true
+    viaDestinoId?: true
+    seccionOrigenId?: true
+    seccionDestinoId?: true
+  }
+
+  export type ArrastreTorreonMinAggregateInputType = {
+    id?: true
+    empresaId?: true
+    creadoPorId?: true
+    operadorId?: true
+    localidadId?: true
+    viaOrigenId?: true
+    viaDestinoId?: true
+    seccionOrigenId?: true
+    seccionDestinoId?: true
+    estado?: true
+    instrucciones?: true
+    fechaSolicitud?: true
+    fechaInicio?: true
+    fechaFin?: true
+    fechaPausa?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ArrastreTorreonMaxAggregateInputType = {
+    id?: true
+    empresaId?: true
+    creadoPorId?: true
+    operadorId?: true
+    localidadId?: true
+    viaOrigenId?: true
+    viaDestinoId?: true
+    seccionOrigenId?: true
+    seccionDestinoId?: true
+    estado?: true
+    instrucciones?: true
+    fechaSolicitud?: true
+    fechaInicio?: true
+    fechaFin?: true
+    fechaPausa?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ArrastreTorreonCountAggregateInputType = {
+    id?: true
+    empresaId?: true
+    creadoPorId?: true
+    operadorId?: true
+    localidadId?: true
+    viaOrigenId?: true
+    viaDestinoId?: true
+    seccionOrigenId?: true
+    seccionDestinoId?: true
+    estado?: true
+    instrucciones?: true
+    fechaSolicitud?: true
+    fechaInicio?: true
+    fechaFin?: true
+    fechaPausa?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ArrastreTorreonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArrastreTorreon to aggregate.
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreons to fetch.
+     */
+    orderBy?: ArrastreTorreonOrderByWithRelationInput | ArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ArrastreTorreons
+    **/
+    _count?: true | ArrastreTorreonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ArrastreTorreonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ArrastreTorreonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ArrastreTorreonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ArrastreTorreonMaxAggregateInputType
+  }
+
+  export type GetArrastreTorreonAggregateType<T extends ArrastreTorreonAggregateArgs> = {
+        [P in keyof T & keyof AggregateArrastreTorreon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateArrastreTorreon[P]>
+      : GetScalarType<T[P], AggregateArrastreTorreon[P]>
+  }
+
+
+
+
+  export type ArrastreTorreonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ArrastreTorreonWhereInput
+    orderBy?: ArrastreTorreonOrderByWithAggregationInput | ArrastreTorreonOrderByWithAggregationInput[]
+    by: ArrastreTorreonScalarFieldEnum[] | ArrastreTorreonScalarFieldEnum
+    having?: ArrastreTorreonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ArrastreTorreonCountAggregateInputType | true
+    _avg?: ArrastreTorreonAvgAggregateInputType
+    _sum?: ArrastreTorreonSumAggregateInputType
+    _min?: ArrastreTorreonMinAggregateInputType
+    _max?: ArrastreTorreonMaxAggregateInputType
+  }
+
+  export type ArrastreTorreonGroupByOutputType = {
+    id: number
+    empresaId: number
+    creadoPorId: number
+    operadorId: number | null
+    localidadId: number
+    viaOrigenId: number | null
+    viaDestinoId: number | null
+    seccionOrigenId: number | null
+    seccionDestinoId: number | null
+    estado: $Enums.EstadoArrastreTorreon
+    instrucciones: string | null
+    fechaSolicitud: Date
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    fechaPausa: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ArrastreTorreonCountAggregateOutputType | null
+    _avg: ArrastreTorreonAvgAggregateOutputType | null
+    _sum: ArrastreTorreonSumAggregateOutputType | null
+    _min: ArrastreTorreonMinAggregateOutputType | null
+    _max: ArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  type GetArrastreTorreonGroupByPayload<T extends ArrastreTorreonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ArrastreTorreonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ArrastreTorreonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ArrastreTorreonGroupByOutputType[P]>
+            : GetScalarType<T[P], ArrastreTorreonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ArrastreTorreonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    empresaId?: boolean
+    creadoPorId?: boolean
+    operadorId?: boolean
+    localidadId?: boolean
+    viaOrigenId?: boolean
+    viaDestinoId?: boolean
+    seccionOrigenId?: boolean
+    seccionDestinoId?: boolean
+    estado?: boolean
+    instrucciones?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    fechaPausa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    vagones?: boolean | ArrastreTorreon$vagonesArgs<ExtArgs>
+    incidentes?: boolean | ArrastreTorreon$incidentesArgs<ExtArgs>
+    _count?: boolean | ArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["arrastreTorreon"]>
+
+  export type ArrastreTorreonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    empresaId?: boolean
+    creadoPorId?: boolean
+    operadorId?: boolean
+    localidadId?: boolean
+    viaOrigenId?: boolean
+    viaDestinoId?: boolean
+    seccionOrigenId?: boolean
+    seccionDestinoId?: boolean
+    estado?: boolean
+    instrucciones?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    fechaPausa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["arrastreTorreon"]>
+
+  export type ArrastreTorreonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    empresaId?: boolean
+    creadoPorId?: boolean
+    operadorId?: boolean
+    localidadId?: boolean
+    viaOrigenId?: boolean
+    viaDestinoId?: boolean
+    seccionOrigenId?: boolean
+    seccionDestinoId?: boolean
+    estado?: boolean
+    instrucciones?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    fechaPausa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["arrastreTorreon"]>
+
+  export type ArrastreTorreonSelectScalar = {
+    id?: boolean
+    empresaId?: boolean
+    creadoPorId?: boolean
+    operadorId?: boolean
+    localidadId?: boolean
+    viaOrigenId?: boolean
+    viaDestinoId?: boolean
+    seccionOrigenId?: boolean
+    seccionDestinoId?: boolean
+    estado?: boolean
+    instrucciones?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    fechaPausa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "empresaId" | "creadoPorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "estado" | "instrucciones" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreon"]>
+  export type ArrastreTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    vagones?: boolean | ArrastreTorreon$vagonesArgs<ExtArgs>
+    incidentes?: boolean | ArrastreTorreon$incidentesArgs<ExtArgs>
+    _count?: boolean | ArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ArrastreTorreonIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ArrastreTorreonIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $ArrastreTorreonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ArrastreTorreon"
+    objects: {
+      vagones: Prisma.$ArrastreTorreonVagonPayload<ExtArgs>[]
+      incidentes: Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      empresaId: number
+      creadoPorId: number
+      operadorId: number | null
+      localidadId: number
+      viaOrigenId: number | null
+      viaDestinoId: number | null
+      seccionOrigenId: number | null
+      seccionDestinoId: number | null
+      estado: $Enums.EstadoArrastreTorreon
+      instrucciones: string | null
+      fechaSolicitud: Date
+      fechaInicio: Date | null
+      fechaFin: Date | null
+      fechaPausa: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["arrastreTorreon"]>
+    composites: {}
+  }
+
+  type ArrastreTorreonGetPayload<S extends boolean | null | undefined | ArrastreTorreonDefaultArgs> = $Result.GetResult<Prisma.$ArrastreTorreonPayload, S>
+
+  type ArrastreTorreonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ArrastreTorreonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ArrastreTorreonCountAggregateInputType | true
+    }
+
+  export interface ArrastreTorreonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ArrastreTorreon'], meta: { name: 'ArrastreTorreon' } }
+    /**
+     * Find zero or one ArrastreTorreon that matches the filter.
+     * @param {ArrastreTorreonFindUniqueArgs} args - Arguments to find a ArrastreTorreon
+     * @example
+     * // Get one ArrastreTorreon
+     * const arrastreTorreon = await prisma.arrastreTorreon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ArrastreTorreonFindUniqueArgs>(args: SelectSubset<T, ArrastreTorreonFindUniqueArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ArrastreTorreon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ArrastreTorreonFindUniqueOrThrowArgs} args - Arguments to find a ArrastreTorreon
+     * @example
+     * // Get one ArrastreTorreon
+     * const arrastreTorreon = await prisma.arrastreTorreon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ArrastreTorreonFindUniqueOrThrowArgs>(args: SelectSubset<T, ArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArrastreTorreon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonFindFirstArgs} args - Arguments to find a ArrastreTorreon
+     * @example
+     * // Get one ArrastreTorreon
+     * const arrastreTorreon = await prisma.arrastreTorreon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ArrastreTorreonFindFirstArgs>(args?: SelectSubset<T, ArrastreTorreonFindFirstArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArrastreTorreon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonFindFirstOrThrowArgs} args - Arguments to find a ArrastreTorreon
+     * @example
+     * // Get one ArrastreTorreon
+     * const arrastreTorreon = await prisma.arrastreTorreon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ArrastreTorreonFindFirstOrThrowArgs>(args?: SelectSubset<T, ArrastreTorreonFindFirstOrThrowArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ArrastreTorreons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ArrastreTorreons
+     * const arrastreTorreons = await prisma.arrastreTorreon.findMany()
+     * 
+     * // Get first 10 ArrastreTorreons
+     * const arrastreTorreons = await prisma.arrastreTorreon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const arrastreTorreonWithIdOnly = await prisma.arrastreTorreon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ArrastreTorreonFindManyArgs>(args?: SelectSubset<T, ArrastreTorreonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ArrastreTorreon.
+     * @param {ArrastreTorreonCreateArgs} args - Arguments to create a ArrastreTorreon.
+     * @example
+     * // Create one ArrastreTorreon
+     * const ArrastreTorreon = await prisma.arrastreTorreon.create({
+     *   data: {
+     *     // ... data to create a ArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    create<T extends ArrastreTorreonCreateArgs>(args: SelectSubset<T, ArrastreTorreonCreateArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ArrastreTorreons.
+     * @param {ArrastreTorreonCreateManyArgs} args - Arguments to create many ArrastreTorreons.
+     * @example
+     * // Create many ArrastreTorreons
+     * const arrastreTorreon = await prisma.arrastreTorreon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ArrastreTorreonCreateManyArgs>(args?: SelectSubset<T, ArrastreTorreonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ArrastreTorreons and returns the data saved in the database.
+     * @param {ArrastreTorreonCreateManyAndReturnArgs} args - Arguments to create many ArrastreTorreons.
+     * @example
+     * // Create many ArrastreTorreons
+     * const arrastreTorreon = await prisma.arrastreTorreon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ArrastreTorreons and only return the `id`
+     * const arrastreTorreonWithIdOnly = await prisma.arrastreTorreon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ArrastreTorreonCreateManyAndReturnArgs>(args?: SelectSubset<T, ArrastreTorreonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ArrastreTorreon.
+     * @param {ArrastreTorreonDeleteArgs} args - Arguments to delete one ArrastreTorreon.
+     * @example
+     * // Delete one ArrastreTorreon
+     * const ArrastreTorreon = await prisma.arrastreTorreon.delete({
+     *   where: {
+     *     // ... filter to delete one ArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ArrastreTorreonDeleteArgs>(args: SelectSubset<T, ArrastreTorreonDeleteArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ArrastreTorreon.
+     * @param {ArrastreTorreonUpdateArgs} args - Arguments to update one ArrastreTorreon.
+     * @example
+     * // Update one ArrastreTorreon
+     * const arrastreTorreon = await prisma.arrastreTorreon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ArrastreTorreonUpdateArgs>(args: SelectSubset<T, ArrastreTorreonUpdateArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ArrastreTorreons.
+     * @param {ArrastreTorreonDeleteManyArgs} args - Arguments to filter ArrastreTorreons to delete.
+     * @example
+     * // Delete a few ArrastreTorreons
+     * const { count } = await prisma.arrastreTorreon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ArrastreTorreonDeleteManyArgs>(args?: SelectSubset<T, ArrastreTorreonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ArrastreTorreons
+     * const arrastreTorreon = await prisma.arrastreTorreon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ArrastreTorreonUpdateManyArgs>(args: SelectSubset<T, ArrastreTorreonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArrastreTorreons and returns the data updated in the database.
+     * @param {ArrastreTorreonUpdateManyAndReturnArgs} args - Arguments to update many ArrastreTorreons.
+     * @example
+     * // Update many ArrastreTorreons
+     * const arrastreTorreon = await prisma.arrastreTorreon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ArrastreTorreons and only return the `id`
+     * const arrastreTorreonWithIdOnly = await prisma.arrastreTorreon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ArrastreTorreonUpdateManyAndReturnArgs>(args: SelectSubset<T, ArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ArrastreTorreon.
+     * @param {ArrastreTorreonUpsertArgs} args - Arguments to update or create a ArrastreTorreon.
+     * @example
+     * // Update or create a ArrastreTorreon
+     * const arrastreTorreon = await prisma.arrastreTorreon.upsert({
+     *   create: {
+     *     // ... data to create a ArrastreTorreon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ArrastreTorreon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ArrastreTorreonUpsertArgs>(args: SelectSubset<T, ArrastreTorreonUpsertArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonCountArgs} args - Arguments to filter ArrastreTorreons to count.
+     * @example
+     * // Count the number of ArrastreTorreons
+     * const count = await prisma.arrastreTorreon.count({
+     *   where: {
+     *     // ... the filter for the ArrastreTorreons we want to count
+     *   }
+     * })
+    **/
+    count<T extends ArrastreTorreonCountArgs>(
+      args?: Subset<T, ArrastreTorreonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ArrastreTorreonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ArrastreTorreonAggregateArgs>(args: Subset<T, ArrastreTorreonAggregateArgs>): Prisma.PrismaPromise<GetArrastreTorreonAggregateType<T>>
+
+    /**
+     * Group by ArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ArrastreTorreonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ArrastreTorreonGroupByArgs['orderBy'] }
+        : { orderBy?: ArrastreTorreonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ArrastreTorreonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetArrastreTorreonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ArrastreTorreon model
+   */
+  readonly fields: ArrastreTorreonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ArrastreTorreon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ArrastreTorreonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    vagones<T extends ArrastreTorreon$vagonesArgs<ExtArgs> = {}>(args?: Subset<T, ArrastreTorreon$vagonesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    incidentes<T extends ArrastreTorreon$incidentesArgs<ExtArgs> = {}>(args?: Subset<T, ArrastreTorreon$incidentesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ArrastreTorreon model
+   */
+  interface ArrastreTorreonFieldRefs {
+    readonly id: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly empresaId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly creadoPorId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly operadorId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly localidadId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly viaOrigenId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly viaDestinoId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly seccionOrigenId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly seccionDestinoId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly estado: FieldRef<"ArrastreTorreon", 'EstadoArrastreTorreon'>
+    readonly instrucciones: FieldRef<"ArrastreTorreon", 'String'>
+    readonly fechaSolicitud: FieldRef<"ArrastreTorreon", 'DateTime'>
+    readonly fechaInicio: FieldRef<"ArrastreTorreon", 'DateTime'>
+    readonly fechaFin: FieldRef<"ArrastreTorreon", 'DateTime'>
+    readonly fechaPausa: FieldRef<"ArrastreTorreon", 'DateTime'>
+    readonly createdAt: FieldRef<"ArrastreTorreon", 'DateTime'>
+    readonly updatedAt: FieldRef<"ArrastreTorreon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ArrastreTorreon findUnique
+   */
+  export type ArrastreTorreonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreon to fetch.
+     */
+    where: ArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreon findUniqueOrThrow
+   */
+  export type ArrastreTorreonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreon to fetch.
+     */
+    where: ArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreon findFirst
+   */
+  export type ArrastreTorreonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreon to fetch.
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreons to fetch.
+     */
+    orderBy?: ArrastreTorreonOrderByWithRelationInput | ArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArrastreTorreons.
+     */
+    cursor?: ArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArrastreTorreons.
+     */
+    distinct?: ArrastreTorreonScalarFieldEnum | ArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreon findFirstOrThrow
+   */
+  export type ArrastreTorreonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreon to fetch.
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreons to fetch.
+     */
+    orderBy?: ArrastreTorreonOrderByWithRelationInput | ArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArrastreTorreons.
+     */
+    cursor?: ArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArrastreTorreons.
+     */
+    distinct?: ArrastreTorreonScalarFieldEnum | ArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreon findMany
+   */
+  export type ArrastreTorreonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreons to fetch.
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreons to fetch.
+     */
+    orderBy?: ArrastreTorreonOrderByWithRelationInput | ArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ArrastreTorreons.
+     */
+    cursor?: ArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreons.
+     */
+    skip?: number
+    distinct?: ArrastreTorreonScalarFieldEnum | ArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreon create
+   */
+  export type ArrastreTorreonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ArrastreTorreon.
+     */
+    data: XOR<ArrastreTorreonCreateInput, ArrastreTorreonUncheckedCreateInput>
+  }
+
+  /**
+   * ArrastreTorreon createMany
+   */
+  export type ArrastreTorreonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ArrastreTorreons.
+     */
+    data: ArrastreTorreonCreateManyInput | ArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ArrastreTorreon createManyAndReturn
+   */
+  export type ArrastreTorreonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to create many ArrastreTorreons.
+     */
+    data: ArrastreTorreonCreateManyInput | ArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ArrastreTorreon update
+   */
+  export type ArrastreTorreonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ArrastreTorreon.
+     */
+    data: XOR<ArrastreTorreonUpdateInput, ArrastreTorreonUncheckedUpdateInput>
+    /**
+     * Choose, which ArrastreTorreon to update.
+     */
+    where: ArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreon updateMany
+   */
+  export type ArrastreTorreonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ArrastreTorreons.
+     */
+    data: XOR<ArrastreTorreonUpdateManyMutationInput, ArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which ArrastreTorreons to update
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * Limit how many ArrastreTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArrastreTorreon updateManyAndReturn
+   */
+  export type ArrastreTorreonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to update ArrastreTorreons.
+     */
+    data: XOR<ArrastreTorreonUpdateManyMutationInput, ArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which ArrastreTorreons to update
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * Limit how many ArrastreTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArrastreTorreon upsert
+   */
+  export type ArrastreTorreonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ArrastreTorreon to update in case it exists.
+     */
+    where: ArrastreTorreonWhereUniqueInput
+    /**
+     * In case the ArrastreTorreon found by the `where` argument doesn't exist, create a new ArrastreTorreon with this data.
+     */
+    create: XOR<ArrastreTorreonCreateInput, ArrastreTorreonUncheckedCreateInput>
+    /**
+     * In case the ArrastreTorreon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ArrastreTorreonUpdateInput, ArrastreTorreonUncheckedUpdateInput>
+  }
+
+  /**
+   * ArrastreTorreon delete
+   */
+  export type ArrastreTorreonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter which ArrastreTorreon to delete.
+     */
+    where: ArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreon deleteMany
+   */
+  export type ArrastreTorreonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArrastreTorreons to delete
+     */
+    where?: ArrastreTorreonWhereInput
+    /**
+     * Limit how many ArrastreTorreons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArrastreTorreon.vagones
+   */
+  export type ArrastreTorreon$vagonesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    where?: ArrastreTorreonVagonWhereInput
+    orderBy?: ArrastreTorreonVagonOrderByWithRelationInput | ArrastreTorreonVagonOrderByWithRelationInput[]
+    cursor?: ArrastreTorreonVagonWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ArrastreTorreonVagonScalarFieldEnum | ArrastreTorreonVagonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreon.incidentes
+   */
+  export type ArrastreTorreon$incidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    where?: IncidenteArrastreTorreonWhereInput
+    orderBy?: IncidenteArrastreTorreonOrderByWithRelationInput | IncidenteArrastreTorreonOrderByWithRelationInput[]
+    cursor?: IncidenteArrastreTorreonWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IncidenteArrastreTorreonScalarFieldEnum | IncidenteArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreon without action
+   */
+  export type ArrastreTorreonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreon
+     */
+    select?: ArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreon
+     */
+    omit?: ArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ArrastreTorreonVagon
+   */
+
+  export type AggregateArrastreTorreonVagon = {
+    _count: ArrastreTorreonVagonCountAggregateOutputType | null
+    _avg: ArrastreTorreonVagonAvgAggregateOutputType | null
+    _sum: ArrastreTorreonVagonSumAggregateOutputType | null
+    _min: ArrastreTorreonVagonMinAggregateOutputType | null
+    _max: ArrastreTorreonVagonMaxAggregateOutputType | null
+  }
+
+  export type ArrastreTorreonVagonAvgAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    orden: number | null
+    viaId: number | null
+    seccionId: number | null
+  }
+
+  export type ArrastreTorreonVagonSumAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    orden: number | null
+    viaId: number | null
+    seccionId: number | null
+  }
+
+  export type ArrastreTorreonVagonMinAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    orden: number | null
+    numeroVagon: string | null
+    carga: $Enums.CargaVagonArrastreTorreon | null
+    viaId: number | null
+    seccionId: number | null
+    estado: $Enums.EstadoVagonArrastreTorreon | null
+    fechaSolicitud: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ArrastreTorreonVagonMaxAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    orden: number | null
+    numeroVagon: string | null
+    carga: $Enums.CargaVagonArrastreTorreon | null
+    viaId: number | null
+    seccionId: number | null
+    estado: $Enums.EstadoVagonArrastreTorreon | null
+    fechaSolicitud: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ArrastreTorreonVagonCountAggregateOutputType = {
+    id: number
+    arrastreId: number
+    orden: number
+    numeroVagon: number
+    carga: number
+    viaId: number
+    seccionId: number
+    estado: number
+    fechaSolicitud: number
+    fechaInicio: number
+    fechaFin: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ArrastreTorreonVagonAvgAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    orden?: true
+    viaId?: true
+    seccionId?: true
+  }
+
+  export type ArrastreTorreonVagonSumAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    orden?: true
+    viaId?: true
+    seccionId?: true
+  }
+
+  export type ArrastreTorreonVagonMinAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    orden?: true
+    numeroVagon?: true
+    carga?: true
+    viaId?: true
+    seccionId?: true
+    estado?: true
+    fechaSolicitud?: true
+    fechaInicio?: true
+    fechaFin?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ArrastreTorreonVagonMaxAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    orden?: true
+    numeroVagon?: true
+    carga?: true
+    viaId?: true
+    seccionId?: true
+    estado?: true
+    fechaSolicitud?: true
+    fechaInicio?: true
+    fechaFin?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ArrastreTorreonVagonCountAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    orden?: true
+    numeroVagon?: true
+    carga?: true
+    viaId?: true
+    seccionId?: true
+    estado?: true
+    fechaSolicitud?: true
+    fechaInicio?: true
+    fechaFin?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ArrastreTorreonVagonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArrastreTorreonVagon to aggregate.
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreonVagons to fetch.
+     */
+    orderBy?: ArrastreTorreonVagonOrderByWithRelationInput | ArrastreTorreonVagonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ArrastreTorreonVagonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreonVagons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreonVagons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ArrastreTorreonVagons
+    **/
+    _count?: true | ArrastreTorreonVagonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ArrastreTorreonVagonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ArrastreTorreonVagonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ArrastreTorreonVagonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ArrastreTorreonVagonMaxAggregateInputType
+  }
+
+  export type GetArrastreTorreonVagonAggregateType<T extends ArrastreTorreonVagonAggregateArgs> = {
+        [P in keyof T & keyof AggregateArrastreTorreonVagon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateArrastreTorreonVagon[P]>
+      : GetScalarType<T[P], AggregateArrastreTorreonVagon[P]>
+  }
+
+
+
+
+  export type ArrastreTorreonVagonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ArrastreTorreonVagonWhereInput
+    orderBy?: ArrastreTorreonVagonOrderByWithAggregationInput | ArrastreTorreonVagonOrderByWithAggregationInput[]
+    by: ArrastreTorreonVagonScalarFieldEnum[] | ArrastreTorreonVagonScalarFieldEnum
+    having?: ArrastreTorreonVagonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ArrastreTorreonVagonCountAggregateInputType | true
+    _avg?: ArrastreTorreonVagonAvgAggregateInputType
+    _sum?: ArrastreTorreonVagonSumAggregateInputType
+    _min?: ArrastreTorreonVagonMinAggregateInputType
+    _max?: ArrastreTorreonVagonMaxAggregateInputType
+  }
+
+  export type ArrastreTorreonVagonGroupByOutputType = {
+    id: number
+    arrastreId: number
+    orden: number
+    numeroVagon: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud: Date
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ArrastreTorreonVagonCountAggregateOutputType | null
+    _avg: ArrastreTorreonVagonAvgAggregateOutputType | null
+    _sum: ArrastreTorreonVagonSumAggregateOutputType | null
+    _min: ArrastreTorreonVagonMinAggregateOutputType | null
+    _max: ArrastreTorreonVagonMaxAggregateOutputType | null
+  }
+
+  type GetArrastreTorreonVagonGroupByPayload<T extends ArrastreTorreonVagonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ArrastreTorreonVagonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ArrastreTorreonVagonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ArrastreTorreonVagonGroupByOutputType[P]>
+            : GetScalarType<T[P], ArrastreTorreonVagonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ArrastreTorreonVagonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    arrastreId?: boolean
+    orden?: boolean
+    numeroVagon?: boolean
+    carga?: boolean
+    viaId?: boolean
+    seccionId?: boolean
+    estado?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    incidentes?: boolean | ArrastreTorreonVagon$incidentesArgs<ExtArgs>
+    _count?: boolean | ArrastreTorreonVagonCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["arrastreTorreonVagon"]>
+
+  export type ArrastreTorreonVagonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    arrastreId?: boolean
+    orden?: boolean
+    numeroVagon?: boolean
+    carga?: boolean
+    viaId?: boolean
+    seccionId?: boolean
+    estado?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["arrastreTorreonVagon"]>
+
+  export type ArrastreTorreonVagonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    arrastreId?: boolean
+    orden?: boolean
+    numeroVagon?: boolean
+    carga?: boolean
+    viaId?: boolean
+    seccionId?: boolean
+    estado?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["arrastreTorreonVagon"]>
+
+  export type ArrastreTorreonVagonSelectScalar = {
+    id?: boolean
+    arrastreId?: boolean
+    orden?: boolean
+    numeroVagon?: boolean
+    carga?: boolean
+    viaId?: boolean
+    seccionId?: boolean
+    estado?: boolean
+    fechaSolicitud?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ArrastreTorreonVagonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "arrastreId" | "orden" | "numeroVagon" | "carga" | "viaId" | "seccionId" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreonVagon"]>
+  export type ArrastreTorreonVagonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    incidentes?: boolean | ArrastreTorreonVagon$incidentesArgs<ExtArgs>
+    _count?: boolean | ArrastreTorreonVagonCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ArrastreTorreonVagonIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+  }
+  export type ArrastreTorreonVagonIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+  }
+
+  export type $ArrastreTorreonVagonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ArrastreTorreonVagon"
+    objects: {
+      arrastre: Prisma.$ArrastreTorreonPayload<ExtArgs>
+      incidentes: Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      arrastreId: number
+      orden: number
+      numeroVagon: string | null
+      carga: $Enums.CargaVagonArrastreTorreon
+      viaId: number
+      seccionId: number
+      estado: $Enums.EstadoVagonArrastreTorreon
+      fechaSolicitud: Date
+      fechaInicio: Date | null
+      fechaFin: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["arrastreTorreonVagon"]>
+    composites: {}
+  }
+
+  type ArrastreTorreonVagonGetPayload<S extends boolean | null | undefined | ArrastreTorreonVagonDefaultArgs> = $Result.GetResult<Prisma.$ArrastreTorreonVagonPayload, S>
+
+  type ArrastreTorreonVagonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ArrastreTorreonVagonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ArrastreTorreonVagonCountAggregateInputType | true
+    }
+
+  export interface ArrastreTorreonVagonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ArrastreTorreonVagon'], meta: { name: 'ArrastreTorreonVagon' } }
+    /**
+     * Find zero or one ArrastreTorreonVagon that matches the filter.
+     * @param {ArrastreTorreonVagonFindUniqueArgs} args - Arguments to find a ArrastreTorreonVagon
+     * @example
+     * // Get one ArrastreTorreonVagon
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ArrastreTorreonVagonFindUniqueArgs>(args: SelectSubset<T, ArrastreTorreonVagonFindUniqueArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ArrastreTorreonVagon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ArrastreTorreonVagonFindUniqueOrThrowArgs} args - Arguments to find a ArrastreTorreonVagon
+     * @example
+     * // Get one ArrastreTorreonVagon
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ArrastreTorreonVagonFindUniqueOrThrowArgs>(args: SelectSubset<T, ArrastreTorreonVagonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArrastreTorreonVagon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonFindFirstArgs} args - Arguments to find a ArrastreTorreonVagon
+     * @example
+     * // Get one ArrastreTorreonVagon
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ArrastreTorreonVagonFindFirstArgs>(args?: SelectSubset<T, ArrastreTorreonVagonFindFirstArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ArrastreTorreonVagon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonFindFirstOrThrowArgs} args - Arguments to find a ArrastreTorreonVagon
+     * @example
+     * // Get one ArrastreTorreonVagon
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ArrastreTorreonVagonFindFirstOrThrowArgs>(args?: SelectSubset<T, ArrastreTorreonVagonFindFirstOrThrowArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ArrastreTorreonVagons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ArrastreTorreonVagons
+     * const arrastreTorreonVagons = await prisma.arrastreTorreonVagon.findMany()
+     * 
+     * // Get first 10 ArrastreTorreonVagons
+     * const arrastreTorreonVagons = await prisma.arrastreTorreonVagon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const arrastreTorreonVagonWithIdOnly = await prisma.arrastreTorreonVagon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ArrastreTorreonVagonFindManyArgs>(args?: SelectSubset<T, ArrastreTorreonVagonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ArrastreTorreonVagon.
+     * @param {ArrastreTorreonVagonCreateArgs} args - Arguments to create a ArrastreTorreonVagon.
+     * @example
+     * // Create one ArrastreTorreonVagon
+     * const ArrastreTorreonVagon = await prisma.arrastreTorreonVagon.create({
+     *   data: {
+     *     // ... data to create a ArrastreTorreonVagon
+     *   }
+     * })
+     * 
+     */
+    create<T extends ArrastreTorreonVagonCreateArgs>(args: SelectSubset<T, ArrastreTorreonVagonCreateArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ArrastreTorreonVagons.
+     * @param {ArrastreTorreonVagonCreateManyArgs} args - Arguments to create many ArrastreTorreonVagons.
+     * @example
+     * // Create many ArrastreTorreonVagons
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ArrastreTorreonVagonCreateManyArgs>(args?: SelectSubset<T, ArrastreTorreonVagonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ArrastreTorreonVagons and returns the data saved in the database.
+     * @param {ArrastreTorreonVagonCreateManyAndReturnArgs} args - Arguments to create many ArrastreTorreonVagons.
+     * @example
+     * // Create many ArrastreTorreonVagons
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ArrastreTorreonVagons and only return the `id`
+     * const arrastreTorreonVagonWithIdOnly = await prisma.arrastreTorreonVagon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ArrastreTorreonVagonCreateManyAndReturnArgs>(args?: SelectSubset<T, ArrastreTorreonVagonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ArrastreTorreonVagon.
+     * @param {ArrastreTorreonVagonDeleteArgs} args - Arguments to delete one ArrastreTorreonVagon.
+     * @example
+     * // Delete one ArrastreTorreonVagon
+     * const ArrastreTorreonVagon = await prisma.arrastreTorreonVagon.delete({
+     *   where: {
+     *     // ... filter to delete one ArrastreTorreonVagon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ArrastreTorreonVagonDeleteArgs>(args: SelectSubset<T, ArrastreTorreonVagonDeleteArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ArrastreTorreonVagon.
+     * @param {ArrastreTorreonVagonUpdateArgs} args - Arguments to update one ArrastreTorreonVagon.
+     * @example
+     * // Update one ArrastreTorreonVagon
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ArrastreTorreonVagonUpdateArgs>(args: SelectSubset<T, ArrastreTorreonVagonUpdateArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ArrastreTorreonVagons.
+     * @param {ArrastreTorreonVagonDeleteManyArgs} args - Arguments to filter ArrastreTorreonVagons to delete.
+     * @example
+     * // Delete a few ArrastreTorreonVagons
+     * const { count } = await prisma.arrastreTorreonVagon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ArrastreTorreonVagonDeleteManyArgs>(args?: SelectSubset<T, ArrastreTorreonVagonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArrastreTorreonVagons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ArrastreTorreonVagons
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ArrastreTorreonVagonUpdateManyArgs>(args: SelectSubset<T, ArrastreTorreonVagonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ArrastreTorreonVagons and returns the data updated in the database.
+     * @param {ArrastreTorreonVagonUpdateManyAndReturnArgs} args - Arguments to update many ArrastreTorreonVagons.
+     * @example
+     * // Update many ArrastreTorreonVagons
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ArrastreTorreonVagons and only return the `id`
+     * const arrastreTorreonVagonWithIdOnly = await prisma.arrastreTorreonVagon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ArrastreTorreonVagonUpdateManyAndReturnArgs>(args: SelectSubset<T, ArrastreTorreonVagonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ArrastreTorreonVagon.
+     * @param {ArrastreTorreonVagonUpsertArgs} args - Arguments to update or create a ArrastreTorreonVagon.
+     * @example
+     * // Update or create a ArrastreTorreonVagon
+     * const arrastreTorreonVagon = await prisma.arrastreTorreonVagon.upsert({
+     *   create: {
+     *     // ... data to create a ArrastreTorreonVagon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ArrastreTorreonVagon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ArrastreTorreonVagonUpsertArgs>(args: SelectSubset<T, ArrastreTorreonVagonUpsertArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ArrastreTorreonVagons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonCountArgs} args - Arguments to filter ArrastreTorreonVagons to count.
+     * @example
+     * // Count the number of ArrastreTorreonVagons
+     * const count = await prisma.arrastreTorreonVagon.count({
+     *   where: {
+     *     // ... the filter for the ArrastreTorreonVagons we want to count
+     *   }
+     * })
+    **/
+    count<T extends ArrastreTorreonVagonCountArgs>(
+      args?: Subset<T, ArrastreTorreonVagonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ArrastreTorreonVagonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ArrastreTorreonVagon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ArrastreTorreonVagonAggregateArgs>(args: Subset<T, ArrastreTorreonVagonAggregateArgs>): Prisma.PrismaPromise<GetArrastreTorreonVagonAggregateType<T>>
+
+    /**
+     * Group by ArrastreTorreonVagon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ArrastreTorreonVagonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ArrastreTorreonVagonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ArrastreTorreonVagonGroupByArgs['orderBy'] }
+        : { orderBy?: ArrastreTorreonVagonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ArrastreTorreonVagonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetArrastreTorreonVagonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ArrastreTorreonVagon model
+   */
+  readonly fields: ArrastreTorreonVagonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ArrastreTorreonVagon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ArrastreTorreonVagonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    arrastre<T extends ArrastreTorreonDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ArrastreTorreonDefaultArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    incidentes<T extends ArrastreTorreonVagon$incidentesArgs<ExtArgs> = {}>(args?: Subset<T, ArrastreTorreonVagon$incidentesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ArrastreTorreonVagon model
+   */
+  interface ArrastreTorreonVagonFieldRefs {
+    readonly id: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly arrastreId: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly orden: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly numeroVagon: FieldRef<"ArrastreTorreonVagon", 'String'>
+    readonly carga: FieldRef<"ArrastreTorreonVagon", 'CargaVagonArrastreTorreon'>
+    readonly viaId: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly seccionId: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly estado: FieldRef<"ArrastreTorreonVagon", 'EstadoVagonArrastreTorreon'>
+    readonly fechaSolicitud: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
+    readonly fechaInicio: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
+    readonly fechaFin: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
+    readonly createdAt: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
+    readonly updatedAt: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ArrastreTorreonVagon findUnique
+   */
+  export type ArrastreTorreonVagonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreonVagon to fetch.
+     */
+    where: ArrastreTorreonVagonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreonVagon findUniqueOrThrow
+   */
+  export type ArrastreTorreonVagonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreonVagon to fetch.
+     */
+    where: ArrastreTorreonVagonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreonVagon findFirst
+   */
+  export type ArrastreTorreonVagonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreonVagon to fetch.
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreonVagons to fetch.
+     */
+    orderBy?: ArrastreTorreonVagonOrderByWithRelationInput | ArrastreTorreonVagonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArrastreTorreonVagons.
+     */
+    cursor?: ArrastreTorreonVagonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreonVagons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreonVagons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArrastreTorreonVagons.
+     */
+    distinct?: ArrastreTorreonVagonScalarFieldEnum | ArrastreTorreonVagonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreonVagon findFirstOrThrow
+   */
+  export type ArrastreTorreonVagonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreonVagon to fetch.
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreonVagons to fetch.
+     */
+    orderBy?: ArrastreTorreonVagonOrderByWithRelationInput | ArrastreTorreonVagonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ArrastreTorreonVagons.
+     */
+    cursor?: ArrastreTorreonVagonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreonVagons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreonVagons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ArrastreTorreonVagons.
+     */
+    distinct?: ArrastreTorreonVagonScalarFieldEnum | ArrastreTorreonVagonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreonVagon findMany
+   */
+  export type ArrastreTorreonVagonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * Filter, which ArrastreTorreonVagons to fetch.
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ArrastreTorreonVagons to fetch.
+     */
+    orderBy?: ArrastreTorreonVagonOrderByWithRelationInput | ArrastreTorreonVagonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ArrastreTorreonVagons.
+     */
+    cursor?: ArrastreTorreonVagonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ArrastreTorreonVagons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ArrastreTorreonVagons.
+     */
+    skip?: number
+    distinct?: ArrastreTorreonVagonScalarFieldEnum | ArrastreTorreonVagonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreonVagon create
+   */
+  export type ArrastreTorreonVagonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ArrastreTorreonVagon.
+     */
+    data: XOR<ArrastreTorreonVagonCreateInput, ArrastreTorreonVagonUncheckedCreateInput>
+  }
+
+  /**
+   * ArrastreTorreonVagon createMany
+   */
+  export type ArrastreTorreonVagonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ArrastreTorreonVagons.
+     */
+    data: ArrastreTorreonVagonCreateManyInput | ArrastreTorreonVagonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ArrastreTorreonVagon createManyAndReturn
+   */
+  export type ArrastreTorreonVagonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * The data used to create many ArrastreTorreonVagons.
+     */
+    data: ArrastreTorreonVagonCreateManyInput | ArrastreTorreonVagonCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ArrastreTorreonVagon update
+   */
+  export type ArrastreTorreonVagonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ArrastreTorreonVagon.
+     */
+    data: XOR<ArrastreTorreonVagonUpdateInput, ArrastreTorreonVagonUncheckedUpdateInput>
+    /**
+     * Choose, which ArrastreTorreonVagon to update.
+     */
+    where: ArrastreTorreonVagonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreonVagon updateMany
+   */
+  export type ArrastreTorreonVagonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ArrastreTorreonVagons.
+     */
+    data: XOR<ArrastreTorreonVagonUpdateManyMutationInput, ArrastreTorreonVagonUncheckedUpdateManyInput>
+    /**
+     * Filter which ArrastreTorreonVagons to update
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * Limit how many ArrastreTorreonVagons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArrastreTorreonVagon updateManyAndReturn
+   */
+  export type ArrastreTorreonVagonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * The data used to update ArrastreTorreonVagons.
+     */
+    data: XOR<ArrastreTorreonVagonUpdateManyMutationInput, ArrastreTorreonVagonUncheckedUpdateManyInput>
+    /**
+     * Filter which ArrastreTorreonVagons to update
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * Limit how many ArrastreTorreonVagons to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ArrastreTorreonVagon upsert
+   */
+  export type ArrastreTorreonVagonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ArrastreTorreonVagon to update in case it exists.
+     */
+    where: ArrastreTorreonVagonWhereUniqueInput
+    /**
+     * In case the ArrastreTorreonVagon found by the `where` argument doesn't exist, create a new ArrastreTorreonVagon with this data.
+     */
+    create: XOR<ArrastreTorreonVagonCreateInput, ArrastreTorreonVagonUncheckedCreateInput>
+    /**
+     * In case the ArrastreTorreonVagon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ArrastreTorreonVagonUpdateInput, ArrastreTorreonVagonUncheckedUpdateInput>
+  }
+
+  /**
+   * ArrastreTorreonVagon delete
+   */
+  export type ArrastreTorreonVagonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    /**
+     * Filter which ArrastreTorreonVagon to delete.
+     */
+    where: ArrastreTorreonVagonWhereUniqueInput
+  }
+
+  /**
+   * ArrastreTorreonVagon deleteMany
+   */
+  export type ArrastreTorreonVagonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ArrastreTorreonVagons to delete
+     */
+    where?: ArrastreTorreonVagonWhereInput
+    /**
+     * Limit how many ArrastreTorreonVagons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ArrastreTorreonVagon.incidentes
+   */
+  export type ArrastreTorreonVagon$incidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    where?: IncidenteArrastreTorreonWhereInput
+    orderBy?: IncidenteArrastreTorreonOrderByWithRelationInput | IncidenteArrastreTorreonOrderByWithRelationInput[]
+    cursor?: IncidenteArrastreTorreonWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IncidenteArrastreTorreonScalarFieldEnum | IncidenteArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ArrastreTorreonVagon without action
+   */
+  export type ArrastreTorreonVagonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model IncidenteArrastreTorreon
+   */
+
+  export type AggregateIncidenteArrastreTorreon = {
+    _count: IncidenteArrastreTorreonCountAggregateOutputType | null
+    _avg: IncidenteArrastreTorreonAvgAggregateOutputType | null
+    _sum: IncidenteArrastreTorreonSumAggregateOutputType | null
+    _min: IncidenteArrastreTorreonMinAggregateOutputType | null
+    _max: IncidenteArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  export type IncidenteArrastreTorreonAvgAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    vagonId: number | null
+    creadoPorId: number | null
+    resueltoPorId: number | null
+    localidadId: number | null
+    viaBloqueadaId: number | null
+    seccionBloqueadaId: number | null
+  }
+
+  export type IncidenteArrastreTorreonSumAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    vagonId: number | null
+    creadoPorId: number | null
+    resueltoPorId: number | null
+    localidadId: number | null
+    viaBloqueadaId: number | null
+    seccionBloqueadaId: number | null
+  }
+
+  export type IncidenteArrastreTorreonMinAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    vagonId: number | null
+    creadoPorId: number | null
+    resueltoPorId: number | null
+    estado: $Enums.EstadoIncidenteArrastreTorreon | null
+    motivo: string | null
+    solucion: string | null
+    localidadId: number | null
+    viaBloqueadaId: number | null
+    seccionBloqueadaId: number | null
+    fechaInicio: Date | null
+    fechaResolucion: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type IncidenteArrastreTorreonMaxAggregateOutputType = {
+    id: number | null
+    arrastreId: number | null
+    vagonId: number | null
+    creadoPorId: number | null
+    resueltoPorId: number | null
+    estado: $Enums.EstadoIncidenteArrastreTorreon | null
+    motivo: string | null
+    solucion: string | null
+    localidadId: number | null
+    viaBloqueadaId: number | null
+    seccionBloqueadaId: number | null
+    fechaInicio: Date | null
+    fechaResolucion: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type IncidenteArrastreTorreonCountAggregateOutputType = {
+    id: number
+    arrastreId: number
+    vagonId: number
+    creadoPorId: number
+    resueltoPorId: number
+    estado: number
+    motivo: number
+    solucion: number
+    localidadId: number
+    viaBloqueadaId: number
+    seccionBloqueadaId: number
+    fechaInicio: number
+    fechaResolucion: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type IncidenteArrastreTorreonAvgAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    vagonId?: true
+    creadoPorId?: true
+    resueltoPorId?: true
+    localidadId?: true
+    viaBloqueadaId?: true
+    seccionBloqueadaId?: true
+  }
+
+  export type IncidenteArrastreTorreonSumAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    vagonId?: true
+    creadoPorId?: true
+    resueltoPorId?: true
+    localidadId?: true
+    viaBloqueadaId?: true
+    seccionBloqueadaId?: true
+  }
+
+  export type IncidenteArrastreTorreonMinAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    vagonId?: true
+    creadoPorId?: true
+    resueltoPorId?: true
+    estado?: true
+    motivo?: true
+    solucion?: true
+    localidadId?: true
+    viaBloqueadaId?: true
+    seccionBloqueadaId?: true
+    fechaInicio?: true
+    fechaResolucion?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type IncidenteArrastreTorreonMaxAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    vagonId?: true
+    creadoPorId?: true
+    resueltoPorId?: true
+    estado?: true
+    motivo?: true
+    solucion?: true
+    localidadId?: true
+    viaBloqueadaId?: true
+    seccionBloqueadaId?: true
+    fechaInicio?: true
+    fechaResolucion?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type IncidenteArrastreTorreonCountAggregateInputType = {
+    id?: true
+    arrastreId?: true
+    vagonId?: true
+    creadoPorId?: true
+    resueltoPorId?: true
+    estado?: true
+    motivo?: true
+    solucion?: true
+    localidadId?: true
+    viaBloqueadaId?: true
+    seccionBloqueadaId?: true
+    fechaInicio?: true
+    fechaResolucion?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type IncidenteArrastreTorreonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which IncidenteArrastreTorreon to aggregate.
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreTorreons to fetch.
+     */
+    orderBy?: IncidenteArrastreTorreonOrderByWithRelationInput | IncidenteArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: IncidenteArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned IncidenteArrastreTorreons
+    **/
+    _count?: true | IncidenteArrastreTorreonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: IncidenteArrastreTorreonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: IncidenteArrastreTorreonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: IncidenteArrastreTorreonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: IncidenteArrastreTorreonMaxAggregateInputType
+  }
+
+  export type GetIncidenteArrastreTorreonAggregateType<T extends IncidenteArrastreTorreonAggregateArgs> = {
+        [P in keyof T & keyof AggregateIncidenteArrastreTorreon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateIncidenteArrastreTorreon[P]>
+      : GetScalarType<T[P], AggregateIncidenteArrastreTorreon[P]>
+  }
+
+
+
+
+  export type IncidenteArrastreTorreonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IncidenteArrastreTorreonWhereInput
+    orderBy?: IncidenteArrastreTorreonOrderByWithAggregationInput | IncidenteArrastreTorreonOrderByWithAggregationInput[]
+    by: IncidenteArrastreTorreonScalarFieldEnum[] | IncidenteArrastreTorreonScalarFieldEnum
+    having?: IncidenteArrastreTorreonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: IncidenteArrastreTorreonCountAggregateInputType | true
+    _avg?: IncidenteArrastreTorreonAvgAggregateInputType
+    _sum?: IncidenteArrastreTorreonSumAggregateInputType
+    _min?: IncidenteArrastreTorreonMinAggregateInputType
+    _max?: IncidenteArrastreTorreonMaxAggregateInputType
+  }
+
+  export type IncidenteArrastreTorreonGroupByOutputType = {
+    id: number
+    arrastreId: number
+    vagonId: number | null
+    creadoPorId: number
+    resueltoPorId: number | null
+    estado: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion: string | null
+    localidadId: number
+    viaBloqueadaId: number | null
+    seccionBloqueadaId: number | null
+    fechaInicio: Date
+    fechaResolucion: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: IncidenteArrastreTorreonCountAggregateOutputType | null
+    _avg: IncidenteArrastreTorreonAvgAggregateOutputType | null
+    _sum: IncidenteArrastreTorreonSumAggregateOutputType | null
+    _min: IncidenteArrastreTorreonMinAggregateOutputType | null
+    _max: IncidenteArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  type GetIncidenteArrastreTorreonGroupByPayload<T extends IncidenteArrastreTorreonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<IncidenteArrastreTorreonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof IncidenteArrastreTorreonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], IncidenteArrastreTorreonGroupByOutputType[P]>
+            : GetScalarType<T[P], IncidenteArrastreTorreonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type IncidenteArrastreTorreonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    arrastreId?: boolean
+    vagonId?: boolean
+    creadoPorId?: boolean
+    resueltoPorId?: boolean
+    estado?: boolean
+    motivo?: boolean
+    solucion?: boolean
+    localidadId?: boolean
+    viaBloqueadaId?: boolean
+    seccionBloqueadaId?: boolean
+    fechaInicio?: boolean
+    fechaResolucion?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    vagon?: boolean | IncidenteArrastreTorreon$vagonArgs<ExtArgs>
+    fotos?: boolean | IncidenteArrastreTorreon$fotosArgs<ExtArgs>
+    _count?: boolean | IncidenteArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["incidenteArrastreTorreon"]>
+
+  export type IncidenteArrastreTorreonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    arrastreId?: boolean
+    vagonId?: boolean
+    creadoPorId?: boolean
+    resueltoPorId?: boolean
+    estado?: boolean
+    motivo?: boolean
+    solucion?: boolean
+    localidadId?: boolean
+    viaBloqueadaId?: boolean
+    seccionBloqueadaId?: boolean
+    fechaInicio?: boolean
+    fechaResolucion?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    vagon?: boolean | IncidenteArrastreTorreon$vagonArgs<ExtArgs>
+  }, ExtArgs["result"]["incidenteArrastreTorreon"]>
+
+  export type IncidenteArrastreTorreonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    arrastreId?: boolean
+    vagonId?: boolean
+    creadoPorId?: boolean
+    resueltoPorId?: boolean
+    estado?: boolean
+    motivo?: boolean
+    solucion?: boolean
+    localidadId?: boolean
+    viaBloqueadaId?: boolean
+    seccionBloqueadaId?: boolean
+    fechaInicio?: boolean
+    fechaResolucion?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    vagon?: boolean | IncidenteArrastreTorreon$vagonArgs<ExtArgs>
+  }, ExtArgs["result"]["incidenteArrastreTorreon"]>
+
+  export type IncidenteArrastreTorreonSelectScalar = {
+    id?: boolean
+    arrastreId?: boolean
+    vagonId?: boolean
+    creadoPorId?: boolean
+    resueltoPorId?: boolean
+    estado?: boolean
+    motivo?: boolean
+    solucion?: boolean
+    localidadId?: boolean
+    viaBloqueadaId?: boolean
+    seccionBloqueadaId?: boolean
+    fechaInicio?: boolean
+    fechaResolucion?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type IncidenteArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "arrastreId" | "vagonId" | "creadoPorId" | "resueltoPorId" | "estado" | "motivo" | "solucion" | "localidadId" | "viaBloqueadaId" | "seccionBloqueadaId" | "fechaInicio" | "fechaResolucion" | "createdAt" | "updatedAt", ExtArgs["result"]["incidenteArrastreTorreon"]>
+  export type IncidenteArrastreTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    vagon?: boolean | IncidenteArrastreTorreon$vagonArgs<ExtArgs>
+    fotos?: boolean | IncidenteArrastreTorreon$fotosArgs<ExtArgs>
+    _count?: boolean | IncidenteArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type IncidenteArrastreTorreonIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    vagon?: boolean | IncidenteArrastreTorreon$vagonArgs<ExtArgs>
+  }
+  export type IncidenteArrastreTorreonIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
+    vagon?: boolean | IncidenteArrastreTorreon$vagonArgs<ExtArgs>
+  }
+
+  export type $IncidenteArrastreTorreonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "IncidenteArrastreTorreon"
+    objects: {
+      arrastre: Prisma.$ArrastreTorreonPayload<ExtArgs>
+      vagon: Prisma.$ArrastreTorreonVagonPayload<ExtArgs> | null
+      fotos: Prisma.$IncidenteArrastreFotoPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      arrastreId: number
+      vagonId: number | null
+      creadoPorId: number
+      resueltoPorId: number | null
+      estado: $Enums.EstadoIncidenteArrastreTorreon
+      motivo: string
+      solucion: string | null
+      localidadId: number
+      viaBloqueadaId: number | null
+      seccionBloqueadaId: number | null
+      fechaInicio: Date
+      fechaResolucion: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["incidenteArrastreTorreon"]>
+    composites: {}
+  }
+
+  type IncidenteArrastreTorreonGetPayload<S extends boolean | null | undefined | IncidenteArrastreTorreonDefaultArgs> = $Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload, S>
+
+  type IncidenteArrastreTorreonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<IncidenteArrastreTorreonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: IncidenteArrastreTorreonCountAggregateInputType | true
+    }
+
+  export interface IncidenteArrastreTorreonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['IncidenteArrastreTorreon'], meta: { name: 'IncidenteArrastreTorreon' } }
+    /**
+     * Find zero or one IncidenteArrastreTorreon that matches the filter.
+     * @param {IncidenteArrastreTorreonFindUniqueArgs} args - Arguments to find a IncidenteArrastreTorreon
+     * @example
+     * // Get one IncidenteArrastreTorreon
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends IncidenteArrastreTorreonFindUniqueArgs>(args: SelectSubset<T, IncidenteArrastreTorreonFindUniqueArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one IncidenteArrastreTorreon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {IncidenteArrastreTorreonFindUniqueOrThrowArgs} args - Arguments to find a IncidenteArrastreTorreon
+     * @example
+     * // Get one IncidenteArrastreTorreon
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends IncidenteArrastreTorreonFindUniqueOrThrowArgs>(args: SelectSubset<T, IncidenteArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first IncidenteArrastreTorreon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonFindFirstArgs} args - Arguments to find a IncidenteArrastreTorreon
+     * @example
+     * // Get one IncidenteArrastreTorreon
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends IncidenteArrastreTorreonFindFirstArgs>(args?: SelectSubset<T, IncidenteArrastreTorreonFindFirstArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first IncidenteArrastreTorreon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonFindFirstOrThrowArgs} args - Arguments to find a IncidenteArrastreTorreon
+     * @example
+     * // Get one IncidenteArrastreTorreon
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends IncidenteArrastreTorreonFindFirstOrThrowArgs>(args?: SelectSubset<T, IncidenteArrastreTorreonFindFirstOrThrowArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more IncidenteArrastreTorreons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all IncidenteArrastreTorreons
+     * const incidenteArrastreTorreons = await prisma.incidenteArrastreTorreon.findMany()
+     * 
+     * // Get first 10 IncidenteArrastreTorreons
+     * const incidenteArrastreTorreons = await prisma.incidenteArrastreTorreon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const incidenteArrastreTorreonWithIdOnly = await prisma.incidenteArrastreTorreon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends IncidenteArrastreTorreonFindManyArgs>(args?: SelectSubset<T, IncidenteArrastreTorreonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a IncidenteArrastreTorreon.
+     * @param {IncidenteArrastreTorreonCreateArgs} args - Arguments to create a IncidenteArrastreTorreon.
+     * @example
+     * // Create one IncidenteArrastreTorreon
+     * const IncidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.create({
+     *   data: {
+     *     // ... data to create a IncidenteArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    create<T extends IncidenteArrastreTorreonCreateArgs>(args: SelectSubset<T, IncidenteArrastreTorreonCreateArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many IncidenteArrastreTorreons.
+     * @param {IncidenteArrastreTorreonCreateManyArgs} args - Arguments to create many IncidenteArrastreTorreons.
+     * @example
+     * // Create many IncidenteArrastreTorreons
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends IncidenteArrastreTorreonCreateManyArgs>(args?: SelectSubset<T, IncidenteArrastreTorreonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many IncidenteArrastreTorreons and returns the data saved in the database.
+     * @param {IncidenteArrastreTorreonCreateManyAndReturnArgs} args - Arguments to create many IncidenteArrastreTorreons.
+     * @example
+     * // Create many IncidenteArrastreTorreons
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many IncidenteArrastreTorreons and only return the `id`
+     * const incidenteArrastreTorreonWithIdOnly = await prisma.incidenteArrastreTorreon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends IncidenteArrastreTorreonCreateManyAndReturnArgs>(args?: SelectSubset<T, IncidenteArrastreTorreonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a IncidenteArrastreTorreon.
+     * @param {IncidenteArrastreTorreonDeleteArgs} args - Arguments to delete one IncidenteArrastreTorreon.
+     * @example
+     * // Delete one IncidenteArrastreTorreon
+     * const IncidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.delete({
+     *   where: {
+     *     // ... filter to delete one IncidenteArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends IncidenteArrastreTorreonDeleteArgs>(args: SelectSubset<T, IncidenteArrastreTorreonDeleteArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one IncidenteArrastreTorreon.
+     * @param {IncidenteArrastreTorreonUpdateArgs} args - Arguments to update one IncidenteArrastreTorreon.
+     * @example
+     * // Update one IncidenteArrastreTorreon
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends IncidenteArrastreTorreonUpdateArgs>(args: SelectSubset<T, IncidenteArrastreTorreonUpdateArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more IncidenteArrastreTorreons.
+     * @param {IncidenteArrastreTorreonDeleteManyArgs} args - Arguments to filter IncidenteArrastreTorreons to delete.
+     * @example
+     * // Delete a few IncidenteArrastreTorreons
+     * const { count } = await prisma.incidenteArrastreTorreon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends IncidenteArrastreTorreonDeleteManyArgs>(args?: SelectSubset<T, IncidenteArrastreTorreonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more IncidenteArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many IncidenteArrastreTorreons
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends IncidenteArrastreTorreonUpdateManyArgs>(args: SelectSubset<T, IncidenteArrastreTorreonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more IncidenteArrastreTorreons and returns the data updated in the database.
+     * @param {IncidenteArrastreTorreonUpdateManyAndReturnArgs} args - Arguments to update many IncidenteArrastreTorreons.
+     * @example
+     * // Update many IncidenteArrastreTorreons
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more IncidenteArrastreTorreons and only return the `id`
+     * const incidenteArrastreTorreonWithIdOnly = await prisma.incidenteArrastreTorreon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends IncidenteArrastreTorreonUpdateManyAndReturnArgs>(args: SelectSubset<T, IncidenteArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one IncidenteArrastreTorreon.
+     * @param {IncidenteArrastreTorreonUpsertArgs} args - Arguments to update or create a IncidenteArrastreTorreon.
+     * @example
+     * // Update or create a IncidenteArrastreTorreon
+     * const incidenteArrastreTorreon = await prisma.incidenteArrastreTorreon.upsert({
+     *   create: {
+     *     // ... data to create a IncidenteArrastreTorreon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the IncidenteArrastreTorreon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends IncidenteArrastreTorreonUpsertArgs>(args: SelectSubset<T, IncidenteArrastreTorreonUpsertArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of IncidenteArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonCountArgs} args - Arguments to filter IncidenteArrastreTorreons to count.
+     * @example
+     * // Count the number of IncidenteArrastreTorreons
+     * const count = await prisma.incidenteArrastreTorreon.count({
+     *   where: {
+     *     // ... the filter for the IncidenteArrastreTorreons we want to count
+     *   }
+     * })
+    **/
+    count<T extends IncidenteArrastreTorreonCountArgs>(
+      args?: Subset<T, IncidenteArrastreTorreonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], IncidenteArrastreTorreonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a IncidenteArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends IncidenteArrastreTorreonAggregateArgs>(args: Subset<T, IncidenteArrastreTorreonAggregateArgs>): Prisma.PrismaPromise<GetIncidenteArrastreTorreonAggregateType<T>>
+
+    /**
+     * Group by IncidenteArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreTorreonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends IncidenteArrastreTorreonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: IncidenteArrastreTorreonGroupByArgs['orderBy'] }
+        : { orderBy?: IncidenteArrastreTorreonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, IncidenteArrastreTorreonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetIncidenteArrastreTorreonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the IncidenteArrastreTorreon model
+   */
+  readonly fields: IncidenteArrastreTorreonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for IncidenteArrastreTorreon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__IncidenteArrastreTorreonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    arrastre<T extends ArrastreTorreonDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ArrastreTorreonDefaultArgs<ExtArgs>>): Prisma__ArrastreTorreonClient<$Result.GetResult<Prisma.$ArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    vagon<T extends IncidenteArrastreTorreon$vagonArgs<ExtArgs> = {}>(args?: Subset<T, IncidenteArrastreTorreon$vagonArgs<ExtArgs>>): Prisma__ArrastreTorreonVagonClient<$Result.GetResult<Prisma.$ArrastreTorreonVagonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    fotos<T extends IncidenteArrastreTorreon$fotosArgs<ExtArgs> = {}>(args?: Subset<T, IncidenteArrastreTorreon$fotosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the IncidenteArrastreTorreon model
+   */
+  interface IncidenteArrastreTorreonFieldRefs {
+    readonly id: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly arrastreId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly vagonId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly creadoPorId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly resueltoPorId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly estado: FieldRef<"IncidenteArrastreTorreon", 'EstadoIncidenteArrastreTorreon'>
+    readonly motivo: FieldRef<"IncidenteArrastreTorreon", 'String'>
+    readonly solucion: FieldRef<"IncidenteArrastreTorreon", 'String'>
+    readonly localidadId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly viaBloqueadaId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly seccionBloqueadaId: FieldRef<"IncidenteArrastreTorreon", 'Int'>
+    readonly fechaInicio: FieldRef<"IncidenteArrastreTorreon", 'DateTime'>
+    readonly fechaResolucion: FieldRef<"IncidenteArrastreTorreon", 'DateTime'>
+    readonly createdAt: FieldRef<"IncidenteArrastreTorreon", 'DateTime'>
+    readonly updatedAt: FieldRef<"IncidenteArrastreTorreon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * IncidenteArrastreTorreon findUnique
+   */
+  export type IncidenteArrastreTorreonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreTorreon to fetch.
+     */
+    where: IncidenteArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreTorreon findUniqueOrThrow
+   */
+  export type IncidenteArrastreTorreonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreTorreon to fetch.
+     */
+    where: IncidenteArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreTorreon findFirst
+   */
+  export type IncidenteArrastreTorreonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreTorreon to fetch.
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreTorreons to fetch.
+     */
+    orderBy?: IncidenteArrastreTorreonOrderByWithRelationInput | IncidenteArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for IncidenteArrastreTorreons.
+     */
+    cursor?: IncidenteArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IncidenteArrastreTorreons.
+     */
+    distinct?: IncidenteArrastreTorreonScalarFieldEnum | IncidenteArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreTorreon findFirstOrThrow
+   */
+  export type IncidenteArrastreTorreonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreTorreon to fetch.
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreTorreons to fetch.
+     */
+    orderBy?: IncidenteArrastreTorreonOrderByWithRelationInput | IncidenteArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for IncidenteArrastreTorreons.
+     */
+    cursor?: IncidenteArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IncidenteArrastreTorreons.
+     */
+    distinct?: IncidenteArrastreTorreonScalarFieldEnum | IncidenteArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreTorreon findMany
+   */
+  export type IncidenteArrastreTorreonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreTorreons to fetch.
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreTorreons to fetch.
+     */
+    orderBy?: IncidenteArrastreTorreonOrderByWithRelationInput | IncidenteArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing IncidenteArrastreTorreons.
+     */
+    cursor?: IncidenteArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreTorreons.
+     */
+    skip?: number
+    distinct?: IncidenteArrastreTorreonScalarFieldEnum | IncidenteArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreTorreon create
+   */
+  export type IncidenteArrastreTorreonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to create a IncidenteArrastreTorreon.
+     */
+    data: XOR<IncidenteArrastreTorreonCreateInput, IncidenteArrastreTorreonUncheckedCreateInput>
+  }
+
+  /**
+   * IncidenteArrastreTorreon createMany
+   */
+  export type IncidenteArrastreTorreonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many IncidenteArrastreTorreons.
+     */
+    data: IncidenteArrastreTorreonCreateManyInput | IncidenteArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * IncidenteArrastreTorreon createManyAndReturn
+   */
+  export type IncidenteArrastreTorreonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to create many IncidenteArrastreTorreons.
+     */
+    data: IncidenteArrastreTorreonCreateManyInput | IncidenteArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * IncidenteArrastreTorreon update
+   */
+  export type IncidenteArrastreTorreonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to update a IncidenteArrastreTorreon.
+     */
+    data: XOR<IncidenteArrastreTorreonUpdateInput, IncidenteArrastreTorreonUncheckedUpdateInput>
+    /**
+     * Choose, which IncidenteArrastreTorreon to update.
+     */
+    where: IncidenteArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreTorreon updateMany
+   */
+  export type IncidenteArrastreTorreonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update IncidenteArrastreTorreons.
+     */
+    data: XOR<IncidenteArrastreTorreonUpdateManyMutationInput, IncidenteArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which IncidenteArrastreTorreons to update
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * Limit how many IncidenteArrastreTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * IncidenteArrastreTorreon updateManyAndReturn
+   */
+  export type IncidenteArrastreTorreonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to update IncidenteArrastreTorreons.
+     */
+    data: XOR<IncidenteArrastreTorreonUpdateManyMutationInput, IncidenteArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which IncidenteArrastreTorreons to update
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * Limit how many IncidenteArrastreTorreons to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * IncidenteArrastreTorreon upsert
+   */
+  export type IncidenteArrastreTorreonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The filter to search for the IncidenteArrastreTorreon to update in case it exists.
+     */
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    /**
+     * In case the IncidenteArrastreTorreon found by the `where` argument doesn't exist, create a new IncidenteArrastreTorreon with this data.
+     */
+    create: XOR<IncidenteArrastreTorreonCreateInput, IncidenteArrastreTorreonUncheckedCreateInput>
+    /**
+     * In case the IncidenteArrastreTorreon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<IncidenteArrastreTorreonUpdateInput, IncidenteArrastreTorreonUncheckedUpdateInput>
+  }
+
+  /**
+   * IncidenteArrastreTorreon delete
+   */
+  export type IncidenteArrastreTorreonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter which IncidenteArrastreTorreon to delete.
+     */
+    where: IncidenteArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreTorreon deleteMany
+   */
+  export type IncidenteArrastreTorreonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which IncidenteArrastreTorreons to delete
+     */
+    where?: IncidenteArrastreTorreonWhereInput
+    /**
+     * Limit how many IncidenteArrastreTorreons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * IncidenteArrastreTorreon.vagon
+   */
+  export type IncidenteArrastreTorreon$vagonArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ArrastreTorreonVagon
+     */
+    select?: ArrastreTorreonVagonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ArrastreTorreonVagon
+     */
+    omit?: ArrastreTorreonVagonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ArrastreTorreonVagonInclude<ExtArgs> | null
+    where?: ArrastreTorreonVagonWhereInput
+  }
+
+  /**
+   * IncidenteArrastreTorreon.fotos
+   */
+  export type IncidenteArrastreTorreon$fotosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    where?: IncidenteArrastreFotoWhereInput
+    orderBy?: IncidenteArrastreFotoOrderByWithRelationInput | IncidenteArrastreFotoOrderByWithRelationInput[]
+    cursor?: IncidenteArrastreFotoWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IncidenteArrastreFotoScalarFieldEnum | IncidenteArrastreFotoScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreTorreon without action
+   */
+  export type IncidenteArrastreTorreonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreTorreon
+     */
+    select?: IncidenteArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreTorreon
+     */
+    omit?: IncidenteArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreTorreonInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model IncidenteArrastreFoto
+   */
+
+  export type AggregateIncidenteArrastreFoto = {
+    _count: IncidenteArrastreFotoCountAggregateOutputType | null
+    _avg: IncidenteArrastreFotoAvgAggregateOutputType | null
+    _sum: IncidenteArrastreFotoSumAggregateOutputType | null
+    _min: IncidenteArrastreFotoMinAggregateOutputType | null
+    _max: IncidenteArrastreFotoMaxAggregateOutputType | null
+  }
+
+  export type IncidenteArrastreFotoAvgAggregateOutputType = {
+    id: number | null
+    incidenteId: number | null
+    orden: number | null
+    tomadaPorId: number | null
+  }
+
+  export type IncidenteArrastreFotoSumAggregateOutputType = {
+    id: number | null
+    incidenteId: number | null
+    orden: number | null
+    tomadaPorId: number | null
+  }
+
+  export type IncidenteArrastreFotoMinAggregateOutputType = {
+    id: number | null
+    incidenteId: number | null
+    orden: number | null
+    url: string | null
+    storageKey: string | null
+    tomadaPorId: number | null
+    comentario: string | null
+    tomadaAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type IncidenteArrastreFotoMaxAggregateOutputType = {
+    id: number | null
+    incidenteId: number | null
+    orden: number | null
+    url: string | null
+    storageKey: string | null
+    tomadaPorId: number | null
+    comentario: string | null
+    tomadaAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type IncidenteArrastreFotoCountAggregateOutputType = {
+    id: number
+    incidenteId: number
+    orden: number
+    url: number
+    storageKey: number
+    tomadaPorId: number
+    comentario: number
+    tomadaAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type IncidenteArrastreFotoAvgAggregateInputType = {
+    id?: true
+    incidenteId?: true
+    orden?: true
+    tomadaPorId?: true
+  }
+
+  export type IncidenteArrastreFotoSumAggregateInputType = {
+    id?: true
+    incidenteId?: true
+    orden?: true
+    tomadaPorId?: true
+  }
+
+  export type IncidenteArrastreFotoMinAggregateInputType = {
+    id?: true
+    incidenteId?: true
+    orden?: true
+    url?: true
+    storageKey?: true
+    tomadaPorId?: true
+    comentario?: true
+    tomadaAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type IncidenteArrastreFotoMaxAggregateInputType = {
+    id?: true
+    incidenteId?: true
+    orden?: true
+    url?: true
+    storageKey?: true
+    tomadaPorId?: true
+    comentario?: true
+    tomadaAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type IncidenteArrastreFotoCountAggregateInputType = {
+    id?: true
+    incidenteId?: true
+    orden?: true
+    url?: true
+    storageKey?: true
+    tomadaPorId?: true
+    comentario?: true
+    tomadaAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type IncidenteArrastreFotoAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which IncidenteArrastreFoto to aggregate.
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreFotos to fetch.
+     */
+    orderBy?: IncidenteArrastreFotoOrderByWithRelationInput | IncidenteArrastreFotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: IncidenteArrastreFotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreFotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreFotos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned IncidenteArrastreFotos
+    **/
+    _count?: true | IncidenteArrastreFotoCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: IncidenteArrastreFotoAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: IncidenteArrastreFotoSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: IncidenteArrastreFotoMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: IncidenteArrastreFotoMaxAggregateInputType
+  }
+
+  export type GetIncidenteArrastreFotoAggregateType<T extends IncidenteArrastreFotoAggregateArgs> = {
+        [P in keyof T & keyof AggregateIncidenteArrastreFoto]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateIncidenteArrastreFoto[P]>
+      : GetScalarType<T[P], AggregateIncidenteArrastreFoto[P]>
+  }
+
+
+
+
+  export type IncidenteArrastreFotoGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IncidenteArrastreFotoWhereInput
+    orderBy?: IncidenteArrastreFotoOrderByWithAggregationInput | IncidenteArrastreFotoOrderByWithAggregationInput[]
+    by: IncidenteArrastreFotoScalarFieldEnum[] | IncidenteArrastreFotoScalarFieldEnum
+    having?: IncidenteArrastreFotoScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: IncidenteArrastreFotoCountAggregateInputType | true
+    _avg?: IncidenteArrastreFotoAvgAggregateInputType
+    _sum?: IncidenteArrastreFotoSumAggregateInputType
+    _min?: IncidenteArrastreFotoMinAggregateInputType
+    _max?: IncidenteArrastreFotoMaxAggregateInputType
+  }
+
+  export type IncidenteArrastreFotoGroupByOutputType = {
+    id: number
+    incidenteId: number
+    orden: number
+    url: string
+    storageKey: string | null
+    tomadaPorId: number
+    comentario: string | null
+    tomadaAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: IncidenteArrastreFotoCountAggregateOutputType | null
+    _avg: IncidenteArrastreFotoAvgAggregateOutputType | null
+    _sum: IncidenteArrastreFotoSumAggregateOutputType | null
+    _min: IncidenteArrastreFotoMinAggregateOutputType | null
+    _max: IncidenteArrastreFotoMaxAggregateOutputType | null
+  }
+
+  type GetIncidenteArrastreFotoGroupByPayload<T extends IncidenteArrastreFotoGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<IncidenteArrastreFotoGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof IncidenteArrastreFotoGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], IncidenteArrastreFotoGroupByOutputType[P]>
+            : GetScalarType<T[P], IncidenteArrastreFotoGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type IncidenteArrastreFotoSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    incidenteId?: boolean
+    orden?: boolean
+    url?: boolean
+    storageKey?: boolean
+    tomadaPorId?: boolean
+    comentario?: boolean
+    tomadaAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    incidente?: boolean | IncidenteArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["incidenteArrastreFoto"]>
+
+  export type IncidenteArrastreFotoSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    incidenteId?: boolean
+    orden?: boolean
+    url?: boolean
+    storageKey?: boolean
+    tomadaPorId?: boolean
+    comentario?: boolean
+    tomadaAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    incidente?: boolean | IncidenteArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["incidenteArrastreFoto"]>
+
+  export type IncidenteArrastreFotoSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    incidenteId?: boolean
+    orden?: boolean
+    url?: boolean
+    storageKey?: boolean
+    tomadaPorId?: boolean
+    comentario?: boolean
+    tomadaAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    incidente?: boolean | IncidenteArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["incidenteArrastreFoto"]>
+
+  export type IncidenteArrastreFotoSelectScalar = {
+    id?: boolean
+    incidenteId?: boolean
+    orden?: boolean
+    url?: boolean
+    storageKey?: boolean
+    tomadaPorId?: boolean
+    comentario?: boolean
+    tomadaAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type IncidenteArrastreFotoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "incidenteId" | "orden" | "url" | "storageKey" | "tomadaPorId" | "comentario" | "tomadaAt" | "createdAt" | "updatedAt", ExtArgs["result"]["incidenteArrastreFoto"]>
+  export type IncidenteArrastreFotoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    incidente?: boolean | IncidenteArrastreTorreonDefaultArgs<ExtArgs>
+  }
+  export type IncidenteArrastreFotoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    incidente?: boolean | IncidenteArrastreTorreonDefaultArgs<ExtArgs>
+  }
+  export type IncidenteArrastreFotoIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    incidente?: boolean | IncidenteArrastreTorreonDefaultArgs<ExtArgs>
+  }
+
+  export type $IncidenteArrastreFotoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "IncidenteArrastreFoto"
+    objects: {
+      incidente: Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      incidenteId: number
+      orden: number
+      url: string
+      storageKey: string | null
+      tomadaPorId: number
+      comentario: string | null
+      tomadaAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["incidenteArrastreFoto"]>
+    composites: {}
+  }
+
+  type IncidenteArrastreFotoGetPayload<S extends boolean | null | undefined | IncidenteArrastreFotoDefaultArgs> = $Result.GetResult<Prisma.$IncidenteArrastreFotoPayload, S>
+
+  type IncidenteArrastreFotoCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<IncidenteArrastreFotoFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: IncidenteArrastreFotoCountAggregateInputType | true
+    }
+
+  export interface IncidenteArrastreFotoDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['IncidenteArrastreFoto'], meta: { name: 'IncidenteArrastreFoto' } }
+    /**
+     * Find zero or one IncidenteArrastreFoto that matches the filter.
+     * @param {IncidenteArrastreFotoFindUniqueArgs} args - Arguments to find a IncidenteArrastreFoto
+     * @example
+     * // Get one IncidenteArrastreFoto
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends IncidenteArrastreFotoFindUniqueArgs>(args: SelectSubset<T, IncidenteArrastreFotoFindUniqueArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one IncidenteArrastreFoto that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {IncidenteArrastreFotoFindUniqueOrThrowArgs} args - Arguments to find a IncidenteArrastreFoto
+     * @example
+     * // Get one IncidenteArrastreFoto
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends IncidenteArrastreFotoFindUniqueOrThrowArgs>(args: SelectSubset<T, IncidenteArrastreFotoFindUniqueOrThrowArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first IncidenteArrastreFoto that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoFindFirstArgs} args - Arguments to find a IncidenteArrastreFoto
+     * @example
+     * // Get one IncidenteArrastreFoto
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends IncidenteArrastreFotoFindFirstArgs>(args?: SelectSubset<T, IncidenteArrastreFotoFindFirstArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first IncidenteArrastreFoto that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoFindFirstOrThrowArgs} args - Arguments to find a IncidenteArrastreFoto
+     * @example
+     * // Get one IncidenteArrastreFoto
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends IncidenteArrastreFotoFindFirstOrThrowArgs>(args?: SelectSubset<T, IncidenteArrastreFotoFindFirstOrThrowArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more IncidenteArrastreFotos that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all IncidenteArrastreFotos
+     * const incidenteArrastreFotos = await prisma.incidenteArrastreFoto.findMany()
+     * 
+     * // Get first 10 IncidenteArrastreFotos
+     * const incidenteArrastreFotos = await prisma.incidenteArrastreFoto.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const incidenteArrastreFotoWithIdOnly = await prisma.incidenteArrastreFoto.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends IncidenteArrastreFotoFindManyArgs>(args?: SelectSubset<T, IncidenteArrastreFotoFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a IncidenteArrastreFoto.
+     * @param {IncidenteArrastreFotoCreateArgs} args - Arguments to create a IncidenteArrastreFoto.
+     * @example
+     * // Create one IncidenteArrastreFoto
+     * const IncidenteArrastreFoto = await prisma.incidenteArrastreFoto.create({
+     *   data: {
+     *     // ... data to create a IncidenteArrastreFoto
+     *   }
+     * })
+     * 
+     */
+    create<T extends IncidenteArrastreFotoCreateArgs>(args: SelectSubset<T, IncidenteArrastreFotoCreateArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many IncidenteArrastreFotos.
+     * @param {IncidenteArrastreFotoCreateManyArgs} args - Arguments to create many IncidenteArrastreFotos.
+     * @example
+     * // Create many IncidenteArrastreFotos
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends IncidenteArrastreFotoCreateManyArgs>(args?: SelectSubset<T, IncidenteArrastreFotoCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many IncidenteArrastreFotos and returns the data saved in the database.
+     * @param {IncidenteArrastreFotoCreateManyAndReturnArgs} args - Arguments to create many IncidenteArrastreFotos.
+     * @example
+     * // Create many IncidenteArrastreFotos
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many IncidenteArrastreFotos and only return the `id`
+     * const incidenteArrastreFotoWithIdOnly = await prisma.incidenteArrastreFoto.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends IncidenteArrastreFotoCreateManyAndReturnArgs>(args?: SelectSubset<T, IncidenteArrastreFotoCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a IncidenteArrastreFoto.
+     * @param {IncidenteArrastreFotoDeleteArgs} args - Arguments to delete one IncidenteArrastreFoto.
+     * @example
+     * // Delete one IncidenteArrastreFoto
+     * const IncidenteArrastreFoto = await prisma.incidenteArrastreFoto.delete({
+     *   where: {
+     *     // ... filter to delete one IncidenteArrastreFoto
+     *   }
+     * })
+     * 
+     */
+    delete<T extends IncidenteArrastreFotoDeleteArgs>(args: SelectSubset<T, IncidenteArrastreFotoDeleteArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one IncidenteArrastreFoto.
+     * @param {IncidenteArrastreFotoUpdateArgs} args - Arguments to update one IncidenteArrastreFoto.
+     * @example
+     * // Update one IncidenteArrastreFoto
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends IncidenteArrastreFotoUpdateArgs>(args: SelectSubset<T, IncidenteArrastreFotoUpdateArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more IncidenteArrastreFotos.
+     * @param {IncidenteArrastreFotoDeleteManyArgs} args - Arguments to filter IncidenteArrastreFotos to delete.
+     * @example
+     * // Delete a few IncidenteArrastreFotos
+     * const { count } = await prisma.incidenteArrastreFoto.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends IncidenteArrastreFotoDeleteManyArgs>(args?: SelectSubset<T, IncidenteArrastreFotoDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more IncidenteArrastreFotos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many IncidenteArrastreFotos
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends IncidenteArrastreFotoUpdateManyArgs>(args: SelectSubset<T, IncidenteArrastreFotoUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more IncidenteArrastreFotos and returns the data updated in the database.
+     * @param {IncidenteArrastreFotoUpdateManyAndReturnArgs} args - Arguments to update many IncidenteArrastreFotos.
+     * @example
+     * // Update many IncidenteArrastreFotos
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more IncidenteArrastreFotos and only return the `id`
+     * const incidenteArrastreFotoWithIdOnly = await prisma.incidenteArrastreFoto.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends IncidenteArrastreFotoUpdateManyAndReturnArgs>(args: SelectSubset<T, IncidenteArrastreFotoUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one IncidenteArrastreFoto.
+     * @param {IncidenteArrastreFotoUpsertArgs} args - Arguments to update or create a IncidenteArrastreFoto.
+     * @example
+     * // Update or create a IncidenteArrastreFoto
+     * const incidenteArrastreFoto = await prisma.incidenteArrastreFoto.upsert({
+     *   create: {
+     *     // ... data to create a IncidenteArrastreFoto
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the IncidenteArrastreFoto we want to update
+     *   }
+     * })
+     */
+    upsert<T extends IncidenteArrastreFotoUpsertArgs>(args: SelectSubset<T, IncidenteArrastreFotoUpsertArgs<ExtArgs>>): Prisma__IncidenteArrastreFotoClient<$Result.GetResult<Prisma.$IncidenteArrastreFotoPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of IncidenteArrastreFotos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoCountArgs} args - Arguments to filter IncidenteArrastreFotos to count.
+     * @example
+     * // Count the number of IncidenteArrastreFotos
+     * const count = await prisma.incidenteArrastreFoto.count({
+     *   where: {
+     *     // ... the filter for the IncidenteArrastreFotos we want to count
+     *   }
+     * })
+    **/
+    count<T extends IncidenteArrastreFotoCountArgs>(
+      args?: Subset<T, IncidenteArrastreFotoCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], IncidenteArrastreFotoCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a IncidenteArrastreFoto.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends IncidenteArrastreFotoAggregateArgs>(args: Subset<T, IncidenteArrastreFotoAggregateArgs>): Prisma.PrismaPromise<GetIncidenteArrastreFotoAggregateType<T>>
+
+    /**
+     * Group by IncidenteArrastreFoto.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IncidenteArrastreFotoGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends IncidenteArrastreFotoGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: IncidenteArrastreFotoGroupByArgs['orderBy'] }
+        : { orderBy?: IncidenteArrastreFotoGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, IncidenteArrastreFotoGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetIncidenteArrastreFotoGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the IncidenteArrastreFoto model
+   */
+  readonly fields: IncidenteArrastreFotoFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for IncidenteArrastreFoto.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__IncidenteArrastreFotoClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    incidente<T extends IncidenteArrastreTorreonDefaultArgs<ExtArgs> = {}>(args?: Subset<T, IncidenteArrastreTorreonDefaultArgs<ExtArgs>>): Prisma__IncidenteArrastreTorreonClient<$Result.GetResult<Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the IncidenteArrastreFoto model
+   */
+  interface IncidenteArrastreFotoFieldRefs {
+    readonly id: FieldRef<"IncidenteArrastreFoto", 'Int'>
+    readonly incidenteId: FieldRef<"IncidenteArrastreFoto", 'Int'>
+    readonly orden: FieldRef<"IncidenteArrastreFoto", 'Int'>
+    readonly url: FieldRef<"IncidenteArrastreFoto", 'String'>
+    readonly storageKey: FieldRef<"IncidenteArrastreFoto", 'String'>
+    readonly tomadaPorId: FieldRef<"IncidenteArrastreFoto", 'Int'>
+    readonly comentario: FieldRef<"IncidenteArrastreFoto", 'String'>
+    readonly tomadaAt: FieldRef<"IncidenteArrastreFoto", 'DateTime'>
+    readonly createdAt: FieldRef<"IncidenteArrastreFoto", 'DateTime'>
+    readonly updatedAt: FieldRef<"IncidenteArrastreFoto", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * IncidenteArrastreFoto findUnique
+   */
+  export type IncidenteArrastreFotoFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreFoto to fetch.
+     */
+    where: IncidenteArrastreFotoWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreFoto findUniqueOrThrow
+   */
+  export type IncidenteArrastreFotoFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreFoto to fetch.
+     */
+    where: IncidenteArrastreFotoWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreFoto findFirst
+   */
+  export type IncidenteArrastreFotoFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreFoto to fetch.
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreFotos to fetch.
+     */
+    orderBy?: IncidenteArrastreFotoOrderByWithRelationInput | IncidenteArrastreFotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for IncidenteArrastreFotos.
+     */
+    cursor?: IncidenteArrastreFotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreFotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreFotos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IncidenteArrastreFotos.
+     */
+    distinct?: IncidenteArrastreFotoScalarFieldEnum | IncidenteArrastreFotoScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreFoto findFirstOrThrow
+   */
+  export type IncidenteArrastreFotoFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreFoto to fetch.
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreFotos to fetch.
+     */
+    orderBy?: IncidenteArrastreFotoOrderByWithRelationInput | IncidenteArrastreFotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for IncidenteArrastreFotos.
+     */
+    cursor?: IncidenteArrastreFotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreFotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreFotos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IncidenteArrastreFotos.
+     */
+    distinct?: IncidenteArrastreFotoScalarFieldEnum | IncidenteArrastreFotoScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreFoto findMany
+   */
+  export type IncidenteArrastreFotoFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * Filter, which IncidenteArrastreFotos to fetch.
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IncidenteArrastreFotos to fetch.
+     */
+    orderBy?: IncidenteArrastreFotoOrderByWithRelationInput | IncidenteArrastreFotoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing IncidenteArrastreFotos.
+     */
+    cursor?: IncidenteArrastreFotoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IncidenteArrastreFotos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IncidenteArrastreFotos.
+     */
+    skip?: number
+    distinct?: IncidenteArrastreFotoScalarFieldEnum | IncidenteArrastreFotoScalarFieldEnum[]
+  }
+
+  /**
+   * IncidenteArrastreFoto create
+   */
+  export type IncidenteArrastreFotoCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * The data needed to create a IncidenteArrastreFoto.
+     */
+    data: XOR<IncidenteArrastreFotoCreateInput, IncidenteArrastreFotoUncheckedCreateInput>
+  }
+
+  /**
+   * IncidenteArrastreFoto createMany
+   */
+  export type IncidenteArrastreFotoCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many IncidenteArrastreFotos.
+     */
+    data: IncidenteArrastreFotoCreateManyInput | IncidenteArrastreFotoCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * IncidenteArrastreFoto createManyAndReturn
+   */
+  export type IncidenteArrastreFotoCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * The data used to create many IncidenteArrastreFotos.
+     */
+    data: IncidenteArrastreFotoCreateManyInput | IncidenteArrastreFotoCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * IncidenteArrastreFoto update
+   */
+  export type IncidenteArrastreFotoUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * The data needed to update a IncidenteArrastreFoto.
+     */
+    data: XOR<IncidenteArrastreFotoUpdateInput, IncidenteArrastreFotoUncheckedUpdateInput>
+    /**
+     * Choose, which IncidenteArrastreFoto to update.
+     */
+    where: IncidenteArrastreFotoWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreFoto updateMany
+   */
+  export type IncidenteArrastreFotoUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update IncidenteArrastreFotos.
+     */
+    data: XOR<IncidenteArrastreFotoUpdateManyMutationInput, IncidenteArrastreFotoUncheckedUpdateManyInput>
+    /**
+     * Filter which IncidenteArrastreFotos to update
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * Limit how many IncidenteArrastreFotos to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * IncidenteArrastreFoto updateManyAndReturn
+   */
+  export type IncidenteArrastreFotoUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * The data used to update IncidenteArrastreFotos.
+     */
+    data: XOR<IncidenteArrastreFotoUpdateManyMutationInput, IncidenteArrastreFotoUncheckedUpdateManyInput>
+    /**
+     * Filter which IncidenteArrastreFotos to update
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * Limit how many IncidenteArrastreFotos to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * IncidenteArrastreFoto upsert
+   */
+  export type IncidenteArrastreFotoUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * The filter to search for the IncidenteArrastreFoto to update in case it exists.
+     */
+    where: IncidenteArrastreFotoWhereUniqueInput
+    /**
+     * In case the IncidenteArrastreFoto found by the `where` argument doesn't exist, create a new IncidenteArrastreFoto with this data.
+     */
+    create: XOR<IncidenteArrastreFotoCreateInput, IncidenteArrastreFotoUncheckedCreateInput>
+    /**
+     * In case the IncidenteArrastreFoto was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<IncidenteArrastreFotoUpdateInput, IncidenteArrastreFotoUncheckedUpdateInput>
+  }
+
+  /**
+   * IncidenteArrastreFoto delete
+   */
+  export type IncidenteArrastreFotoDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+    /**
+     * Filter which IncidenteArrastreFoto to delete.
+     */
+    where: IncidenteArrastreFotoWhereUniqueInput
+  }
+
+  /**
+   * IncidenteArrastreFoto deleteMany
+   */
+  export type IncidenteArrastreFotoDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which IncidenteArrastreFotos to delete
+     */
+    where?: IncidenteArrastreFotoWhereInput
+    /**
+     * Limit how many IncidenteArrastreFotos to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * IncidenteArrastreFoto without action
+   */
+  export type IncidenteArrastreFotoDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteArrastreFoto
+     */
+    select?: IncidenteArrastreFotoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteArrastreFoto
+     */
+    omit?: IncidenteArrastreFotoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteArrastreFotoInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -9326,6 +14883,85 @@ export namespace Prisma {
   };
 
   export type IncidenteTorreonFotoScalarFieldEnum = (typeof IncidenteTorreonFotoScalarFieldEnum)[keyof typeof IncidenteTorreonFotoScalarFieldEnum]
+
+
+  export const ArrastreTorreonScalarFieldEnum: {
+    id: 'id',
+    empresaId: 'empresaId',
+    creadoPorId: 'creadoPorId',
+    operadorId: 'operadorId',
+    localidadId: 'localidadId',
+    viaOrigenId: 'viaOrigenId',
+    viaDestinoId: 'viaDestinoId',
+    seccionOrigenId: 'seccionOrigenId',
+    seccionDestinoId: 'seccionDestinoId',
+    estado: 'estado',
+    instrucciones: 'instrucciones',
+    fechaSolicitud: 'fechaSolicitud',
+    fechaInicio: 'fechaInicio',
+    fechaFin: 'fechaFin',
+    fechaPausa: 'fechaPausa',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ArrastreTorreonScalarFieldEnum = (typeof ArrastreTorreonScalarFieldEnum)[keyof typeof ArrastreTorreonScalarFieldEnum]
+
+
+  export const ArrastreTorreonVagonScalarFieldEnum: {
+    id: 'id',
+    arrastreId: 'arrastreId',
+    orden: 'orden',
+    numeroVagon: 'numeroVagon',
+    carga: 'carga',
+    viaId: 'viaId',
+    seccionId: 'seccionId',
+    estado: 'estado',
+    fechaSolicitud: 'fechaSolicitud',
+    fechaInicio: 'fechaInicio',
+    fechaFin: 'fechaFin',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ArrastreTorreonVagonScalarFieldEnum = (typeof ArrastreTorreonVagonScalarFieldEnum)[keyof typeof ArrastreTorreonVagonScalarFieldEnum]
+
+
+  export const IncidenteArrastreTorreonScalarFieldEnum: {
+    id: 'id',
+    arrastreId: 'arrastreId',
+    vagonId: 'vagonId',
+    creadoPorId: 'creadoPorId',
+    resueltoPorId: 'resueltoPorId',
+    estado: 'estado',
+    motivo: 'motivo',
+    solucion: 'solucion',
+    localidadId: 'localidadId',
+    viaBloqueadaId: 'viaBloqueadaId',
+    seccionBloqueadaId: 'seccionBloqueadaId',
+    fechaInicio: 'fechaInicio',
+    fechaResolucion: 'fechaResolucion',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type IncidenteArrastreTorreonScalarFieldEnum = (typeof IncidenteArrastreTorreonScalarFieldEnum)[keyof typeof IncidenteArrastreTorreonScalarFieldEnum]
+
+
+  export const IncidenteArrastreFotoScalarFieldEnum: {
+    id: 'id',
+    incidenteId: 'incidenteId',
+    orden: 'orden',
+    url: 'url',
+    storageKey: 'storageKey',
+    tomadaPorId: 'tomadaPorId',
+    comentario: 'comentario',
+    tomadaAt: 'tomadaAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type IncidenteArrastreFotoScalarFieldEnum = (typeof IncidenteArrastreFotoScalarFieldEnum)[keyof typeof IncidenteArrastreFotoScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -9543,6 +15179,62 @@ export namespace Prisma {
    * Reference to a field of type 'TipoFotoMovimientoTorreon[]'
    */
   export type ListEnumTipoFotoMovimientoTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TipoFotoMovimientoTorreon[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoArrastreTorreon'
+   */
+  export type EnumEstadoArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoArrastreTorreon'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoArrastreTorreon[]'
+   */
+  export type ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoArrastreTorreon[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CargaVagonArrastreTorreon'
+   */
+  export type EnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CargaVagonArrastreTorreon'>
+    
+
+
+  /**
+   * Reference to a field of type 'CargaVagonArrastreTorreon[]'
+   */
+  export type ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CargaVagonArrastreTorreon[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoVagonArrastreTorreon'
+   */
+  export type EnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoVagonArrastreTorreon'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoVagonArrastreTorreon[]'
+   */
+  export type ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoVagonArrastreTorreon[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoIncidenteArrastreTorreon'
+   */
+  export type EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoIncidenteArrastreTorreon'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoIncidenteArrastreTorreon[]'
+   */
+  export type ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoIncidenteArrastreTorreon[]'>
     
 
 
@@ -10220,6 +15912,423 @@ export namespace Prisma {
     tomadaAt?: DateTimeWithAggregatesFilter<"IncidenteTorreonFoto"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"IncidenteTorreonFoto"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"IncidenteTorreonFoto"> | Date | string
+  }
+
+  export type ArrastreTorreonWhereInput = {
+    AND?: ArrastreTorreonWhereInput | ArrastreTorreonWhereInput[]
+    OR?: ArrastreTorreonWhereInput[]
+    NOT?: ArrastreTorreonWhereInput | ArrastreTorreonWhereInput[]
+    id?: IntFilter<"ArrastreTorreon"> | number
+    empresaId?: IntFilter<"ArrastreTorreon"> | number
+    creadoPorId?: IntFilter<"ArrastreTorreon"> | number
+    operadorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    localidadId?: IntFilter<"ArrastreTorreon"> | number
+    viaOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    viaDestinoId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    seccionOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    seccionDestinoId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    estado?: EnumEstadoArrastreTorreonFilter<"ArrastreTorreon"> | $Enums.EstadoArrastreTorreon
+    instrucciones?: StringNullableFilter<"ArrastreTorreon"> | string | null
+    fechaSolicitud?: DateTimeFilter<"ArrastreTorreon"> | Date | string
+    fechaInicio?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
+    fechaPausa?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"ArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"ArrastreTorreon"> | Date | string
+    vagones?: ArrastreTorreonVagonListRelationFilter
+    incidentes?: IncidenteArrastreTorreonListRelationFilter
+  }
+
+  export type ArrastreTorreonOrderByWithRelationInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrderInput | SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrderInput | SortOrder
+    viaDestinoId?: SortOrderInput | SortOrder
+    seccionOrigenId?: SortOrderInput | SortOrder
+    seccionDestinoId?: SortOrderInput | SortOrder
+    estado?: SortOrder
+    instrucciones?: SortOrderInput | SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrderInput | SortOrder
+    fechaFin?: SortOrderInput | SortOrder
+    fechaPausa?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    vagones?: ArrastreTorreonVagonOrderByRelationAggregateInput
+    incidentes?: IncidenteArrastreTorreonOrderByRelationAggregateInput
+  }
+
+  export type ArrastreTorreonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: ArrastreTorreonWhereInput | ArrastreTorreonWhereInput[]
+    OR?: ArrastreTorreonWhereInput[]
+    NOT?: ArrastreTorreonWhereInput | ArrastreTorreonWhereInput[]
+    empresaId?: IntFilter<"ArrastreTorreon"> | number
+    creadoPorId?: IntFilter<"ArrastreTorreon"> | number
+    operadorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    localidadId?: IntFilter<"ArrastreTorreon"> | number
+    viaOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    viaDestinoId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    seccionOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    seccionDestinoId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    estado?: EnumEstadoArrastreTorreonFilter<"ArrastreTorreon"> | $Enums.EstadoArrastreTorreon
+    instrucciones?: StringNullableFilter<"ArrastreTorreon"> | string | null
+    fechaSolicitud?: DateTimeFilter<"ArrastreTorreon"> | Date | string
+    fechaInicio?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
+    fechaPausa?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"ArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"ArrastreTorreon"> | Date | string
+    vagones?: ArrastreTorreonVagonListRelationFilter
+    incidentes?: IncidenteArrastreTorreonListRelationFilter
+  }, "id">
+
+  export type ArrastreTorreonOrderByWithAggregationInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrderInput | SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrderInput | SortOrder
+    viaDestinoId?: SortOrderInput | SortOrder
+    seccionOrigenId?: SortOrderInput | SortOrder
+    seccionDestinoId?: SortOrderInput | SortOrder
+    estado?: SortOrder
+    instrucciones?: SortOrderInput | SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrderInput | SortOrder
+    fechaFin?: SortOrderInput | SortOrder
+    fechaPausa?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ArrastreTorreonCountOrderByAggregateInput
+    _avg?: ArrastreTorreonAvgOrderByAggregateInput
+    _max?: ArrastreTorreonMaxOrderByAggregateInput
+    _min?: ArrastreTorreonMinOrderByAggregateInput
+    _sum?: ArrastreTorreonSumOrderByAggregateInput
+  }
+
+  export type ArrastreTorreonScalarWhereWithAggregatesInput = {
+    AND?: ArrastreTorreonScalarWhereWithAggregatesInput | ArrastreTorreonScalarWhereWithAggregatesInput[]
+    OR?: ArrastreTorreonScalarWhereWithAggregatesInput[]
+    NOT?: ArrastreTorreonScalarWhereWithAggregatesInput | ArrastreTorreonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
+    empresaId?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
+    creadoPorId?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
+    operadorId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
+    localidadId?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
+    viaOrigenId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
+    viaDestinoId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
+    seccionOrigenId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
+    seccionDestinoId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
+    estado?: EnumEstadoArrastreTorreonWithAggregatesFilter<"ArrastreTorreon"> | $Enums.EstadoArrastreTorreon
+    instrucciones?: StringNullableWithAggregatesFilter<"ArrastreTorreon"> | string | null
+    fechaSolicitud?: DateTimeWithAggregatesFilter<"ArrastreTorreon"> | Date | string
+    fechaInicio?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreon"> | Date | string | null
+    fechaFin?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreon"> | Date | string | null
+    fechaPausa?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ArrastreTorreon"> | Date | string
+  }
+
+  export type ArrastreTorreonVagonWhereInput = {
+    AND?: ArrastreTorreonVagonWhereInput | ArrastreTorreonVagonWhereInput[]
+    OR?: ArrastreTorreonVagonWhereInput[]
+    NOT?: ArrastreTorreonVagonWhereInput | ArrastreTorreonVagonWhereInput[]
+    id?: IntFilter<"ArrastreTorreonVagon"> | number
+    arrastreId?: IntFilter<"ArrastreTorreonVagon"> | number
+    orden?: IntFilter<"ArrastreTorreonVagon"> | number
+    numeroVagon?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFilter<"ArrastreTorreonVagon"> | number
+    seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    fechaInicio?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
+    createdAt?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    updatedAt?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    arrastre?: XOR<ArrastreTorreonScalarRelationFilter, ArrastreTorreonWhereInput>
+    incidentes?: IncidenteArrastreTorreonListRelationFilter
+  }
+
+  export type ArrastreTorreonVagonOrderByWithRelationInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    numeroVagon?: SortOrderInput | SortOrder
+    carga?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+    estado?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrderInput | SortOrder
+    fechaFin?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    arrastre?: ArrastreTorreonOrderByWithRelationInput
+    incidentes?: IncidenteArrastreTorreonOrderByRelationAggregateInput
+  }
+
+  export type ArrastreTorreonVagonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    arrastreId_orden?: ArrastreTorreonVagonArrastreIdOrdenCompoundUniqueInput
+    AND?: ArrastreTorreonVagonWhereInput | ArrastreTorreonVagonWhereInput[]
+    OR?: ArrastreTorreonVagonWhereInput[]
+    NOT?: ArrastreTorreonVagonWhereInput | ArrastreTorreonVagonWhereInput[]
+    arrastreId?: IntFilter<"ArrastreTorreonVagon"> | number
+    orden?: IntFilter<"ArrastreTorreonVagon"> | number
+    numeroVagon?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFilter<"ArrastreTorreonVagon"> | number
+    seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    fechaInicio?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
+    createdAt?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    updatedAt?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    arrastre?: XOR<ArrastreTorreonScalarRelationFilter, ArrastreTorreonWhereInput>
+    incidentes?: IncidenteArrastreTorreonListRelationFilter
+  }, "id" | "arrastreId_orden">
+
+  export type ArrastreTorreonVagonOrderByWithAggregationInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    numeroVagon?: SortOrderInput | SortOrder
+    carga?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+    estado?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrderInput | SortOrder
+    fechaFin?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ArrastreTorreonVagonCountOrderByAggregateInput
+    _avg?: ArrastreTorreonVagonAvgOrderByAggregateInput
+    _max?: ArrastreTorreonVagonMaxOrderByAggregateInput
+    _min?: ArrastreTorreonVagonMinOrderByAggregateInput
+    _sum?: ArrastreTorreonVagonSumOrderByAggregateInput
+  }
+
+  export type ArrastreTorreonVagonScalarWhereWithAggregatesInput = {
+    AND?: ArrastreTorreonVagonScalarWhereWithAggregatesInput | ArrastreTorreonVagonScalarWhereWithAggregatesInput[]
+    OR?: ArrastreTorreonVagonScalarWhereWithAggregatesInput[]
+    NOT?: ArrastreTorreonVagonScalarWhereWithAggregatesInput | ArrastreTorreonVagonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    arrastreId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    orden?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    numeroVagon?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
+    carga?: EnumCargaVagonArrastreTorreonWithAggregatesFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    seccionId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    estado?: EnumEstadoVagonArrastreTorreonWithAggregatesFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
+    fechaInicio?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string | null
+    fechaFin?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
+  }
+
+  export type IncidenteArrastreTorreonWhereInput = {
+    AND?: IncidenteArrastreTorreonWhereInput | IncidenteArrastreTorreonWhereInput[]
+    OR?: IncidenteArrastreTorreonWhereInput[]
+    NOT?: IncidenteArrastreTorreonWhereInput | IncidenteArrastreTorreonWhereInput[]
+    id?: IntFilter<"IncidenteArrastreTorreon"> | number
+    arrastreId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    vagonId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    creadoPorId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    resueltoPorId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFilter<"IncidenteArrastreTorreon"> | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFilter<"IncidenteArrastreTorreon"> | string
+    solucion?: StringNullableFilter<"IncidenteArrastreTorreon"> | string | null
+    localidadId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    viaBloqueadaId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    seccionBloqueadaId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    fechaInicio?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    fechaResolucion?: DateTimeNullableFilter<"IncidenteArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    arrastre?: XOR<ArrastreTorreonScalarRelationFilter, ArrastreTorreonWhereInput>
+    vagon?: XOR<ArrastreTorreonVagonNullableScalarRelationFilter, ArrastreTorreonVagonWhereInput> | null
+    fotos?: IncidenteArrastreFotoListRelationFilter
+  }
+
+  export type IncidenteArrastreTorreonOrderByWithRelationInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrderInput | SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrderInput | SortOrder
+    estado?: SortOrder
+    motivo?: SortOrder
+    solucion?: SortOrderInput | SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrderInput | SortOrder
+    seccionBloqueadaId?: SortOrderInput | SortOrder
+    fechaInicio?: SortOrder
+    fechaResolucion?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    arrastre?: ArrastreTorreonOrderByWithRelationInput
+    vagon?: ArrastreTorreonVagonOrderByWithRelationInput
+    fotos?: IncidenteArrastreFotoOrderByRelationAggregateInput
+  }
+
+  export type IncidenteArrastreTorreonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: IncidenteArrastreTorreonWhereInput | IncidenteArrastreTorreonWhereInput[]
+    OR?: IncidenteArrastreTorreonWhereInput[]
+    NOT?: IncidenteArrastreTorreonWhereInput | IncidenteArrastreTorreonWhereInput[]
+    arrastreId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    vagonId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    creadoPorId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    resueltoPorId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFilter<"IncidenteArrastreTorreon"> | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFilter<"IncidenteArrastreTorreon"> | string
+    solucion?: StringNullableFilter<"IncidenteArrastreTorreon"> | string | null
+    localidadId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    viaBloqueadaId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    seccionBloqueadaId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    fechaInicio?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    fechaResolucion?: DateTimeNullableFilter<"IncidenteArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    arrastre?: XOR<ArrastreTorreonScalarRelationFilter, ArrastreTorreonWhereInput>
+    vagon?: XOR<ArrastreTorreonVagonNullableScalarRelationFilter, ArrastreTorreonVagonWhereInput> | null
+    fotos?: IncidenteArrastreFotoListRelationFilter
+  }, "id">
+
+  export type IncidenteArrastreTorreonOrderByWithAggregationInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrderInput | SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrderInput | SortOrder
+    estado?: SortOrder
+    motivo?: SortOrder
+    solucion?: SortOrderInput | SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrderInput | SortOrder
+    seccionBloqueadaId?: SortOrderInput | SortOrder
+    fechaInicio?: SortOrder
+    fechaResolucion?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: IncidenteArrastreTorreonCountOrderByAggregateInput
+    _avg?: IncidenteArrastreTorreonAvgOrderByAggregateInput
+    _max?: IncidenteArrastreTorreonMaxOrderByAggregateInput
+    _min?: IncidenteArrastreTorreonMinOrderByAggregateInput
+    _sum?: IncidenteArrastreTorreonSumOrderByAggregateInput
+  }
+
+  export type IncidenteArrastreTorreonScalarWhereWithAggregatesInput = {
+    AND?: IncidenteArrastreTorreonScalarWhereWithAggregatesInput | IncidenteArrastreTorreonScalarWhereWithAggregatesInput[]
+    OR?: IncidenteArrastreTorreonScalarWhereWithAggregatesInput[]
+    NOT?: IncidenteArrastreTorreonScalarWhereWithAggregatesInput | IncidenteArrastreTorreonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"IncidenteArrastreTorreon"> | number
+    arrastreId?: IntWithAggregatesFilter<"IncidenteArrastreTorreon"> | number
+    vagonId?: IntNullableWithAggregatesFilter<"IncidenteArrastreTorreon"> | number | null
+    creadoPorId?: IntWithAggregatesFilter<"IncidenteArrastreTorreon"> | number
+    resueltoPorId?: IntNullableWithAggregatesFilter<"IncidenteArrastreTorreon"> | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonWithAggregatesFilter<"IncidenteArrastreTorreon"> | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringWithAggregatesFilter<"IncidenteArrastreTorreon"> | string
+    solucion?: StringNullableWithAggregatesFilter<"IncidenteArrastreTorreon"> | string | null
+    localidadId?: IntWithAggregatesFilter<"IncidenteArrastreTorreon"> | number
+    viaBloqueadaId?: IntNullableWithAggregatesFilter<"IncidenteArrastreTorreon"> | number | null
+    seccionBloqueadaId?: IntNullableWithAggregatesFilter<"IncidenteArrastreTorreon"> | number | null
+    fechaInicio?: DateTimeWithAggregatesFilter<"IncidenteArrastreTorreon"> | Date | string
+    fechaResolucion?: DateTimeNullableWithAggregatesFilter<"IncidenteArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreTorreon"> | Date | string
+  }
+
+  export type IncidenteArrastreFotoWhereInput = {
+    AND?: IncidenteArrastreFotoWhereInput | IncidenteArrastreFotoWhereInput[]
+    OR?: IncidenteArrastreFotoWhereInput[]
+    NOT?: IncidenteArrastreFotoWhereInput | IncidenteArrastreFotoWhereInput[]
+    id?: IntFilter<"IncidenteArrastreFoto"> | number
+    incidenteId?: IntFilter<"IncidenteArrastreFoto"> | number
+    orden?: IntFilter<"IncidenteArrastreFoto"> | number
+    url?: StringFilter<"IncidenteArrastreFoto"> | string
+    storageKey?: StringNullableFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaPorId?: IntFilter<"IncidenteArrastreFoto"> | number
+    comentario?: StringNullableFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    createdAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    updatedAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    incidente?: XOR<IncidenteArrastreTorreonScalarRelationFilter, IncidenteArrastreTorreonWhereInput>
+  }
+
+  export type IncidenteArrastreFotoOrderByWithRelationInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    url?: SortOrder
+    storageKey?: SortOrderInput | SortOrder
+    tomadaPorId?: SortOrder
+    comentario?: SortOrderInput | SortOrder
+    tomadaAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    incidente?: IncidenteArrastreTorreonOrderByWithRelationInput
+  }
+
+  export type IncidenteArrastreFotoWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    incidenteId_orden?: IncidenteArrastreFotoIncidenteIdOrdenCompoundUniqueInput
+    AND?: IncidenteArrastreFotoWhereInput | IncidenteArrastreFotoWhereInput[]
+    OR?: IncidenteArrastreFotoWhereInput[]
+    NOT?: IncidenteArrastreFotoWhereInput | IncidenteArrastreFotoWhereInput[]
+    incidenteId?: IntFilter<"IncidenteArrastreFoto"> | number
+    orden?: IntFilter<"IncidenteArrastreFoto"> | number
+    url?: StringFilter<"IncidenteArrastreFoto"> | string
+    storageKey?: StringNullableFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaPorId?: IntFilter<"IncidenteArrastreFoto"> | number
+    comentario?: StringNullableFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    createdAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    updatedAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    incidente?: XOR<IncidenteArrastreTorreonScalarRelationFilter, IncidenteArrastreTorreonWhereInput>
+  }, "id" | "incidenteId_orden">
+
+  export type IncidenteArrastreFotoOrderByWithAggregationInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    url?: SortOrder
+    storageKey?: SortOrderInput | SortOrder
+    tomadaPorId?: SortOrder
+    comentario?: SortOrderInput | SortOrder
+    tomadaAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: IncidenteArrastreFotoCountOrderByAggregateInput
+    _avg?: IncidenteArrastreFotoAvgOrderByAggregateInput
+    _max?: IncidenteArrastreFotoMaxOrderByAggregateInput
+    _min?: IncidenteArrastreFotoMinOrderByAggregateInput
+    _sum?: IncidenteArrastreFotoSumOrderByAggregateInput
+  }
+
+  export type IncidenteArrastreFotoScalarWhereWithAggregatesInput = {
+    AND?: IncidenteArrastreFotoScalarWhereWithAggregatesInput | IncidenteArrastreFotoScalarWhereWithAggregatesInput[]
+    OR?: IncidenteArrastreFotoScalarWhereWithAggregatesInput[]
+    NOT?: IncidenteArrastreFotoScalarWhereWithAggregatesInput | IncidenteArrastreFotoScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"IncidenteArrastreFoto"> | number
+    incidenteId?: IntWithAggregatesFilter<"IncidenteArrastreFoto"> | number
+    orden?: IntWithAggregatesFilter<"IncidenteArrastreFoto"> | number
+    url?: StringWithAggregatesFilter<"IncidenteArrastreFoto"> | string
+    storageKey?: StringNullableWithAggregatesFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaPorId?: IntWithAggregatesFilter<"IncidenteArrastreFoto"> | number
+    comentario?: StringNullableWithAggregatesFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreFoto"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreFoto"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreFoto"> | Date | string
   }
 
   export type MovimientoTorreonFerroCreateInput = {
@@ -10959,6 +17068,475 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFotoUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    incidenteId?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArrastreTorreonCreateInput = {
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    vagones?: ArrastreTorreonVagonCreateNestedManyWithoutArrastreInput
+    incidentes?: IncidenteArrastreTorreonCreateNestedManyWithoutArrastreInput
+  }
+
+  export type ArrastreTorreonUncheckedCreateInput = {
+    id?: number
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    vagones?: ArrastreTorreonVagonUncheckedCreateNestedManyWithoutArrastreInput
+    incidentes?: IncidenteArrastreTorreonUncheckedCreateNestedManyWithoutArrastreInput
+  }
+
+  export type ArrastreTorreonUpdateInput = {
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    vagones?: ArrastreTorreonVagonUpdateManyWithoutArrastreNestedInput
+    incidentes?: IncidenteArrastreTorreonUpdateManyWithoutArrastreNestedInput
+  }
+
+  export type ArrastreTorreonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    vagones?: ArrastreTorreonVagonUncheckedUpdateManyWithoutArrastreNestedInput
+    incidentes?: IncidenteArrastreTorreonUncheckedUpdateManyWithoutArrastreNestedInput
+  }
+
+  export type ArrastreTorreonCreateManyInput = {
+    id?: number
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ArrastreTorreonUpdateManyMutationInput = {
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArrastreTorreonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArrastreTorreonVagonCreateInput = {
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    arrastre: ArrastreTorreonCreateNestedOneWithoutVagonesInput
+    incidentes?: IncidenteArrastreTorreonCreateNestedManyWithoutVagonInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedCreateInput = {
+    id?: number
+    arrastreId: number
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteArrastreTorreonUncheckedCreateNestedManyWithoutVagonInput
+  }
+
+  export type ArrastreTorreonVagonUpdateInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    arrastre?: ArrastreTorreonUpdateOneRequiredWithoutVagonesNestedInput
+    incidentes?: IncidenteArrastreTorreonUpdateManyWithoutVagonNestedInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteArrastreTorreonUncheckedUpdateManyWithoutVagonNestedInput
+  }
+
+  export type ArrastreTorreonVagonCreateManyInput = {
+    id?: number
+    arrastreId: number
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ArrastreTorreonVagonUpdateManyMutationInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArrastreTorreonVagonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreTorreonCreateInput = {
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    arrastre: ArrastreTorreonCreateNestedOneWithoutIncidentesInput
+    vagon?: ArrastreTorreonVagonCreateNestedOneWithoutIncidentesInput
+    fotos?: IncidenteArrastreFotoCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedCreateInput = {
+    id?: number
+    arrastreId: number
+    vagonId?: number | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    fotos?: IncidenteArrastreFotoUncheckedCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteArrastreTorreonUpdateInput = {
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    arrastre?: ArrastreTorreonUpdateOneRequiredWithoutIncidentesNestedInput
+    vagon?: ArrastreTorreonVagonUpdateOneWithoutIncidentesNestedInput
+    fotos?: IncidenteArrastreFotoUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    vagonId?: NullableIntFieldUpdateOperationsInput | number | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fotos?: IncidenteArrastreFotoUncheckedUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteArrastreTorreonCreateManyInput = {
+    id?: number
+    arrastreId: number
+    vagonId?: number | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreTorreonUpdateManyMutationInput = {
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    vagonId?: NullableIntFieldUpdateOperationsInput | number | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoCreateInput = {
+    orden: number
+    url: string
+    storageKey?: string | null
+    tomadaPorId: number
+    comentario?: string | null
+    tomadaAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidente: IncidenteArrastreTorreonCreateNestedOneWithoutFotosInput
+  }
+
+  export type IncidenteArrastreFotoUncheckedCreateInput = {
+    id?: number
+    incidenteId: number
+    orden: number
+    url: string
+    storageKey?: string | null
+    tomadaPorId: number
+    comentario?: string | null
+    tomadaAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreFotoUpdateInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidente?: IncidenteArrastreTorreonUpdateOneRequiredWithoutFotosNestedInput
+  }
+
+  export type IncidenteArrastreFotoUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    incidenteId?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoCreateManyInput = {
+    id?: number
+    incidenteId: number
+    orden: number
+    url: string
+    storageKey?: string | null
+    tomadaPorId: number
+    comentario?: string | null
+    tomadaAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreFotoUpdateManyMutationInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     incidenteId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
@@ -11841,6 +18419,406 @@ export namespace Prisma {
     tomadaPorId?: SortOrder
   }
 
+  export type EnumEstadoArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoArrastreTorreon | EnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoArrastreTorreonFilter<$PrismaModel> | $Enums.EstadoArrastreTorreon
+  }
+
+  export type ArrastreTorreonVagonListRelationFilter = {
+    every?: ArrastreTorreonVagonWhereInput
+    some?: ArrastreTorreonVagonWhereInput
+    none?: ArrastreTorreonVagonWhereInput
+  }
+
+  export type IncidenteArrastreTorreonListRelationFilter = {
+    every?: IncidenteArrastreTorreonWhereInput
+    some?: IncidenteArrastreTorreonWhereInput
+    none?: IncidenteArrastreTorreonWhereInput
+  }
+
+  export type ArrastreTorreonVagonOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type IncidenteArrastreTorreonOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ArrastreTorreonCountOrderByAggregateInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrder
+    viaDestinoId?: SortOrder
+    seccionOrigenId?: SortOrder
+    seccionDestinoId?: SortOrder
+    estado?: SortOrder
+    instrucciones?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    fechaPausa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ArrastreTorreonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrder
+    viaDestinoId?: SortOrder
+    seccionOrigenId?: SortOrder
+    seccionDestinoId?: SortOrder
+  }
+
+  export type ArrastreTorreonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrder
+    viaDestinoId?: SortOrder
+    seccionOrigenId?: SortOrder
+    seccionDestinoId?: SortOrder
+    estado?: SortOrder
+    instrucciones?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    fechaPausa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ArrastreTorreonMinOrderByAggregateInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrder
+    viaDestinoId?: SortOrder
+    seccionOrigenId?: SortOrder
+    seccionDestinoId?: SortOrder
+    estado?: SortOrder
+    instrucciones?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    fechaPausa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ArrastreTorreonSumOrderByAggregateInput = {
+    id?: SortOrder
+    empresaId?: SortOrder
+    creadoPorId?: SortOrder
+    operadorId?: SortOrder
+    localidadId?: SortOrder
+    viaOrigenId?: SortOrder
+    viaDestinoId?: SortOrder
+    seccionOrigenId?: SortOrder
+    seccionDestinoId?: SortOrder
+  }
+
+  export type EnumEstadoArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoArrastreTorreon | EnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.EstadoArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumEstadoArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type EnumCargaVagonArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.CargaVagonArrastreTorreon | EnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel> | $Enums.CargaVagonArrastreTorreon
+  }
+
+  export type EnumEstadoVagonArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoVagonArrastreTorreon | EnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel> | $Enums.EstadoVagonArrastreTorreon
+  }
+
+  export type ArrastreTorreonScalarRelationFilter = {
+    is?: ArrastreTorreonWhereInput
+    isNot?: ArrastreTorreonWhereInput
+  }
+
+  export type ArrastreTorreonVagonArrastreIdOrdenCompoundUniqueInput = {
+    arrastreId: number
+    orden: number
+  }
+
+  export type ArrastreTorreonVagonCountOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    numeroVagon?: SortOrder
+    carga?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+    estado?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ArrastreTorreonVagonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+  }
+
+  export type ArrastreTorreonVagonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    numeroVagon?: SortOrder
+    carga?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+    estado?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ArrastreTorreonVagonMinOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    numeroVagon?: SortOrder
+    carga?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+    estado?: SortOrder
+    fechaSolicitud?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ArrastreTorreonVagonSumOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    orden?: SortOrder
+    viaId?: SortOrder
+    seccionId?: SortOrder
+  }
+
+  export type EnumCargaVagonArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CargaVagonArrastreTorreon | EnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumCargaVagonArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.CargaVagonArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type EnumEstadoVagonArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoVagonArrastreTorreon | EnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoVagonArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.EstadoVagonArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type EnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoIncidenteArrastreTorreon | EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel> | $Enums.EstadoIncidenteArrastreTorreon
+  }
+
+  export type ArrastreTorreonVagonNullableScalarRelationFilter = {
+    is?: ArrastreTorreonVagonWhereInput | null
+    isNot?: ArrastreTorreonVagonWhereInput | null
+  }
+
+  export type IncidenteArrastreFotoListRelationFilter = {
+    every?: IncidenteArrastreFotoWhereInput
+    some?: IncidenteArrastreFotoWhereInput
+    none?: IncidenteArrastreFotoWhereInput
+  }
+
+  export type IncidenteArrastreFotoOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type IncidenteArrastreTorreonCountOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrder
+    estado?: SortOrder
+    motivo?: SortOrder
+    solucion?: SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrder
+    seccionBloqueadaId?: SortOrder
+    fechaInicio?: SortOrder
+    fechaResolucion?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IncidenteArrastreTorreonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrder
+    seccionBloqueadaId?: SortOrder
+  }
+
+  export type IncidenteArrastreTorreonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrder
+    estado?: SortOrder
+    motivo?: SortOrder
+    solucion?: SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrder
+    seccionBloqueadaId?: SortOrder
+    fechaInicio?: SortOrder
+    fechaResolucion?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IncidenteArrastreTorreonMinOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrder
+    estado?: SortOrder
+    motivo?: SortOrder
+    solucion?: SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrder
+    seccionBloqueadaId?: SortOrder
+    fechaInicio?: SortOrder
+    fechaResolucion?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IncidenteArrastreTorreonSumOrderByAggregateInput = {
+    id?: SortOrder
+    arrastreId?: SortOrder
+    vagonId?: SortOrder
+    creadoPorId?: SortOrder
+    resueltoPorId?: SortOrder
+    localidadId?: SortOrder
+    viaBloqueadaId?: SortOrder
+    seccionBloqueadaId?: SortOrder
+  }
+
+  export type EnumEstadoIncidenteArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoIncidenteArrastreTorreon | EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoIncidenteArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.EstadoIncidenteArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type IncidenteArrastreTorreonScalarRelationFilter = {
+    is?: IncidenteArrastreTorreonWhereInput
+    isNot?: IncidenteArrastreTorreonWhereInput
+  }
+
+  export type IncidenteArrastreFotoIncidenteIdOrdenCompoundUniqueInput = {
+    incidenteId: number
+    orden: number
+  }
+
+  export type IncidenteArrastreFotoCountOrderByAggregateInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    url?: SortOrder
+    storageKey?: SortOrder
+    tomadaPorId?: SortOrder
+    comentario?: SortOrder
+    tomadaAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IncidenteArrastreFotoAvgOrderByAggregateInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    tomadaPorId?: SortOrder
+  }
+
+  export type IncidenteArrastreFotoMaxOrderByAggregateInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    url?: SortOrder
+    storageKey?: SortOrder
+    tomadaPorId?: SortOrder
+    comentario?: SortOrder
+    tomadaAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IncidenteArrastreFotoMinOrderByAggregateInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    url?: SortOrder
+    storageKey?: SortOrder
+    tomadaPorId?: SortOrder
+    comentario?: SortOrder
+    tomadaAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IncidenteArrastreFotoSumOrderByAggregateInput = {
+    id?: SortOrder
+    incidenteId?: SortOrder
+    orden?: SortOrder
+    tomadaPorId?: SortOrder
+  }
+
   export type RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput = {
     create?: XOR<RondaTorreonMovimientoCreateWithoutMovimientoInput, RondaTorreonMovimientoUncheckedCreateWithoutMovimientoInput> | RondaTorreonMovimientoCreateWithoutMovimientoInput[] | RondaTorreonMovimientoUncheckedCreateWithoutMovimientoInput[]
     connectOrCreate?: RondaTorreonMovimientoCreateOrConnectWithoutMovimientoInput | RondaTorreonMovimientoCreateOrConnectWithoutMovimientoInput[]
@@ -12255,6 +19233,248 @@ export namespace Prisma {
     update?: XOR<XOR<IncidenteTorreonFerroUpdateToOneWithWhereWithoutFotosInput, IncidenteTorreonFerroUpdateWithoutFotosInput>, IncidenteTorreonFerroUncheckedUpdateWithoutFotosInput>
   }
 
+  export type ArrastreTorreonVagonCreateNestedManyWithoutArrastreInput = {
+    create?: XOR<ArrastreTorreonVagonCreateWithoutArrastreInput, ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput> | ArrastreTorreonVagonCreateWithoutArrastreInput[] | ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput | ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput[]
+    createMany?: ArrastreTorreonVagonCreateManyArrastreInputEnvelope
+    connect?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+  }
+
+  export type IncidenteArrastreTorreonCreateNestedManyWithoutArrastreInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput> | IncidenteArrastreTorreonCreateWithoutArrastreInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput | IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyArrastreInputEnvelope
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+  }
+
+  export type ArrastreTorreonVagonUncheckedCreateNestedManyWithoutArrastreInput = {
+    create?: XOR<ArrastreTorreonVagonCreateWithoutArrastreInput, ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput> | ArrastreTorreonVagonCreateWithoutArrastreInput[] | ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput | ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput[]
+    createMany?: ArrastreTorreonVagonCreateManyArrastreInputEnvelope
+    connect?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+  }
+
+  export type IncidenteArrastreTorreonUncheckedCreateNestedManyWithoutArrastreInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput> | IncidenteArrastreTorreonCreateWithoutArrastreInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput | IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyArrastreInputEnvelope
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+  }
+
+  export type EnumEstadoArrastreTorreonFieldUpdateOperationsInput = {
+    set?: $Enums.EstadoArrastreTorreon
+  }
+
+  export type ArrastreTorreonVagonUpdateManyWithoutArrastreNestedInput = {
+    create?: XOR<ArrastreTorreonVagonCreateWithoutArrastreInput, ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput> | ArrastreTorreonVagonCreateWithoutArrastreInput[] | ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput | ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput[]
+    upsert?: ArrastreTorreonVagonUpsertWithWhereUniqueWithoutArrastreInput | ArrastreTorreonVagonUpsertWithWhereUniqueWithoutArrastreInput[]
+    createMany?: ArrastreTorreonVagonCreateManyArrastreInputEnvelope
+    set?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    disconnect?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    delete?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    connect?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    update?: ArrastreTorreonVagonUpdateWithWhereUniqueWithoutArrastreInput | ArrastreTorreonVagonUpdateWithWhereUniqueWithoutArrastreInput[]
+    updateMany?: ArrastreTorreonVagonUpdateManyWithWhereWithoutArrastreInput | ArrastreTorreonVagonUpdateManyWithWhereWithoutArrastreInput[]
+    deleteMany?: ArrastreTorreonVagonScalarWhereInput | ArrastreTorreonVagonScalarWhereInput[]
+  }
+
+  export type IncidenteArrastreTorreonUpdateManyWithoutArrastreNestedInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput> | IncidenteArrastreTorreonCreateWithoutArrastreInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput | IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput[]
+    upsert?: IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutArrastreInput | IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutArrastreInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyArrastreInputEnvelope
+    set?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    disconnect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    delete?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    update?: IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutArrastreInput | IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutArrastreInput[]
+    updateMany?: IncidenteArrastreTorreonUpdateManyWithWhereWithoutArrastreInput | IncidenteArrastreTorreonUpdateManyWithWhereWithoutArrastreInput[]
+    deleteMany?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+  }
+
+  export type ArrastreTorreonVagonUncheckedUpdateManyWithoutArrastreNestedInput = {
+    create?: XOR<ArrastreTorreonVagonCreateWithoutArrastreInput, ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput> | ArrastreTorreonVagonCreateWithoutArrastreInput[] | ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput | ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput[]
+    upsert?: ArrastreTorreonVagonUpsertWithWhereUniqueWithoutArrastreInput | ArrastreTorreonVagonUpsertWithWhereUniqueWithoutArrastreInput[]
+    createMany?: ArrastreTorreonVagonCreateManyArrastreInputEnvelope
+    set?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    disconnect?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    delete?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    connect?: ArrastreTorreonVagonWhereUniqueInput | ArrastreTorreonVagonWhereUniqueInput[]
+    update?: ArrastreTorreonVagonUpdateWithWhereUniqueWithoutArrastreInput | ArrastreTorreonVagonUpdateWithWhereUniqueWithoutArrastreInput[]
+    updateMany?: ArrastreTorreonVagonUpdateManyWithWhereWithoutArrastreInput | ArrastreTorreonVagonUpdateManyWithWhereWithoutArrastreInput[]
+    deleteMany?: ArrastreTorreonVagonScalarWhereInput | ArrastreTorreonVagonScalarWhereInput[]
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateManyWithoutArrastreNestedInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput> | IncidenteArrastreTorreonCreateWithoutArrastreInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput | IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput[]
+    upsert?: IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutArrastreInput | IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutArrastreInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyArrastreInputEnvelope
+    set?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    disconnect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    delete?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    update?: IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutArrastreInput | IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutArrastreInput[]
+    updateMany?: IncidenteArrastreTorreonUpdateManyWithWhereWithoutArrastreInput | IncidenteArrastreTorreonUpdateManyWithWhereWithoutArrastreInput[]
+    deleteMany?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+  }
+
+  export type ArrastreTorreonCreateNestedOneWithoutVagonesInput = {
+    create?: XOR<ArrastreTorreonCreateWithoutVagonesInput, ArrastreTorreonUncheckedCreateWithoutVagonesInput>
+    connectOrCreate?: ArrastreTorreonCreateOrConnectWithoutVagonesInput
+    connect?: ArrastreTorreonWhereUniqueInput
+  }
+
+  export type IncidenteArrastreTorreonCreateNestedManyWithoutVagonInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutVagonInput, IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput> | IncidenteArrastreTorreonCreateWithoutVagonInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput | IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyVagonInputEnvelope
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+  }
+
+  export type IncidenteArrastreTorreonUncheckedCreateNestedManyWithoutVagonInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutVagonInput, IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput> | IncidenteArrastreTorreonCreateWithoutVagonInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput | IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyVagonInputEnvelope
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+  }
+
+  export type EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput = {
+    set?: $Enums.CargaVagonArrastreTorreon
+  }
+
+  export type EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput = {
+    set?: $Enums.EstadoVagonArrastreTorreon
+  }
+
+  export type ArrastreTorreonUpdateOneRequiredWithoutVagonesNestedInput = {
+    create?: XOR<ArrastreTorreonCreateWithoutVagonesInput, ArrastreTorreonUncheckedCreateWithoutVagonesInput>
+    connectOrCreate?: ArrastreTorreonCreateOrConnectWithoutVagonesInput
+    upsert?: ArrastreTorreonUpsertWithoutVagonesInput
+    connect?: ArrastreTorreonWhereUniqueInput
+    update?: XOR<XOR<ArrastreTorreonUpdateToOneWithWhereWithoutVagonesInput, ArrastreTorreonUpdateWithoutVagonesInput>, ArrastreTorreonUncheckedUpdateWithoutVagonesInput>
+  }
+
+  export type IncidenteArrastreTorreonUpdateManyWithoutVagonNestedInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutVagonInput, IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput> | IncidenteArrastreTorreonCreateWithoutVagonInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput | IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput[]
+    upsert?: IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutVagonInput | IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutVagonInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyVagonInputEnvelope
+    set?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    disconnect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    delete?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    update?: IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput | IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput[]
+    updateMany?: IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput | IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput[]
+    deleteMany?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateManyWithoutVagonNestedInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutVagonInput, IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput> | IncidenteArrastreTorreonCreateWithoutVagonInput[] | IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput[]
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput | IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput[]
+    upsert?: IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutVagonInput | IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutVagonInput[]
+    createMany?: IncidenteArrastreTorreonCreateManyVagonInputEnvelope
+    set?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    disconnect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    delete?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    connect?: IncidenteArrastreTorreonWhereUniqueInput | IncidenteArrastreTorreonWhereUniqueInput[]
+    update?: IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput | IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput[]
+    updateMany?: IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput | IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput[]
+    deleteMany?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+  }
+
+  export type ArrastreTorreonCreateNestedOneWithoutIncidentesInput = {
+    create?: XOR<ArrastreTorreonCreateWithoutIncidentesInput, ArrastreTorreonUncheckedCreateWithoutIncidentesInput>
+    connectOrCreate?: ArrastreTorreonCreateOrConnectWithoutIncidentesInput
+    connect?: ArrastreTorreonWhereUniqueInput
+  }
+
+  export type ArrastreTorreonVagonCreateNestedOneWithoutIncidentesInput = {
+    create?: XOR<ArrastreTorreonVagonCreateWithoutIncidentesInput, ArrastreTorreonVagonUncheckedCreateWithoutIncidentesInput>
+    connectOrCreate?: ArrastreTorreonVagonCreateOrConnectWithoutIncidentesInput
+    connect?: ArrastreTorreonVagonWhereUniqueInput
+  }
+
+  export type IncidenteArrastreFotoCreateNestedManyWithoutIncidenteInput = {
+    create?: XOR<IncidenteArrastreFotoCreateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput> | IncidenteArrastreFotoCreateWithoutIncidenteInput[] | IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput[]
+    connectOrCreate?: IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput | IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput[]
+    createMany?: IncidenteArrastreFotoCreateManyIncidenteInputEnvelope
+    connect?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+  }
+
+  export type IncidenteArrastreFotoUncheckedCreateNestedManyWithoutIncidenteInput = {
+    create?: XOR<IncidenteArrastreFotoCreateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput> | IncidenteArrastreFotoCreateWithoutIncidenteInput[] | IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput[]
+    connectOrCreate?: IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput | IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput[]
+    createMany?: IncidenteArrastreFotoCreateManyIncidenteInputEnvelope
+    connect?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+  }
+
+  export type EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput = {
+    set?: $Enums.EstadoIncidenteArrastreTorreon
+  }
+
+  export type ArrastreTorreonUpdateOneRequiredWithoutIncidentesNestedInput = {
+    create?: XOR<ArrastreTorreonCreateWithoutIncidentesInput, ArrastreTorreonUncheckedCreateWithoutIncidentesInput>
+    connectOrCreate?: ArrastreTorreonCreateOrConnectWithoutIncidentesInput
+    upsert?: ArrastreTorreonUpsertWithoutIncidentesInput
+    connect?: ArrastreTorreonWhereUniqueInput
+    update?: XOR<XOR<ArrastreTorreonUpdateToOneWithWhereWithoutIncidentesInput, ArrastreTorreonUpdateWithoutIncidentesInput>, ArrastreTorreonUncheckedUpdateWithoutIncidentesInput>
+  }
+
+  export type ArrastreTorreonVagonUpdateOneWithoutIncidentesNestedInput = {
+    create?: XOR<ArrastreTorreonVagonCreateWithoutIncidentesInput, ArrastreTorreonVagonUncheckedCreateWithoutIncidentesInput>
+    connectOrCreate?: ArrastreTorreonVagonCreateOrConnectWithoutIncidentesInput
+    upsert?: ArrastreTorreonVagonUpsertWithoutIncidentesInput
+    disconnect?: ArrastreTorreonVagonWhereInput | boolean
+    delete?: ArrastreTorreonVagonWhereInput | boolean
+    connect?: ArrastreTorreonVagonWhereUniqueInput
+    update?: XOR<XOR<ArrastreTorreonVagonUpdateToOneWithWhereWithoutIncidentesInput, ArrastreTorreonVagonUpdateWithoutIncidentesInput>, ArrastreTorreonVagonUncheckedUpdateWithoutIncidentesInput>
+  }
+
+  export type IncidenteArrastreFotoUpdateManyWithoutIncidenteNestedInput = {
+    create?: XOR<IncidenteArrastreFotoCreateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput> | IncidenteArrastreFotoCreateWithoutIncidenteInput[] | IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput[]
+    connectOrCreate?: IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput | IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput[]
+    upsert?: IncidenteArrastreFotoUpsertWithWhereUniqueWithoutIncidenteInput | IncidenteArrastreFotoUpsertWithWhereUniqueWithoutIncidenteInput[]
+    createMany?: IncidenteArrastreFotoCreateManyIncidenteInputEnvelope
+    set?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    disconnect?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    delete?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    connect?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    update?: IncidenteArrastreFotoUpdateWithWhereUniqueWithoutIncidenteInput | IncidenteArrastreFotoUpdateWithWhereUniqueWithoutIncidenteInput[]
+    updateMany?: IncidenteArrastreFotoUpdateManyWithWhereWithoutIncidenteInput | IncidenteArrastreFotoUpdateManyWithWhereWithoutIncidenteInput[]
+    deleteMany?: IncidenteArrastreFotoScalarWhereInput | IncidenteArrastreFotoScalarWhereInput[]
+  }
+
+  export type IncidenteArrastreFotoUncheckedUpdateManyWithoutIncidenteNestedInput = {
+    create?: XOR<IncidenteArrastreFotoCreateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput> | IncidenteArrastreFotoCreateWithoutIncidenteInput[] | IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput[]
+    connectOrCreate?: IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput | IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput[]
+    upsert?: IncidenteArrastreFotoUpsertWithWhereUniqueWithoutIncidenteInput | IncidenteArrastreFotoUpsertWithWhereUniqueWithoutIncidenteInput[]
+    createMany?: IncidenteArrastreFotoCreateManyIncidenteInputEnvelope
+    set?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    disconnect?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    delete?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    connect?: IncidenteArrastreFotoWhereUniqueInput | IncidenteArrastreFotoWhereUniqueInput[]
+    update?: IncidenteArrastreFotoUpdateWithWhereUniqueWithoutIncidenteInput | IncidenteArrastreFotoUpdateWithWhereUniqueWithoutIncidenteInput[]
+    updateMany?: IncidenteArrastreFotoUpdateManyWithWhereWithoutIncidenteInput | IncidenteArrastreFotoUpdateManyWithWhereWithoutIncidenteInput[]
+    deleteMany?: IncidenteArrastreFotoScalarWhereInput | IncidenteArrastreFotoScalarWhereInput[]
+  }
+
+  export type IncidenteArrastreTorreonCreateNestedOneWithoutFotosInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutFotosInput, IncidenteArrastreTorreonUncheckedCreateWithoutFotosInput>
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutFotosInput
+    connect?: IncidenteArrastreTorreonWhereUniqueInput
+  }
+
+  export type IncidenteArrastreTorreonUpdateOneRequiredWithoutFotosNestedInput = {
+    create?: XOR<IncidenteArrastreTorreonCreateWithoutFotosInput, IncidenteArrastreTorreonUncheckedCreateWithoutFotosInput>
+    connectOrCreate?: IncidenteArrastreTorreonCreateOrConnectWithoutFotosInput
+    upsert?: IncidenteArrastreTorreonUpsertWithoutFotosInput
+    connect?: IncidenteArrastreTorreonWhereUniqueInput
+    update?: XOR<XOR<IncidenteArrastreTorreonUpdateToOneWithWhereWithoutFotosInput, IncidenteArrastreTorreonUpdateWithoutFotosInput>, IncidenteArrastreTorreonUncheckedUpdateWithoutFotosInput>
+  }
+
   export type NestedIntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -12624,6 +19844,74 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumTipoFotoMovimientoTorreonFilter<$PrismaModel>
     _max?: NestedEnumTipoFotoMovimientoTorreonFilter<$PrismaModel>
+  }
+
+  export type NestedEnumEstadoArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoArrastreTorreon | EnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoArrastreTorreonFilter<$PrismaModel> | $Enums.EstadoArrastreTorreon
+  }
+
+  export type NestedEnumEstadoArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoArrastreTorreon | EnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoArrastreTorreon[] | ListEnumEstadoArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.EstadoArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumEstadoArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.CargaVagonArrastreTorreon | EnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel> | $Enums.CargaVagonArrastreTorreon
+  }
+
+  export type NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoVagonArrastreTorreon | EnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel> | $Enums.EstadoVagonArrastreTorreon
+  }
+
+  export type NestedEnumCargaVagonArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CargaVagonArrastreTorreon | EnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CargaVagonArrastreTorreon[] | ListEnumCargaVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumCargaVagonArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.CargaVagonArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumCargaVagonArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type NestedEnumEstadoVagonArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoVagonArrastreTorreon | EnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoVagonArrastreTorreon[] | ListEnumEstadoVagonArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoVagonArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.EstadoVagonArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoIncidenteArrastreTorreon | EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel> | $Enums.EstadoIncidenteArrastreTorreon
+  }
+
+  export type NestedEnumEstadoIncidenteArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoIncidenteArrastreTorreon | EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoIncidenteArrastreTorreonWithAggregatesFilter<$PrismaModel> | $Enums.EstadoIncidenteArrastreTorreon
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel>
+    _max?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel>
   }
 
   export type RondaTorreonMovimientoCreateWithoutMovimientoInput = {
@@ -13752,6 +21040,650 @@ export namespace Prisma {
     rondasBloqueadas?: RondaTorreonMovimientoUncheckedUpdateManyWithoutBloqueadoPorIncidenteNestedInput
   }
 
+  export type ArrastreTorreonVagonCreateWithoutArrastreInput = {
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteArrastreTorreonCreateNestedManyWithoutVagonInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput = {
+    id?: number
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteArrastreTorreonUncheckedCreateNestedManyWithoutVagonInput
+  }
+
+  export type ArrastreTorreonVagonCreateOrConnectWithoutArrastreInput = {
+    where: ArrastreTorreonVagonWhereUniqueInput
+    create: XOR<ArrastreTorreonVagonCreateWithoutArrastreInput, ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput>
+  }
+
+  export type ArrastreTorreonVagonCreateManyArrastreInputEnvelope = {
+    data: ArrastreTorreonVagonCreateManyArrastreInput | ArrastreTorreonVagonCreateManyArrastreInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type IncidenteArrastreTorreonCreateWithoutArrastreInput = {
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    vagon?: ArrastreTorreonVagonCreateNestedOneWithoutIncidentesInput
+    fotos?: IncidenteArrastreFotoCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput = {
+    id?: number
+    vagonId?: number | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    fotos?: IncidenteArrastreFotoUncheckedCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteArrastreTorreonCreateOrConnectWithoutArrastreInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    create: XOR<IncidenteArrastreTorreonCreateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput>
+  }
+
+  export type IncidenteArrastreTorreonCreateManyArrastreInputEnvelope = {
+    data: IncidenteArrastreTorreonCreateManyArrastreInput | IncidenteArrastreTorreonCreateManyArrastreInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ArrastreTorreonVagonUpsertWithWhereUniqueWithoutArrastreInput = {
+    where: ArrastreTorreonVagonWhereUniqueInput
+    update: XOR<ArrastreTorreonVagonUpdateWithoutArrastreInput, ArrastreTorreonVagonUncheckedUpdateWithoutArrastreInput>
+    create: XOR<ArrastreTorreonVagonCreateWithoutArrastreInput, ArrastreTorreonVagonUncheckedCreateWithoutArrastreInput>
+  }
+
+  export type ArrastreTorreonVagonUpdateWithWhereUniqueWithoutArrastreInput = {
+    where: ArrastreTorreonVagonWhereUniqueInput
+    data: XOR<ArrastreTorreonVagonUpdateWithoutArrastreInput, ArrastreTorreonVagonUncheckedUpdateWithoutArrastreInput>
+  }
+
+  export type ArrastreTorreonVagonUpdateManyWithWhereWithoutArrastreInput = {
+    where: ArrastreTorreonVagonScalarWhereInput
+    data: XOR<ArrastreTorreonVagonUpdateManyMutationInput, ArrastreTorreonVagonUncheckedUpdateManyWithoutArrastreInput>
+  }
+
+  export type ArrastreTorreonVagonScalarWhereInput = {
+    AND?: ArrastreTorreonVagonScalarWhereInput | ArrastreTorreonVagonScalarWhereInput[]
+    OR?: ArrastreTorreonVagonScalarWhereInput[]
+    NOT?: ArrastreTorreonVagonScalarWhereInput | ArrastreTorreonVagonScalarWhereInput[]
+    id?: IntFilter<"ArrastreTorreonVagon"> | number
+    arrastreId?: IntFilter<"ArrastreTorreonVagon"> | number
+    orden?: IntFilter<"ArrastreTorreonVagon"> | number
+    numeroVagon?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFilter<"ArrastreTorreonVagon"> | number
+    seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    fechaInicio?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
+    createdAt?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+    updatedAt?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
+  }
+
+  export type IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutArrastreInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    update: XOR<IncidenteArrastreTorreonUpdateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedUpdateWithoutArrastreInput>
+    create: XOR<IncidenteArrastreTorreonCreateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedCreateWithoutArrastreInput>
+  }
+
+  export type IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutArrastreInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    data: XOR<IncidenteArrastreTorreonUpdateWithoutArrastreInput, IncidenteArrastreTorreonUncheckedUpdateWithoutArrastreInput>
+  }
+
+  export type IncidenteArrastreTorreonUpdateManyWithWhereWithoutArrastreInput = {
+    where: IncidenteArrastreTorreonScalarWhereInput
+    data: XOR<IncidenteArrastreTorreonUpdateManyMutationInput, IncidenteArrastreTorreonUncheckedUpdateManyWithoutArrastreInput>
+  }
+
+  export type IncidenteArrastreTorreonScalarWhereInput = {
+    AND?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+    OR?: IncidenteArrastreTorreonScalarWhereInput[]
+    NOT?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+    id?: IntFilter<"IncidenteArrastreTorreon"> | number
+    arrastreId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    vagonId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    creadoPorId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    resueltoPorId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFilter<"IncidenteArrastreTorreon"> | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFilter<"IncidenteArrastreTorreon"> | string
+    solucion?: StringNullableFilter<"IncidenteArrastreTorreon"> | string | null
+    localidadId?: IntFilter<"IncidenteArrastreTorreon"> | number
+    viaBloqueadaId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    seccionBloqueadaId?: IntNullableFilter<"IncidenteArrastreTorreon"> | number | null
+    fechaInicio?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    fechaResolucion?: DateTimeNullableFilter<"IncidenteArrastreTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"IncidenteArrastreTorreon"> | Date | string
+  }
+
+  export type ArrastreTorreonCreateWithoutVagonesInput = {
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteArrastreTorreonCreateNestedManyWithoutArrastreInput
+  }
+
+  export type ArrastreTorreonUncheckedCreateWithoutVagonesInput = {
+    id?: number
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteArrastreTorreonUncheckedCreateNestedManyWithoutArrastreInput
+  }
+
+  export type ArrastreTorreonCreateOrConnectWithoutVagonesInput = {
+    where: ArrastreTorreonWhereUniqueInput
+    create: XOR<ArrastreTorreonCreateWithoutVagonesInput, ArrastreTorreonUncheckedCreateWithoutVagonesInput>
+  }
+
+  export type IncidenteArrastreTorreonCreateWithoutVagonInput = {
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    arrastre: ArrastreTorreonCreateNestedOneWithoutIncidentesInput
+    fotos?: IncidenteArrastreFotoCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput = {
+    id?: number
+    arrastreId: number
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    fotos?: IncidenteArrastreFotoUncheckedCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteArrastreTorreonCreateOrConnectWithoutVagonInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    create: XOR<IncidenteArrastreTorreonCreateWithoutVagonInput, IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput>
+  }
+
+  export type IncidenteArrastreTorreonCreateManyVagonInputEnvelope = {
+    data: IncidenteArrastreTorreonCreateManyVagonInput | IncidenteArrastreTorreonCreateManyVagonInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ArrastreTorreonUpsertWithoutVagonesInput = {
+    update: XOR<ArrastreTorreonUpdateWithoutVagonesInput, ArrastreTorreonUncheckedUpdateWithoutVagonesInput>
+    create: XOR<ArrastreTorreonCreateWithoutVagonesInput, ArrastreTorreonUncheckedCreateWithoutVagonesInput>
+    where?: ArrastreTorreonWhereInput
+  }
+
+  export type ArrastreTorreonUpdateToOneWithWhereWithoutVagonesInput = {
+    where?: ArrastreTorreonWhereInput
+    data: XOR<ArrastreTorreonUpdateWithoutVagonesInput, ArrastreTorreonUncheckedUpdateWithoutVagonesInput>
+  }
+
+  export type ArrastreTorreonUpdateWithoutVagonesInput = {
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteArrastreTorreonUpdateManyWithoutArrastreNestedInput
+  }
+
+  export type ArrastreTorreonUncheckedUpdateWithoutVagonesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteArrastreTorreonUncheckedUpdateManyWithoutArrastreNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUpsertWithWhereUniqueWithoutVagonInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    update: XOR<IncidenteArrastreTorreonUpdateWithoutVagonInput, IncidenteArrastreTorreonUncheckedUpdateWithoutVagonInput>
+    create: XOR<IncidenteArrastreTorreonCreateWithoutVagonInput, IncidenteArrastreTorreonUncheckedCreateWithoutVagonInput>
+  }
+
+  export type IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    data: XOR<IncidenteArrastreTorreonUpdateWithoutVagonInput, IncidenteArrastreTorreonUncheckedUpdateWithoutVagonInput>
+  }
+
+  export type IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput = {
+    where: IncidenteArrastreTorreonScalarWhereInput
+    data: XOR<IncidenteArrastreTorreonUpdateManyMutationInput, IncidenteArrastreTorreonUncheckedUpdateManyWithoutVagonInput>
+  }
+
+  export type ArrastreTorreonCreateWithoutIncidentesInput = {
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    vagones?: ArrastreTorreonVagonCreateNestedManyWithoutArrastreInput
+  }
+
+  export type ArrastreTorreonUncheckedCreateWithoutIncidentesInput = {
+    id?: number
+    empresaId: number
+    creadoPorId: number
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    estado?: $Enums.EstadoArrastreTorreon
+    instrucciones?: string | null
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    vagones?: ArrastreTorreonVagonUncheckedCreateNestedManyWithoutArrastreInput
+  }
+
+  export type ArrastreTorreonCreateOrConnectWithoutIncidentesInput = {
+    where: ArrastreTorreonWhereUniqueInput
+    create: XOR<ArrastreTorreonCreateWithoutIncidentesInput, ArrastreTorreonUncheckedCreateWithoutIncidentesInput>
+  }
+
+  export type ArrastreTorreonVagonCreateWithoutIncidentesInput = {
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    arrastre: ArrastreTorreonCreateNestedOneWithoutVagonesInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedCreateWithoutIncidentesInput = {
+    id?: number
+    arrastreId: number
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ArrastreTorreonVagonCreateOrConnectWithoutIncidentesInput = {
+    where: ArrastreTorreonVagonWhereUniqueInput
+    create: XOR<ArrastreTorreonVagonCreateWithoutIncidentesInput, ArrastreTorreonVagonUncheckedCreateWithoutIncidentesInput>
+  }
+
+  export type IncidenteArrastreFotoCreateWithoutIncidenteInput = {
+    orden: number
+    url: string
+    storageKey?: string | null
+    tomadaPorId: number
+    comentario?: string | null
+    tomadaAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput = {
+    id?: number
+    orden: number
+    url: string
+    storageKey?: string | null
+    tomadaPorId: number
+    comentario?: string | null
+    tomadaAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreFotoCreateOrConnectWithoutIncidenteInput = {
+    where: IncidenteArrastreFotoWhereUniqueInput
+    create: XOR<IncidenteArrastreFotoCreateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput>
+  }
+
+  export type IncidenteArrastreFotoCreateManyIncidenteInputEnvelope = {
+    data: IncidenteArrastreFotoCreateManyIncidenteInput | IncidenteArrastreFotoCreateManyIncidenteInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ArrastreTorreonUpsertWithoutIncidentesInput = {
+    update: XOR<ArrastreTorreonUpdateWithoutIncidentesInput, ArrastreTorreonUncheckedUpdateWithoutIncidentesInput>
+    create: XOR<ArrastreTorreonCreateWithoutIncidentesInput, ArrastreTorreonUncheckedCreateWithoutIncidentesInput>
+    where?: ArrastreTorreonWhereInput
+  }
+
+  export type ArrastreTorreonUpdateToOneWithWhereWithoutIncidentesInput = {
+    where?: ArrastreTorreonWhereInput
+    data: XOR<ArrastreTorreonUpdateWithoutIncidentesInput, ArrastreTorreonUncheckedUpdateWithoutIncidentesInput>
+  }
+
+  export type ArrastreTorreonUpdateWithoutIncidentesInput = {
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    vagones?: ArrastreTorreonVagonUpdateManyWithoutArrastreNestedInput
+  }
+
+  export type ArrastreTorreonUncheckedUpdateWithoutIncidentesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    vagones?: ArrastreTorreonVagonUncheckedUpdateManyWithoutArrastreNestedInput
+  }
+
+  export type ArrastreTorreonVagonUpsertWithoutIncidentesInput = {
+    update: XOR<ArrastreTorreonVagonUpdateWithoutIncidentesInput, ArrastreTorreonVagonUncheckedUpdateWithoutIncidentesInput>
+    create: XOR<ArrastreTorreonVagonCreateWithoutIncidentesInput, ArrastreTorreonVagonUncheckedCreateWithoutIncidentesInput>
+    where?: ArrastreTorreonVagonWhereInput
+  }
+
+  export type ArrastreTorreonVagonUpdateToOneWithWhereWithoutIncidentesInput = {
+    where?: ArrastreTorreonVagonWhereInput
+    data: XOR<ArrastreTorreonVagonUpdateWithoutIncidentesInput, ArrastreTorreonVagonUncheckedUpdateWithoutIncidentesInput>
+  }
+
+  export type ArrastreTorreonVagonUpdateWithoutIncidentesInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    arrastre?: ArrastreTorreonUpdateOneRequiredWithoutVagonesNestedInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedUpdateWithoutIncidentesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoUpsertWithWhereUniqueWithoutIncidenteInput = {
+    where: IncidenteArrastreFotoWhereUniqueInput
+    update: XOR<IncidenteArrastreFotoUpdateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedUpdateWithoutIncidenteInput>
+    create: XOR<IncidenteArrastreFotoCreateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedCreateWithoutIncidenteInput>
+  }
+
+  export type IncidenteArrastreFotoUpdateWithWhereUniqueWithoutIncidenteInput = {
+    where: IncidenteArrastreFotoWhereUniqueInput
+    data: XOR<IncidenteArrastreFotoUpdateWithoutIncidenteInput, IncidenteArrastreFotoUncheckedUpdateWithoutIncidenteInput>
+  }
+
+  export type IncidenteArrastreFotoUpdateManyWithWhereWithoutIncidenteInput = {
+    where: IncidenteArrastreFotoScalarWhereInput
+    data: XOR<IncidenteArrastreFotoUpdateManyMutationInput, IncidenteArrastreFotoUncheckedUpdateManyWithoutIncidenteInput>
+  }
+
+  export type IncidenteArrastreFotoScalarWhereInput = {
+    AND?: IncidenteArrastreFotoScalarWhereInput | IncidenteArrastreFotoScalarWhereInput[]
+    OR?: IncidenteArrastreFotoScalarWhereInput[]
+    NOT?: IncidenteArrastreFotoScalarWhereInput | IncidenteArrastreFotoScalarWhereInput[]
+    id?: IntFilter<"IncidenteArrastreFoto"> | number
+    incidenteId?: IntFilter<"IncidenteArrastreFoto"> | number
+    orden?: IntFilter<"IncidenteArrastreFoto"> | number
+    url?: StringFilter<"IncidenteArrastreFoto"> | string
+    storageKey?: StringNullableFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaPorId?: IntFilter<"IncidenteArrastreFoto"> | number
+    comentario?: StringNullableFilter<"IncidenteArrastreFoto"> | string | null
+    tomadaAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    createdAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+    updatedAt?: DateTimeFilter<"IncidenteArrastreFoto"> | Date | string
+  }
+
+  export type IncidenteArrastreTorreonCreateWithoutFotosInput = {
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    arrastre: ArrastreTorreonCreateNestedOneWithoutIncidentesInput
+    vagon?: ArrastreTorreonVagonCreateNestedOneWithoutIncidentesInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedCreateWithoutFotosInput = {
+    id?: number
+    arrastreId: number
+    vagonId?: number | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreTorreonCreateOrConnectWithoutFotosInput = {
+    where: IncidenteArrastreTorreonWhereUniqueInput
+    create: XOR<IncidenteArrastreTorreonCreateWithoutFotosInput, IncidenteArrastreTorreonUncheckedCreateWithoutFotosInput>
+  }
+
+  export type IncidenteArrastreTorreonUpsertWithoutFotosInput = {
+    update: XOR<IncidenteArrastreTorreonUpdateWithoutFotosInput, IncidenteArrastreTorreonUncheckedUpdateWithoutFotosInput>
+    create: XOR<IncidenteArrastreTorreonCreateWithoutFotosInput, IncidenteArrastreTorreonUncheckedCreateWithoutFotosInput>
+    where?: IncidenteArrastreTorreonWhereInput
+  }
+
+  export type IncidenteArrastreTorreonUpdateToOneWithWhereWithoutFotosInput = {
+    where?: IncidenteArrastreTorreonWhereInput
+    data: XOR<IncidenteArrastreTorreonUpdateWithoutFotosInput, IncidenteArrastreTorreonUncheckedUpdateWithoutFotosInput>
+  }
+
+  export type IncidenteArrastreTorreonUpdateWithoutFotosInput = {
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    arrastre?: ArrastreTorreonUpdateOneRequiredWithoutIncidentesNestedInput
+    vagon?: ArrastreTorreonVagonUpdateOneWithoutIncidentesNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateWithoutFotosInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    vagonId?: NullableIntFieldUpdateOperationsInput | number | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RondaTorreonMovimientoCreateManyMovimientoInput = {
     id?: number
     rondaId: number
@@ -14083,6 +22015,252 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFotoUncheckedUpdateManyWithoutIncidenteInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ArrastreTorreonVagonCreateManyArrastreInput = {
+    id?: number
+    orden: number
+    numeroVagon?: string | null
+    carga: $Enums.CargaVagonArrastreTorreon
+    viaId: number
+    seccionId: number
+    estado?: $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreTorreonCreateManyArrastreInput = {
+    id?: number
+    vagonId?: number | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ArrastreTorreonVagonUpdateWithoutArrastreInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteArrastreTorreonUpdateManyWithoutVagonNestedInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedUpdateWithoutArrastreInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteArrastreTorreonUncheckedUpdateManyWithoutVagonNestedInput
+  }
+
+  export type ArrastreTorreonVagonUncheckedUpdateManyWithoutArrastreInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
+    carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
+    viaId?: IntFieldUpdateOperationsInput | number
+    seccionId?: IntFieldUpdateOperationsInput | number
+    estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreTorreonUpdateWithoutArrastreInput = {
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    vagon?: ArrastreTorreonVagonUpdateOneWithoutIncidentesNestedInput
+    fotos?: IncidenteArrastreFotoUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateWithoutArrastreInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    vagonId?: NullableIntFieldUpdateOperationsInput | number | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fotos?: IncidenteArrastreFotoUncheckedUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateManyWithoutArrastreInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    vagonId?: NullableIntFieldUpdateOperationsInput | number | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreTorreonCreateManyVagonInput = {
+    id?: number
+    arrastreId: number
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteArrastreTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreTorreonUpdateWithoutVagonInput = {
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    arrastre?: ArrastreTorreonUpdateOneRequiredWithoutIncidentesNestedInput
+    fotos?: IncidenteArrastreFotoUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateWithoutVagonInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fotos?: IncidenteArrastreFotoUncheckedUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteArrastreTorreonUncheckedUpdateManyWithoutVagonInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    arrastreId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteArrastreTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoCreateManyIncidenteInput = {
+    id?: number
+    orden: number
+    url: string
+    storageKey?: string | null
+    tomadaPorId: number
+    comentario?: string | null
+    tomadaAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteArrastreFotoUpdateWithoutIncidenteInput = {
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoUncheckedUpdateWithoutIncidenteInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    orden?: IntFieldUpdateOperationsInput | number
+    url?: StringFieldUpdateOperationsInput | string
+    storageKey?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaPorId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
+    tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteArrastreFotoUncheckedUpdateManyWithoutIncidenteInput = {
     id?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
     url?: StringFieldUpdateOperationsInput | string

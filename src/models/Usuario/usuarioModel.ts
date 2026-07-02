@@ -99,7 +99,7 @@ export class UsuarioModel {
     try {
       return await prisma.usuario.findUnique({
         where: { id },
-        select: { id: true, rol: true, activo: true },
+        select: { id: true, rol: true, activo: true, localidadId: true },
       });
     } catch (error) {
       log.error('usuarioModel:summary:error', { reqId: ctx.reqId, id, error: this.serPrisma(error) });

@@ -67,6 +67,13 @@ El incidente guarda sus fotos en `incidente_torreon_foto` con `orden` unico por 
 La API debe validar que el incidente tenga sus 4 evidencias requeridas antes de permitir
 el flujo que corresponda.
 
+Las capturas reales se reciben como `dataUrl`, `base64` o `contenidoBase64`.
+El micro las optimiza con la misma regla de incidentes del back principal
+(maximo 1920x1080, JPEG calidad 85) y las guarda bajo `uploads/incidentes`
+en carpetas `YYYY/MM/DD`. La ruta relativa queda en `url` y `storageKey`
+de las tablas de Torreon. Si se envia una `url` ya existente, se conserva como
+referencia externa.
+
 ## Scripts
 
 ```bash
@@ -140,14 +147,14 @@ Payload de captura:
 
 ```json
 {
-  "url": "https://...",
-  "storageKey": "torreon/movimientos/1/antes/1.webp",
+  "dataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
   "tomadaPorId": 10,
   "comentario": "opcional"
 }
 ```
 
-Los endpoints aceptan `fotos` o `capturas` como arreglo.
+Tambien se acepta `{ "base64": "...", "mimeType": "image/jpeg" }` o una
+`url` ya existente. Los endpoints aceptan `fotos` o `capturas` como arreglo.
 
 ## Seguridad entre servicios
 

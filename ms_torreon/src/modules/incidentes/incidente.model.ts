@@ -1,6 +1,7 @@
 import { EstadoIncidenteTorreon, Prisma, PrismaClient } from "../../../generated";
 import { prismaTorreon } from "../../db/prisma";
 import { DomainError } from "../../utils/domainError";
+import { guardarFotoTorreon } from "../../utils/imagenesTorreon";
 import { RondaModel } from "../rondas/ronda.model";
 import { fotoInputSchema } from "../movimientos/movimiento.schemas";
 import { resolverIncidenteSchema } from "./incidente.schemas";
@@ -8,6 +9,14 @@ import { z } from "zod";
 
 type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
+
+type ListarIncidentesQuery = {
+  localidadId?: number;
+  empresaId?: number;
+  estado?: string;
+  page?: number;
+  pageSize?: number;
+};
 
 export type MovimientoIncidenteRefs = {
   id: number;
@@ -29,6 +38,26 @@ export type CrearIncidenteInput = {
 
 const normalizeIdList = (...values: Array<number | null | undefined>) => {
   return [...new Set(values.filter((value): value is number => typeof value === "number"))];
+};
+
+const includeIncidenteDetalle = {
+  movimiento: true,
+  fotos: {
+    orderBy: { orden: "asc" as const },
+  },
+};
+
+const compact = <T extends Record<string, unknown>>(data: T): T => {
+  Object.keys(data).forEach((key) => data[key] === undefined && delete data[key]);
+  return data;
+};
+
+const normalizeEstado = (estado?: string) => {
+  const value = String(estado ?? "").trim().toUpperCase();
+  if (value === "PASADOS") return EstadoIncidenteTorreon.RESUELTO;
+  if (value === EstadoIncidenteTorreon.ABIERTO) return EstadoIncidenteTorreon.ABIERTO;
+  if (value === EstadoIncidenteTorreon.RESUELTO) return EstadoIncidenteTorreon.RESUELTO;
+  return undefined;
 };
 
 function buildMovimientoResourceFilters(refs: MovimientoIncidenteRefs): Prisma.IncidenteTorreonFerroWhereInput[] {
@@ -56,21 +85,74 @@ async function createIncidenteFotos(
   const start = (last?.orden ?? 0) + 1;
 
   return Promise.all(
-    fotos.map((foto, index) => tx.incidenteTorreonFoto.create({
-      data: {
-        incidenteId,
-        orden: start + index,
-        url: foto.url,
-        storageKey: foto.storageKey,
-        tomadaPorId: foto.tomadaPorId ?? actorFallbackId,
-        comentario: foto.comentario,
-        tomadaAt: foto.tomadaAt ?? new Date(),
-      },
-    }))
+    fotos.map(async (foto, index) => {
+      const orden = start + index;
+      const archivo = await guardarFotoTorreon(foto, {
+        entidad: "incidente_movimiento",
+        referenciaId: incidenteId,
+        orden,
+      });
+
+      return tx.incidenteTorreonFoto.create({
+        data: {
+          incidenteId,
+          orden,
+          url: archivo.url,
+          storageKey: archivo.storageKey,
+          tomadaPorId: foto.tomadaPorId ?? actorFallbackId,
+          comentario: foto.comentario,
+          tomadaAt: foto.tomadaAt ?? new Date(),
+        },
+      });
+    })
   );
 }
 
 export class IncidenteModel {
+  static async listar(query: ListarIncidentesQuery) {
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Math.trunc(query.pageSize ?? 20)));
+    const skip = (page - 1) * pageSize;
+    const estado = normalizeEstado(query.estado);
+
+    const where: Prisma.IncidenteTorreonFerroWhereInput = compact({
+      localidadId: query.localidadId,
+      estado,
+      movimiento: query.empresaId ? { empresaId: query.empresaId } : undefined,
+    });
+
+    const [data, total] = await Promise.all([
+      prismaTorreon.incidenteTorreonFerro.findMany({
+        where,
+        include: includeIncidenteDetalle,
+        orderBy: [{ fechaInicio: "desc" }, { id: "desc" }],
+        skip,
+        take: pageSize,
+      }),
+      prismaTorreon.incidenteTorreonFerro.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        estadoFiltro: estado ?? null,
+      },
+    };
+  }
+
+  static async obtener(id: number) {
+    const incidente = await prismaTorreon.incidenteTorreonFerro.findUnique({
+      where: { id },
+      include: includeIncidenteDetalle,
+    });
+    if (!incidente) throw new DomainError(404, "Incidente no encontrado");
+    return incidente;
+  }
+
   static async obtenerActivoDeMovimiento(tx: Tx | PrismaClient, movimientoId: number) {
     return tx.incidenteTorreonFerro.findFirst({
       where: { movimientoId, estado: EstadoIncidenteTorreon.ABIERTO },

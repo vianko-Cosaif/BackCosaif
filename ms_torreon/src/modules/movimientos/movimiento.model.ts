@@ -7,6 +7,7 @@ import {
 } from "../../../generated";
 import { prismaTorreon } from "../../db/prisma";
 import { DomainError } from "../../utils/domainError";
+import { guardarFotoTorreon } from "../../utils/imagenesTorreon";
 import { IncidenteModel } from "../incidentes/incidente.model";
 import { crearIncidenteMovimientoSchema } from "../incidentes/incidente.schemas";
 import { RondaModel } from "../rondas/ronda.model";
@@ -22,6 +23,12 @@ import { z } from "zod";
 
 type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
+
+const MAX_FOTOS_MOVIMIENTO: Record<TipoFotoMovimientoTorreon, number> = {
+  [TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO]: 2,
+  [TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO]: 2,
+  [TipoFotoMovimientoTorreon.FIN_MOVIMIENTO]: 2,
+};
 
 const includeMovimientoDetalle = {
   rondas: {
@@ -77,6 +84,19 @@ async function createMovimientoFotos(
   actorFallbackId: number
 ) {
   if (!fotos.length) return [];
+  const maxFotos = MAX_FOTOS_MOVIMIENTO[tipo];
+  const existentes = await tx.movimientoTorreonFoto.count({
+    where: { movimientoId, tipo },
+  });
+  if (existentes + fotos.length > maxFotos) {
+    throw new DomainError(400, `${tipo} permite maximo ${maxFotos} capturas`, {
+      movimientoId,
+      tipo,
+      existentes,
+      recibidas: fotos.length,
+      maximo: maxFotos,
+    });
+  }
 
   const last = await tx.movimientoTorreonFoto.findFirst({
     where: { movimientoId, tipo },
@@ -86,18 +106,28 @@ async function createMovimientoFotos(
   const start = (last?.orden ?? 0) + 1;
 
   return Promise.all(
-    fotos.map((foto, index) => tx.movimientoTorreonFoto.create({
-      data: {
-        movimientoId,
+    fotos.map(async (foto, index) => {
+      const orden = start + index;
+      const archivo = await guardarFotoTorreon(foto, {
+        entidad: "movimiento_ferro",
+        referenciaId: movimientoId,
         tipo,
-        orden: start + index,
-        url: foto.url,
-        storageKey: foto.storageKey,
-        tomadaPorId: foto.tomadaPorId ?? actorFallbackId,
-        comentario: foto.comentario,
-        tomadaAt: foto.tomadaAt ?? new Date(),
-      },
-    }))
+        orden,
+      });
+
+      return tx.movimientoTorreonFoto.create({
+        data: {
+          movimientoId,
+          tipo,
+          orden,
+          url: archivo.url,
+          storageKey: archivo.storageKey,
+          tomadaPorId: foto.tomadaPorId ?? actorFallbackId,
+          comentario: foto.comentario,
+          tomadaAt: foto.tomadaAt ?? new Date(),
+        },
+      });
+    })
   );
 }
 

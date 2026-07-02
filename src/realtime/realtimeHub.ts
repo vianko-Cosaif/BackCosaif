@@ -92,7 +92,14 @@ function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: Realti
 
   if (role === 'ADMINISTRADOR') return { mode: 'all' };
 
-  if (role === 'CLIENTE') {
+  if (role === 'CLIENTE_COOR' || role === 'CLIENTE_ADMIN') {
+    const empresaId = toPositiveInt(user.empresa?.id);
+    const localidadId = requestedScope.localidadId ?? undefined;
+    if (empresaId && localidadId) return { mode: 'empresaLocalidad', empresaId, localidadId };
+    return empresaId ? { mode: 'empresa', id: empresaId } : { mode: 'none' };
+  }
+
+  if (['CLIENTE', 'ARRASTRE_TORREON'].includes(role)) {
     const empresaId = toPositiveInt(user.empresa?.id);
     const localidadId = requestedScope.localidadId ?? toPositiveInt(user.localidad?.id);
     if (empresaId && localidadId) {

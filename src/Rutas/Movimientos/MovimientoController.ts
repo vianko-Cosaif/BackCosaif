@@ -51,7 +51,7 @@ const medidaSchema = z.preprocess(
 
 const wheelCountSchema = z.union([z.literal(4), z.literal(6), z.literal(8), z.literal(12)]);
 const CANCELAR_TORNEADO_ROLES = new Set(['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR']);
-const CLIENTE_ROLES = new Set(['CLIENTE']);
+const CLIENTE_ROLES = new Set(['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR', 'ARRASTRE_TORREON']);
 const TORNERO_ROLES = new Set(['TORNO', 'TORNERO']);
 
 function getRequestRole(req: Parameters<RequestHandler>[0]) {
