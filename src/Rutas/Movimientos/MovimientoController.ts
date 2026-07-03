@@ -1831,6 +1831,16 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const fechaCampoRaw = typeof req.query.fechaCampo === 'string' ? req.query.fechaCampo.toLowerCase() : 'solicitud';
     const fechaDesdeRaw = typeof req.query.fechaDesde === 'string' ? req.query.fechaDesde : undefined;
     const fechaHastaRaw = typeof req.query.fechaHasta === 'string' ? req.query.fechaHasta : undefined;
+    const sortByRaw = typeof req.query.sortBy === 'string'
+      ? req.query.sortBy.toLowerCase()
+      : typeof req.query.campoOrden === 'string'
+        ? req.query.campoOrden.toLowerCase()
+        : undefined;
+    const sortDirRaw = typeof req.query.sortDir === 'string'
+      ? req.query.sortDir.toLowerCase()
+      : typeof req.query.direccionOrden === 'string'
+        ? req.query.direccionOrden.toLowerCase()
+        : undefined;
 
     if (empresaId !== undefined && Number.isNaN(empresaId)) {
       return res.status(400).json({ message: 'empresaId debe ser numérico' });
@@ -1859,6 +1869,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const camposFechaValidos = ['solicitud', 'inicio', 'fin', 'creacion'];
     if (fechaCampoRaw && !camposFechaValidos.includes(fechaCampoRaw)) {
       return res.status(400).json({ message: `fechaCampo inválido (válidos: ${camposFechaValidos.join(', ')})` });
+    }
+
+    const camposOrdenValidos = ['id', 'locomotora', 'solicitud', 'inicio', 'fin', 'estado', 'prioridad', 'tipo', 'localidad', 'empresa'];
+    if (sortByRaw && !camposOrdenValidos.includes(sortByRaw)) {
+      return res.status(400).json({ message: `sortBy inválido (válidos: ${camposOrdenValidos.join(', ')})` });
+    }
+    if (sortDirRaw && !['asc', 'desc'].includes(sortDirRaw)) {
+      return res.status(400).json({ message: 'sortDir inválido (asc|desc)' });
     }
 
     const parseFecha = (v?: string) => {
@@ -1948,6 +1966,8 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
         fechaCampo: fechaCampoRaw as any,
         fechaDesde,
         fechaHasta,
+        sortBy: sortByRaw as any,
+        sortDir: sortDirRaw as any,
         pagination,
       });
       res.status(200).json(resultado);

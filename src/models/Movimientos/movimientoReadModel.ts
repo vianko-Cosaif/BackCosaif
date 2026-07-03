@@ -36,6 +36,8 @@ type MovimientoBusquedaParams = {
   fechaCampo?: 'solicitud' | 'inicio' | 'fin' | 'creacion';
   fechaDesde?: Date;
   fechaHasta?: Date;
+  sortBy?: 'id' | 'locomotora' | 'solicitud' | 'inicio' | 'fin' | 'estado' | 'prioridad' | 'tipo' | 'localidad' | 'empresa';
+  sortDir?: 'asc' | 'desc';
   pagination: MovimientoPagination;
 };
 
@@ -84,6 +86,10 @@ export class MovimientoReadModel {
   public static readonly MOVIMIENTO_LIST_INCLUDE = {
     empresa: true,
     creadoPor: true,
+    cliente: { select: { id: true, nombre: true, rol: true } },
+    supervisor: { select: { id: true, nombre: true, rol: true } },
+    coordinador: { select: { id: true, nombre: true, rol: true } },
+    operador: { select: { id: true, nombre: true, rol: true } },
     localidad: true,
     viaOrigen: true,
     viaDestino: true,
@@ -176,6 +182,8 @@ export class MovimientoReadModel {
         fechaCampo = 'solicitud',
         fechaDesde,
         fechaHasta,
+        sortBy,
+        sortDir = 'desc',
         pagination,
       } = params;
       const where: Prisma.MovimientoWhereInput = {};
@@ -239,7 +247,22 @@ export class MovimientoReadModel {
       }
 
       let orderBy: Prisma.MovimientoOrderByWithRelationInput[] = this.MOVIMIENTOS_ORDER_DESC;
-      if (locomotivePrefix) {
+      if (sortBy) {
+        const direction = sortDir === 'asc' ? 'asc' : 'desc';
+        const orderMap: Record<NonNullable<MovimientoBusquedaParams['sortBy']>, Prisma.MovimientoOrderByWithRelationInput> = {
+          id: { id: direction },
+          locomotora: { locomotiveNumber: direction },
+          solicitud: { fechaSolicitud: direction },
+          inicio: { fechaInicio: direction },
+          fin: { fechaFin: direction },
+          estado: { estado: direction },
+          prioridad: { prioridad: direction },
+          tipo: { tipoMovimiento: direction },
+          localidad: { localidad: { nombre: direction } },
+          empresa: { empresa: { nombre: direction } },
+        };
+        orderBy = [orderMap[sortBy], { id: direction }];
+      } else if (locomotivePrefix) {
         orderBy = [{ locomotiveNumber: 'desc' }, { id: 'desc' }];
       } else if (params.ambito === 'actuales') {
         orderBy = this.MOVIMIENTOS_ORDER_RONDA;
