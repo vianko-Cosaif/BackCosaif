@@ -1,8 +1,11 @@
 // secciones.routes.ts
 import { Router } from 'express';
+import { authenticateAccess } from '../../../auth/authenticateAccess';
 import { SeccionViaController } from './SeccionVIasController'; // <- fijate el nombre/case
 
 const router = Router();
+
+router.use(authenticateAccess);
 
 // LISTADOS
 // Opción con query param (modelo NO expone "obtener todas", así que pedimos viaId)

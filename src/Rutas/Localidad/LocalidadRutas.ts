@@ -3,11 +3,12 @@ import { authenticateAccess } from '../../auth/authenticateAccess';
 import { LocalidadController } from './LocalidadController';
 
 const router = Router();
-// Ruta pública para crear una nueva localidad
-router.post('/', LocalidadController.crearLocalidad);
 
 // Middleware de autenticación JWT aplicado a todas las rutas siguientes
 router.use(authenticateAccess);
+
+// Crear una nueva localidad
+router.post('/', LocalidadController.crearLocalidad);
 
 
 
