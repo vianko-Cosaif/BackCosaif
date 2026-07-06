@@ -17,3 +17,4 @@ logs/empresa-controller-errors.log
 *.log
 /logs
 *.log
+/logs
