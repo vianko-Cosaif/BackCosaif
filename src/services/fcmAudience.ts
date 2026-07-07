@@ -13,6 +13,8 @@ type UserWithTokens = {
   fcmTokens: Array<{ token: string | null; localidadId: number | null }>;
 };
 
+const EMPTY_USERS: UserWithTokens[] = [];
+
 function uniqueUsers(users: UserWithTokens[]) {
   const seen = new Set<number>();
   return users.filter((user) => {
@@ -81,7 +83,7 @@ export async function usuariosAudienciaOperacion(params: {
     fcmTokens: { select: { token: true, localidadId: true } },
   } as const;
 
-  const [clientes, clientesCoordinacion, locales, coordinacion, usuariosForzados] = await Promise.all([
+  const [clientes, clientesCoordinacion, locales, coordinacion, usuariosForzados]: UserWithTokens[][] = await Promise.all([
     empresaId && scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
@@ -92,7 +94,7 @@ export async function usuariosAudienciaOperacion(params: {
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
     empresaId && scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
@@ -106,7 +108,7 @@ export async function usuariosAudienciaOperacion(params: {
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
     scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
@@ -116,29 +118,26 @@ export async function usuariosAudienciaOperacion(params: {
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
     scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
             activo: true,
             rol: { in: LOCATION_AWARE_ROLES },
             OR: [
-              { fcmTokens: { some: { localidadId: scopeLocalidadId } } },
-              {
-                localidadId: scopeLocalidadId,
-                fcmTokens: { some: { localidadId: null } },
-              },
+              { localidadId: scopeLocalidadId },
+              { fcmTokens: { some: {} } },
             ],
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
     usuarioIds.length
       ? prisma.usuario.findMany({
           where: { id: { in: usuarioIds }, activo: true },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
   ]);
 
   return uniqueUsers([...clientes, ...clientesCoordinacion, ...locales, ...coordinacion, ...usuariosForzados]);
