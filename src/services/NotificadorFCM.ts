@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+﻿import { getApps, initializeApp } from 'firebase-admin/app';
 import type { Incidente } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { messaging } from '../config/firebase';
@@ -56,10 +56,10 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
       return;
     }
 
-    if (!admin.apps.length) admin.initializeApp();
+    if (!getApps().length) initializeApp();
 
-    const title = `🆕 Movimiento creado (${mov.prioridad ?? 'N/D'})`;
-    const body  = `Loco ${mov.locomotiveNumber} · ${mov.viaOrigen?.nombre ?? 'N/D'} → ${mov.viaDestino?.nombre ?? 'N/D'} · ${mov.empresa?.nombre ?? 'N/D'}`;
+    const title = `ðŸ†• Movimiento creado (${mov.prioridad ?? 'N/D'})`;
+    const body  = `Loco ${mov.locomotiveNumber} Â· ${mov.viaOrigen?.nombre ?? 'N/D'} â†’ ${mov.viaDestino?.nombre ?? 'N/D'} Â· ${mov.empresa?.nombre ?? 'N/D'}`;
 
     const resp = await sendMulticastCompat({
       notification: { title, body },
@@ -127,19 +127,19 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
     // Mensaje limpio y con truncado correcto
     const empresa   = mov.empresa?.nombre   ?? 'Sin Empresa';
     const localidad = mov.localidad?.nombre ?? 'Sin Localidad';
-    const corta     = inc.descripcion.length > 50 ? inc.descripcion.slice(0, 50) + '…' : inc.descripcion;
+    const corta     = inc.descripcion.length > 50 ? inc.descripcion.slice(0, 50) + 'â€¦' : inc.descripcion;
     const iso       = new Date().toISOString();
     const legible   = new Date().toLocaleString('es-MX', {
       year:'numeric', month:'2-digit', day:'2-digit',
       hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
     });
 
-    if (!admin.apps.length) admin.initializeApp();
+    if (!getApps().length) initializeApp();
 
     const resp = await sendMulticastCompat({
       notification: {
-        title: '🚨 Incidente reportado',
-        body : `ID #${inc.id} • Loco ${mov.locomotiveNumber} • ${empresa}: ${corta}`
+        title: 'ðŸš¨ Incidente reportado',
+        body : `ID #${inc.id} â€¢ Loco ${mov.locomotiveNumber} â€¢ ${empresa}: ${corta}`
       },
       data: {
         pantalla    : 'Incidente',
@@ -159,7 +159,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
       tokens
     });
 
-    // 6) Limpieza de tokens inválidos
+    // 6) Limpieza de tokens invÃ¡lidos
     const invalid = new Set([
       'messaging/registration-token-not-registered',
       'messaging/invalid-registration-token',
@@ -209,17 +209,17 @@ static async notificarCambioEstado(
     });
     if (!tokens.length) return;
 
-    if (!admin.apps.length) admin.initializeApp();
+    if (!getApps().length) initializeApp();
 
     const titulo =
-      incidente.estado === 'RESUELTO' ? '✅ Incidente resuelto' :
-      incidente.estado === 'CERRADO'  ? '❌ Incidente cerrado'  :
-                                         'ℹ️ Incidente actualizado';
+      incidente.estado === 'RESUELTO' ? 'âœ… Incidente resuelto' :
+      incidente.estado === 'CERRADO'  ? 'âŒ Incidente cerrado'  :
+                                         'â„¹ï¸ Incidente actualizado';
 
     const resp = await sendMulticastCompat({
       notification: {
         title: titulo,
-        body: `ID #${incidente.id} • Loco ${mov.locomotiveNumber} • ${mov.empresa?.nombre ?? 'Sin Empresa'}`,
+        body: `ID #${incidente.id} â€¢ Loco ${mov.locomotiveNumber} â€¢ ${mov.empresa?.nombre ?? 'Sin Empresa'}`,
       },
       data: {
         pantalla:     'Incidente',
@@ -237,7 +237,7 @@ static async notificarCambioEstado(
       tokens,
     });
 
-    // 5) Limpieza de tokens inválidos
+    // 5) Limpieza de tokens invÃ¡lidos
     const invalid = new Set([
       'messaging/registration-token-not-registered',
       'messaging/invalid-registration-token',
@@ -353,7 +353,7 @@ static async notificarCambioEstado(
         await sendMulticastCompat(message);
       } else if (notificacion.topico) {
         message.topic = notificacion.topico;
-        await admin.messaging().send(message);
+        await messaging.send(message);
       } else {
         throw new Error('No se especificaron tokens ni topico para la notificacion');
       }
@@ -372,7 +372,7 @@ static async notificarCambioEstado(
         console.warn('No hay tokens para suscribir al topico:', topico);
         return;
       }
-      await admin.messaging().subscribeToTopic(tokens, topico);
+      await messaging.subscribeToTopic(tokens, topico);
     } catch (error) {
       console.error('Error suscribiendo a topico:', error);
       throw error;
@@ -388,7 +388,7 @@ static async notificarCambioEstado(
         console.warn('No hay tokens para desuscribir del topico:', topico);
         return;
       }
-      await admin.messaging().unsubscribeFromTopic(tokens, topico);
+      await messaging.unsubscribeFromTopic(tokens, topico);
     } catch (error) {
       console.error('Error desuscribiendo de topico:', error);
       throw error;
@@ -427,7 +427,7 @@ static async notificarContinuarMovimiento(
     await sendMulticastCompat({
       notification: {
         title: '? Incidente resuelto con comentario',
-        body: `Loco ${loco} � ${empresaNombre}: "${comentario.slice(0, 80)}�"`
+        body: `Loco ${loco} ï¿½ ${empresaNombre}: "${comentario.slice(0, 80)}ï¿½"`
       },
       data: {
         pantalla: 'Incidente',
@@ -474,7 +474,7 @@ static async notificarIncidenteOmitido(
   await sendMulticastCompat({
     notification: {
       title: 'Incidente pospuesto por cliente',
-      body : `Incidente #${incidente.id} — Locomotora ${mov.locomotiveNumber}`
+      body : `Incidente #${incidente.id} â€” Locomotora ${mov.locomotiveNumber}`
     },
     data: {
       pantalla    : 'Incidente',
@@ -531,7 +531,7 @@ static async notificarIncidenteTornoPorMovimiento(params: {
   await sendMulticastCompat({
     notification: {
       title: params.resuelto ? 'Incidente de torno resuelto' : 'Incidente de torno reportado',
-      body: `Movimiento #${movimiento.id} · Loco ${locomotora} · ${movimiento.empresa?.nombre ?? 'Empresa'}${comentario ? `: ${comentario.slice(0, 80)}` : ''}`,
+      body: `Movimiento #${movimiento.id} Â· Loco ${locomotora} Â· ${movimiento.empresa?.nombre ?? 'Empresa'}${comentario ? `: ${comentario.slice(0, 80)}` : ''}`,
     },
     data: {
       pantalla: 'Torno',
@@ -553,7 +553,7 @@ static async notificarIncidenteTornoPorMovimiento(params: {
 }
 
 /* ----------------------------------------------------------- */
-/*  CANCELACIÓN DE MOVIMIENTO (tres incidentes)                 */
+/*  CANCELACIÃ“N DE MOVIMIENTO (tres incidentes)                 */
 /* ----------------------------------------------------------- */
 static async notificarCancelacionMovimiento(
   movimiento: any,
@@ -577,7 +577,7 @@ static async notificarCancelacionMovimiento(
   await sendMulticastCompat({
     notification: {
       title: 'Movimiento cancelado',
-      body : `Locomotora ${movimiento.locomotiveNumber} — ${motivoExtra || 'Por reincidencia de incidentes'}`
+      body : `Locomotora ${movimiento.locomotiveNumber} â€” ${motivoExtra || 'Por reincidencia de incidentes'}`
     },
     data: {
       pantalla    : 'Movimiento',
@@ -598,3 +598,4 @@ static async notificarCancelacionMovimiento(
 
 
 }
+

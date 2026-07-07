@@ -1,12 +1,13 @@
-import * as admin from 'firebase-admin';
+ï»¿import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import serviceAccount from './cosaifapp-firebase-adminsdk-fbsvc-a3c14d6bfb.json'; // objeto, no ruta
 
-// Evita multiplicarlo si PM2 crea más forks
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+// Evita multiplicarlo si PM2 crea mas forks
+const apps = getApps();
+if (!apps.length) {
+  initializeApp({
+    credential: cert(serviceAccount as any),
   });
 }
 
-export const messaging = admin.messaging();
-export default admin; // Por si luego necesitas admin.auth(), etc.
+export const messaging = getMessaging();
