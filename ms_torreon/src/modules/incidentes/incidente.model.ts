@@ -1,8 +1,15 @@
-import { EstadoIncidenteTorreon, Prisma, PrismaClient } from "../../../generated";
+import {
+  EstadoIncidenteArrastreTorreon,
+  EstadoIncidenteTorreon,
+  EstadoMovimientoTorreon,
+  Prisma,
+  PrismaClient,
+} from "../../../generated";
 import { prismaTorreon } from "../../db/prisma";
 import { DomainError } from "../../utils/domainError";
 import { guardarFotoTorreon } from "../../utils/imagenesTorreon";
 import { RondaModel } from "../rondas/ronda.model";
+import { ArrastreModel } from "../arrastres/arrastre.model";
 import { fotoInputSchema } from "../movimientos/movimiento.schemas";
 import { resolverIncidenteSchema } from "./incidente.schemas";
 import { z } from "zod";
@@ -16,6 +23,7 @@ type ListarIncidentesQuery = {
   estado?: string;
   page?: number;
   pageSize?: number;
+  includeFotos?: boolean;
 };
 
 export type MovimientoIncidenteRefs = {
@@ -47,6 +55,27 @@ const includeIncidenteDetalle = {
   },
 };
 
+const includeIncidenteArrastreDetalle = {
+  arrastre: true,
+  vagon: true,
+  fotos: {
+    orderBy: { orden: "asc" as const },
+  },
+};
+
+const buildIncidenteNaturalListInclude = (includeFotos: boolean) => ({
+  movimiento: true,
+  _count: { select: { fotos: true } },
+  ...(includeFotos ? { fotos: { orderBy: { orden: "asc" as const } } } : {}),
+}) satisfies Prisma.IncidenteTorreonFerroInclude;
+
+const buildIncidenteArrastreListInclude = (includeFotos: boolean) => ({
+  arrastre: true,
+  vagon: true,
+  _count: { select: { fotos: true } },
+  ...(includeFotos ? { fotos: { orderBy: { orden: "asc" as const } } } : {}),
+}) satisfies Prisma.IncidenteArrastreTorreonInclude;
+
 const compact = <T extends Record<string, unknown>>(data: T): T => {
   Object.keys(data).forEach((key) => data[key] === undefined && delete data[key]);
   return data;
@@ -54,16 +83,54 @@ const compact = <T extends Record<string, unknown>>(data: T): T => {
 
 const normalizeEstado = (estado?: string) => {
   const value = String(estado ?? "").trim().toUpperCase();
-  if (value === "PASADOS") return EstadoIncidenteTorreon.RESUELTO;
-  if (value === EstadoIncidenteTorreon.ABIERTO) return EstadoIncidenteTorreon.ABIERTO;
-  if (value === EstadoIncidenteTorreon.RESUELTO) return EstadoIncidenteTorreon.RESUELTO;
+  if (value === "PASADOS") return "RESUELTO";
+  if (value === EstadoIncidenteTorreon.ABIERTO) return "ABIERTO";
+  if (value === EstadoIncidenteTorreon.RESUELTO) return "RESUELTO";
   return undefined;
 };
 
-function buildMovimientoResourceFilters(refs: MovimientoIncidenteRefs): Prisma.IncidenteTorreonFerroWhereInput[] {
+const normalizeTipo = (tipo?: string) => {
+  const value = String(tipo ?? "").trim().toUpperCase();
+  if (["ARRASTRE", "INCIDENTE_ARRASTRE", "ARRASTRE_TORREON"].includes(value)) return "ARRASTRE";
+  if (["NATURAL", "MOVIMIENTO", "FERRO"].includes(value)) return "NATURAL";
+  return undefined;
+};
+
+const withNaturalMeta = <T extends Record<string, unknown>>(incidente: T) => ({
+  ...incidente,
+  _torreonTipo: "NATURAL" as const,
+  tipoIncidente: "NATURAL" as const,
+});
+
+const withArrastreMeta = <T extends Record<string, unknown>>(incidente: T) => ({
+  ...incidente,
+  _torreonTipo: "ARRASTRE" as const,
+  tipoIncidente: "ARRASTRE" as const,
+});
+
+const compareIncidentesDesc = (
+  a: { fechaInicio: Date; id: number },
+  b: { fechaInicio: Date; id: number }
+) => {
+  const byDate = b.fechaInicio.getTime() - a.fechaInicio.getTime();
+  return byDate || b.id - a.id;
+};
+
+type BloqueoResourceFilter = {
+  viaBloqueadaId?: { in: number[] };
+  seccionBloqueadaId?: { in: number[] };
+};
+
+export type IncidenteBloqueanteResult = {
+  id: number;
+  fechaInicio: Date;
+  origen: "NATURAL" | "ARRASTRE";
+};
+
+function buildMovimientoResourceFilters(refs: MovimientoIncidenteRefs): BloqueoResourceFilter[] {
   const viaIds = normalizeIdList(refs.viaOrigenId, refs.viaDestinoId);
   const seccionIds = normalizeIdList(refs.seccionOrigenId, refs.seccionDestinoId);
-  const filters: Prisma.IncidenteTorreonFerroWhereInput[] = [];
+  const filters: BloqueoResourceFilter[] = [];
 
   if (viaIds.length) filters.push({ viaBloqueadaId: { in: viaIds } });
   if (seccionIds.length) filters.push({ seccionBloqueadaId: { in: seccionIds } });
@@ -117,20 +184,37 @@ export class IncidenteModel {
 
     const where: Prisma.IncidenteTorreonFerroWhereInput = compact({
       localidadId: query.localidadId,
-      estado,
+      estado: estado as EstadoIncidenteTorreon | undefined,
       movimiento: query.empresaId ? { empresaId: query.empresaId } : undefined,
     });
+    const whereArrastre: Prisma.IncidenteArrastreTorreonWhereInput = compact({
+      localidadId: query.localidadId,
+      estado: estado as EstadoIncidenteArrastreTorreon | undefined,
+      arrastre: query.empresaId ? { empresaId: query.empresaId } : undefined,
+    });
+    const takeForMerge = skip + pageSize;
 
-    const [data, total] = await Promise.all([
+    const [naturales, arrastres, totalNaturales, totalArrastres] = await Promise.all([
       prismaTorreon.incidenteTorreonFerro.findMany({
         where,
-        include: includeIncidenteDetalle,
+        include: buildIncidenteNaturalListInclude(query.includeFotos === true),
         orderBy: [{ fechaInicio: "desc" }, { id: "desc" }],
-        skip,
-        take: pageSize,
+        take: takeForMerge,
+      }),
+      prismaTorreon.incidenteArrastreTorreon.findMany({
+        where: whereArrastre,
+        include: buildIncidenteArrastreListInclude(query.includeFotos === true),
+        orderBy: [{ fechaInicio: "desc" }, { id: "desc" }],
+        take: takeForMerge,
       }),
       prismaTorreon.incidenteTorreonFerro.count({ where }),
+      prismaTorreon.incidenteArrastreTorreon.count({ where: whereArrastre }),
     ]);
+    const total = totalNaturales + totalArrastres;
+    const data = [
+      ...naturales.map((incidente) => withNaturalMeta(incidente)),
+      ...arrastres.map((incidente) => withArrastreMeta(incidente)),
+    ].sort(compareIncidentesDesc).slice(skip, skip + pageSize);
 
     return {
       data,
@@ -144,13 +228,24 @@ export class IncidenteModel {
     };
   }
 
-  static async obtener(id: number) {
-    const incidente = await prismaTorreon.incidenteTorreonFerro.findUnique({
+  static async obtener(id: number, tipo?: string) {
+    const normalized = normalizeTipo(tipo);
+
+    if (normalized !== "ARRASTRE") {
+      const incidente = await prismaTorreon.incidenteTorreonFerro.findUnique({
+        where: { id },
+        include: includeIncidenteDetalle,
+      });
+      if (incidente) return withNaturalMeta(incidente);
+      if (normalized === "NATURAL") throw new DomainError(404, "Incidente natural no encontrado");
+    }
+
+    const incidenteArrastre = await prismaTorreon.incidenteArrastreTorreon.findUnique({
       where: { id },
-      include: includeIncidenteDetalle,
+      include: includeIncidenteArrastreDetalle,
     });
-    if (!incidente) throw new DomainError(404, "Incidente no encontrado");
-    return incidente;
+    if (!incidenteArrastre) throw new DomainError(404, "Incidente no encontrado");
+    return withArrastreMeta(incidenteArrastre);
   }
 
   static async obtenerActivoDeMovimiento(tx: Tx | PrismaClient, movimientoId: number) {
@@ -164,19 +259,37 @@ export class IncidenteModel {
     tx: Tx | PrismaClient,
     refs: MovimientoIncidenteRefs,
     excludeIncidentId?: number
-  ) {
+  ): Promise<IncidenteBloqueanteResult | null> {
     const filters = buildMovimientoResourceFilters(refs);
     if (!filters.length) return null;
 
-    return tx.incidenteTorreonFerro.findFirst({
-      where: {
-        estado: EstadoIncidenteTorreon.ABIERTO,
-        localidadId: refs.localidadId,
-        ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
-        OR: filters,
-      },
-      orderBy: { fechaInicio: "asc" },
-    });
+    const [natural, arrastre] = await Promise.all([
+      tx.incidenteTorreonFerro.findFirst({
+        where: {
+          estado: EstadoIncidenteTorreon.ABIERTO,
+          localidadId: refs.localidadId,
+          ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
+          OR: filters,
+        },
+        orderBy: { fechaInicio: "asc" },
+        select: { id: true, fechaInicio: true },
+      }),
+      tx.incidenteArrastreTorreon.findFirst({
+        where: {
+          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
+          localidadId: refs.localidadId,
+          OR: filters,
+        },
+        orderBy: { fechaInicio: "asc" },
+        select: { id: true, fechaInicio: true },
+      }),
+    ]);
+
+    const naturalResult = natural ? { ...natural, origen: "NATURAL" as const } : null;
+    const arrastreResult = arrastre ? { ...arrastre, origen: "ARRASTRE" as const } : null;
+    if (!naturalResult) return arrastreResult;
+    if (!arrastreResult) return naturalResult;
+    return naturalResult.fechaInicio <= arrastreResult.fechaInicio ? naturalResult : arrastreResult;
   }
 
   static async crearParaMovimiento(
@@ -211,7 +324,8 @@ export class IncidenteModel {
     });
 
     await createIncidenteFotos(tx, incidente.id, input.fotos, input.creadoPorId);
-    await RondaModel.bloquearPorIncidente(tx, incidente);
+    await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
+    await ArrastreModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
 
     return incidente;
   }
@@ -239,11 +353,42 @@ export class IncidenteModel {
       },
     });
 
-    await RondaModel.desbloquearPorIncidente(tx, incidenteId);
+    if (incidente.movimiento.estado === EstadoMovimientoTorreon.DETENIDO) {
+      await tx.movimientoTorreonFerro.update({
+        where: { id: incidente.movimientoId },
+        data: {
+          estado: EstadoMovimientoTorreon.SOLICITADO,
+          operadorId: null,
+          fechaInicio: null,
+          fechaPausa: null,
+        },
+      });
+    }
+
+    await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
+    await ArrastreModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
     return updated;
   }
 
-  static async resolver(id: number, input: z.infer<typeof resolverIncidenteSchema>) {
-    return prismaTorreon.$transaction((tx) => this.resolverTx(tx, id, input));
+  static async resolver(id: number, input: z.infer<typeof resolverIncidenteSchema>, tipo?: string) {
+    const normalized = normalizeTipo(tipo);
+
+    if (normalized !== "ARRASTRE") {
+      const natural = await prismaTorreon.incidenteTorreonFerro.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+      if (natural) return prismaTorreon.$transaction((tx) => this.resolverTx(tx, id, input));
+      if (normalized === "NATURAL") throw new DomainError(404, "Incidente natural no encontrado");
+    }
+
+    const arrastre = await prismaTorreon.incidenteArrastreTorreon.findUnique({
+      where: { id },
+      select: { arrastreId: true },
+    });
+    if (!arrastre) throw new DomainError(404, "Incidente no encontrado");
+
+    await ArrastreModel.resolverIncidente(arrastre.arrastreId, id, input);
+    return this.obtener(id, "ARRASTRE");
   }
 }

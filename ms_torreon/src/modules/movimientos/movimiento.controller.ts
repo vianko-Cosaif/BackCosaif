@@ -18,12 +18,24 @@ const optionalNumber = (value: unknown) => {
   return Number.isFinite(numeric) ? numeric : undefined;
 };
 
+const optionalBoolean = (value: unknown) => {
+  if (value === undefined || value === "") return undefined;
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "si", "sí", "yes"].includes(normalized)) return true;
+  if (["0", "false", "no"].includes(normalized)) return false;
+  return undefined;
+};
+
 export class MovimientoController {
   static async listar(req: Request, res: Response) {
     const data = await MovimientoModel.listar({
       localidadId: optionalNumber(req.query.localidadId),
       empresaId: optionalNumber(req.query.empresaId),
       estado: typeof req.query.estado === "string" ? req.query.estado : undefined,
+      vista: typeof req.query.vista === "string" ? req.query.vista : undefined,
+      page: optionalNumber(req.query.page),
+      pageSize: optionalNumber(req.query.pageSize),
+      includeFotos: optionalBoolean(req.query.includeFotos),
     });
     return ok(res, data);
   }

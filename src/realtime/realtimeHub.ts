@@ -30,16 +30,32 @@ export type RealtimeEventType =
   | 'movimiento.creado'
   | 'movimiento.estado'
   | 'movimiento.incidente'
-  | 'incidente.estado';
+  | 'incidente.estado'
+  | 'torreon.movimiento.creado'
+  | 'torreon.movimiento.estado'
+  | 'torreon.movimiento.incidente'
+  | 'torreon.incidente.estado'
+  | 'torreon.arrastre.creado'
+  | 'torreon.arrastre.estado'
+  | 'torreon.arrastre.vagon'
+  | 'torreon.arrastre.incidente'
+  | 'torreon.arrastre.orden';
 
 export type RealtimeMovementPayload = RealtimeScope & {
   type: RealtimeEventType;
   eventId?: string;
+  source?: 'cosaif' | 'torreon' | string;
+  entity?: 'movimiento' | 'arrastre' | 'vagon' | 'incidente' | string;
+  entityId?: number | string | null;
   estado?: string | null;
   estadoAnterior?: string | null;
   incidenteGlobal?: boolean | null;
   finalizado?: boolean | null;
   incidenteId?: number | null;
+  arrastreId?: number | null;
+  vagonId?: number | null;
+  folio?: string | null;
+  accion?: string | null;
   descripcion?: string | null;
   locomotiveNumber?: number | string | null;
   occurredAt?: string;
@@ -61,10 +77,12 @@ type RealtimeClient = {
 const HEARTBEAT_MS = Math.max(10_000, Number(process.env.REALTIME_HEARTBEAT_MS || 25_000));
 const MAX_CLIENTS = Math.max(1, Number(process.env.REALTIME_MAX_CLIENTS || 2_000));
 const WS_TICKET_TTL_MS = Math.max(10_000, Number(process.env.REALTIME_WS_TICKET_TTL_MS || 30_000));
+const EVENT_DEDUPE_MS = Math.max(0, Number(process.env.REALTIME_EVENT_DEDUPE_MS || 450));
 const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const clients = new Map<string, RealtimeClient>();
 const wsTickets = new Map<string, { user: AuthenticatedUser; audience: RealtimeAudience; expiresAt: number }>();
+const recentEventKeys = new Map<string, number>();
 
 let heartbeatTimer: NodeJS.Timeout | null = null;
 let ticketCleanupTimer: NodeJS.Timeout | null = null;
@@ -124,6 +142,62 @@ function roomsForAudience(audience: RealtimeAudience): string[] {
     return [room('empresa', audience.empresaId), room('localidad', audience.localidadId)].filter(Boolean) as string[];
   }
   return [room(audience.mode, audience.id)].filter(Boolean) as string[];
+}
+
+function compactEventPart(value: unknown) {
+  if (value === null || typeof value === 'undefined' || value === '') return '-';
+  return String(value);
+}
+
+function inferredEventEntity(event: RealtimeMovementPayload): RealtimeMovementPayload['entity'] {
+  if (event.incidenteId) return 'incidente';
+  if (event.vagonId) return 'vagon';
+  if (event.arrastreId) return 'arrastre';
+  return 'movimiento';
+}
+
+function inferredEventEntityId(event: RealtimeMovementPayload) {
+  return event.incidenteId ?? event.vagonId ?? event.arrastreId ?? event.movimientoId ?? null;
+}
+
+function realtimeDedupeKey(event: RealtimeMovementPayload) {
+  if (event.eventId) return `id:${event.eventId}`;
+  return [
+    event.type,
+    event.source,
+    event.entity,
+    event.entityId,
+    event.empresaId,
+    event.localidadId,
+    event.clienteId,
+    event.movimientoId,
+    event.arrastreId,
+    event.vagonId,
+    event.incidenteId,
+    event.accion,
+    event.estado,
+    event.estadoAnterior,
+  ].map(compactEventPart).join('|');
+}
+
+function pruneRecentEventKeys(now: number) {
+  if (recentEventKeys.size < 500) return;
+  for (const [key, expiresAt] of recentEventKeys) {
+    if (expiresAt <= now) recentEventKeys.delete(key);
+  }
+}
+
+function shouldSuppressRealtimeEvent(event: RealtimeMovementPayload) {
+  if (EVENT_DEDUPE_MS <= 0) return false;
+
+  const now = Date.now();
+  pruneRecentEventKeys(now);
+  const key = realtimeDedupeKey(event);
+  const expiresAt = recentEventKeys.get(key);
+  if (expiresAt && expiresAt > now) return true;
+
+  recentEventKeys.set(key, now + EVENT_DEDUPE_MS);
+  return false;
 }
 
 function removeClient(clientId: string) {
@@ -319,13 +393,22 @@ export function attachRealtimeClient(req: Request, res: Response, user: Authenti
 export function publishRealtimeEvent(event: RealtimeMovementPayload) {
   if (!clients.size) return;
 
-  const eventPayload: RealtimeMovementPayload = {
+  const normalizedEvent: RealtimeMovementPayload = {
     ...event,
+    source: event.source ?? (String(event.type).startsWith('torreon.') ? 'torreon' : 'cosaif'),
+    entity: event.entity ?? inferredEventEntity(event),
+    entityId: event.entityId ?? inferredEventEntityId(event),
+  };
+  if (shouldSuppressRealtimeEvent(normalizedEvent)) return;
+
+  const eventPayload: RealtimeMovementPayload = {
+    ...normalizedEvent,
     eventId:
-      event.eventId ??
-      `${event.type}:${event.movimientoId ?? 'x'}:${event.incidenteId ?? 'x'}:${event.estado ?? 'x'}:${Date.now()}`,
+      normalizedEvent.eventId ??
+      `${normalizedEvent.type}:${normalizedEvent.movimientoId ?? normalizedEvent.arrastreId ?? 'x'}:${normalizedEvent.vagonId ?? 'x'}:${normalizedEvent.incidenteId ?? 'x'}:${normalizedEvent.estado ?? 'x'}:${Date.now()}`,
     occurredAt: event.occurredAt ?? new Date().toISOString(),
   };
+
   const sse = sseFrame(eventPayload.type, eventPayload);
   const ws = wsFrame(0x1, JSON.stringify(eventPayload));
 

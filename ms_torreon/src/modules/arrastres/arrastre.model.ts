@@ -2,6 +2,7 @@ import {
   CargaVagonArrastreTorreon,
   EstadoArrastreTorreon,
   EstadoIncidenteArrastreTorreon,
+  EstadoIncidenteTorreon,
   EstadoVagonArrastreTorreon,
   Prisma,
   PrismaClient,
@@ -10,6 +11,7 @@ import { prismaTorreon } from "../../db/prisma";
 import { DomainError } from "../../utils/domainError";
 import { guardarFotoTorreon } from "../../utils/imagenesTorreon";
 import { fotoInputSchema } from "../movimientos/movimiento.schemas";
+import { RondaModel } from "../rondas/ronda.model";
 import {
   cancelarArrastreSchema,
   createArrastreSchema,
@@ -20,6 +22,8 @@ import {
   iniciarArrastreSchema,
   iniciarVagonArrastreSchema,
   reanudarArrastreSchema,
+  reordenarSolicitudesArrastreSchema,
+  reordenarVagonesArrastreSchema,
   resolverIncidenteArrastreSchema,
 } from "./arrastre.schemas";
 import { z } from "zod";
@@ -37,16 +41,29 @@ type ArrastreRefs = {
   vagones?: Array<{ viaId: number; seccionId: number }>;
 };
 
-const includeArrastreDetalle = {
+const buildArrastreDetalleInclude = (includeFotos: boolean) => ({
   vagones: { orderBy: { orden: "asc" as const } },
   incidentes: {
     include: {
       vagon: true,
-      fotos: { orderBy: { orden: "asc" as const } },
+      _count: { select: { fotos: true } },
+      ...(includeFotos ? { fotos: { orderBy: { orden: "asc" as const } } } : {}),
     },
     orderBy: { createdAt: "desc" as const },
   },
-};
+}) satisfies Prisma.ArrastreTorreonInclude;
+
+const buildArrastreListInclude = (includeFotos: boolean) => ({
+  vagones: { orderBy: { orden: "asc" as const } },
+  incidentes: {
+    include: {
+      vagon: true,
+      _count: { select: { fotos: true } },
+      ...(includeFotos ? { fotos: { orderBy: { orden: "asc" as const } } } : {}),
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+}) satisfies Prisma.ArrastreTorreonInclude;
 
 type VagonConTiempos = {
   id: number;
@@ -70,6 +87,13 @@ const minutesBetween = (start?: Date | null, end?: Date | null) => {
   if (!start || !end) return undefined;
   const ms = end.getTime() - start.getTime();
   return Number.isFinite(ms) && ms >= 0 ? Math.round(ms / 60000) : undefined;
+};
+
+const mergeComentarios = (...values: Array<string | null | undefined>) => {
+  const clean = values
+    .map((value) => typeof value === "string" ? value.trim() : "")
+    .filter(Boolean);
+  return clean.length ? clean.join("\n") : undefined;
 };
 
 function decorarArrastreDetalle<T extends {
@@ -109,6 +133,8 @@ function decorarArrastreDetalle<T extends {
 const capacidadArrastre = (vagones: Array<{ carga: CargaVagonArrastreTorreon | "VACIO" | "LLENO" }>) =>
   vagones.reduce((total, vagon) => total + (String(vagon.carga) === "LLENO" ? 2 : 1), 0);
 
+const ORDER_SHIFT = 100000;
+
 const assertCapacidadArrastre = (vagones: Array<{ carga: CargaVagonArrastreTorreon | "VACIO" | "LLENO" }>) => {
   const puntos = capacidadArrastre(vagones);
   if (puntos > 8) {
@@ -128,23 +154,97 @@ const isArrastreCerrado = (estado: EstadoArrastreTorreon) => (
   estado === EstadoArrastreTorreon.CONCLUIDO || estado === EstadoArrastreTorreon.CANCELADO
 );
 
-function buildArrastreResourceFilters(refs: ArrastreRefs): Prisma.IncidenteArrastreTorreonWhereInput[] {
-  const viaIds = normalizeIdList(
-    refs.viaOrigenId,
-    refs.viaDestinoId,
-    ...(refs.vagones ?? []).map((vagon) => vagon.viaId)
-  );
-  const seccionIds = normalizeIdList(
-    refs.seccionOrigenId,
-    refs.seccionDestinoId,
-    ...(refs.vagones ?? []).map((vagon) => vagon.seccionId)
-  );
-  const filters: Prisma.IncidenteArrastreTorreonWhereInput[] = [];
+const isArrastreEditableOperativo = (estado: EstadoArrastreTorreon) => (
+  estado === EstadoArrastreTorreon.SOLICITADO || estado === EstadoArrastreTorreon.DETENIDO
+);
 
-  if (viaIds.length) filters.push({ viaBloqueadaId: { in: viaIds } });
-  if (seccionIds.length) filters.push({ seccionBloqueadaId: { in: seccionIds } });
+const assertArrastreEditable = (estado: EstadoArrastreTorreon) => {
+  if (!isArrastreEditableOperativo(estado)) {
+    throw new DomainError(409, `Arrastre no puede editarse en estado ${estado}`);
+  }
+};
 
-  return filters;
+const assertArrastreSinVagonEnProceso = (vagones: Array<{ id: number; orden: number; estado: EstadoVagonArrastreTorreon }>) => {
+  const activo = vagones.find((vagon) => vagon.estado === EstadoVagonArrastreTorreon.EN_PROCESO);
+  if (activo) {
+    throw new DomainError(409, "Arrastre no puede editarse con vagon en proceso", {
+      vagonId: activo.id,
+      orden: activo.orden,
+    });
+  }
+};
+
+const ESTADOS_ARRASTRE_ACTIVO = [
+  EstadoArrastreTorreon.SOLICITADO,
+  EstadoArrastreTorreon.EN_PROCESO,
+  EstadoArrastreTorreon.DETENIDO,
+];
+
+const ESTADOS_VAGON_RECALCULABLE = [
+  EstadoVagonArrastreTorreon.PENDIENTE,
+  EstadoVagonArrastreTorreon.EN_PROCESO,
+  EstadoVagonArrastreTorreon.BLOQUEADO,
+];
+
+type BloqueoResourceFilter = {
+  viaBloqueadaId?: number | null;
+  seccionBloqueadaId?: number | null;
+};
+
+type ArrastreListQuery = {
+  localidadId?: number;
+  empresaId?: number;
+  estado?: string;
+  vista?: string;
+  page?: number;
+  pageSize?: number;
+  includeFotos?: boolean;
+};
+
+function buildArrastreResourceFilters(refs: ArrastreRefs): BloqueoResourceFilter[] {
+  const points = [
+    { viaId: refs.viaOrigenId, seccionId: refs.seccionOrigenId },
+    { viaId: refs.viaDestinoId, seccionId: refs.seccionDestinoId },
+    ...(refs.vagones ?? []).map((vagon) => ({ viaId: vagon.viaId, seccionId: vagon.seccionId })),
+  ];
+  const filters = new Map<string, BloqueoResourceFilter>();
+
+  const addFilter = (filter: BloqueoResourceFilter) => {
+    filters.set(`${filter.viaBloqueadaId ?? "any"}:${filter.seccionBloqueadaId ?? "any"}`, filter);
+  };
+
+  points.forEach(({ viaId, seccionId }) => {
+    const hasVia = typeof viaId === "number";
+    const hasSeccion = typeof seccionId === "number";
+
+    if (hasVia && hasSeccion) {
+      addFilter({ viaBloqueadaId: viaId, seccionBloqueadaId: seccionId });
+      addFilter({ viaBloqueadaId: viaId, seccionBloqueadaId: null });
+      addFilter({ viaBloqueadaId: null, seccionBloqueadaId: seccionId });
+      return;
+    }
+
+    if (hasVia) addFilter({ viaBloqueadaId: viaId });
+    if (hasSeccion) addFilter({ seccionBloqueadaId: seccionId });
+  });
+
+  return Array.from(filters.values());
+}
+
+function vagonEstaBloqueadoPorIncidente(
+  vagon: { viaId: number; seccionId: number },
+  incidente: { viaBloqueadaId: number | null; seccionBloqueadaId: number | null }
+) {
+  const tieneVia = typeof incidente.viaBloqueadaId === "number";
+  const tieneSeccion = typeof incidente.seccionBloqueadaId === "number";
+
+  if (tieneVia && tieneSeccion) {
+    return vagon.viaId === incidente.viaBloqueadaId && vagon.seccionId === incidente.seccionBloqueadaId;
+  }
+
+  if (tieneVia) return vagon.viaId === incidente.viaBloqueadaId;
+  if (tieneSeccion) return vagon.seccionId === incidente.seccionBloqueadaId;
+  return false;
 }
 
 async function getArrastreOrThrow(tx: Tx | PrismaClient, arrastreId: number) {
@@ -156,13 +256,13 @@ async function getArrastreOrThrow(tx: Tx | PrismaClient, arrastreId: number) {
   return decorarArrastreDetalle(arrastre);
 }
 
-async function getArrastreDetalle(arrastreId: number) {
+async function getArrastreDetalle(arrastreId: number, includeFotos = true) {
   const arrastre = await prismaTorreon.arrastreTorreon.findUnique({
     where: { id: arrastreId },
-    include: includeArrastreDetalle,
+    include: buildArrastreDetalleInclude(includeFotos),
   });
   if (!arrastre) throw new DomainError(404, "Arrastre no encontrado");
-  return arrastre;
+  return decorarArrastreDetalle(arrastre);
 }
 
 async function createIncidenteFotos(
@@ -196,21 +296,39 @@ async function createIncidenteFotos(
 }
 
 export class ArrastreModel {
-  static async listar(query: { localidadId?: number; empresaId?: number; estado?: string }) {
-    return prismaTorreon.arrastreTorreon.findMany({
+  static async listar(query: ArrastreListQuery) {
+    const vista = String(query.vista || "").toUpperCase();
+    const isHistoryVista = ["HISTORIAL", "COMPLETADOS", "CERRADOS", "PASADOS"].includes(vista);
+    const isActiveVista = ["ACTIVOS", "ABIERTOS", "PENDIENTES"].includes(vista);
+    const pageSize = Math.min(100, Math.max(1, Math.trunc(query.pageSize ?? 50)));
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const estadoByVista = query.estado
+      ? query.estado as EstadoArrastreTorreon
+      : isActiveVista
+        ? { in: ESTADOS_ARRASTRE_ACTIVO }
+        : isHistoryVista
+          ? { in: [EstadoArrastreTorreon.CONCLUIDO, EstadoArrastreTorreon.CANCELADO] }
+          : undefined;
+
+    const arrastres = await prismaTorreon.arrastreTorreon.findMany({
       where: compact({
         localidadId: query.localidadId,
         empresaId: query.empresaId,
-        estado: query.estado as EstadoArrastreTorreon | undefined,
-      }),
-      include: includeArrastreDetalle,
-      orderBy: { createdAt: "desc" },
-      take: 100,
+        estado: estadoByVista,
+      }) as Prisma.ArrastreTorreonWhereInput,
+      include: buildArrastreListInclude(query.includeFotos === true),
+      orderBy: isHistoryVista
+        ? [{ fechaFin: "desc" }, { fechaSolicitud: "desc" }, { id: "desc" }]
+        : [{ ordenSolicitud: "asc" }, { fechaSolicitud: "asc" }, { id: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
+
+    return arrastres.map(decorarArrastreDetalle);
   }
 
-  static async obtener(id: number) {
-    return getArrastreDetalle(id);
+  static async obtener(id: number, includeFotos = true) {
+    return getArrastreDetalle(id, includeFotos);
   }
 
   static async obtenerActivo(tx: Tx | PrismaClient, arrastreId: number) {
@@ -228,33 +346,182 @@ export class ArrastreModel {
     const filters = buildArrastreResourceFilters(refs);
     if (!filters.length) return undefined;
 
-    const incidente = await tx.incidenteArrastreTorreon.findFirst({
-      where: {
-        estado: EstadoIncidenteArrastreTorreon.ABIERTO,
-        localidadId: refs.localidadId,
-        ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
-        OR: filters,
-      },
-      orderBy: { fechaInicio: "asc" },
-    });
+    const [incidenteArrastre, incidenteNatural] = await Promise.all([
+      tx.incidenteArrastreTorreon.findFirst({
+        where: {
+          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
+          localidadId: refs.localidadId,
+          ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
+          OR: filters,
+        },
+        orderBy: { fechaInicio: "asc" },
+      }),
+      tx.incidenteTorreonFerro.findFirst({
+        where: {
+          estado: EstadoIncidenteTorreon.ABIERTO,
+          localidadId: refs.localidadId,
+          OR: filters,
+        },
+        orderBy: { fechaInicio: "asc" },
+      }),
+    ]);
 
-    return incidente ?? undefined;
+    if (!incidenteArrastre) return incidenteNatural ?? undefined;
+    if (!incidenteNatural) return incidenteArrastre;
+    return incidenteArrastre.fechaInicio <= incidenteNatural.fechaInicio ? incidenteArrastre : incidenteNatural;
   }
 
-  private static async assertPuedeEjecutar(tx: Tx, arrastre: ArrastreRefs) {
-    const incidentePropio = await this.obtenerActivo(tx, arrastre.id);
-    if (incidentePropio) {
-      throw new DomainError(409, "Arrastre bloqueado por incidente abierto", {
-        incidenteId: incidentePropio.id,
-        accionPermitida: "Resolver incidente antes de continuar",
-      });
+  static async recalcularBloqueosLocalidad(tx: Tx, localidadId: number) {
+    const [incidentesArrastre, incidentesNaturales] = await Promise.all([
+      tx.incidenteArrastreTorreon.findMany({
+        where: {
+          localidadId,
+          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
+        },
+        orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          viaBloqueadaId: true,
+          seccionBloqueadaId: true,
+        },
+      }),
+      tx.incidenteTorreonFerro.findMany({
+        where: {
+          localidadId,
+          estado: EstadoIncidenteTorreon.ABIERTO,
+        },
+        orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          viaBloqueadaId: true,
+          seccionBloqueadaId: true,
+        },
+      }),
+    ]);
+    const incidentesAbiertos = [...incidentesArrastre, ...incidentesNaturales];
+
+    const arrastres = await tx.arrastreTorreon.findMany({
+      where: {
+        localidadId,
+        estado: { in: ESTADOS_ARRASTRE_ACTIVO },
+      },
+      select: { id: true },
+    });
+
+    if (!arrastres.length) {
+      return { arrastres: 0, evaluados: 0, bloqueados: 0, liberados: 0 };
     }
 
+    const arrastreIds = arrastres.map((arrastre) => arrastre.id);
+    const vagones = await tx.arrastreTorreonVagon.findMany({
+      where: {
+        arrastreId: { in: arrastreIds },
+        estado: { in: ESTADOS_VAGON_RECALCULABLE },
+      },
+      orderBy: [{ arrastreId: "asc" }, { orden: "asc" }],
+      select: {
+        id: true,
+        viaId: true,
+        seccionId: true,
+        estado: true,
+      },
+    });
+
+    let bloqueados = 0;
+    let liberados = 0;
+
+    for (const vagon of vagones) {
+      const bloqueado = incidentesAbiertos.some((incidente) =>
+        vagonEstaBloqueadoPorIncidente(vagon, incidente)
+      );
+
+      if (bloqueado) {
+        if (vagon.estado === EstadoVagonArrastreTorreon.PENDIENTE) {
+          await tx.arrastreTorreonVagon.update({
+            where: { id: vagon.id },
+            data: { estado: EstadoVagonArrastreTorreon.BLOQUEADO },
+          });
+        }
+        bloqueados += 1;
+        continue;
+      }
+
+      if (vagon.estado === EstadoVagonArrastreTorreon.BLOQUEADO) {
+        await tx.arrastreTorreonVagon.update({
+          where: { id: vagon.id },
+          data: { estado: EstadoVagonArrastreTorreon.PENDIENTE },
+        });
+        liberados += 1;
+      }
+    }
+
+    return {
+      arrastres: arrastreIds.length,
+      evaluados: vagones.length,
+      bloqueados,
+      liberados,
+    };
+  }
+
+  private static async assertPuedeEjecutar(tx: Tx, arrastre: ArrastreRefs, confirmarIncidente = false) {
     const incidenteBloqueante = await this.findIncidenteBloqueante(tx, arrastre);
+    if (incidenteBloqueante && confirmarIncidente) return incidenteBloqueante;
     if (incidenteBloqueante) {
-      throw new DomainError(409, "La ruta del arrastre esta bloqueada por incidente abierto", {
+      throw new DomainError(409, "El vagon o ruta del arrastre esta bloqueado por incidente abierto", {
         incidenteId: incidenteBloqueante.id,
-        accionPermitida: "Resolver incidente antes de continuar",
+        requiereConfirmacion: true,
+        accionPermitida: "Resolver incidente o elegir otro vagon/ruta disponible",
+      });
+    }
+    return undefined;
+  }
+
+  private static async sincronizarEstadoOperativo(tx: Tx, arrastreId: number, fechaReferencia = new Date()) {
+    const arrastre = await tx.arrastreTorreon.findUnique({
+      where: { id: arrastreId },
+      include: {
+        vagones: {
+          select: {
+            estado: true,
+            fechaInicio: true,
+          },
+        },
+      },
+    });
+    if (!arrastre || isArrastreCerrado(arrastre.estado)) return;
+
+    const incidentesAbiertos = await tx.incidenteArrastreTorreon.count({
+      where: { arrastreId, estado: EstadoIncidenteArrastreTorreon.ABIERTO },
+    });
+    const primerInicio = arrastre.vagones
+      .map((vagon) => vagon.fechaInicio)
+      .filter((value): value is Date => Boolean(value))
+      .sort((left, right) => left.getTime() - right.getTime())[0] ?? null;
+    const tieneVagonEnProceso = arrastre.vagones.some((vagon) => vagon.estado === EstadoVagonArrastreTorreon.EN_PROCESO);
+    const tienePendientesOperativos = arrastre.vagones.some((vagon) => vagon.estado !== EstadoVagonArrastreTorreon.CONCLUIDO);
+
+    let siguienteEstado: EstadoArrastreTorreon;
+    if (!tienePendientesOperativos && incidentesAbiertos === 0) {
+      siguienteEstado = EstadoArrastreTorreon.CONCLUIDO;
+    } else if (incidentesAbiertos > 0) {
+      siguienteEstado = EstadoArrastreTorreon.DETENIDO;
+    } else if (tieneVagonEnProceso || arrastre.fechaInicio || primerInicio) {
+      siguienteEstado = EstadoArrastreTorreon.EN_PROCESO;
+    } else {
+      siguienteEstado = EstadoArrastreTorreon.SOLICITADO;
+    }
+
+    const data: Prisma.ArrastreTorreonUpdateInput = {};
+    if (arrastre.estado !== siguienteEstado) data.estado = siguienteEstado;
+    if (!arrastre.fechaInicio && primerInicio) data.fechaInicio = primerInicio;
+    if (siguienteEstado === EstadoArrastreTorreon.CONCLUIDO && !arrastre.fechaFin) data.fechaFin = fechaReferencia;
+    if (siguienteEstado === EstadoArrastreTorreon.DETENIDO && !arrastre.fechaPausa) data.fechaPausa = fechaReferencia;
+    if (siguienteEstado !== EstadoArrastreTorreon.DETENIDO && arrastre.fechaPausa) data.fechaPausa = null;
+
+    if (Object.keys(data).length) {
+      await tx.arrastreTorreon.update({
+        where: { id: arrastreId },
+        data,
       });
     }
   }
@@ -263,6 +530,11 @@ export class ArrastreModel {
     assertCapacidadArrastre(input.vagones);
 
     const arrastreId = await prismaTorreon.$transaction(async (tx) => {
+      const last = await tx.arrastreTorreon.findFirst({
+        where: { localidadId: input.localidadId },
+        orderBy: [{ ordenSolicitud: "desc" }, { id: "desc" }],
+        select: { ordenSolicitud: true },
+      });
       const arrastre = await tx.arrastreTorreon.create({
         data: compact({
           empresaId: input.empresaId,
@@ -273,6 +545,7 @@ export class ArrastreModel {
           viaDestinoId: input.viaDestinoId,
           seccionOrigenId: input.seccionOrigenId,
           seccionDestinoId: input.seccionDestinoId,
+          ordenSolicitud: (last?.ordenSolicitud ?? 0) + 1,
           instrucciones: input.instrucciones,
           vagones: {
             create: input.vagones.map((vagon, index) => compact({
@@ -281,16 +554,97 @@ export class ArrastreModel {
               carga: vagon.carga,
               viaId: vagon.viaId,
               seccionId: vagon.seccionId,
+              comentario: vagon.comentario,
               fechaSolicitud: vagon.fechaSolicitud,
             })),
           },
         }),
       });
 
+      await this.recalcularBloqueosLocalidad(tx, input.localidadId);
       return arrastre.id;
     });
 
     return getArrastreDetalle(arrastreId);
+  }
+
+  static async reordenarSolicitudes(input: z.infer<typeof reordenarSolicitudesArrastreSchema>) {
+    const localidadId = await prismaTorreon.$transaction(async (tx) => {
+      const selected = await tx.arrastreTorreon.findMany({
+        where: { id: { in: input.arrastreIds } },
+        include: { vagones: { orderBy: { orden: "asc" } } },
+      });
+
+      if (selected.length !== input.arrastreIds.length) {
+        throw new DomainError(404, "Una o mas solicitudes de arrastre no existen");
+      }
+
+      const localidadIds = new Set(selected.map((arrastre) => arrastre.localidadId));
+      if (localidadIds.size !== 1) {
+        throw new DomainError(400, "Solo puedes reordenar solicitudes de una misma localidad");
+      }
+
+      const targetLocalidadId = selected[0].localidadId;
+      if (input.empresaId && selected.some((arrastre) => arrastre.empresaId !== input.empresaId)) {
+        throw new DomainError(403, "Solo puedes reordenar solicitudes de tu empresa");
+      }
+
+      for (const arrastre of selected) {
+        assertArrastreEditable(arrastre.estado);
+        assertArrastreSinVagonEnProceso(arrastre.vagones);
+      }
+
+      const solicitudes = await tx.arrastreTorreon.findMany({
+        where: { localidadId: targetLocalidadId },
+        include: { vagones: { orderBy: { orden: "asc" } } },
+        orderBy: [
+          { ordenSolicitud: "asc" },
+          { fechaSolicitud: "asc" },
+          { id: "asc" },
+        ],
+      });
+
+      const isScopedEditable = (arrastre: typeof solicitudes[number]) => {
+        const sameScope = input.empresaId ? arrastre.empresaId === input.empresaId : true;
+        return sameScope
+          && isArrastreEditableOperativo(arrastre.estado)
+          && !arrastre.vagones.some((vagon) => vagon.estado === EstadoVagonArrastreTorreon.EN_PROCESO);
+      };
+
+      const editable = solicitudes.filter(isScopedEditable);
+      const editableIds = new Set(editable.map((arrastre) => arrastre.id));
+      const incluyeTodas = input.arrastreIds.length === editable.length
+        && input.arrastreIds.every((arrastreId) => editableIds.has(arrastreId));
+
+      if (!incluyeTodas) {
+        throw new DomainError(400, "El orden debe incluir todas las solicitudes editables del alcance actual");
+      }
+
+      const byId = new Map(solicitudes.map((arrastre) => [arrastre.id, arrastre]));
+      const reorderedEditable = input.arrastreIds.map((arrastreId) => byId.get(arrastreId)!);
+      let editableCursor = 0;
+      const finalOrder = solicitudes.map((arrastre) => (
+        editableIds.has(arrastre.id) ? reorderedEditable[editableCursor++] : arrastre
+      ));
+
+      await tx.arrastreTorreon.updateMany({
+        where: { localidadId: targetLocalidadId },
+        data: { ordenSolicitud: { increment: ORDER_SHIFT } },
+      });
+
+      await Promise.all(
+        finalOrder.map((arrastre, index) =>
+          tx.arrastreTorreon.update({
+            where: { id: arrastre.id },
+            data: { ordenSolicitud: index + 1 },
+          })
+        )
+      );
+
+      return targetLocalidadId;
+    });
+
+    return this.listar({ localidadId });
   }
 
   static async iniciar(id: number, input: z.infer<typeof iniciarArrastreSchema>) {
@@ -396,16 +750,18 @@ export class ArrastreModel {
       if (isArrastreCerrado(arrastre.estado)) {
         throw new DomainError(409, `Arrastre no puede iniciar vagones en estado ${arrastre.estado}`);
       }
-      if (arrastre.estado === EstadoArrastreTorreon.DETENIDO) {
-        throw new DomainError(409, "Arrastre detenido por incidente abierto");
-      }
       const vagon = arrastre.vagones.find((item) => item.id === vagonId);
       if (!vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
       if (vagon.estado === EstadoVagonArrastreTorreon.CONCLUIDO) {
         throw new DomainError(409, "Vagon ya concluido");
       }
       if (vagon.estado === EstadoVagonArrastreTorreon.BLOQUEADO) {
-        throw new DomainError(409, "Vagon bloqueado por incidente abierto");
+        if (!input.confirmarIncidente) {
+          throw new DomainError(409, "Vagon bloqueado por incidente abierto", {
+            requiereConfirmacion: true,
+            accionPermitida: "Si el maquinista confirma que se puede realizar, vuelve a iniciar con confirmarIncidente=true",
+          });
+        }
       }
 
       const activo = arrastre.vagones.find((item) => item.estado === EstadoVagonArrastreTorreon.EN_PROCESO);
@@ -417,26 +773,22 @@ export class ArrastreModel {
       }
       if (activo?.id === vagonId) return id;
 
-      await this.assertPuedeEjecutar(tx, { ...arrastre, vagones: [vagon] });
+      const incidenteConfirmado = await this.assertPuedeEjecutar(tx, { ...arrastre, vagones: [vagon] }, Boolean(input.confirmarIncidente));
       const fechaInicio = vagon.fechaInicio ?? input.fechaInicio ?? new Date();
-
-      if (arrastre.estado === EstadoArrastreTorreon.SOLICITADO) {
-        await tx.arrastreTorreon.update({
-          where: { id },
-          data: {
-            estado: EstadoArrastreTorreon.EN_PROCESO,
-            fechaInicio: arrastre.fechaInicio ?? fechaInicio,
-          },
-        });
-      }
+      const comentarioActual = (vagon as { comentario?: string | null }).comentario;
+      const comentarioIncidente = incidenteConfirmado
+        ? `Operacion autorizada con incidente abierto #${incidenteConfirmado.id}`
+        : undefined;
 
       await tx.arrastreTorreonVagon.update({
         where: { id: vagonId },
         data: {
           estado: EstadoVagonArrastreTorreon.EN_PROCESO,
           fechaInicio,
+          comentario: mergeComentarios(comentarioActual, comentarioIncidente, input.comentarioOperacion),
         },
       });
+      await this.sincronizarEstadoOperativo(tx, id, fechaInicio);
 
       return id;
     });
@@ -449,40 +801,26 @@ export class ArrastreModel {
       const arrastre = await getArrastreOrThrow(tx, id);
       const vagon = arrastre.vagones.find((item) => item.id === vagonId);
       if (!vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
-      if (arrastre.estado === EstadoArrastreTorreon.DETENIDO) {
-        throw new DomainError(409, "Arrastre detenido por incidente abierto");
-      }
       if (vagon.estado !== EstadoVagonArrastreTorreon.EN_PROCESO) {
         throw new DomainError(409, `Vagon debe estar EN_PROCESO para finalizar. Estado actual: ${vagon.estado}`);
       }
 
-      await this.assertPuedeEjecutar(tx, { ...arrastre, vagones: [vagon] });
+      const incidenteConfirmado = await this.assertPuedeEjecutar(tx, { ...arrastre, vagones: [vagon] }, Boolean(input.confirmarIncidente));
       const fechaFin = input.fechaFin ?? new Date();
+      const comentarioActual = (vagon as { comentario?: string | null }).comentario;
+      const comentarioIncidente = incidenteConfirmado
+        ? `Cierre autorizado con incidente abierto #${incidenteConfirmado.id}`
+        : undefined;
 
       await tx.arrastreTorreonVagon.update({
         where: { id: vagonId },
         data: {
           estado: EstadoVagonArrastreTorreon.CONCLUIDO,
           fechaFin,
+          comentario: mergeComentarios(comentarioActual, comentarioIncidente, input.comentarioOperacion),
         },
       });
-
-      const restantes = await tx.arrastreTorreonVagon.count({
-        where: {
-          arrastreId: id,
-          id: { not: vagonId },
-          estado: { not: EstadoVagonArrastreTorreon.CONCLUIDO },
-        },
-      });
-      if (restantes === 0) {
-        await tx.arrastreTorreon.update({
-          where: { id },
-          data: {
-            estado: EstadoArrastreTorreon.CONCLUIDO,
-            fechaFin,
-          },
-        });
-      }
+      await this.sincronizarEstadoOperativo(tx, id, fechaFin);
 
       return id;
     });
@@ -493,15 +831,17 @@ export class ArrastreModel {
   static async editarVagon(id: number, vagonId: number, input: z.infer<typeof editarVagonArrastreSchema>) {
     const arrastreId = await prismaTorreon.$transaction(async (tx) => {
       const arrastre = await getArrastreOrThrow(tx, id);
-      if (isArrastreCerrado(arrastre.estado)) {
-        throw new DomainError(409, `Arrastre no puede editarse en estado ${arrastre.estado}`);
-      }
+      assertArrastreEditable(arrastre.estado);
+      assertArrastreSinVagonEnProceso(arrastre.vagones);
 
       const vagon = arrastre.vagones.find((item) => item.id === vagonId);
       if (!vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
 
       if (vagon.estado === EstadoVagonArrastreTorreon.EN_PROCESO) {
         throw new DomainError(409, "Vagon en proceso no se puede editar");
+      }
+      if (vagon.estado === EstadoVagonArrastreTorreon.CONCLUIDO) {
+        throw new DomainError(409, "Vagon concluido no se puede editar");
       }
 
       assertCapacidadArrastre(arrastre.vagones.map((item) => ({
@@ -515,8 +855,44 @@ export class ArrastreModel {
           carga: input.carga,
           viaId: input.viaId,
           seccionId: input.seccionId,
+          comentario: input.comentario,
         }),
       });
+
+      await this.recalcularBloqueosLocalidad(tx, arrastre.localidadId);
+      return id;
+    });
+
+    return getArrastreDetalle(arrastreId);
+  }
+
+  static async reordenarVagones(id: number, input: z.infer<typeof reordenarVagonesArrastreSchema>) {
+    const arrastreId = await prismaTorreon.$transaction(async (tx) => {
+      const arrastre = await getArrastreOrThrow(tx, id);
+      assertArrastreEditable(arrastre.estado);
+      assertArrastreSinVagonEnProceso(arrastre.vagones);
+
+      const existingIds = new Set(arrastre.vagones.map((vagon) => vagon.id));
+      const incluyeTodos = input.vagonIds.length === arrastre.vagones.length
+        && input.vagonIds.every((vagonId) => existingIds.has(vagonId));
+
+      if (!incluyeTodos) {
+        throw new DomainError(400, "El orden debe incluir todos los vagones del arrastre una sola vez");
+      }
+
+      await tx.arrastreTorreonVagon.updateMany({
+        where: { arrastreId: id },
+        data: { orden: { increment: ORDER_SHIFT } },
+      });
+
+      await Promise.all(
+        input.vagonIds.map((vagonId, index) =>
+          tx.arrastreTorreonVagon.update({
+            where: { id: vagonId },
+            data: { orden: index + 1 },
+          })
+        )
+      );
 
       return id;
     });
@@ -583,11 +959,13 @@ export class ArrastreModel {
                 : seccionBloqueadaId
                   ? { seccionId: seccionBloqueadaId }
                   : {}),
-          estado: { in: [EstadoVagonArrastreTorreon.PENDIENTE, EstadoVagonArrastreTorreon.EN_PROCESO] },
+          estado: EstadoVagonArrastreTorreon.PENDIENTE,
         },
         data: { estado: EstadoVagonArrastreTorreon.BLOQUEADO },
       });
 
+      await this.recalcularBloqueosLocalidad(tx, arrastre.localidadId);
+      await RondaModel.recalcularBloqueosLocalidad(tx, arrastre.localidadId);
       return { arrastreId: id, incidenteId: incidente.id };
     });
 
@@ -622,6 +1000,9 @@ export class ArrastreModel {
         },
       });
 
+      await this.recalcularBloqueosLocalidad(tx, incidente.localidadId);
+      await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
+      await this.sincronizarEstadoOperativo(tx, id, input.fechaResolucion ?? new Date());
       return id;
     });
 
@@ -648,15 +1029,7 @@ export class ArrastreModel {
         },
       });
 
-      await tx.arrastreTorreonVagon.updateMany({
-        where: {
-          arrastreId: id,
-          estado: EstadoVagonArrastreTorreon.BLOQUEADO,
-        },
-        data: {
-          estado: EstadoVagonArrastreTorreon.PENDIENTE,
-        },
-      });
+      await this.recalcularBloqueosLocalidad(tx, arrastre.localidadId);
 
       return id;
     });

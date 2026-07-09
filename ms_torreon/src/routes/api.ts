@@ -30,7 +30,7 @@ apiRouter.get("/estructura", (_req, res) => {
     reglaArrastre: {
       capacidad: "Maximo 8 vacios equivalentes; VACIO=1, LLENO=2. Ejemplos validos: 8 vacios, 4 llenos, 2 llenos y 4 vacios, 3 llenos y 2 vacios.",
       zonas: "Cada vagon define su zona de arrastre con viaId y seccionId. Un arrastre puede tener vagones en una o muchas vias/secciones.",
-      fotos: "Arrastre no toma fotos de inicio/proceso/final; solo incidente de arrastre con 4 capturas.",
+      fotos: "Arrastre no toma fotos de inicio/proceso/final; solo incidente de arrastre con 1 a 4 capturas.",
     },
     reglaFotos: {
       movimiento: [

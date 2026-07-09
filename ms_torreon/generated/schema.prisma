@@ -149,6 +149,8 @@ model MovimientoTorreonFerro {
   @@index([coordinadorId, estado])
   @@index([operadorId, estado])
   @@index([localidadId, estado])
+  @@index([empresaId, localidadId, estado, fechaSolicitud])
+  @@index([empresaId, localidadId, fechaInicio, fechaFin])
   @@index([viaOrigenId, viaDestinoId])
   @@index([seccionOrigenId, seccionDestinoId])
   @@map("movimiento_torreon_ferro")
@@ -179,9 +181,11 @@ model RondaTorreonMovimiento {
   bloqueadoPorIncidenteId Int?                         @map("bloqueado_por_incidente_id")
   empresaId               Int                          @map("empresa_id")
   orden                   Int
+  ordenManual             Int?                         @map("orden_manual")
   prioridad               PrioridadTorreon             @default(BAJA)
   estado                  EstadoRondaMovimientoTorreon @default(PENDIENTE)
   fechaAsignado           DateTime                     @default(now()) @map("fecha_asignado")
+  fechaReordenManual      DateTime?                    @map("fecha_reorden_manual")
   fechaInicio             DateTime?                    @map("fecha_inicio")
   fechaFin                DateTime?                    @map("fecha_fin")
   createdAt               DateTime                     @default(now()) @map("created_at")
@@ -278,6 +282,7 @@ model ArrastreTorreon {
   seccionOrigenId  Int?                  @map("seccion_origen_id")
   seccionDestinoId Int?                  @map("seccion_destino_id")
   estado           EstadoArrastreTorreon @default(SOLICITADO)
+  ordenSolicitud   Int                   @default(0) @map("orden_solicitud")
   instrucciones    String?
 
   fechaSolicitud DateTime  @default(now()) @map("fecha_solicitud")
@@ -293,6 +298,10 @@ model ArrastreTorreon {
 
   @@index([empresaId, estado])
   @@index([localidadId, estado])
+  @@index([localidadId, ordenSolicitud])
+  @@index([empresaId, ordenSolicitud])
+  @@index([empresaId, localidadId, estado, ordenSolicitud, fechaSolicitud])
+  @@index([empresaId, localidadId, estado, fechaFin, fechaSolicitud])
   @@index([fechaInicio, fechaFin])
   @@index([viaOrigenId, viaDestinoId])
   @@index([seccionOrigenId, seccionDestinoId])
@@ -307,6 +316,7 @@ model ArrastreTorreonVagon {
   carga          CargaVagonArrastreTorreon
   viaId          Int                        @map("via_id")
   seccionId      Int                        @map("seccion_id")
+  comentario     String?
   estado         EstadoVagonArrastreTorreon @default(PENDIENTE)
   fechaSolicitud DateTime                   @default(now()) @map("fecha_solicitud")
   fechaInicio    DateTime?                  @map("fecha_inicio")

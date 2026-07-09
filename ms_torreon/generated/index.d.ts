@@ -4834,6 +4834,7 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: number | null
     empresaId: number | null
     orden: number | null
+    ordenManual: number | null
   }
 
   export type RondaTorreonMovimientoSumAggregateOutputType = {
@@ -4843,6 +4844,7 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: number | null
     empresaId: number | null
     orden: number | null
+    ordenManual: number | null
   }
 
   export type RondaTorreonMovimientoMinAggregateOutputType = {
@@ -4852,9 +4854,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: number | null
     empresaId: number | null
     orden: number | null
+    ordenManual: number | null
     prioridad: $Enums.PrioridadTorreon | null
     estado: $Enums.EstadoRondaMovimientoTorreon | null
     fechaAsignado: Date | null
+    fechaReordenManual: Date | null
     fechaInicio: Date | null
     fechaFin: Date | null
     createdAt: Date | null
@@ -4868,9 +4872,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: number | null
     empresaId: number | null
     orden: number | null
+    ordenManual: number | null
     prioridad: $Enums.PrioridadTorreon | null
     estado: $Enums.EstadoRondaMovimientoTorreon | null
     fechaAsignado: Date | null
+    fechaReordenManual: Date | null
     fechaInicio: Date | null
     fechaFin: Date | null
     createdAt: Date | null
@@ -4884,9 +4890,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: number
     empresaId: number
     orden: number
+    ordenManual: number
     prioridad: number
     estado: number
     fechaAsignado: number
+    fechaReordenManual: number
     fechaInicio: number
     fechaFin: number
     createdAt: number
@@ -4902,6 +4910,7 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: true
     empresaId?: true
     orden?: true
+    ordenManual?: true
   }
 
   export type RondaTorreonMovimientoSumAggregateInputType = {
@@ -4911,6 +4920,7 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: true
     empresaId?: true
     orden?: true
+    ordenManual?: true
   }
 
   export type RondaTorreonMovimientoMinAggregateInputType = {
@@ -4920,9 +4930,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: true
     empresaId?: true
     orden?: true
+    ordenManual?: true
     prioridad?: true
     estado?: true
     fechaAsignado?: true
+    fechaReordenManual?: true
     fechaInicio?: true
     fechaFin?: true
     createdAt?: true
@@ -4936,9 +4948,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: true
     empresaId?: true
     orden?: true
+    ordenManual?: true
     prioridad?: true
     estado?: true
     fechaAsignado?: true
+    fechaReordenManual?: true
     fechaInicio?: true
     fechaFin?: true
     createdAt?: true
@@ -4952,9 +4966,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: true
     empresaId?: true
     orden?: true
+    ordenManual?: true
     prioridad?: true
     estado?: true
     fechaAsignado?: true
+    fechaReordenManual?: true
     fechaInicio?: true
     fechaFin?: true
     createdAt?: true
@@ -5055,9 +5071,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: number | null
     empresaId: number
     orden: number
+    ordenManual: number | null
     prioridad: $Enums.PrioridadTorreon
     estado: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado: Date
+    fechaReordenManual: Date | null
     fechaInicio: Date | null
     fechaFin: Date | null
     createdAt: Date
@@ -5090,9 +5108,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: boolean
     empresaId?: boolean
     orden?: boolean
+    ordenManual?: boolean
     prioridad?: boolean
     estado?: boolean
     fechaAsignado?: boolean
+    fechaReordenManual?: boolean
     fechaInicio?: boolean
     fechaFin?: boolean
     createdAt?: boolean
@@ -5109,9 +5129,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: boolean
     empresaId?: boolean
     orden?: boolean
+    ordenManual?: boolean
     prioridad?: boolean
     estado?: boolean
     fechaAsignado?: boolean
+    fechaReordenManual?: boolean
     fechaInicio?: boolean
     fechaFin?: boolean
     createdAt?: boolean
@@ -5128,9 +5150,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: boolean
     empresaId?: boolean
     orden?: boolean
+    ordenManual?: boolean
     prioridad?: boolean
     estado?: boolean
     fechaAsignado?: boolean
+    fechaReordenManual?: boolean
     fechaInicio?: boolean
     fechaFin?: boolean
     createdAt?: boolean
@@ -5147,16 +5171,18 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: boolean
     empresaId?: boolean
     orden?: boolean
+    ordenManual?: boolean
     prioridad?: boolean
     estado?: boolean
     fechaAsignado?: boolean
+    fechaReordenManual?: boolean
     fechaInicio?: boolean
     fechaFin?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type RondaTorreonMovimientoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "rondaId" | "movimientoId" | "bloqueadoPorIncidenteId" | "empresaId" | "orden" | "prioridad" | "estado" | "fechaAsignado" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["rondaTorreonMovimiento"]>
+  export type RondaTorreonMovimientoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "rondaId" | "movimientoId" | "bloqueadoPorIncidenteId" | "empresaId" | "orden" | "ordenManual" | "prioridad" | "estado" | "fechaAsignado" | "fechaReordenManual" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["rondaTorreonMovimiento"]>
   export type RondaTorreonMovimientoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ronda?: boolean | RondaTorreonDefaultArgs<ExtArgs>
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
@@ -5187,9 +5213,11 @@ export namespace Prisma {
       bloqueadoPorIncidenteId: number | null
       empresaId: number
       orden: number
+      ordenManual: number | null
       prioridad: $Enums.PrioridadTorreon
       estado: $Enums.EstadoRondaMovimientoTorreon
       fechaAsignado: Date
+      fechaReordenManual: Date | null
       fechaInicio: Date | null
       fechaFin: Date | null
       createdAt: Date
@@ -5626,9 +5654,11 @@ export namespace Prisma {
     readonly bloqueadoPorIncidenteId: FieldRef<"RondaTorreonMovimiento", 'Int'>
     readonly empresaId: FieldRef<"RondaTorreonMovimiento", 'Int'>
     readonly orden: FieldRef<"RondaTorreonMovimiento", 'Int'>
+    readonly ordenManual: FieldRef<"RondaTorreonMovimiento", 'Int'>
     readonly prioridad: FieldRef<"RondaTorreonMovimiento", 'PrioridadTorreon'>
     readonly estado: FieldRef<"RondaTorreonMovimiento", 'EstadoRondaMovimientoTorreon'>
     readonly fechaAsignado: FieldRef<"RondaTorreonMovimiento", 'DateTime'>
+    readonly fechaReordenManual: FieldRef<"RondaTorreonMovimiento", 'DateTime'>
     readonly fechaInicio: FieldRef<"RondaTorreonMovimiento", 'DateTime'>
     readonly fechaFin: FieldRef<"RondaTorreonMovimiento", 'DateTime'>
     readonly createdAt: FieldRef<"RondaTorreonMovimiento", 'DateTime'>
@@ -9730,6 +9760,7 @@ export namespace Prisma {
     viaDestinoId: number | null
     seccionOrigenId: number | null
     seccionDestinoId: number | null
+    ordenSolicitud: number | null
   }
 
   export type ArrastreTorreonSumAggregateOutputType = {
@@ -9742,6 +9773,7 @@ export namespace Prisma {
     viaDestinoId: number | null
     seccionOrigenId: number | null
     seccionDestinoId: number | null
+    ordenSolicitud: number | null
   }
 
   export type ArrastreTorreonMinAggregateOutputType = {
@@ -9755,6 +9787,7 @@ export namespace Prisma {
     seccionOrigenId: number | null
     seccionDestinoId: number | null
     estado: $Enums.EstadoArrastreTorreon | null
+    ordenSolicitud: number | null
     instrucciones: string | null
     fechaSolicitud: Date | null
     fechaInicio: Date | null
@@ -9775,6 +9808,7 @@ export namespace Prisma {
     seccionOrigenId: number | null
     seccionDestinoId: number | null
     estado: $Enums.EstadoArrastreTorreon | null
+    ordenSolicitud: number | null
     instrucciones: string | null
     fechaSolicitud: Date | null
     fechaInicio: Date | null
@@ -9795,6 +9829,7 @@ export namespace Prisma {
     seccionOrigenId: number
     seccionDestinoId: number
     estado: number
+    ordenSolicitud: number
     instrucciones: number
     fechaSolicitud: number
     fechaInicio: number
@@ -9816,6 +9851,7 @@ export namespace Prisma {
     viaDestinoId?: true
     seccionOrigenId?: true
     seccionDestinoId?: true
+    ordenSolicitud?: true
   }
 
   export type ArrastreTorreonSumAggregateInputType = {
@@ -9828,6 +9864,7 @@ export namespace Prisma {
     viaDestinoId?: true
     seccionOrigenId?: true
     seccionDestinoId?: true
+    ordenSolicitud?: true
   }
 
   export type ArrastreTorreonMinAggregateInputType = {
@@ -9841,6 +9878,7 @@ export namespace Prisma {
     seccionOrigenId?: true
     seccionDestinoId?: true
     estado?: true
+    ordenSolicitud?: true
     instrucciones?: true
     fechaSolicitud?: true
     fechaInicio?: true
@@ -9861,6 +9899,7 @@ export namespace Prisma {
     seccionOrigenId?: true
     seccionDestinoId?: true
     estado?: true
+    ordenSolicitud?: true
     instrucciones?: true
     fechaSolicitud?: true
     fechaInicio?: true
@@ -9881,6 +9920,7 @@ export namespace Prisma {
     seccionOrigenId?: true
     seccionDestinoId?: true
     estado?: true
+    ordenSolicitud?: true
     instrucciones?: true
     fechaSolicitud?: true
     fechaInicio?: true
@@ -9988,6 +10028,7 @@ export namespace Prisma {
     seccionOrigenId: number | null
     seccionDestinoId: number | null
     estado: $Enums.EstadoArrastreTorreon
+    ordenSolicitud: number
     instrucciones: string | null
     fechaSolicitud: Date
     fechaInicio: Date | null
@@ -10027,6 +10068,7 @@ export namespace Prisma {
     seccionOrigenId?: boolean
     seccionDestinoId?: boolean
     estado?: boolean
+    ordenSolicitud?: boolean
     instrucciones?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -10050,6 +10092,7 @@ export namespace Prisma {
     seccionOrigenId?: boolean
     seccionDestinoId?: boolean
     estado?: boolean
+    ordenSolicitud?: boolean
     instrucciones?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -10070,6 +10113,7 @@ export namespace Prisma {
     seccionOrigenId?: boolean
     seccionDestinoId?: boolean
     estado?: boolean
+    ordenSolicitud?: boolean
     instrucciones?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -10090,6 +10134,7 @@ export namespace Prisma {
     seccionOrigenId?: boolean
     seccionDestinoId?: boolean
     estado?: boolean
+    ordenSolicitud?: boolean
     instrucciones?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -10099,7 +10144,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "empresaId" | "creadoPorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "estado" | "instrucciones" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreon"]>
+  export type ArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "empresaId" | "creadoPorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "estado" | "ordenSolicitud" | "instrucciones" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreon"]>
   export type ArrastreTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     vagones?: boolean | ArrastreTorreon$vagonesArgs<ExtArgs>
     incidentes?: boolean | ArrastreTorreon$incidentesArgs<ExtArgs>
@@ -10125,6 +10170,7 @@ export namespace Prisma {
       seccionOrigenId: number | null
       seccionDestinoId: number | null
       estado: $Enums.EstadoArrastreTorreon
+      ordenSolicitud: number
       instrucciones: string | null
       fechaSolicitud: Date
       fechaInicio: Date | null
@@ -10567,6 +10613,7 @@ export namespace Prisma {
     readonly seccionOrigenId: FieldRef<"ArrastreTorreon", 'Int'>
     readonly seccionDestinoId: FieldRef<"ArrastreTorreon", 'Int'>
     readonly estado: FieldRef<"ArrastreTorreon", 'EstadoArrastreTorreon'>
+    readonly ordenSolicitud: FieldRef<"ArrastreTorreon", 'Int'>
     readonly instrucciones: FieldRef<"ArrastreTorreon", 'String'>
     readonly fechaSolicitud: FieldRef<"ArrastreTorreon", 'DateTime'>
     readonly fechaInicio: FieldRef<"ArrastreTorreon", 'DateTime'>
@@ -11064,6 +11111,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon | null
     viaId: number | null
     seccionId: number | null
+    comentario: string | null
     estado: $Enums.EstadoVagonArrastreTorreon | null
     fechaSolicitud: Date | null
     fechaInicio: Date | null
@@ -11080,6 +11128,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon | null
     viaId: number | null
     seccionId: number | null
+    comentario: string | null
     estado: $Enums.EstadoVagonArrastreTorreon | null
     fechaSolicitud: Date | null
     fechaInicio: Date | null
@@ -11096,6 +11145,7 @@ export namespace Prisma {
     carga: number
     viaId: number
     seccionId: number
+    comentario: number
     estado: number
     fechaSolicitud: number
     fechaInicio: number
@@ -11130,6 +11180,7 @@ export namespace Prisma {
     carga?: true
     viaId?: true
     seccionId?: true
+    comentario?: true
     estado?: true
     fechaSolicitud?: true
     fechaInicio?: true
@@ -11146,6 +11197,7 @@ export namespace Prisma {
     carga?: true
     viaId?: true
     seccionId?: true
+    comentario?: true
     estado?: true
     fechaSolicitud?: true
     fechaInicio?: true
@@ -11162,6 +11214,7 @@ export namespace Prisma {
     carga?: true
     viaId?: true
     seccionId?: true
+    comentario?: true
     estado?: true
     fechaSolicitud?: true
     fechaInicio?: true
@@ -11265,6 +11318,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario: string | null
     estado: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud: Date
     fechaInicio: Date | null
@@ -11300,6 +11354,7 @@ export namespace Prisma {
     carga?: boolean
     viaId?: boolean
     seccionId?: boolean
+    comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -11319,6 +11374,7 @@ export namespace Prisma {
     carga?: boolean
     viaId?: boolean
     seccionId?: boolean
+    comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -11336,6 +11392,7 @@ export namespace Prisma {
     carga?: boolean
     viaId?: boolean
     seccionId?: boolean
+    comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -11353,6 +11410,7 @@ export namespace Prisma {
     carga?: boolean
     viaId?: boolean
     seccionId?: boolean
+    comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
     fechaInicio?: boolean
@@ -11361,7 +11419,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ArrastreTorreonVagonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "arrastreId" | "orden" | "numeroVagon" | "carga" | "viaId" | "seccionId" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreonVagon"]>
+  export type ArrastreTorreonVagonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "arrastreId" | "orden" | "numeroVagon" | "carga" | "viaId" | "seccionId" | "comentario" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreonVagon"]>
   export type ArrastreTorreonVagonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
     incidentes?: boolean | ArrastreTorreonVagon$incidentesArgs<ExtArgs>
@@ -11388,6 +11446,7 @@ export namespace Prisma {
       carga: $Enums.CargaVagonArrastreTorreon
       viaId: number
       seccionId: number
+      comentario: string | null
       estado: $Enums.EstadoVagonArrastreTorreon
       fechaSolicitud: Date
       fechaInicio: Date | null
@@ -11826,6 +11885,7 @@ export namespace Prisma {
     readonly carga: FieldRef<"ArrastreTorreonVagon", 'CargaVagonArrastreTorreon'>
     readonly viaId: FieldRef<"ArrastreTorreonVagon", 'Int'>
     readonly seccionId: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly comentario: FieldRef<"ArrastreTorreonVagon", 'String'>
     readonly estado: FieldRef<"ArrastreTorreonVagon", 'EstadoVagonArrastreTorreon'>
     readonly fechaSolicitud: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
     readonly fechaInicio: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
@@ -14820,9 +14880,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId: 'bloqueadoPorIncidenteId',
     empresaId: 'empresaId',
     orden: 'orden',
+    ordenManual: 'ordenManual',
     prioridad: 'prioridad',
     estado: 'estado',
     fechaAsignado: 'fechaAsignado',
+    fechaReordenManual: 'fechaReordenManual',
     fechaInicio: 'fechaInicio',
     fechaFin: 'fechaFin',
     createdAt: 'createdAt',
@@ -14896,6 +14958,7 @@ export namespace Prisma {
     seccionOrigenId: 'seccionOrigenId',
     seccionDestinoId: 'seccionDestinoId',
     estado: 'estado',
+    ordenSolicitud: 'ordenSolicitud',
     instrucciones: 'instrucciones',
     fechaSolicitud: 'fechaSolicitud',
     fechaInicio: 'fechaInicio',
@@ -14916,6 +14979,7 @@ export namespace Prisma {
     carga: 'carga',
     viaId: 'viaId',
     seccionId: 'seccionId',
+    comentario: 'comentario',
     estado: 'estado',
     fechaSolicitud: 'fechaSolicitud',
     fechaInicio: 'fechaInicio',
@@ -15540,9 +15604,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: IntNullableFilter<"RondaTorreonMovimiento"> | number | null
     empresaId?: IntFilter<"RondaTorreonMovimiento"> | number
     orden?: IntFilter<"RondaTorreonMovimiento"> | number
+    ordenManual?: IntNullableFilter<"RondaTorreonMovimiento"> | number | null
     prioridad?: EnumPrioridadTorreonFilter<"RondaTorreonMovimiento"> | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFilter<"RondaTorreonMovimiento"> | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
+    fechaReordenManual?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaInicio?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaFin?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     createdAt?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
@@ -15559,9 +15625,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrderInput | SortOrder
     prioridad?: SortOrder
     estado?: SortOrder
     fechaAsignado?: SortOrder
+    fechaReordenManual?: SortOrderInput | SortOrder
     fechaInicio?: SortOrderInput | SortOrder
     fechaFin?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -15583,9 +15651,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: IntNullableFilter<"RondaTorreonMovimiento"> | number | null
     empresaId?: IntFilter<"RondaTorreonMovimiento"> | number
     orden?: IntFilter<"RondaTorreonMovimiento"> | number
+    ordenManual?: IntNullableFilter<"RondaTorreonMovimiento"> | number | null
     prioridad?: EnumPrioridadTorreonFilter<"RondaTorreonMovimiento"> | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFilter<"RondaTorreonMovimiento"> | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
+    fechaReordenManual?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaInicio?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaFin?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     createdAt?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
@@ -15602,9 +15672,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrderInput | SortOrder
     prioridad?: SortOrder
     estado?: SortOrder
     fechaAsignado?: SortOrder
+    fechaReordenManual?: SortOrderInput | SortOrder
     fechaInicio?: SortOrderInput | SortOrder
     fechaFin?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -15626,9 +15698,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: IntNullableWithAggregatesFilter<"RondaTorreonMovimiento"> | number | null
     empresaId?: IntWithAggregatesFilter<"RondaTorreonMovimiento"> | number
     orden?: IntWithAggregatesFilter<"RondaTorreonMovimiento"> | number
+    ordenManual?: IntNullableWithAggregatesFilter<"RondaTorreonMovimiento"> | number | null
     prioridad?: EnumPrioridadTorreonWithAggregatesFilter<"RondaTorreonMovimiento"> | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonWithAggregatesFilter<"RondaTorreonMovimiento"> | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeWithAggregatesFilter<"RondaTorreonMovimiento"> | Date | string
+    fechaReordenManual?: DateTimeNullableWithAggregatesFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaInicio?: DateTimeNullableWithAggregatesFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaFin?: DateTimeNullableWithAggregatesFilter<"RondaTorreonMovimiento"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"RondaTorreonMovimiento"> | Date | string
@@ -15928,6 +16002,7 @@ export namespace Prisma {
     seccionOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     seccionDestinoId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     estado?: EnumEstadoArrastreTorreonFilter<"ArrastreTorreon"> | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFilter<"ArrastreTorreon"> | number
     instrucciones?: StringNullableFilter<"ArrastreTorreon"> | string | null
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreon"> | Date | string
     fechaInicio?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
@@ -15950,6 +16025,7 @@ export namespace Prisma {
     seccionOrigenId?: SortOrderInput | SortOrder
     seccionDestinoId?: SortOrderInput | SortOrder
     estado?: SortOrder
+    ordenSolicitud?: SortOrder
     instrucciones?: SortOrderInput | SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrderInput | SortOrder
@@ -15975,6 +16051,7 @@ export namespace Prisma {
     seccionOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     seccionDestinoId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     estado?: EnumEstadoArrastreTorreonFilter<"ArrastreTorreon"> | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFilter<"ArrastreTorreon"> | number
     instrucciones?: StringNullableFilter<"ArrastreTorreon"> | string | null
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreon"> | Date | string
     fechaInicio?: DateTimeNullableFilter<"ArrastreTorreon"> | Date | string | null
@@ -15997,6 +16074,7 @@ export namespace Prisma {
     seccionOrigenId?: SortOrderInput | SortOrder
     seccionDestinoId?: SortOrderInput | SortOrder
     estado?: SortOrder
+    ordenSolicitud?: SortOrder
     instrucciones?: SortOrderInput | SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrderInput | SortOrder
@@ -16025,6 +16103,7 @@ export namespace Prisma {
     seccionOrigenId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
     seccionDestinoId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
     estado?: EnumEstadoArrastreTorreonWithAggregatesFilter<"ArrastreTorreon"> | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
     instrucciones?: StringNullableWithAggregatesFilter<"ArrastreTorreon"> | string | null
     fechaSolicitud?: DateTimeWithAggregatesFilter<"ArrastreTorreon"> | Date | string
     fechaInicio?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreon"> | Date | string | null
@@ -16045,6 +16124,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFilter<"ArrastreTorreonVagon"> | number
     seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    comentario?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
     fechaInicio?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
@@ -16063,6 +16143,7 @@ export namespace Prisma {
     carga?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    comentario?: SortOrderInput | SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrderInput | SortOrder
@@ -16085,6 +16166,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFilter<"ArrastreTorreonVagon"> | number
     seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    comentario?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
     fechaInicio?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
@@ -16103,6 +16185,7 @@ export namespace Prisma {
     carga?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    comentario?: SortOrderInput | SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrderInput | SortOrder
@@ -16127,6 +16210,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonWithAggregatesFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
     viaId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
     seccionId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    comentario?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonWithAggregatesFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
     fechaInicio?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string | null
@@ -16673,9 +16757,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoCreateInput = {
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -16692,9 +16778,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: number | null
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -16704,9 +16792,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoUpdateInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16723,9 +16813,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: NullableIntFieldUpdateOperationsInput | number | null
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16739,9 +16831,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: number | null
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -16751,9 +16845,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoUpdateManyMutationInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16767,9 +16863,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: NullableIntFieldUpdateOperationsInput | number | null
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17090,6 +17188,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -17112,6 +17211,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -17133,6 +17233,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17155,6 +17256,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17177,6 +17279,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -17196,6 +17299,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17216,6 +17320,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17231,6 +17336,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -17249,6 +17355,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -17264,6 +17371,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17282,6 +17390,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17299,6 +17408,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -17313,6 +17423,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17329,6 +17440,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -18077,9 +18189,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrder
     prioridad?: SortOrder
     estado?: SortOrder
     fechaAsignado?: SortOrder
+    fechaReordenManual?: SortOrder
     fechaInicio?: SortOrder
     fechaFin?: SortOrder
     createdAt?: SortOrder
@@ -18093,6 +18207,7 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrder
   }
 
   export type RondaTorreonMovimientoMaxOrderByAggregateInput = {
@@ -18102,9 +18217,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrder
     prioridad?: SortOrder
     estado?: SortOrder
     fechaAsignado?: SortOrder
+    fechaReordenManual?: SortOrder
     fechaInicio?: SortOrder
     fechaFin?: SortOrder
     createdAt?: SortOrder
@@ -18118,9 +18235,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrder
     prioridad?: SortOrder
     estado?: SortOrder
     fechaAsignado?: SortOrder
+    fechaReordenManual?: SortOrder
     fechaInicio?: SortOrder
     fechaFin?: SortOrder
     createdAt?: SortOrder
@@ -18134,6 +18253,7 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: SortOrder
     empresaId?: SortOrder
     orden?: SortOrder
+    ordenManual?: SortOrder
   }
 
   export type EnumEstadoRondaMovimientoTorreonWithAggregatesFilter<$PrismaModel = never> = {
@@ -18457,6 +18577,7 @@ export namespace Prisma {
     seccionOrigenId?: SortOrder
     seccionDestinoId?: SortOrder
     estado?: SortOrder
+    ordenSolicitud?: SortOrder
     instrucciones?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrder
@@ -18476,6 +18597,7 @@ export namespace Prisma {
     viaDestinoId?: SortOrder
     seccionOrigenId?: SortOrder
     seccionDestinoId?: SortOrder
+    ordenSolicitud?: SortOrder
   }
 
   export type ArrastreTorreonMaxOrderByAggregateInput = {
@@ -18489,6 +18611,7 @@ export namespace Prisma {
     seccionOrigenId?: SortOrder
     seccionDestinoId?: SortOrder
     estado?: SortOrder
+    ordenSolicitud?: SortOrder
     instrucciones?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrder
@@ -18509,6 +18632,7 @@ export namespace Prisma {
     seccionOrigenId?: SortOrder
     seccionDestinoId?: SortOrder
     estado?: SortOrder
+    ordenSolicitud?: SortOrder
     instrucciones?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrder
@@ -18528,6 +18652,7 @@ export namespace Prisma {
     viaDestinoId?: SortOrder
     seccionOrigenId?: SortOrder
     seccionDestinoId?: SortOrder
+    ordenSolicitud?: SortOrder
   }
 
   export type EnumEstadoArrastreTorreonWithAggregatesFilter<$PrismaModel = never> = {
@@ -18572,6 +18697,7 @@ export namespace Prisma {
     carga?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    comentario?: SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrder
@@ -18596,6 +18722,7 @@ export namespace Prisma {
     carga?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    comentario?: SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrder
@@ -18612,6 +18739,7 @@ export namespace Prisma {
     carga?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    comentario?: SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
     fechaInicio?: SortOrder
@@ -19917,9 +20045,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoCreateWithoutMovimientoInput = {
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -19934,9 +20064,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: number | null
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -20059,9 +20191,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: IntNullableFilter<"RondaTorreonMovimiento"> | number | null
     empresaId?: IntFilter<"RondaTorreonMovimiento"> | number
     orden?: IntFilter<"RondaTorreonMovimiento"> | number
+    ordenManual?: IntNullableFilter<"RondaTorreonMovimiento"> | number | null
     prioridad?: EnumPrioridadTorreonFilter<"RondaTorreonMovimiento"> | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFilter<"RondaTorreonMovimiento"> | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
+    fechaReordenManual?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaInicio?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     fechaFin?: DateTimeNullableFilter<"RondaTorreonMovimiento"> | Date | string | null
     createdAt?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
@@ -20140,9 +20274,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoCreateWithoutRondaInput = {
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -20157,9 +20293,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: number | null
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -20585,9 +20723,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoCreateWithoutBloqueadoPorIncidenteInput = {
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -20602,9 +20742,11 @@ export namespace Prisma {
     movimientoId: number
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -21046,6 +21188,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21062,6 +21205,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21153,6 +21297,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFilter<"ArrastreTorreonVagon"> | number
     seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    comentario?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
     fechaInicio?: DateTimeNullableFilter<"ArrastreTorreonVagon"> | Date | string | null
@@ -21208,6 +21353,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21229,6 +21375,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21310,6 +21457,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21331,6 +21479,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21367,6 +21516,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21388,6 +21538,7 @@ export namespace Prisma {
     seccionOrigenId?: number | null
     seccionDestinoId?: number | null
     estado?: $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: number
     instrucciones?: string | null
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21409,6 +21560,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21426,6 +21578,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -21493,6 +21646,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21514,6 +21668,7 @@ export namespace Prisma {
     seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
     seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoArrastreTorreon
+    ordenSolicitud?: IntFieldUpdateOperationsInput | number
     instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21541,6 +21696,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21558,6 +21714,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21690,9 +21847,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: number | null
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -21731,9 +21890,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoUpdateWithoutMovimientoInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21748,9 +21909,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: NullableIntFieldUpdateOperationsInput | number | null
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21763,9 +21926,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: NullableIntFieldUpdateOperationsInput | number | null
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21867,9 +22032,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: number | null
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -21879,9 +22046,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoUpdateWithoutRondaInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21896,9 +22065,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: NullableIntFieldUpdateOperationsInput | number | null
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21911,9 +22082,11 @@ export namespace Prisma {
     bloqueadoPorIncidenteId?: NullableIntFieldUpdateOperationsInput | number | null
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21926,9 +22099,11 @@ export namespace Prisma {
     movimientoId: number
     empresaId: number
     orden: number
+    ordenManual?: number | null
     prioridad?: $Enums.PrioridadTorreon
     estado?: $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: Date | string
+    fechaReordenManual?: Date | string | null
     fechaInicio?: Date | string | null
     fechaFin?: Date | string | null
     createdAt?: Date | string
@@ -21950,9 +22125,11 @@ export namespace Prisma {
   export type RondaTorreonMovimientoUpdateWithoutBloqueadoPorIncidenteInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21967,9 +22144,11 @@ export namespace Prisma {
     movimientoId?: IntFieldUpdateOperationsInput | number
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21982,9 +22161,11 @@ export namespace Prisma {
     movimientoId?: IntFieldUpdateOperationsInput | number
     empresaId?: IntFieldUpdateOperationsInput | number
     orden?: IntFieldUpdateOperationsInput | number
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
     prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
     estado?: EnumEstadoRondaMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoRondaMovimientoTorreon
     fechaAsignado?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaReordenManual?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22033,6 +22214,7 @@ export namespace Prisma {
     carga: $Enums.CargaVagonArrastreTorreon
     viaId: number
     seccionId: number
+    comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
     fechaInicio?: Date | string | null
@@ -22064,6 +22246,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -22080,6 +22263,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -22096,6 +22280,7 @@ export namespace Prisma {
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
     viaId?: IntFieldUpdateOperationsInput | number
     seccionId?: IntFieldUpdateOperationsInput | number
+    comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

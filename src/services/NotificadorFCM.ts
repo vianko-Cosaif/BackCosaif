@@ -13,6 +13,41 @@ type NotificacionFCM = {
   topico?: string;
 };
 
+type OperacionTorreonFCM = {
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  empresaId?: number | null;
+  localidadId?: number | null;
+  usuarioIds?: Array<number | null | undefined>;
+  data?: Record<string, unknown>;
+  url?: string;
+  tag?: string;
+};
+
+const INVALID_FCM_CODES = new Set([
+  'messaging/registration-token-not-registered',
+  'messaging/invalid-registration-token',
+]);
+
+function stringifyFcmData(data: Record<string, unknown> = {}) {
+  return Object.entries(data).reduce<Record<string, string>>((acc, [key, value]) => {
+    if (value === undefined || value === null) return acc;
+    acc[key] = String(value);
+    return acc;
+  }, {});
+}
+
+async function deleteInvalidFcmTokens(tokens: string[], responses: Array<{ success: boolean; error?: { code?: string } | null }>) {
+  const toDelete = responses
+    .map((result, index) => (!result.success && result.error?.code && INVALID_FCM_CODES.has(result.error.code) ? tokens[index] : null))
+    .filter(Boolean) as string[];
+
+  if (toDelete.length) {
+    await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
+  }
+}
+
 export class NotificadorFCM {
   /**
    * Notificar sobre nuevo movimiento con notificacion mejorada
@@ -332,6 +367,65 @@ static async notificarCambioEstado(
     } catch (error) {
       console.error('Error enviando notificacion personalizada:', error);
       throw error;
+    }
+  }
+
+  static async notificarOperacionTorreon(params: OperacionTorreonFCM): Promise<void> {
+    try {
+      const { tokens, roleCounts } = await tokensAudienciaOperacion({
+        empresaId: params.empresaId,
+        localidadId: params.localidadId,
+        usuarioIds: params.usuarioIds,
+      });
+
+      if (!tokens.length) {
+        console.warn('FCM Torreon: sin tokens', {
+          tipo: params.tipo,
+          empresaId: params.empresaId,
+          localidadId: params.localidadId,
+          roleCounts,
+        });
+        return;
+      }
+
+      const data = stringifyFcmData({
+        ...(params.data ?? {}),
+        tipo: params.tipo,
+        source: 'torreon',
+        url: params.url ?? '/cliente/torreon',
+        tag: params.tag ?? `torreon:${params.tipo}:${Date.now()}`,
+        timestamp: new Date().toISOString(),
+      });
+
+      const response = await sendMulticastCompat({
+        notification: {
+          title: params.titulo,
+          body: params.mensaje,
+        },
+        data,
+        android: {
+          priority: 'high',
+          notification: {
+            priority: 'high',
+            defaultSound: true,
+            defaultVibrateTimings: true,
+          },
+        },
+        apns: {
+          headers: { 'apns-priority': '10' },
+          payload: {
+            aps: {
+              sound: 'default',
+              contentAvailable: true,
+            },
+          },
+        },
+        tokens,
+      } as any);
+
+      await deleteInvalidFcmTokens(tokens, response.responses);
+    } catch (error) {
+      console.error('Error notificarOperacionTorreon:', error);
     }
   }
 

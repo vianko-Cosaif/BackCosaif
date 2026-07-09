@@ -52,6 +52,44 @@ const includeMovimientoDetalle = {
   },
 };
 
+const buildMovimientoListInclude = (includeFotos: boolean) => ({
+  rondas: {
+    include: {
+      ronda: true,
+      bloqueadoPorIncidente: true,
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+  incidentes: {
+    include: {
+      _count: { select: { fotos: true } },
+      ...(includeFotos ? { fotos: { orderBy: { orden: "asc" as const } } } : {}),
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+  _count: { select: { fotos: true } },
+  ...(includeFotos
+    ? {
+        fotos: {
+          orderBy: [
+            { tipo: "asc" as const },
+            { orden: "asc" as const },
+          ],
+        },
+      }
+    : {}),
+}) satisfies Prisma.MovimientoTorreonFerroInclude;
+
+type MovimientoListQuery = {
+  localidadId?: number;
+  empresaId?: number;
+  estado?: string;
+  vista?: string;
+  page?: number;
+  pageSize?: number;
+  includeFotos?: boolean;
+};
+
 const compact = <T extends Record<string, unknown>>(data: T): T => {
   Object.keys(data).forEach((key) => data[key] === undefined && delete data[key]);
   return data;
@@ -132,16 +170,33 @@ async function createMovimientoFotos(
 }
 
 export class MovimientoModel {
-  static async listar(query: { localidadId?: number; empresaId?: number; estado?: string }) {
+  static async listar(query: MovimientoListQuery) {
+    const vista = String(query.vista || "").toUpperCase();
+    const closedStatuses = [EstadoMovimientoTorreon.CONCLUIDO, EstadoMovimientoTorreon.CANCELADO];
+    const isHistoryVista = ["HISTORIAL", "CONCLUIDOS", "CERRADOS", "PASADOS"].includes(vista);
+    const isActiveVista = ["ACTIVOS", "ABIERTOS", "PENDIENTES"].includes(vista);
+    const pageSize = Math.min(100, Math.max(1, Math.trunc(query.pageSize ?? 50)));
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const estadoByVista = query.estado
+      ? query.estado as EstadoMovimientoTorreon
+      : isHistoryVista
+        ? { in: closedStatuses }
+        : isActiveVista
+          ? { notIn: closedStatuses }
+          : undefined;
+
     return prismaTorreon.movimientoTorreonFerro.findMany({
       where: compact({
         localidadId: query.localidadId,
         empresaId: query.empresaId,
-        estado: query.estado as EstadoMovimientoTorreon | undefined,
-      }),
-      include: includeMovimientoDetalle,
-      orderBy: { createdAt: "desc" },
-      take: 100,
+        estado: estadoByVista,
+      }) as Prisma.MovimientoTorreonFerroWhereInput,
+      include: buildMovimientoListInclude(query.includeFotos === true),
+      orderBy: isHistoryVista
+        ? [{ fechaFin: "desc" }, { fechaSolicitud: "desc" }, { id: "desc" }]
+        : [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
   }
 
@@ -182,7 +237,13 @@ export class MovimientoModel {
       });
 
       const incidenteBloqueante = await IncidenteModel.findIncidenteBloqueante(tx, movimiento);
-      await RondaModel.insertarMovimiento(tx, movimiento, incidenteBloqueante?.id);
+      await RondaModel.insertarMovimiento(
+        tx,
+        movimiento,
+        incidenteBloqueante?.origen === "NATURAL" ? incidenteBloqueante.id : null,
+        Boolean(incidenteBloqueante)
+      );
+      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
 
       return movimiento.id;
     });
@@ -207,7 +268,12 @@ export class MovimientoModel {
 
       const incidenteBloqueante = await IncidenteModel.findIncidenteBloqueante(tx, movimiento);
       if (incidenteBloqueante) {
-        await RondaModel.marcarMovimientoBloqueado(tx, id, incidenteBloqueante.id);
+        await RondaModel.marcarMovimientoBloqueado(
+          tx,
+          id,
+          incidenteBloqueante.origen === "NATURAL" ? incidenteBloqueante.id : null
+        );
+        await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
         throw new DomainError(409, "La ruta del movimiento esta bloqueada por incidente abierto", {
           incidenteId: incidenteBloqueante.id,
         });
@@ -287,6 +353,7 @@ export class MovimientoModel {
       });
 
       await RondaModel.marcarMovimientoConcluido(tx, id, fechaFin);
+      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
       return id;
     });
 
@@ -349,7 +416,12 @@ export class MovimientoModel {
 
       const stillBlocked = await IncidenteModel.findIncidenteBloqueante(tx, movimiento, incidente.id);
       if (stillBlocked) {
-        await RondaModel.marcarMovimientoBloqueado(tx, id, stillBlocked.id);
+        await RondaModel.marcarMovimientoBloqueado(
+          tx,
+          id,
+          stillBlocked.origen === "NATURAL" ? stillBlocked.id : null
+        );
+        await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
         throw new DomainError(409, "El movimiento sigue bloqueado por otro incidente abierto", {
           incidenteId: stillBlocked.id,
         });

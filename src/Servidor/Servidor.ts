@@ -30,6 +30,7 @@ import Reporte from "../reporteria/rutas/rutasPdf";
 import Excel from "../reporteria/rutas/rutasExcel";
 import bannerRoutes from "../Rutas/Banner/BannerRoutes";
 import tornoMsRoutes from "../Rutas/TornoMs/TornoMsRoutes";
+import torreonMsRoutes from "../Rutas/TorreonMs/TorreonMsRoutes";
 import realtimeRoutes from "../Rutas/Realtime/RealtimeRoutes";
 import catalogosOperativosRoutes from "../Rutas/CatalogosOperativos/CatalogosOperativosRoutes";
 import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
@@ -82,6 +83,7 @@ export function iniciarServidor(): void {
     app.use("/reporterias", Excel);
     app.use("/banner", bannerRoutes);
     app.use("/torno", tornoMsRoutes);
+    app.use("/torreon", torreonMsRoutes);
     app.use("/realtime", realtimeRoutes);
     app.use("/catalogos-operativos", catalogosOperativosRoutes);
 

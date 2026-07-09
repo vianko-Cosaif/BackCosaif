@@ -123,6 +123,7 @@ export async function usuariosAudienciaOperacion(params: {
             activo: true,
             rol: { in: LOCATION_AWARE_ROLES },
             OR: [
+              { rol: Rol.ADMINISTRADOR },
               { fcmTokens: { some: { localidadId: scopeLocalidadId } } },
               {
                 localidadId: scopeLocalidadId,
