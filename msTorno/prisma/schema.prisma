@@ -59,6 +59,7 @@ enum LadoRueda {
 model RuedaSolicitud {
   id           Int      @id @default(autoincrement())
   movimientoId Int
+  wheelCount   Int      @default(8)
   l1           String
   l2           String
   l3           String

@@ -392,7 +392,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/ms_torreon/generated",
+      "value": "C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\ms_torreon\\generated",
       "fromEnvVar": null
     },
     "config": {
@@ -401,12 +401,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "darwin-arm64",
+        "value": "windows",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/ms_torreon/prisma/schema.prisma",
+    "sourceFilePath": "C:\\Users\\cristian.garcia\\Documents\\GitHub\\BackCosaif\\ms_torreon\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -420,6 +420,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
