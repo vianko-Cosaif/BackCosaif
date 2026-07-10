@@ -2138,6 +2138,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroMinAggregateOutputType = {
     id: number | null
+    clientRequestId: string | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2174,6 +2175,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroMaxAggregateOutputType = {
     id: number | null
+    clientRequestId: string | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2210,6 +2212,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCountAggregateOutputType = {
     id: number
+    clientRequestId: number
     empresaId: number
     creadoPorId: number
     clienteId: number
@@ -2280,6 +2283,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroMinAggregateInputType = {
     id?: true
+    clientRequestId?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2316,6 +2320,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroMaxAggregateInputType = {
     id?: true
+    clientRequestId?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2352,6 +2357,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCountAggregateInputType = {
     id?: true
+    clientRequestId?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2475,6 +2481,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroGroupByOutputType = {
     id: number
+    clientRequestId: string | null
     empresaId: number
     creadoPorId: number
     clienteId: number | null
@@ -2530,6 +2537,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    clientRequestId?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -2570,6 +2578,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    clientRequestId?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -2606,6 +2615,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
+    clientRequestId?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -2642,6 +2652,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSelectScalar = {
     id?: boolean
+    clientRequestId?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -2676,7 +2687,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type MovimientoTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "empresaId" | "creadoPorId" | "clienteId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "locomotiveNumber" | "prioridad" | "tipoMovimiento" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "instrucciones" | "posicionChimenea" | "finalizado" | "direccionEmpuje" | "posicionCabina" | "empresaNombreSnapshot" | "localidadNombreSnapshot" | "viaOrigenNombreSnapshot" | "viaDestinoNombreSnapshot" | "seccionOrigenNombreSnapshot" | "seccionDestinoNombreSnapshot" | "createdAt" | "updatedAt", ExtArgs["result"]["movimientoTorreonFerro"]>
+  export type MovimientoTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientRequestId" | "empresaId" | "creadoPorId" | "clienteId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "locomotiveNumber" | "prioridad" | "tipoMovimiento" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "instrucciones" | "posicionChimenea" | "finalizado" | "direccionEmpuje" | "posicionCabina" | "empresaNombreSnapshot" | "localidadNombreSnapshot" | "viaOrigenNombreSnapshot" | "viaDestinoNombreSnapshot" | "seccionOrigenNombreSnapshot" | "seccionDestinoNombreSnapshot" | "createdAt" | "updatedAt", ExtArgs["result"]["movimientoTorreonFerro"]>
   export type MovimientoTorreonFerroInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     rondas?: boolean | MovimientoTorreonFerro$rondasArgs<ExtArgs>
     incidentes?: boolean | MovimientoTorreonFerro$incidentesArgs<ExtArgs>
@@ -2695,6 +2706,7 @@ export namespace Prisma {
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
+      clientRequestId: string | null
       empresaId: number
       creadoPorId: number
       clienteId: number | null
@@ -3154,6 +3166,7 @@ export namespace Prisma {
    */
   interface MovimientoTorreonFerroFieldRefs {
     readonly id: FieldRef<"MovimientoTorreonFerro", 'Int'>
+    readonly clientRequestId: FieldRef<"MovimientoTorreonFerro", 'String'>
     readonly empresaId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly creadoPorId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly clienteId: FieldRef<"MovimientoTorreonFerro", 'Int'>
@@ -9754,6 +9767,8 @@ export namespace Prisma {
     id: number | null
     empresaId: number | null
     creadoPorId: number | null
+    supervisorId: number | null
+    coordinadorId: number | null
     operadorId: number | null
     localidadId: number | null
     viaOrigenId: number | null
@@ -9767,6 +9782,8 @@ export namespace Prisma {
     id: number | null
     empresaId: number | null
     creadoPorId: number | null
+    supervisorId: number | null
+    coordinadorId: number | null
     operadorId: number | null
     localidadId: number | null
     viaOrigenId: number | null
@@ -9780,6 +9797,8 @@ export namespace Prisma {
     id: number | null
     empresaId: number | null
     creadoPorId: number | null
+    supervisorId: number | null
+    coordinadorId: number | null
     operadorId: number | null
     localidadId: number | null
     viaOrigenId: number | null
@@ -9801,6 +9820,8 @@ export namespace Prisma {
     id: number | null
     empresaId: number | null
     creadoPorId: number | null
+    supervisorId: number | null
+    coordinadorId: number | null
     operadorId: number | null
     localidadId: number | null
     viaOrigenId: number | null
@@ -9822,6 +9843,8 @@ export namespace Prisma {
     id: number
     empresaId: number
     creadoPorId: number
+    supervisorId: number
+    coordinadorId: number
     operadorId: number
     localidadId: number
     viaOrigenId: number
@@ -9845,6 +9868,8 @@ export namespace Prisma {
     id?: true
     empresaId?: true
     creadoPorId?: true
+    supervisorId?: true
+    coordinadorId?: true
     operadorId?: true
     localidadId?: true
     viaOrigenId?: true
@@ -9858,6 +9883,8 @@ export namespace Prisma {
     id?: true
     empresaId?: true
     creadoPorId?: true
+    supervisorId?: true
+    coordinadorId?: true
     operadorId?: true
     localidadId?: true
     viaOrigenId?: true
@@ -9871,6 +9898,8 @@ export namespace Prisma {
     id?: true
     empresaId?: true
     creadoPorId?: true
+    supervisorId?: true
+    coordinadorId?: true
     operadorId?: true
     localidadId?: true
     viaOrigenId?: true
@@ -9892,6 +9921,8 @@ export namespace Prisma {
     id?: true
     empresaId?: true
     creadoPorId?: true
+    supervisorId?: true
+    coordinadorId?: true
     operadorId?: true
     localidadId?: true
     viaOrigenId?: true
@@ -9913,6 +9944,8 @@ export namespace Prisma {
     id?: true
     empresaId?: true
     creadoPorId?: true
+    supervisorId?: true
+    coordinadorId?: true
     operadorId?: true
     localidadId?: true
     viaOrigenId?: true
@@ -10021,6 +10054,8 @@ export namespace Prisma {
     id: number
     empresaId: number
     creadoPorId: number
+    supervisorId: number | null
+    coordinadorId: number | null
     operadorId: number | null
     localidadId: number
     viaOrigenId: number | null
@@ -10061,6 +10096,8 @@ export namespace Prisma {
     id?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
+    supervisorId?: boolean
+    coordinadorId?: boolean
     operadorId?: boolean
     localidadId?: boolean
     viaOrigenId?: boolean
@@ -10085,6 +10122,8 @@ export namespace Prisma {
     id?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
+    supervisorId?: boolean
+    coordinadorId?: boolean
     operadorId?: boolean
     localidadId?: boolean
     viaOrigenId?: boolean
@@ -10106,6 +10145,8 @@ export namespace Prisma {
     id?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
+    supervisorId?: boolean
+    coordinadorId?: boolean
     operadorId?: boolean
     localidadId?: boolean
     viaOrigenId?: boolean
@@ -10127,6 +10168,8 @@ export namespace Prisma {
     id?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
+    supervisorId?: boolean
+    coordinadorId?: boolean
     operadorId?: boolean
     localidadId?: boolean
     viaOrigenId?: boolean
@@ -10144,7 +10187,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "empresaId" | "creadoPorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "estado" | "ordenSolicitud" | "instrucciones" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreon"]>
+  export type ArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "empresaId" | "creadoPorId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "estado" | "ordenSolicitud" | "instrucciones" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreon"]>
   export type ArrastreTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     vagones?: boolean | ArrastreTorreon$vagonesArgs<ExtArgs>
     incidentes?: boolean | ArrastreTorreon$incidentesArgs<ExtArgs>
@@ -10163,6 +10206,8 @@ export namespace Prisma {
       id: number
       empresaId: number
       creadoPorId: number
+      supervisorId: number | null
+      coordinadorId: number | null
       operadorId: number | null
       localidadId: number
       viaOrigenId: number | null
@@ -10606,6 +10651,8 @@ export namespace Prisma {
     readonly id: FieldRef<"ArrastreTorreon", 'Int'>
     readonly empresaId: FieldRef<"ArrastreTorreon", 'Int'>
     readonly creadoPorId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly supervisorId: FieldRef<"ArrastreTorreon", 'Int'>
+    readonly coordinadorId: FieldRef<"ArrastreTorreon", 'Int'>
     readonly operadorId: FieldRef<"ArrastreTorreon", 'Int'>
     readonly localidadId: FieldRef<"ArrastreTorreon", 'Int'>
     readonly viaOrigenId: FieldRef<"ArrastreTorreon", 'Int'>
@@ -11091,6 +11138,8 @@ export namespace Prisma {
     id: number | null
     arrastreId: number | null
     orden: number | null
+    viaOrigenId: number | null
+    seccionOrigenId: number | null
     viaId: number | null
     seccionId: number | null
   }
@@ -11099,6 +11148,8 @@ export namespace Prisma {
     id: number | null
     arrastreId: number | null
     orden: number | null
+    viaOrigenId: number | null
+    seccionOrigenId: number | null
     viaId: number | null
     seccionId: number | null
   }
@@ -11109,8 +11160,14 @@ export namespace Prisma {
     orden: number | null
     numeroVagon: string | null
     carga: $Enums.CargaVagonArrastreTorreon | null
+    viaOrigenId: number | null
+    seccionOrigenId: number | null
     viaId: number | null
     seccionId: number | null
+    viaOrigenNombre: string | null
+    seccionOrigenNombre: string | null
+    viaDestinoNombre: string | null
+    seccionDestinoNombre: string | null
     comentario: string | null
     estado: $Enums.EstadoVagonArrastreTorreon | null
     fechaSolicitud: Date | null
@@ -11126,8 +11183,14 @@ export namespace Prisma {
     orden: number | null
     numeroVagon: string | null
     carga: $Enums.CargaVagonArrastreTorreon | null
+    viaOrigenId: number | null
+    seccionOrigenId: number | null
     viaId: number | null
     seccionId: number | null
+    viaOrigenNombre: string | null
+    seccionOrigenNombre: string | null
+    viaDestinoNombre: string | null
+    seccionDestinoNombre: string | null
     comentario: string | null
     estado: $Enums.EstadoVagonArrastreTorreon | null
     fechaSolicitud: Date | null
@@ -11143,8 +11206,14 @@ export namespace Prisma {
     orden: number
     numeroVagon: number
     carga: number
+    viaOrigenId: number
+    seccionOrigenId: number
     viaId: number
     seccionId: number
+    viaOrigenNombre: number
+    seccionOrigenNombre: number
+    viaDestinoNombre: number
+    seccionDestinoNombre: number
     comentario: number
     estado: number
     fechaSolicitud: number
@@ -11160,6 +11229,8 @@ export namespace Prisma {
     id?: true
     arrastreId?: true
     orden?: true
+    viaOrigenId?: true
+    seccionOrigenId?: true
     viaId?: true
     seccionId?: true
   }
@@ -11168,6 +11239,8 @@ export namespace Prisma {
     id?: true
     arrastreId?: true
     orden?: true
+    viaOrigenId?: true
+    seccionOrigenId?: true
     viaId?: true
     seccionId?: true
   }
@@ -11178,8 +11251,14 @@ export namespace Prisma {
     orden?: true
     numeroVagon?: true
     carga?: true
+    viaOrigenId?: true
+    seccionOrigenId?: true
     viaId?: true
     seccionId?: true
+    viaOrigenNombre?: true
+    seccionOrigenNombre?: true
+    viaDestinoNombre?: true
+    seccionDestinoNombre?: true
     comentario?: true
     estado?: true
     fechaSolicitud?: true
@@ -11195,8 +11274,14 @@ export namespace Prisma {
     orden?: true
     numeroVagon?: true
     carga?: true
+    viaOrigenId?: true
+    seccionOrigenId?: true
     viaId?: true
     seccionId?: true
+    viaOrigenNombre?: true
+    seccionOrigenNombre?: true
+    viaDestinoNombre?: true
+    seccionDestinoNombre?: true
     comentario?: true
     estado?: true
     fechaSolicitud?: true
@@ -11212,8 +11297,14 @@ export namespace Prisma {
     orden?: true
     numeroVagon?: true
     carga?: true
+    viaOrigenId?: true
+    seccionOrigenId?: true
     viaId?: true
     seccionId?: true
+    viaOrigenNombre?: true
+    seccionOrigenNombre?: true
+    viaDestinoNombre?: true
+    seccionDestinoNombre?: true
     comentario?: true
     estado?: true
     fechaSolicitud?: true
@@ -11316,8 +11407,14 @@ export namespace Prisma {
     orden: number
     numeroVagon: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId: number | null
+    seccionOrigenId: number | null
+    viaId: number | null
+    seccionId: number | null
+    viaOrigenNombre: string | null
+    seccionOrigenNombre: string | null
+    viaDestinoNombre: string | null
+    seccionDestinoNombre: string | null
     comentario: string | null
     estado: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud: Date
@@ -11352,8 +11449,14 @@ export namespace Prisma {
     orden?: boolean
     numeroVagon?: boolean
     carga?: boolean
+    viaOrigenId?: boolean
+    seccionOrigenId?: boolean
     viaId?: boolean
     seccionId?: boolean
+    viaOrigenNombre?: boolean
+    seccionOrigenNombre?: boolean
+    viaDestinoNombre?: boolean
+    seccionDestinoNombre?: boolean
     comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
@@ -11372,8 +11475,14 @@ export namespace Prisma {
     orden?: boolean
     numeroVagon?: boolean
     carga?: boolean
+    viaOrigenId?: boolean
+    seccionOrigenId?: boolean
     viaId?: boolean
     seccionId?: boolean
+    viaOrigenNombre?: boolean
+    seccionOrigenNombre?: boolean
+    viaDestinoNombre?: boolean
+    seccionDestinoNombre?: boolean
     comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
@@ -11390,8 +11499,14 @@ export namespace Prisma {
     orden?: boolean
     numeroVagon?: boolean
     carga?: boolean
+    viaOrigenId?: boolean
+    seccionOrigenId?: boolean
     viaId?: boolean
     seccionId?: boolean
+    viaOrigenNombre?: boolean
+    seccionOrigenNombre?: boolean
+    viaDestinoNombre?: boolean
+    seccionDestinoNombre?: boolean
     comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
@@ -11408,8 +11523,14 @@ export namespace Prisma {
     orden?: boolean
     numeroVagon?: boolean
     carga?: boolean
+    viaOrigenId?: boolean
+    seccionOrigenId?: boolean
     viaId?: boolean
     seccionId?: boolean
+    viaOrigenNombre?: boolean
+    seccionOrigenNombre?: boolean
+    viaDestinoNombre?: boolean
+    seccionDestinoNombre?: boolean
     comentario?: boolean
     estado?: boolean
     fechaSolicitud?: boolean
@@ -11419,7 +11540,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ArrastreTorreonVagonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "arrastreId" | "orden" | "numeroVagon" | "carga" | "viaId" | "seccionId" | "comentario" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreonVagon"]>
+  export type ArrastreTorreonVagonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "arrastreId" | "orden" | "numeroVagon" | "carga" | "viaOrigenId" | "seccionOrigenId" | "viaId" | "seccionId" | "viaOrigenNombre" | "seccionOrigenNombre" | "viaDestinoNombre" | "seccionDestinoNombre" | "comentario" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["arrastreTorreonVagon"]>
   export type ArrastreTorreonVagonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     arrastre?: boolean | ArrastreTorreonDefaultArgs<ExtArgs>
     incidentes?: boolean | ArrastreTorreonVagon$incidentesArgs<ExtArgs>
@@ -11444,8 +11565,14 @@ export namespace Prisma {
       orden: number
       numeroVagon: string | null
       carga: $Enums.CargaVagonArrastreTorreon
-      viaId: number
-      seccionId: number
+      viaOrigenId: number | null
+      seccionOrigenId: number | null
+      viaId: number | null
+      seccionId: number | null
+      viaOrigenNombre: string | null
+      seccionOrigenNombre: string | null
+      viaDestinoNombre: string | null
+      seccionDestinoNombre: string | null
       comentario: string | null
       estado: $Enums.EstadoVagonArrastreTorreon
       fechaSolicitud: Date
@@ -11883,8 +12010,14 @@ export namespace Prisma {
     readonly orden: FieldRef<"ArrastreTorreonVagon", 'Int'>
     readonly numeroVagon: FieldRef<"ArrastreTorreonVagon", 'String'>
     readonly carga: FieldRef<"ArrastreTorreonVagon", 'CargaVagonArrastreTorreon'>
+    readonly viaOrigenId: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly seccionOrigenId: FieldRef<"ArrastreTorreonVagon", 'Int'>
     readonly viaId: FieldRef<"ArrastreTorreonVagon", 'Int'>
     readonly seccionId: FieldRef<"ArrastreTorreonVagon", 'Int'>
+    readonly viaOrigenNombre: FieldRef<"ArrastreTorreonVagon", 'String'>
+    readonly seccionOrigenNombre: FieldRef<"ArrastreTorreonVagon", 'String'>
+    readonly viaDestinoNombre: FieldRef<"ArrastreTorreonVagon", 'String'>
+    readonly seccionDestinoNombre: FieldRef<"ArrastreTorreonVagon", 'String'>
     readonly comentario: FieldRef<"ArrastreTorreonVagon", 'String'>
     readonly estado: FieldRef<"ArrastreTorreonVagon", 'EstadoVagonArrastreTorreon'>
     readonly fechaSolicitud: FieldRef<"ArrastreTorreonVagon", 'DateTime'>
@@ -14822,6 +14955,7 @@ export namespace Prisma {
 
   export const MovimientoTorreonFerroScalarFieldEnum: {
     id: 'id',
+    clientRequestId: 'clientRequestId',
     empresaId: 'empresaId',
     creadoPorId: 'creadoPorId',
     clienteId: 'clienteId',
@@ -14951,6 +15085,8 @@ export namespace Prisma {
     id: 'id',
     empresaId: 'empresaId',
     creadoPorId: 'creadoPorId',
+    supervisorId: 'supervisorId',
+    coordinadorId: 'coordinadorId',
     operadorId: 'operadorId',
     localidadId: 'localidadId',
     viaOrigenId: 'viaOrigenId',
@@ -14977,8 +15113,14 @@ export namespace Prisma {
     orden: 'orden',
     numeroVagon: 'numeroVagon',
     carga: 'carga',
+    viaOrigenId: 'viaOrigenId',
+    seccionOrigenId: 'seccionOrigenId',
     viaId: 'viaId',
     seccionId: 'seccionId',
+    viaOrigenNombre: 'viaOrigenNombre',
+    seccionOrigenNombre: 'seccionOrigenNombre',
+    viaDestinoNombre: 'viaDestinoNombre',
+    seccionDestinoNombre: 'seccionDestinoNombre',
     comentario: 'comentario',
     estado: 'estado',
     fechaSolicitud: 'fechaSolicitud',
@@ -15072,6 +15214,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'String'
+   */
+  export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
+    
+
+
+  /**
+   * Reference to a field of type 'String[]'
+   */
+  export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PrioridadTorreon'
    */
   export type EnumPrioridadTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PrioridadTorreon'>
@@ -15124,20 +15280,6 @@ export namespace Prisma {
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'String'
-   */
-  export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
-    
-
-
-  /**
-   * Reference to a field of type 'String[]'
-   */
-  export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
     
 
 
@@ -15324,6 +15466,7 @@ export namespace Prisma {
     OR?: MovimientoTorreonFerroWhereInput[]
     NOT?: MovimientoTorreonFerroWhereInput | MovimientoTorreonFerroWhereInput[]
     id?: IntFilter<"MovimientoTorreonFerro"> | number
+    clientRequestId?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
@@ -15363,6 +15506,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroOrderByWithRelationInput = {
     id?: SortOrder
+    clientRequestId?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrderInput | SortOrder
@@ -15402,6 +15546,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroWhereUniqueInput = Prisma.AtLeast<{
     id?: number
+    clientRequestId?: string
     AND?: MovimientoTorreonFerroWhereInput | MovimientoTorreonFerroWhereInput[]
     OR?: MovimientoTorreonFerroWhereInput[]
     NOT?: MovimientoTorreonFerroWhereInput | MovimientoTorreonFerroWhereInput[]
@@ -15440,10 +15585,11 @@ export namespace Prisma {
     rondas?: RondaTorreonMovimientoListRelationFilter
     incidentes?: IncidenteTorreonFerroListRelationFilter
     fotos?: MovimientoTorreonFotoListRelationFilter
-  }, "id">
+  }, "id" | "clientRequestId">
 
   export type MovimientoTorreonFerroOrderByWithAggregationInput = {
     id?: SortOrder
+    clientRequestId?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrderInput | SortOrder
@@ -15488,6 +15634,7 @@ export namespace Prisma {
     OR?: MovimientoTorreonFerroScalarWhereWithAggregatesInput[]
     NOT?: MovimientoTorreonFerroScalarWhereWithAggregatesInput | MovimientoTorreonFerroScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
+    clientRequestId?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
@@ -15995,6 +16142,8 @@ export namespace Prisma {
     id?: IntFilter<"ArrastreTorreon"> | number
     empresaId?: IntFilter<"ArrastreTorreon"> | number
     creadoPorId?: IntFilter<"ArrastreTorreon"> | number
+    supervisorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    coordinadorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     operadorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     localidadId?: IntFilter<"ArrastreTorreon"> | number
     viaOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
@@ -16018,6 +16167,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrderInput | SortOrder
+    coordinadorId?: SortOrderInput | SortOrder
     operadorId?: SortOrderInput | SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrderInput | SortOrder
@@ -16044,6 +16195,8 @@ export namespace Prisma {
     NOT?: ArrastreTorreonWhereInput | ArrastreTorreonWhereInput[]
     empresaId?: IntFilter<"ArrastreTorreon"> | number
     creadoPorId?: IntFilter<"ArrastreTorreon"> | number
+    supervisorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
+    coordinadorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     operadorId?: IntNullableFilter<"ArrastreTorreon"> | number | null
     localidadId?: IntFilter<"ArrastreTorreon"> | number
     viaOrigenId?: IntNullableFilter<"ArrastreTorreon"> | number | null
@@ -16067,6 +16220,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrderInput | SortOrder
+    coordinadorId?: SortOrderInput | SortOrder
     operadorId?: SortOrderInput | SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrderInput | SortOrder
@@ -16096,6 +16251,8 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
     empresaId?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
     creadoPorId?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
+    supervisorId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
+    coordinadorId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
     operadorId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
     localidadId?: IntWithAggregatesFilter<"ArrastreTorreon"> | number
     viaOrigenId?: IntNullableWithAggregatesFilter<"ArrastreTorreon"> | number | null
@@ -16122,8 +16279,14 @@ export namespace Prisma {
     orden?: IntFilter<"ArrastreTorreonVagon"> | number
     numeroVagon?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFilter<"ArrastreTorreonVagon"> | number
-    seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    viaOrigenId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    seccionOrigenId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    viaId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    seccionId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    viaOrigenNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    seccionOrigenNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    viaDestinoNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    seccionDestinoNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     comentario?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
@@ -16141,8 +16304,14 @@ export namespace Prisma {
     orden?: SortOrder
     numeroVagon?: SortOrderInput | SortOrder
     carga?: SortOrder
-    viaId?: SortOrder
-    seccionId?: SortOrder
+    viaOrigenId?: SortOrderInput | SortOrder
+    seccionOrigenId?: SortOrderInput | SortOrder
+    viaId?: SortOrderInput | SortOrder
+    seccionId?: SortOrderInput | SortOrder
+    viaOrigenNombre?: SortOrderInput | SortOrder
+    seccionOrigenNombre?: SortOrderInput | SortOrder
+    viaDestinoNombre?: SortOrderInput | SortOrder
+    seccionDestinoNombre?: SortOrderInput | SortOrder
     comentario?: SortOrderInput | SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
@@ -16164,8 +16333,14 @@ export namespace Prisma {
     orden?: IntFilter<"ArrastreTorreonVagon"> | number
     numeroVagon?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFilter<"ArrastreTorreonVagon"> | number
-    seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    viaOrigenId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    seccionOrigenId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    viaId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    seccionId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    viaOrigenNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    seccionOrigenNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    viaDestinoNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    seccionDestinoNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     comentario?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
@@ -16183,8 +16358,14 @@ export namespace Prisma {
     orden?: SortOrder
     numeroVagon?: SortOrderInput | SortOrder
     carga?: SortOrder
-    viaId?: SortOrder
-    seccionId?: SortOrder
+    viaOrigenId?: SortOrderInput | SortOrder
+    seccionOrigenId?: SortOrderInput | SortOrder
+    viaId?: SortOrderInput | SortOrder
+    seccionId?: SortOrderInput | SortOrder
+    viaOrigenNombre?: SortOrderInput | SortOrder
+    seccionOrigenNombre?: SortOrderInput | SortOrder
+    viaDestinoNombre?: SortOrderInput | SortOrder
+    seccionDestinoNombre?: SortOrderInput | SortOrder
     comentario?: SortOrderInput | SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
@@ -16208,8 +16389,14 @@ export namespace Prisma {
     orden?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
     numeroVagon?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
     carga?: EnumCargaVagonArrastreTorreonWithAggregatesFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
-    seccionId?: IntWithAggregatesFilter<"ArrastreTorreonVagon"> | number
+    viaOrigenId?: IntNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | number | null
+    seccionOrigenId?: IntNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | number | null
+    viaId?: IntNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | number | null
+    seccionId?: IntNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | number | null
+    viaOrigenNombre?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
+    seccionOrigenNombre?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
+    viaDestinoNombre?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
+    seccionDestinoNombre?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
     comentario?: StringNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonWithAggregatesFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
@@ -16416,6 +16603,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroCreateInput = {
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -16455,6 +16643,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedCreateInput = {
     id?: number
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -16493,6 +16682,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroUpdateInput = {
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -16532,6 +16722,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -16571,6 +16762,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCreateManyInput = {
     id?: number
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -16606,6 +16798,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroUpdateManyMutationInput = {
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -16642,6 +16835,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -17181,6 +17375,8 @@ export namespace Prisma {
   export type ArrastreTorreonCreateInput = {
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -17204,6 +17400,8 @@ export namespace Prisma {
     id?: number
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -17226,6 +17424,8 @@ export namespace Prisma {
   export type ArrastreTorreonUpdateInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -17249,6 +17449,8 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -17272,6 +17474,8 @@ export namespace Prisma {
     id?: number
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -17292,6 +17496,8 @@ export namespace Prisma {
   export type ArrastreTorreonUpdateManyMutationInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -17313,6 +17519,8 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -17334,8 +17542,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -17353,8 +17567,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -17369,8 +17589,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17388,8 +17614,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17406,8 +17638,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -17421,8 +17659,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17438,8 +17682,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17672,6 +17922,21 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type IntNullableFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -17724,21 +17989,6 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type EnumPosicionChimeneaTorreonNullableFilter<$PrismaModel = never> = {
@@ -17804,6 +18054,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCountOrderByAggregateInput = {
     id?: SortOrder
+    clientRequestId?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -17856,6 +18107,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroMaxOrderByAggregateInput = {
     id?: SortOrder
+    clientRequestId?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -17892,6 +18144,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroMinOrderByAggregateInput = {
     id?: SortOrder
+    clientRequestId?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -17956,6 +18209,24 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -18030,24 +18301,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type EnumPosicionChimeneaTorreonNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -18570,6 +18823,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrder
+    coordinadorId?: SortOrder
     operadorId?: SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrder
@@ -18591,6 +18846,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrder
+    coordinadorId?: SortOrder
     operadorId?: SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrder
@@ -18604,6 +18861,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrder
+    coordinadorId?: SortOrder
     operadorId?: SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrder
@@ -18625,6 +18884,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrder
+    coordinadorId?: SortOrder
     operadorId?: SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrder
@@ -18646,6 +18907,8 @@ export namespace Prisma {
     id?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
+    supervisorId?: SortOrder
+    coordinadorId?: SortOrder
     operadorId?: SortOrder
     localidadId?: SortOrder
     viaOrigenId?: SortOrder
@@ -18695,8 +18958,14 @@ export namespace Prisma {
     orden?: SortOrder
     numeroVagon?: SortOrder
     carga?: SortOrder
+    viaOrigenId?: SortOrder
+    seccionOrigenId?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    viaOrigenNombre?: SortOrder
+    seccionOrigenNombre?: SortOrder
+    viaDestinoNombre?: SortOrder
+    seccionDestinoNombre?: SortOrder
     comentario?: SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
@@ -18710,6 +18979,8 @@ export namespace Prisma {
     id?: SortOrder
     arrastreId?: SortOrder
     orden?: SortOrder
+    viaOrigenId?: SortOrder
+    seccionOrigenId?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
   }
@@ -18720,8 +18991,14 @@ export namespace Prisma {
     orden?: SortOrder
     numeroVagon?: SortOrder
     carga?: SortOrder
+    viaOrigenId?: SortOrder
+    seccionOrigenId?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    viaOrigenNombre?: SortOrder
+    seccionOrigenNombre?: SortOrder
+    viaDestinoNombre?: SortOrder
+    seccionDestinoNombre?: SortOrder
     comentario?: SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
@@ -18737,8 +19014,14 @@ export namespace Prisma {
     orden?: SortOrder
     numeroVagon?: SortOrder
     carga?: SortOrder
+    viaOrigenId?: SortOrder
+    seccionOrigenId?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
+    viaOrigenNombre?: SortOrder
+    seccionOrigenNombre?: SortOrder
+    viaDestinoNombre?: SortOrder
+    seccionDestinoNombre?: SortOrder
     comentario?: SortOrder
     estado?: SortOrder
     fechaSolicitud?: SortOrder
@@ -18752,6 +19035,8 @@ export namespace Prisma {
     id?: SortOrder
     arrastreId?: SortOrder
     orden?: SortOrder
+    viaOrigenId?: SortOrder
+    seccionOrigenId?: SortOrder
     viaId?: SortOrder
     seccionId?: SortOrder
   }
@@ -18989,6 +19274,10 @@ export namespace Prisma {
     connect?: MovimientoTorreonFotoWhereUniqueInput | MovimientoTorreonFotoWhereUniqueInput[]
   }
 
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -19023,10 +19312,6 @@ export namespace Prisma {
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
   }
 
   export type NullableEnumPosicionChimeneaTorreonFieldUpdateOperationsInput = {
@@ -19614,6 +19899,20 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type NestedIntNullableFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -19668,20 +19967,6 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
   export type NestedEnumPosicionChimeneaTorreonNullableFilter<$PrismaModel = never> = {
     equals?: $Enums.PosicionChimeneaTorreon | EnumPosicionChimeneaTorreonFieldRefInput<$PrismaModel> | null
     in?: $Enums.PosicionChimeneaTorreon[] | ListEnumPosicionChimeneaTorreonFieldRefInput<$PrismaModel> | null
@@ -19733,6 +20018,23 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -19818,23 +20120,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumPosicionChimeneaTorreonNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -20357,6 +20642,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroCreateWithoutRondasInput = {
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -20395,6 +20681,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedCreateWithoutRondasInput = {
     id?: number
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -20520,6 +20807,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroUpdateWithoutRondasInput = {
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -20558,6 +20846,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedUpdateWithoutRondasInput = {
     id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -20641,6 +20930,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroCreateWithoutIncidentesInput = {
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -20679,6 +20969,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedCreateWithoutIncidentesInput = {
     id?: number
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -20808,6 +21099,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroUpdateWithoutIncidentesInput = {
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -20846,6 +21138,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedUpdateWithoutIncidentesInput = {
     id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -20931,6 +21224,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroCreateWithoutFotosInput = {
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -20969,6 +21263,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedCreateWithoutFotosInput = {
     id?: number
+    clientRequestId?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -21022,6 +21317,7 @@ export namespace Prisma {
   }
 
   export type MovimientoTorreonFerroUpdateWithoutFotosInput = {
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21060,6 +21356,7 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUncheckedUpdateWithoutFotosInput = {
     id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21186,8 +21483,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -21203,8 +21506,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -21295,8 +21604,14 @@ export namespace Prisma {
     orden?: IntFilter<"ArrastreTorreonVagon"> | number
     numeroVagon?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     carga?: EnumCargaVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFilter<"ArrastreTorreonVagon"> | number
-    seccionId?: IntFilter<"ArrastreTorreonVagon"> | number
+    viaOrigenId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    seccionOrigenId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    viaId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    seccionId?: IntNullableFilter<"ArrastreTorreonVagon"> | number | null
+    viaOrigenNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    seccionOrigenNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    viaDestinoNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
+    seccionDestinoNombre?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     comentario?: StringNullableFilter<"ArrastreTorreonVagon"> | string | null
     estado?: EnumEstadoVagonArrastreTorreonFilter<"ArrastreTorreonVagon"> | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFilter<"ArrastreTorreonVagon"> | Date | string
@@ -21346,6 +21661,8 @@ export namespace Prisma {
   export type ArrastreTorreonCreateWithoutVagonesInput = {
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -21368,6 +21685,8 @@ export namespace Prisma {
     id?: number
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -21450,6 +21769,8 @@ export namespace Prisma {
   export type ArrastreTorreonUpdateWithoutVagonesInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21472,6 +21793,8 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21509,6 +21832,8 @@ export namespace Prisma {
   export type ArrastreTorreonCreateWithoutIncidentesInput = {
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -21531,6 +21856,8 @@ export namespace Prisma {
     id?: number
     empresaId: number
     creadoPorId: number
+    supervisorId?: number | null
+    coordinadorId?: number | null
     operadorId?: number | null
     localidadId: number
     viaOrigenId?: number | null
@@ -21558,8 +21885,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -21576,8 +21909,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -21639,6 +21978,8 @@ export namespace Prisma {
   export type ArrastreTorreonUpdateWithoutIncidentesInput = {
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21661,6 +22002,8 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
     operadorId?: NullableIntFieldUpdateOperationsInput | number | null
     localidadId?: IntFieldUpdateOperationsInput | number
     viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21694,8 +22037,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -21712,8 +22061,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22212,8 +22567,14 @@ export namespace Prisma {
     orden: number
     numeroVagon?: string | null
     carga: $Enums.CargaVagonArrastreTorreon
-    viaId: number
-    seccionId: number
+    viaOrigenId?: number | null
+    seccionOrigenId?: number | null
+    viaId?: number | null
+    seccionId?: number | null
+    viaOrigenNombre?: string | null
+    seccionOrigenNombre?: string | null
+    viaDestinoNombre?: string | null
+    seccionDestinoNombre?: string | null
     comentario?: string | null
     estado?: $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: Date | string
@@ -22244,8 +22605,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22261,8 +22628,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -22278,8 +22651,14 @@ export namespace Prisma {
     orden?: IntFieldUpdateOperationsInput | number
     numeroVagon?: NullableStringFieldUpdateOperationsInput | string | null
     carga?: EnumCargaVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.CargaVagonArrastreTorreon
-    viaId?: IntFieldUpdateOperationsInput | number
-    seccionId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombre?: NullableStringFieldUpdateOperationsInput | string | null
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoVagonArrastreTorreonFieldUpdateOperationsInput | $Enums.EstadoVagonArrastreTorreon
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string

@@ -21,6 +21,7 @@ type ListarIncidentesQuery = {
   localidadId?: number;
   empresaId?: number;
   estado?: string;
+  tipo?: string;
   page?: number;
   pageSize?: number;
   includeFotos?: boolean;
@@ -181,6 +182,7 @@ export class IncidenteModel {
     const pageSize = Math.min(100, Math.max(1, Math.trunc(query.pageSize ?? 20)));
     const skip = (page - 1) * pageSize;
     const estado = normalizeEstado(query.estado);
+    const tipo = normalizeTipo(query.tipo);
 
     const where: Prisma.IncidenteTorreonFerroWhereInput = compact({
       localidadId: query.localidadId,
@@ -195,20 +197,20 @@ export class IncidenteModel {
     const takeForMerge = skip + pageSize;
 
     const [naturales, arrastres, totalNaturales, totalArrastres] = await Promise.all([
-      prismaTorreon.incidenteTorreonFerro.findMany({
+      tipo === "ARRASTRE" ? Promise.resolve([]) : prismaTorreon.incidenteTorreonFerro.findMany({
         where,
         include: buildIncidenteNaturalListInclude(query.includeFotos === true),
         orderBy: [{ fechaInicio: "desc" }, { id: "desc" }],
         take: takeForMerge,
       }),
-      prismaTorreon.incidenteArrastreTorreon.findMany({
+      tipo === "NATURAL" ? Promise.resolve([]) : prismaTorreon.incidenteArrastreTorreon.findMany({
         where: whereArrastre,
         include: buildIncidenteArrastreListInclude(query.includeFotos === true),
         orderBy: [{ fechaInicio: "desc" }, { id: "desc" }],
         take: takeForMerge,
       }),
-      prismaTorreon.incidenteTorreonFerro.count({ where }),
-      prismaTorreon.incidenteArrastreTorreon.count({ where: whereArrastre }),
+      tipo === "ARRASTRE" ? Promise.resolve(0) : prismaTorreon.incidenteTorreonFerro.count({ where }),
+      tipo === "NATURAL" ? Promise.resolve(0) : prismaTorreon.incidenteArrastreTorreon.count({ where: whereArrastre }),
     ]);
     const total = totalNaturales + totalArrastres;
     const data = [
@@ -353,18 +355,69 @@ export class IncidenteModel {
       },
     });
 
-    if (incidente.movimiento.estado === EstadoMovimientoTorreon.DETENIDO) {
+    if (
+      incidente.movimiento.estado !== EstadoMovimientoTorreon.CONCLUIDO &&
+      incidente.movimiento.estado !== EstadoMovimientoTorreon.CANCELADO
+    ) {
       await tx.movimientoTorreonFerro.update({
         where: { id: incidente.movimientoId },
         data: {
           estado: EstadoMovimientoTorreon.SOLICITADO,
           operadorId: null,
           fechaInicio: null,
+          fechaFin: null,
           fechaPausa: null,
+          finalizado: false,
         },
       });
     }
 
+    await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
+    await RondaModel.promoverMovimientoPrimero(tx, incidente.movimientoId);
+    await ArrastreModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
+    return updated;
+  }
+
+  static async cerrarTx(
+    tx: Tx,
+    incidenteId: number,
+    input: z.infer<typeof resolverIncidenteSchema>
+  ) {
+    const incidente = await tx.incidenteTorreonFerro.findUnique({
+      where: { id: incidenteId },
+      include: { movimiento: true },
+    });
+    if (!incidente) throw new DomainError(404, "Incidente no encontrado");
+    if (incidente.estado === EstadoIncidenteTorreon.RESUELTO) return incidente;
+    if (incidente.movimiento.estado === EstadoMovimientoTorreon.CONCLUIDO) {
+      throw new DomainError(409, "Un movimiento concluido no se puede cancelar");
+    }
+
+    const fechaCierre = input.fechaResolucion ?? new Date();
+    const updated = await tx.incidenteTorreonFerro.update({
+      where: { id: incidenteId },
+      data: {
+        estado: EstadoIncidenteTorreon.RESUELTO,
+        solucion: input.solucion,
+        resueltoPorId: input.resueltoPorId,
+        fechaResolucion: fechaCierre,
+      },
+    });
+    await tx.movimientoTorreonFerro.update({
+      where: { id: incidente.movimientoId },
+      data: {
+        estado: EstadoMovimientoTorreon.CANCELADO,
+        operadorId: null,
+        fechaFin: fechaCierre,
+        fechaPausa: null,
+        finalizado: true,
+        instrucciones: [
+          incidente.movimiento.instrucciones,
+          `Cancelado por cierre de incidente #${incidenteId}: ${input.solucion}`,
+        ].filter(Boolean).join("\n"),
+      },
+    });
+    await RondaModel.marcarMovimientoCancelado(tx, incidente.movimientoId, fechaCierre);
     await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
     await ArrastreModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
     return updated;
@@ -378,7 +431,10 @@ export class IncidenteModel {
         where: { id },
         select: { id: true },
       });
-      if (natural) return prismaTorreon.$transaction((tx) => this.resolverTx(tx, id, input));
+      if (natural) {
+        await prismaTorreon.$transaction((tx) => this.resolverTx(tx, id, input));
+        return this.obtener(id, "NATURAL");
+      }
       if (normalized === "NATURAL") throw new DomainError(404, "Incidente natural no encontrado");
     }
 
@@ -389,6 +445,31 @@ export class IncidenteModel {
     if (!arrastre) throw new DomainError(404, "Incidente no encontrado");
 
     await ArrastreModel.resolverIncidente(arrastre.arrastreId, id, input);
+    return this.obtener(id, "ARRASTRE");
+  }
+
+  static async cerrar(id: number, input: z.infer<typeof resolverIncidenteSchema>, tipo?: string) {
+    const normalized = normalizeTipo(tipo);
+
+    if (normalized !== "ARRASTRE") {
+      const natural = await prismaTorreon.incidenteTorreonFerro.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+      if (natural) {
+        await prismaTorreon.$transaction((tx) => this.cerrarTx(tx, id, input));
+        return this.obtener(id, "NATURAL");
+      }
+      if (normalized === "NATURAL") throw new DomainError(404, "Incidente natural no encontrado");
+    }
+
+    const arrastre = await prismaTorreon.incidenteArrastreTorreon.findUnique({
+      where: { id },
+      select: { arrastreId: true },
+    });
+    if (!arrastre) throw new DomainError(404, "Incidente no encontrado");
+
+    await ArrastreModel.cerrarIncidente(arrastre.arrastreId, id, input);
     return this.obtener(id, "ARRASTRE");
   }
 }

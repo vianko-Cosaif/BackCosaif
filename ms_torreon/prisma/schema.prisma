@@ -99,6 +99,7 @@ enum TipoFotoMovimientoTorreon {
 
 model MovimientoTorreonFerro {
   id               Int  @id @default(autoincrement())
+  clientRequestId  String? @unique @map("client_request_id")
   empresaId        Int  @map("empresa_id")
   creadoPorId      Int  @map("creado_por_id")
   clienteId        Int? @map("cliente_id")
@@ -275,6 +276,8 @@ model ArrastreTorreon {
   id               Int                   @id @default(autoincrement())
   empresaId        Int                   @map("empresa_id")
   creadoPorId      Int                   @map("creado_por_id")
+  supervisorId     Int?                  @map("supervisor_id")
+  coordinadorId    Int?                  @map("coordinador_id")
   operadorId       Int?                  @map("operador_id")
   localidadId      Int                   @map("localidad_id")
   viaOrigenId      Int?                  @map("via_origen_id")
@@ -298,6 +301,9 @@ model ArrastreTorreon {
 
   @@index([empresaId, estado])
   @@index([localidadId, estado])
+  @@index([supervisorId, estado])
+  @@index([coordinadorId, estado])
+  @@index([operadorId, estado])
   @@index([localidadId, ordenSolicitud])
   @@index([empresaId, ordenSolicitud])
   @@index([empresaId, localidadId, estado, ordenSolicitud, fechaSolicitud])
@@ -309,26 +315,35 @@ model ArrastreTorreon {
 }
 
 model ArrastreTorreonVagon {
-  id             Int                        @id @default(autoincrement())
-  arrastreId     Int                        @map("arrastre_id")
-  orden          Int
-  numeroVagon    String?                    @map("numero_vagon")
-  carga          CargaVagonArrastreTorreon
-  viaId          Int                        @map("via_id")
-  seccionId      Int                        @map("seccion_id")
-  comentario     String?
-  estado         EstadoVagonArrastreTorreon @default(PENDIENTE)
-  fechaSolicitud DateTime                   @default(now()) @map("fecha_solicitud")
-  fechaInicio    DateTime?                  @map("fecha_inicio")
-  fechaFin       DateTime?                  @map("fecha_fin")
-  createdAt      DateTime                   @default(now()) @map("created_at")
-  updatedAt      DateTime                   @updatedAt @map("updated_at")
+  id              Int                        @id @default(autoincrement())
+  arrastreId      Int                        @map("arrastre_id")
+  orden           Int
+  numeroVagon     String?                    @map("numero_vagon")
+  carga           CargaVagonArrastreTorreon
+  viaOrigenId     Int?                       @map("via_origen_id")
+  seccionOrigenId Int?                       @map("seccion_origen_id")
+  viaId           Int?                       @map("via_id")
+  seccionId       Int?                       @map("seccion_id")
+  viaOrigenNombre String?                    @map("via_origen_nombre")
+  seccionOrigenNombre String?                @map("seccion_origen_nombre")
+  viaDestinoNombre String?                   @map("via_destino_nombre")
+  seccionDestinoNombre String?               @map("seccion_destino_nombre")
+  comentario      String?
+  estado          EstadoVagonArrastreTorreon @default(PENDIENTE)
+  fechaSolicitud  DateTime                   @default(now()) @map("fecha_solicitud")
+  fechaInicio     DateTime?                  @map("fecha_inicio")
+  fechaFin        DateTime?                  @map("fecha_fin")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
 
   arrastre   ArrastreTorreon            @relation(fields: [arrastreId], references: [id], onDelete: Cascade)
   incidentes IncidenteArrastreTorreon[]
 
   @@unique([arrastreId, orden])
   @@index([arrastreId, estado])
+  @@index([viaOrigenId, estado])
+  @@index([seccionOrigenId, estado])
+  @@index([viaOrigenId, seccionOrigenId, estado])
   @@index([viaId, estado])
   @@index([seccionId, estado])
   @@index([viaId, seccionId, estado])

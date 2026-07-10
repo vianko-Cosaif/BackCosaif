@@ -713,6 +713,63 @@ export class RondaModel {
     return result;
   }
 
+  static async marcarMovimientoCancelado(tx: Tx, movimientoId: number, fechaFin = new Date()) {
+    const movimiento = await tx.movimientoTorreonFerro.findUnique({
+      where: { id: movimientoId },
+      select: { localidadId: true },
+    });
+    const result = await tx.rondaTorreonMovimiento.updateMany({
+      where: {
+        movimientoId,
+        estado: { not: EstadoRondaMovimientoTorreon.CONCLUIDO },
+      },
+      data: {
+        estado: EstadoRondaMovimientoTorreon.CANCELADO,
+        fechaFin,
+        bloqueadoPorIncidenteId: null,
+      },
+    });
+    if (movimiento) await this.normalizarRondasActivas(tx, movimiento.localidadId);
+    return result;
+  }
+
+  static async promoverMovimientoPrimero(tx: Tx, movimientoId: number) {
+    const detail = await tx.rondaTorreonMovimiento.findFirst({
+      where: {
+        movimientoId,
+        estado: EstadoRondaMovimientoTorreon.PENDIENTE,
+        ronda: { estado: { in: ESTADOS_RONDA_ACTIVA } },
+      },
+      include: {
+        ronda: { select: { localidadId: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!detail) return { promoted: false };
+
+    await tx.rondaTorreonMovimiento.updateMany({
+      where: {
+        id: { not: detail.id },
+        ordenManual: { not: null },
+        estado: { in: ESTADOS_MOVIMIENTO_RECALCULABLE },
+        ronda: {
+          localidadId: detail.ronda.localidadId,
+          estado: { in: ESTADOS_RONDA_ACTIVA },
+        },
+      },
+      data: { ordenManual: { increment: 1 } },
+    });
+    await tx.rondaTorreonMovimiento.update({
+      where: { id: detail.id },
+      data: {
+        ordenManual: 0,
+        fechaReordenManual: new Date(),
+      },
+    });
+    await this.normalizarRondasActivas(tx, detail.ronda.localidadId);
+    return { promoted: true };
+  }
+
   static async bloquearPorIncidente(tx: Tx, incidente: IncidenteBloqueoRefs) {
     const movimientoFilters: Prisma.MovimientoTorreonFerroWhereInput[] = [];
     if (incidente.viaBloqueadaId) {

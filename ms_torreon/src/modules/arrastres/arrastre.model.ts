@@ -38,7 +38,12 @@ type ArrastreRefs = {
   viaDestinoId: number | null;
   seccionOrigenId: number | null;
   seccionDestinoId: number | null;
-  vagones?: Array<{ viaId: number; seccionId: number }>;
+  vagones?: Array<{
+    viaOrigenId?: number | null;
+    seccionOrigenId?: number | null;
+    viaId?: number | null;
+    seccionId?: number | null;
+  }>;
 };
 
 const buildArrastreDetalleInclude = (includeFotos: boolean) => ({
@@ -205,7 +210,10 @@ function buildArrastreResourceFilters(refs: ArrastreRefs): BloqueoResourceFilter
   const points = [
     { viaId: refs.viaOrigenId, seccionId: refs.seccionOrigenId },
     { viaId: refs.viaDestinoId, seccionId: refs.seccionDestinoId },
-    ...(refs.vagones ?? []).map((vagon) => ({ viaId: vagon.viaId, seccionId: vagon.seccionId })),
+    ...(refs.vagones ?? []).flatMap((vagon) => [
+      { viaId: vagon.viaOrigenId, seccionId: vagon.seccionOrigenId },
+      { viaId: vagon.viaId, seccionId: vagon.seccionId },
+    ]),
   ];
   const filters = new Map<string, BloqueoResourceFilter>();
 
@@ -232,18 +240,29 @@ function buildArrastreResourceFilters(refs: ArrastreRefs): BloqueoResourceFilter
 }
 
 function vagonEstaBloqueadoPorIncidente(
-  vagon: { viaId: number; seccionId: number },
+  vagon: {
+    viaOrigenId?: number | null;
+    seccionOrigenId?: number | null;
+    viaId?: number | null;
+    seccionId?: number | null;
+  },
   incidente: { viaBloqueadaId: number | null; seccionBloqueadaId: number | null }
 ) {
   const tieneVia = typeof incidente.viaBloqueadaId === "number";
   const tieneSeccion = typeof incidente.seccionBloqueadaId === "number";
+  const puntos = [
+    { viaId: vagon.viaOrigenId, seccionId: vagon.seccionOrigenId },
+    { viaId: vagon.viaId, seccionId: vagon.seccionId },
+  ];
 
   if (tieneVia && tieneSeccion) {
-    return vagon.viaId === incidente.viaBloqueadaId && vagon.seccionId === incidente.seccionBloqueadaId;
+    return puntos.some((punto) =>
+      punto.viaId === incidente.viaBloqueadaId && punto.seccionId === incidente.seccionBloqueadaId
+    );
   }
 
-  if (tieneVia) return vagon.viaId === incidente.viaBloqueadaId;
-  if (tieneSeccion) return vagon.seccionId === incidente.seccionBloqueadaId;
+  if (tieneVia) return puntos.some((punto) => punto.viaId === incidente.viaBloqueadaId);
+  if (tieneSeccion) return puntos.some((punto) => punto.seccionId === incidente.seccionBloqueadaId);
   return false;
 }
 
@@ -405,7 +424,7 @@ export class ArrastreModel {
         localidadId,
         estado: { in: ESTADOS_ARRASTRE_ACTIVO },
       },
-      select: { id: true },
+      select: { id: true, estado: true },
     });
 
     if (!arrastres.length) {
@@ -421,6 +440,8 @@ export class ArrastreModel {
       orderBy: [{ arrastreId: "asc" }, { orden: "asc" }],
       select: {
         id: true,
+        viaOrigenId: true,
+        seccionOrigenId: true,
         viaId: true,
         seccionId: true,
         estado: true,
@@ -526,6 +547,47 @@ export class ArrastreModel {
     }
   }
 
+  private static async promoverSolicitudPrimero(tx: Tx, arrastreId: number, localidadId: number) {
+    const solicitudes = await tx.arrastreTorreon.findMany({
+      where: {
+        localidadId,
+        estado: { in: ESTADOS_ARRASTRE_ACTIVO },
+      },
+      orderBy: [
+        { ordenSolicitud: "asc" },
+        { fechaSolicitud: "asc" },
+        { id: "asc" },
+      ],
+      select: { id: true, estado: true },
+    });
+    const solicitudObjetivo = solicitudes.find((solicitud) => solicitud.id === arrastreId);
+    if (!solicitudObjetivo) return;
+
+    const enProceso = solicitudes.filter((solicitud) => (
+      solicitud.id !== arrastreId && solicitud.estado === EstadoArrastreTorreon.EN_PROCESO
+    ));
+    const ordenados = [
+      ...enProceso,
+      solicitudObjetivo,
+      ...solicitudes.filter((solicitud) => (
+        solicitud.id !== arrastreId && solicitud.estado !== EstadoArrastreTorreon.EN_PROCESO
+      )),
+    ];
+    await tx.arrastreTorreon.updateMany({
+      where: {
+        localidadId,
+        estado: { in: ESTADOS_ARRASTRE_ACTIVO },
+      },
+      data: { ordenSolicitud: { increment: ORDER_SHIFT } },
+    });
+    await Promise.all(
+      ordenados.map((solicitud, index) => tx.arrastreTorreon.update({
+        where: { id: solicitud.id },
+        data: { ordenSolicitud: index + 1 },
+      }))
+    );
+  }
+
   static async crear(input: z.infer<typeof createArrastreSchema>) {
     assertCapacidadArrastre(input.vagones);
 
@@ -539,12 +601,10 @@ export class ArrastreModel {
         data: compact({
           empresaId: input.empresaId,
           creadoPorId: input.creadoPorId,
+          supervisorId: input.supervisorId,
+          coordinadorId: input.coordinadorId,
           operadorId: input.operadorId,
           localidadId: input.localidadId,
-          viaOrigenId: input.viaOrigenId,
-          viaDestinoId: input.viaDestinoId,
-          seccionOrigenId: input.seccionOrigenId,
-          seccionDestinoId: input.seccionDestinoId,
           ordenSolicitud: (last?.ordenSolicitud ?? 0) + 1,
           instrucciones: input.instrucciones,
           vagones: {
@@ -552,8 +612,14 @@ export class ArrastreModel {
               orden: index + 1,
               numeroVagon: vagon.numeroVagon,
               carga: vagon.carga,
+              viaOrigenId: vagon.viaOrigenId,
+              seccionOrigenId: vagon.seccionOrigenId,
               viaId: vagon.viaId,
               seccionId: vagon.seccionId,
+              viaOrigenNombre: vagon.viaOrigenNombre,
+              seccionOrigenNombre: vagon.seccionOrigenNombre,
+              viaDestinoNombre: vagon.viaDestinoNombre,
+              seccionDestinoNombre: vagon.seccionDestinoNombre,
               comentario: vagon.comentario,
               fechaSolicitud: vagon.fechaSolicitud,
             })),
@@ -788,6 +854,12 @@ export class ArrastreModel {
           comentario: mergeComentarios(comentarioActual, comentarioIncidente, input.comentarioOperacion),
         },
       });
+      if (input.operadorId && arrastre.operadorId !== input.operadorId) {
+        await tx.arrastreTorreon.update({
+          where: { id },
+          data: { operadorId: input.operadorId },
+        });
+      }
       await this.sincronizarEstadoOperativo(tx, id, fechaInicio);
 
       return id;
@@ -853,8 +925,14 @@ export class ArrastreModel {
         data: compact({
           numeroVagon: input.numeroVagon,
           carga: input.carga,
+          viaOrigenId: input.viaOrigenId,
+          seccionOrigenId: input.seccionOrigenId,
           viaId: input.viaId,
           seccionId: input.seccionId,
+          viaOrigenNombre: input.viaOrigenNombre,
+          seccionOrigenNombre: input.seccionOrigenNombre,
+          viaDestinoNombre: input.viaDestinoNombre,
+          seccionDestinoNombre: input.seccionDestinoNombre,
           comentario: input.comentario,
         }),
       });
@@ -917,8 +995,8 @@ export class ArrastreModel {
       const vagon = input.vagonId ? arrastre.vagones.find((item) => item.id === input.vagonId) : undefined;
       if (input.vagonId && !vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
 
-      const viaBloqueadaId = input.viaBloqueadaId ?? vagon?.viaId ?? arrastre.viaDestinoId ?? arrastre.viaOrigenId;
-      const seccionBloqueadaId = input.seccionBloqueadaId ?? vagon?.seccionId ?? arrastre.seccionDestinoId ?? arrastre.seccionOrigenId;
+      const viaBloqueadaId = input.viaBloqueadaId ?? vagon?.viaId ?? vagon?.viaOrigenId ?? arrastre.viaDestinoId ?? arrastre.viaOrigenId;
+      const seccionBloqueadaId = input.seccionBloqueadaId ?? vagon?.seccionId ?? vagon?.seccionOrigenId ?? arrastre.seccionDestinoId ?? arrastre.seccionOrigenId;
 
       if (!viaBloqueadaId && !seccionBloqueadaId) {
         throw new DomainError(400, "Debe existir via o seccion para bloquear");
@@ -953,11 +1031,16 @@ export class ArrastreModel {
           ...(vagon
             ? { id: vagon.id }
             : viaBloqueadaId && seccionBloqueadaId
-              ? { viaId: viaBloqueadaId, seccionId: seccionBloqueadaId }
+              ? {
+                  OR: [
+                    { viaOrigenId: viaBloqueadaId, seccionOrigenId: seccionBloqueadaId },
+                    { viaId: viaBloqueadaId, seccionId: seccionBloqueadaId },
+                  ],
+                }
               : viaBloqueadaId
-                ? { viaId: viaBloqueadaId }
+                ? { OR: [{ viaOrigenId: viaBloqueadaId }, { viaId: viaBloqueadaId }] }
                 : seccionBloqueadaId
-                  ? { seccionId: seccionBloqueadaId }
+                  ? { OR: [{ seccionOrigenId: seccionBloqueadaId }, { seccionId: seccionBloqueadaId }] }
                   : {}),
           estado: EstadoVagonArrastreTorreon.PENDIENTE,
         },
@@ -1002,7 +1085,98 @@ export class ArrastreModel {
 
       await this.recalcularBloqueosLocalidad(tx, incidente.localidadId);
       await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
-      await this.sincronizarEstadoOperativo(tx, id, input.fechaResolucion ?? new Date());
+
+      const [incidentesAbiertos, vagonesPendientes] = await Promise.all([
+        tx.incidenteArrastreTorreon.count({
+          where: { arrastreId: id, estado: EstadoIncidenteArrastreTorreon.ABIERTO },
+        }),
+        tx.arrastreTorreonVagon.count({
+          where: { arrastreId: id, estado: { not: EstadoVagonArrastreTorreon.CONCLUIDO } },
+        }),
+      ]);
+
+      if (incidentesAbiertos === 0 && vagonesPendientes > 0) {
+        await tx.arrastreTorreonVagon.updateMany({
+          where: {
+            arrastreId: id,
+            estado: EstadoVagonArrastreTorreon.EN_PROCESO,
+          },
+          data: { estado: EstadoVagonArrastreTorreon.PENDIENTE },
+        });
+        await tx.arrastreTorreon.update({
+          where: { id },
+          data: {
+            estado: EstadoArrastreTorreon.SOLICITADO,
+            operadorId: null,
+            fechaPausa: null,
+            fechaFin: null,
+          },
+        });
+        await this.promoverSolicitudPrimero(tx, id, incidente.localidadId);
+      } else {
+        await this.sincronizarEstadoOperativo(tx, id, input.fechaResolucion ?? new Date());
+      }
+      return id;
+    });
+
+    return getArrastreDetalle(arrastreId);
+  }
+
+  static async cerrarIncidente(
+    id: number,
+    incidenteId: number,
+    input: z.infer<typeof resolverIncidenteArrastreSchema>
+  ) {
+    const arrastreId = await prismaTorreon.$transaction(async (tx) => {
+      const incidente = await tx.incidenteArrastreTorreon.findUnique({
+        where: { id: incidenteId },
+        include: { arrastre: true },
+      });
+      if (!incidente || incidente.arrastreId !== id) {
+        throw new DomainError(404, "Incidente de arrastre no encontrado");
+      }
+      if (incidente.estado === EstadoIncidenteArrastreTorreon.RESUELTO) return id;
+      if (incidente.arrastre.estado === EstadoArrastreTorreon.CONCLUIDO) {
+        throw new DomainError(409, "Un arrastre concluido no se puede cancelar");
+      }
+
+      const fechaCierre = input.fechaResolucion ?? new Date();
+      await tx.incidenteArrastreTorreon.update({
+        where: { id: incidenteId },
+        data: {
+          estado: EstadoIncidenteArrastreTorreon.RESUELTO,
+          solucion: input.solucion,
+          resueltoPorId: input.resueltoPorId,
+          fechaResolucion: fechaCierre,
+        },
+      });
+      await tx.arrastreTorreon.update({
+        where: { id },
+        data: {
+          estado: EstadoArrastreTorreon.CANCELADO,
+          fechaFin: fechaCierre,
+          fechaPausa: null,
+          instrucciones: mergeComentarios(
+            incidente.arrastre.instrucciones,
+            `Cancelado por cierre de incidente #${incidenteId}: ${input.solucion}`
+          ),
+        },
+      });
+      await tx.arrastreTorreonVagon.updateMany({
+        where: {
+          arrastreId: id,
+          estado: {
+            in: [
+              EstadoVagonArrastreTorreon.EN_PROCESO,
+              EstadoVagonArrastreTorreon.BLOQUEADO,
+            ],
+          },
+        },
+        data: { estado: EstadoVagonArrastreTorreon.PENDIENTE },
+      });
+
+      await this.recalcularBloqueosLocalidad(tx, incidente.localidadId);
+      await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
       return id;
     });
 

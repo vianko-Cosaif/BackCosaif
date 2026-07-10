@@ -29,6 +29,7 @@ type MovimientoBusquedaParams = {
   locomotiveNumber?: number;
   empresaId?: number;
   localidadId?: number;
+  excludeLocalidadIds?: number[];
   estados?: string[];
   prioridad?: 'ALTA' | 'BAJA';
   finalizado?: boolean;
@@ -176,6 +177,7 @@ export class MovimientoReadModel {
         locomotiveNumber,
         empresaId,
         localidadId,
+        excludeLocalidadIds,
         estados,
         prioridad,
         finalizado,
@@ -190,7 +192,11 @@ export class MovimientoReadModel {
 
       if (locomotiveNumber !== undefined) where.locomotiveNumber = locomotiveNumber;
       if (empresaId !== undefined) where.empresaId = empresaId;
-      if (localidadId !== undefined) where.localidadId = localidadId;
+      if (localidadId !== undefined) {
+        where.localidadId = localidadId;
+      } else if (excludeLocalidadIds?.length) {
+        where.localidadId = { notIn: excludeLocalidadIds };
+      }
       if (prioridad) where.prioridad = prioridad as any;
       if (finalizado !== undefined) where.finalizado = finalizado;
       if (estados && estados.length) {

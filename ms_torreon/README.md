@@ -39,8 +39,9 @@ movimientos/movimiento.model.ts
 - Detener/reanudar como transiciones del movimiento, delegando incidente y ronda.
 
 incidentes/incidente.model.ts
-- Crear incidente ABIERTO con minimo 4 fotos.
-- Resolver incidente.
+- Crear incidente ABIERTO con minimo 1 foto y maximo 4.
+- Resolver incidente y reencolar primero el movimiento ligado.
+- Cerrar incidente cancelando el movimiento ligado.
 - Buscar incidentes que bloquean una via/seccion.
 - Al abrir/resolver, afecta rondas mediante RondaModel.
 
@@ -98,6 +99,7 @@ POST   /api/movimientos/:id/detener
 POST   /api/movimientos/:id/incidentes
 PATCH  /api/movimientos/:id/reanudar
 PATCH  /api/incidentes/:id/resolver
+PATCH  /api/incidentes/:id/cerrar
 GET    /api/rondas
 GET    /api/rondas/:id
 ```
@@ -128,7 +130,7 @@ Finalizar movimiento:
 
 Detener movimiento:
 - Crea incidente_torreon_ferro ABIERTO.
-- Requiere minimo 4 capturas del incidente.
+- Requiere minimo 1 captura del incidente y permite maximo 4.
 - Usa via/seccion enviada o, si no viene, toma destino del movimiento.
 - Cambia movimiento a DETENIDO.
 - Bloquea movimientos de rondas activas que usen esa via/seccion.
@@ -136,6 +138,11 @@ Detener movimiento:
 Resolver incidente:
 - Cambia incidente a RESUELTO.
 - Desbloquea movimientos bloqueados por ese incidente.
+- Regresa el movimiento ligado a SOLICITADO y lo coloca primero en la cola disponible.
+
+Cerrar incidente:
+- Registra el incidente como RESUELTO con la auditoria de cierre.
+- Cambia el movimiento o arrastre ligado a CANCELADO y lo retira de la cola activa.
 
 Reanudar movimiento:
 - Requiere que el movimiento este DETENIDO.

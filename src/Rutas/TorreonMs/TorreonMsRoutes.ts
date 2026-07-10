@@ -4,11 +4,15 @@ import type { AuthenticatedUser } from "../../types/auth";
 import { proxyToTorreonMs } from "../../services/torreonMs/torreonMsClient";
 import { NotificadorFCM } from "../../services/NotificadorFCM";
 import { publishRealtimeEvent, type RealtimeEventType } from "../../realtime/realtimeHub";
+import { prisma } from "../../lib/prisma";
+
+const { PrismaClient: TorreonPrismaClient } = require("../../../ms_torreon/generated");
+const prismaTorreon = new TorreonPrismaClient();
 
 const router = Router();
 
 const ADMIN_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR"]);
-const LOCAL_OPERATION_ROLES = new Set(["SUPERVISOR", "MAQUINISTA_ARRASTRE"]);
+const LOCAL_OPERATION_ROLES = new Set(["SUPERVISOR", "MAQUINISTA", "MAQUINISTA_ARRASTRE"]);
 const CLIENT_COMPANY_ROLES = new Set(["CLIENTE_ADMIN", "CLIENTE_COOR"]);
 const CLIENT_LOCAL_ROLES = new Set(["CLIENTE", "ARRASTRE_TORREON"]);
 const ALLOWED_ROLES = new Set([
@@ -43,6 +47,94 @@ function readLocalidadId(user?: AuthenticatedUser) {
   return positiveInt(user?.localidad?.id);
 }
 
+type ResponsableCampo = "supervisorId" | "coordinadorId";
+type TorreonResponsableScope = "NATURAL" | "ARRASTRE";
+
+async function obtenerResponsableActivoMasReciente(
+  rol: "SUPERVISOR" | "COORDINADOR",
+  localidadId: number,
+  empresaId?: number | null
+) {
+  const orderBy = [{ issuedAt: "desc" as const }, { createdAt: "desc" as const }];
+  const vigencia = { revokedAt: null, expiresAt: { gt: new Date() } };
+
+  if (empresaId) {
+    const exacto = await prisma.token.findFirst({
+      where: {
+        ...vigencia,
+        usuario: { activo: true, rol, localidadId, empresaId },
+      },
+      orderBy,
+      select: { usuarioId: true },
+    });
+    if (exacto) return exacto.usuarioId;
+  }
+
+  const localidad = await prisma.token.findFirst({
+    where: {
+      ...vigencia,
+      usuario: { activo: true, rol, localidadId },
+    },
+    orderBy,
+    select: { usuarioId: true },
+  });
+
+  return localidad?.usuarioId ?? null;
+}
+
+async function obtenerUltimoResponsableTorreon(
+  campo: ResponsableCampo,
+  scope: TorreonResponsableScope,
+  localidadId: number,
+  empresaId?: number | null
+) {
+  const where = {
+    localidadId,
+    ...(empresaId ? { empresaId } : {}),
+    [campo]: { not: null },
+  } as any;
+  const select = { [campo]: true } as any;
+
+  const row = scope === "ARRASTRE"
+    ? await prismaTorreon.arrastreTorreon.findFirst({
+        where,
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        select,
+      })
+    : await prismaTorreon.movimientoTorreonFerro.findFirst({
+        where,
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        select,
+      });
+
+  return positiveInt((row as any)?.[campo]);
+}
+
+async function resolverResponsablesTorreon(
+  source: Record<string, unknown>,
+  user: AuthenticatedUser | undefined,
+  scope: TorreonResponsableScope
+) {
+  const localidadId = positiveInt(source.localidadId) ?? readLocalidadId(user);
+  if (!localidadId) return {};
+
+  const empresaId = positiveInt(source.empresaId) ?? readEmpresaId(user);
+  const [supervisorActivo, coordinadorActivo] = await Promise.all([
+    source.supervisorId ? null : obtenerResponsableActivoMasReciente("SUPERVISOR", localidadId, empresaId),
+    source.coordinadorId ? null : obtenerResponsableActivoMasReciente("COORDINADOR", localidadId, empresaId),
+  ]);
+
+  const [supervisorFallback, coordinadorFallback] = await Promise.all([
+    source.supervisorId || supervisorActivo ? null : obtenerUltimoResponsableTorreon("supervisorId", scope, localidadId, empresaId),
+    source.coordinadorId || coordinadorActivo ? null : obtenerUltimoResponsableTorreon("coordinadorId", scope, localidadId, empresaId),
+  ]);
+
+  return {
+    ...(source.supervisorId ? {} : { supervisorId: supervisorActivo ?? supervisorFallback ?? undefined }),
+    ...(source.coordinadorId ? {} : { coordinadorId: coordinadorActivo ?? coordinadorFallback ?? undefined }),
+  };
+}
+
 function isReadonlyClient(user?: AuthenticatedUser) {
   const role = userRole(user);
   return CLIENT_COMPANY_ROLES.has(role) || CLIENT_LOCAL_ROLES.has(role);
@@ -63,6 +155,7 @@ function isAllowedClientMutation(method: string, rest: string) {
   if (verb === "PATCH" && /^\/arrastres\/\d+\/vagones\/\d+$/.test(path)) return true;
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/incidentes\/\d+\/resolver$/.test(path)) return true;
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/resolver$/.test(path)) return true;
+  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/cerrar$/.test(path)) return true;
   if (verb === "PATCH" && path === "/rondas/movimientos/orden") return true;
   return false;
 }
@@ -77,7 +170,26 @@ function isAllowedMaquinistaArrastreMutation(method: string, rest: string) {
   return false;
 }
 
-function withActorDefaults(method: string, rest: string, body: unknown, user?: AuthenticatedUser) {
+function isAllowedMaquinistaNaturalMutation(method: string, rest: string) {
+  const verb = method.toUpperCase();
+  const path = rest.split("?")[0];
+  if (verb === "GET") return true;
+  if (verb === "POST" && /^\/movimientos\/\d+\/iniciar$/.test(path)) return true;
+  if (verb === "PATCH" && /^\/movimientos\/\d+\/finalizar$/.test(path)) return true;
+  if (verb === "POST" && /^\/movimientos\/\d+\/fotos$/.test(path)) return true;
+  if (verb === "POST" && /^\/movimientos\/\d+\/(?:detener|incidentes)$/.test(path)) return true;
+  return false;
+}
+
+function incidentMutationDetailPath(method: string, rest: string) {
+  if (method.toUpperCase() === "GET") return null;
+  const [path, query = ""] = rest.split("?");
+  const match = path.match(/^\/incidentes\/(\d+)\/(?:resolver|cerrar)$/);
+  if (!match) return null;
+  return `/incidentes/${match[1]}${query ? `?${query}` : ""}`;
+}
+
+async function withActorDefaults(method: string, rest: string, body: unknown, user?: AuthenticatedUser) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return body;
 
   const userId = positiveInt(user?.id);
@@ -90,15 +202,73 @@ function withActorDefaults(method: string, rest: string, body: unknown, user?: A
   const localidadId = readLocalidadId(user);
 
   if (verb === "POST" && path === "/arrastres") {
-    return {
+    const payload = {
       ...source,
       creadoPorId: source.creadoPorId ?? userId,
       ...(empresaId ? { empresaId: source.empresaId ?? empresaId } : {}),
       ...(localidadId ? { localidadId: source.localidadId ?? localidadId } : {}),
     };
+    return {
+      ...payload,
+      ...(await resolverResponsablesTorreon(payload, user, "ARRASTRE")),
+    };
+  }
+
+  if (verb === "POST" && path === "/movimientos") {
+    const payload = {
+      ...source,
+      creadoPorId: source.creadoPorId ?? userId,
+      clienteId: source.clienteId ?? (CLIENT_COMPANY_ROLES.has(userRole(user)) || CLIENT_LOCAL_ROLES.has(userRole(user)) ? userId : undefined),
+      ...(empresaId ? { empresaId: source.empresaId ?? empresaId } : {}),
+      ...(localidadId ? { localidadId: source.localidadId ?? localidadId } : {}),
+    };
+    return {
+      ...payload,
+      ...(await resolverResponsablesTorreon(payload, user, "NATURAL")),
+    };
+  }
+
+  if (verb === "POST" && /^\/movimientos\/\d+\/iniciar$/.test(path)) {
+    return {
+      ...source,
+      iniciadoPorId: source.iniciadoPorId ?? userId,
+      operadorId: source.operadorId ?? userId,
+    };
+  }
+
+  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/movimientos\/\d+\/finalizar$/.test(path)) {
+    return { ...source, finalizadoPorId: source.finalizadoPorId ?? userId };
+  }
+
+  if (verb === "POST" && /^\/movimientos\/\d+\/fotos$/.test(path)) {
+    return { ...source, tomadaPorId: source.tomadaPorId ?? userId };
+  }
+
+  if (verb === "POST" && /^\/movimientos\/\d+\/(?:detener|incidentes)$/.test(path)) {
+    return { ...source, creadoPorId: source.creadoPorId ?? userId };
+  }
+
+  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/movimientos\/\d+\/reanudar$/.test(path)) {
+    return {
+      ...source,
+      operadorId: source.operadorId ?? userId,
+      resueltoPorId: source.resueltoPorId ?? userId,
+    };
+  }
+
+  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/(?:resolver|cerrar)$/.test(path)) {
+    return { ...source, resueltoPorId: source.resueltoPorId ?? userId };
   }
 
   if (verb === "POST" && /^\/arrastres\/\d+\/iniciar$/.test(path)) {
+    return {
+      ...source,
+      iniciadoPorId: source.iniciadoPorId ?? userId,
+      operadorId: source.operadorId ?? userId,
+    };
+  }
+
+  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/vagones\/\d+\/iniciar$/.test(path)) {
     return {
       ...source,
       iniciadoPorId: source.iniciadoPorId ?? userId,
@@ -262,6 +432,24 @@ function extractIncidenteId(data: unknown, pathIncidentId?: number | null) {
     ?? positiveInt(record?.movimiento?.incidenteId)
     ?? pathIncidentId
     ?? null;
+}
+
+function compactRealtimeSnapshot(value: unknown, depth = 0): unknown {
+  if (value == null || typeof value === "number" || typeof value === "boolean") return value;
+  if (typeof value === "string") return value.length > 1_000 ? `${value.slice(0, 1_000)}...` : value;
+  if (depth >= 4) return undefined;
+  if (Array.isArray(value)) {
+    return value.slice(0, 120).map((item) => compactRealtimeSnapshot(item, depth + 1));
+  }
+  if (typeof value !== "object") return undefined;
+
+  const result: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (["fotos", "storageKey", "token", "password"].includes(key)) continue;
+    const compacted = compactRealtimeSnapshot(item, depth + 1);
+    if (typeof compacted !== "undefined") result[key] = compacted;
+  }
+  return result;
 }
 
 function formatArrastreTitle(arrastre: Record<string, any> | null) {
@@ -555,18 +743,36 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
     };
   }
 
+  if (/^\/incidentes\/\d+\/cerrar$/.test(path)) {
+    const entityLabel = arrastreId ? `Arrastre #${arrastreId}` : movimientoId ? `Movimiento #${movimientoId}` : "Movimiento Torreon";
+    return {
+      realtimeType: "torreon.incidente.estado",
+      fcmTipo: "torreon_incidente_cierre_cancelacion",
+      title: arrastreId ? "Arrastre Torreon cancelado" : "Movimiento Torreon cancelado",
+      body: incidenteId
+        ? `${entityLabel} · incidente #${incidenteId} cerrado`
+        : `${entityLabel} cancelado por cierre de incidente`,
+      url: "/incidentes?source=torreon",
+      sendFcm: true,
+      arrastreId,
+      movimientoId,
+      incidenteId,
+      accion: "cerrar_incidente_cancelar_movimiento",
+    };
+  }
+
   return null;
 }
 
-function dispatchTorreonSideEffects(method: string, rest: string, data: unknown, user?: AuthenticatedUser) {
+function dispatchTorreonSideEffects(method: string, rest: string, data: unknown, user?: AuthenticatedUser, requestBody?: any) {
   const operation = inferTorreonOperation(method, rest, data);
   if (!operation) return;
 
   const arrastre = extractArrastre(data);
   const movimiento = extractMovimiento(data);
   const entity = arrastre ?? movimiento ?? firstTorreonEntity(data);
-  const empresaId = positiveInt(entity?.empresaId) ?? readEmpresaId(user);
-  const localidadId = positiveInt(entity?.localidadId) ?? readLocalidadId(user);
+  const empresaId = positiveInt(entity?.empresaId) ?? positiveInt(requestBody?.empresaId) ?? readEmpresaId(user);
+  const localidadId = positiveInt(entity?.localidadId) ?? positiveInt(requestBody?.localidadId) ?? readLocalidadId(user);
   const clienteId = positiveInt(entity?.clienteId);
   const estado = String(entity?.estado ?? "").trim() || null;
   const locomotiveNumber = entity?.locomotiveNumber ?? null;
@@ -592,6 +798,8 @@ function dispatchTorreonSideEffects(method: string, rest: string, data: unknown,
     estado,
     accion: operation.accion,
     locomotiveNumber,
+    version: entity?.updatedAt ?? null,
+    snapshot: compactRealtimeSnapshot(entity) as Record<string, unknown> | null,
   });
 
   if (!operation.sendFcm) return;
@@ -654,13 +862,36 @@ router.all("/*", async (req, res) => {
     });
   }
 
+  if (role === "MAQUINISTA" && !isAllowedMaquinistaNaturalMutation(req.method, scopedRest)) {
+    return res.status(403).json({
+      error: "No autorizado para operar movimiento Torreon",
+      message: "El maquinista solo puede consultar, iniciar/finalizar movimientos naturales y reportar incidentes con evidencia.",
+    });
+  }
+
   try {
+    const incidentDetailPath = incidentMutationDetailPath(req.method, scopedRest);
+    if (incidentDetailPath && !ADMIN_ROLES.has(role)) {
+      const detailResult = await proxyToTorreonMs(incidentDetailPath, {
+        method: "GET",
+        headers: {
+          ...(user?.id ? { "x-user-id": String(user.id) } : {}),
+          ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
+        },
+      });
+      if (filterDataForUser(detailResult.data, user) == null) {
+        return res.status(403).json({ error: "No autorizado para este incidente" });
+      }
+    }
+
+    const proxiedBody =
+      req.method === "GET" || req.method === "DELETE"
+        ? undefined
+        : await withActorDefaults(req.method, scopedRest, req.body, user);
+
     const result = await proxyToTorreonMs(scopedRest, {
       method: req.method,
-      body:
-        req.method === "GET" || req.method === "DELETE"
-          ? undefined
-          : withActorDefaults(req.method, scopedRest, req.body, user),
+      body: proxiedBody,
       headers: {
         ...(user?.id ? { "x-user-id": String(user.id) } : {}),
         ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
@@ -673,7 +904,7 @@ router.all("/*", async (req, res) => {
       return res.status(result.status).send(filtered);
     }
 
-    dispatchTorreonSideEffects(req.method, scopedRest, result.data, user);
+    dispatchTorreonSideEffects(req.method, scopedRest, result.data, user, proxiedBody);
     return res.status(result.status).send(result.data);
   } catch (error: any) {
     const status = Number(error?.status) || 502;

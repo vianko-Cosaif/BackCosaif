@@ -25,9 +25,9 @@ type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
 
 const MAX_FOTOS_MOVIMIENTO: Record<TipoFotoMovimientoTorreon, number> = {
-  [TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO]: 2,
-  [TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO]: 2,
-  [TipoFotoMovimientoTorreon.FIN_MOVIMIENTO]: 2,
+  [TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO]: 4,
+  [TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO]: 4,
+  [TipoFotoMovimientoTorreon.FIN_MOVIMIENTO]: 4,
 };
 
 const includeMovimientoDetalle = {
@@ -205,9 +205,18 @@ export class MovimientoModel {
   }
 
   static async crear(input: z.infer<typeof createMovimientoSchema>) {
+    if (input.clientRequestId) {
+      const existing = await prismaTorreon.movimientoTorreonFerro.findUnique({
+        where: { clientRequestId: input.clientRequestId },
+        include: includeMovimientoDetalle,
+      });
+      if (existing) return existing;
+    }
+
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await tx.movimientoTorreonFerro.create({
         data: compact({
+          clientRequestId: input.clientRequestId,
           empresaId: input.empresaId,
           creadoPorId: input.creadoPorId,
           clienteId: input.clienteId,

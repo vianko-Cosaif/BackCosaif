@@ -28,6 +28,7 @@ export class IncidenteController {
       localidadId: optionalNumber(req.query.localidadId),
       empresaId: optionalNumber(req.query.empresaId),
       estado: typeof req.query.estado === "string" ? req.query.estado : undefined,
+      tipo: typeof req.query.tipo === "string" ? req.query.tipo : undefined,
       page: parsePageNumber(req.query.page, 1),
       pageSize: parsePageNumber(req.query.pageSize, 20),
       includeFotos: optionalBoolean(req.query.includeFotos),
@@ -48,6 +49,17 @@ export class IncidenteController {
     const id = Number(req.params.id);
     const payload = resolverIncidenteSchema.parse(req.body);
     const data = await IncidenteModel.resolver(
+      id,
+      payload,
+      typeof req.query.tipo === "string" ? req.query.tipo : undefined
+    );
+    return ok(res, data);
+  }
+
+  static async cerrar(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    const payload = resolverIncidenteSchema.parse(req.body);
+    const data = await IncidenteModel.cerrar(
       id,
       payload,
       typeof req.query.tipo === "string" ? req.query.tipo : undefined
