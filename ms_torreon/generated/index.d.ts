@@ -54,6 +54,17 @@ export type ArrastreTorreon = $Result.DefaultSelection<Prisma.$ArrastreTorreonPa
  */
 export type ArrastreTorreonVagon = $Result.DefaultSelection<Prisma.$ArrastreTorreonVagonPayload>
 /**
+ * Model ViaArrastreTorreon
+ * Catálogo exclusivo del patio de Arrastre. No comparte IDs ni configuración
+ * con las vías utilizadas por los movimientos naturales de Torreón.
+ */
+export type ViaArrastreTorreon = $Result.DefaultSelection<Prisma.$ViaArrastreTorreonPayload>
+/**
+ * Model SeccionArrastreTorreon
+ * 
+ */
+export type SeccionArrastreTorreon = $Result.DefaultSelection<Prisma.$SeccionArrastreTorreonPayload>
+/**
  * Model IncidenteArrastreTorreon
  * 
  */
@@ -452,6 +463,26 @@ export class PrismaClient<
     * ```
     */
   get arrastreTorreonVagon(): Prisma.ArrastreTorreonVagonDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.viaArrastreTorreon`: Exposes CRUD operations for the **ViaArrastreTorreon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ViaArrastreTorreons
+    * const viaArrastreTorreons = await prisma.viaArrastreTorreon.findMany()
+    * ```
+    */
+  get viaArrastreTorreon(): Prisma.ViaArrastreTorreonDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.seccionArrastreTorreon`: Exposes CRUD operations for the **SeccionArrastreTorreon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SeccionArrastreTorreons
+    * const seccionArrastreTorreons = await prisma.seccionArrastreTorreon.findMany()
+    * ```
+    */
+  get seccionArrastreTorreon(): Prisma.SeccionArrastreTorreonDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.incidenteArrastreTorreon`: Exposes CRUD operations for the **IncidenteArrastreTorreon** model.
@@ -921,6 +952,8 @@ export namespace Prisma {
     IncidenteTorreonFoto: 'IncidenteTorreonFoto',
     ArrastreTorreon: 'ArrastreTorreon',
     ArrastreTorreonVagon: 'ArrastreTorreonVagon',
+    ViaArrastreTorreon: 'ViaArrastreTorreon',
+    SeccionArrastreTorreon: 'SeccionArrastreTorreon',
     IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
     IncidenteArrastreFoto: 'IncidenteArrastreFoto'
   };
@@ -941,7 +974,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto"
+      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "viaArrastreTorreon" | "seccionArrastreTorreon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1537,6 +1570,154 @@ export namespace Prisma {
           }
         }
       }
+      ViaArrastreTorreon: {
+        payload: Prisma.$ViaArrastreTorreonPayload<ExtArgs>
+        fields: Prisma.ViaArrastreTorreonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ViaArrastreTorreonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ViaArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>
+          }
+          findFirst: {
+            args: Prisma.ViaArrastreTorreonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ViaArrastreTorreonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>
+          }
+          findMany: {
+            args: Prisma.ViaArrastreTorreonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>[]
+          }
+          create: {
+            args: Prisma.ViaArrastreTorreonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>
+          }
+          createMany: {
+            args: Prisma.ViaArrastreTorreonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ViaArrastreTorreonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>[]
+          }
+          delete: {
+            args: Prisma.ViaArrastreTorreonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>
+          }
+          update: {
+            args: Prisma.ViaArrastreTorreonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>
+          }
+          deleteMany: {
+            args: Prisma.ViaArrastreTorreonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ViaArrastreTorreonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ViaArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>[]
+          }
+          upsert: {
+            args: Prisma.ViaArrastreTorreonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ViaArrastreTorreonPayload>
+          }
+          aggregate: {
+            args: Prisma.ViaArrastreTorreonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateViaArrastreTorreon>
+          }
+          groupBy: {
+            args: Prisma.ViaArrastreTorreonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ViaArrastreTorreonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ViaArrastreTorreonCountArgs<ExtArgs>
+            result: $Utils.Optional<ViaArrastreTorreonCountAggregateOutputType> | number
+          }
+        }
+      }
+      SeccionArrastreTorreon: {
+        payload: Prisma.$SeccionArrastreTorreonPayload<ExtArgs>
+        fields: Prisma.SeccionArrastreTorreonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SeccionArrastreTorreonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SeccionArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>
+          }
+          findFirst: {
+            args: Prisma.SeccionArrastreTorreonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SeccionArrastreTorreonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>
+          }
+          findMany: {
+            args: Prisma.SeccionArrastreTorreonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>[]
+          }
+          create: {
+            args: Prisma.SeccionArrastreTorreonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>
+          }
+          createMany: {
+            args: Prisma.SeccionArrastreTorreonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SeccionArrastreTorreonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>[]
+          }
+          delete: {
+            args: Prisma.SeccionArrastreTorreonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>
+          }
+          update: {
+            args: Prisma.SeccionArrastreTorreonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>
+          }
+          deleteMany: {
+            args: Prisma.SeccionArrastreTorreonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SeccionArrastreTorreonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SeccionArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>[]
+          }
+          upsert: {
+            args: Prisma.SeccionArrastreTorreonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SeccionArrastreTorreonPayload>
+          }
+          aggregate: {
+            args: Prisma.SeccionArrastreTorreonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSeccionArrastreTorreon>
+          }
+          groupBy: {
+            args: Prisma.SeccionArrastreTorreonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SeccionArrastreTorreonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SeccionArrastreTorreonCountArgs<ExtArgs>
+            result: $Utils.Optional<SeccionArrastreTorreonCountAggregateOutputType> | number
+          }
+        }
+      }
       IncidenteArrastreTorreon: {
         payload: Prisma.$IncidenteArrastreTorreonPayload<ExtArgs>
         fields: Prisma.IncidenteArrastreTorreonFieldRefs
@@ -1789,6 +1970,8 @@ export namespace Prisma {
     incidenteTorreonFoto?: IncidenteTorreonFotoOmit
     arrastreTorreon?: ArrastreTorreonOmit
     arrastreTorreonVagon?: ArrastreTorreonVagonOmit
+    viaArrastreTorreon?: ViaArrastreTorreonOmit
+    seccionArrastreTorreon?: SeccionArrastreTorreonOmit
     incidenteArrastreTorreon?: IncidenteArrastreTorreonOmit
     incidenteArrastreFoto?: IncidenteArrastreFotoOmit
   }
@@ -2054,6 +2237,37 @@ export namespace Prisma {
    */
   export type ArrastreTorreonVagonCountOutputTypeCountIncidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: IncidenteArrastreTorreonWhereInput
+  }
+
+
+  /**
+   * Count Type ViaArrastreTorreonCountOutputType
+   */
+
+  export type ViaArrastreTorreonCountOutputType = {
+    secciones: number
+  }
+
+  export type ViaArrastreTorreonCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    secciones?: boolean | ViaArrastreTorreonCountOutputTypeCountSeccionesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ViaArrastreTorreonCountOutputType without action
+   */
+  export type ViaArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreonCountOutputType
+     */
+    select?: ViaArrastreTorreonCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ViaArrastreTorreonCountOutputType without action
+   */
+  export type ViaArrastreTorreonCountOutputTypeCountSeccionesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SeccionArrastreTorreonWhereInput
   }
 
 
@@ -12464,6 +12678,2270 @@ export namespace Prisma {
 
 
   /**
+   * Model ViaArrastreTorreon
+   */
+
+  export type AggregateViaArrastreTorreon = {
+    _count: ViaArrastreTorreonCountAggregateOutputType | null
+    _avg: ViaArrastreTorreonAvgAggregateOutputType | null
+    _sum: ViaArrastreTorreonSumAggregateOutputType | null
+    _min: ViaArrastreTorreonMinAggregateOutputType | null
+    _max: ViaArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  export type ViaArrastreTorreonAvgAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    numero: number | null
+  }
+
+  export type ViaArrastreTorreonSumAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    numero: number | null
+  }
+
+  export type ViaArrastreTorreonMinAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    numero: number | null
+    nombre: string | null
+    activa: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ViaArrastreTorreonMaxAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    numero: number | null
+    nombre: string | null
+    activa: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ViaArrastreTorreonCountAggregateOutputType = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: number
+    activa: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ViaArrastreTorreonAvgAggregateInputType = {
+    id?: true
+    localidadId?: true
+    numero?: true
+  }
+
+  export type ViaArrastreTorreonSumAggregateInputType = {
+    id?: true
+    localidadId?: true
+    numero?: true
+  }
+
+  export type ViaArrastreTorreonMinAggregateInputType = {
+    id?: true
+    localidadId?: true
+    numero?: true
+    nombre?: true
+    activa?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ViaArrastreTorreonMaxAggregateInputType = {
+    id?: true
+    localidadId?: true
+    numero?: true
+    nombre?: true
+    activa?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ViaArrastreTorreonCountAggregateInputType = {
+    id?: true
+    localidadId?: true
+    numero?: true
+    nombre?: true
+    activa?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ViaArrastreTorreonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ViaArrastreTorreon to aggregate.
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ViaArrastreTorreons to fetch.
+     */
+    orderBy?: ViaArrastreTorreonOrderByWithRelationInput | ViaArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ViaArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ViaArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ViaArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ViaArrastreTorreons
+    **/
+    _count?: true | ViaArrastreTorreonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ViaArrastreTorreonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ViaArrastreTorreonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ViaArrastreTorreonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ViaArrastreTorreonMaxAggregateInputType
+  }
+
+  export type GetViaArrastreTorreonAggregateType<T extends ViaArrastreTorreonAggregateArgs> = {
+        [P in keyof T & keyof AggregateViaArrastreTorreon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateViaArrastreTorreon[P]>
+      : GetScalarType<T[P], AggregateViaArrastreTorreon[P]>
+  }
+
+
+
+
+  export type ViaArrastreTorreonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ViaArrastreTorreonWhereInput
+    orderBy?: ViaArrastreTorreonOrderByWithAggregationInput | ViaArrastreTorreonOrderByWithAggregationInput[]
+    by: ViaArrastreTorreonScalarFieldEnum[] | ViaArrastreTorreonScalarFieldEnum
+    having?: ViaArrastreTorreonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ViaArrastreTorreonCountAggregateInputType | true
+    _avg?: ViaArrastreTorreonAvgAggregateInputType
+    _sum?: ViaArrastreTorreonSumAggregateInputType
+    _min?: ViaArrastreTorreonMinAggregateInputType
+    _max?: ViaArrastreTorreonMaxAggregateInputType
+  }
+
+  export type ViaArrastreTorreonGroupByOutputType = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: string
+    activa: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: ViaArrastreTorreonCountAggregateOutputType | null
+    _avg: ViaArrastreTorreonAvgAggregateOutputType | null
+    _sum: ViaArrastreTorreonSumAggregateOutputType | null
+    _min: ViaArrastreTorreonMinAggregateOutputType | null
+    _max: ViaArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  type GetViaArrastreTorreonGroupByPayload<T extends ViaArrastreTorreonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ViaArrastreTorreonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ViaArrastreTorreonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ViaArrastreTorreonGroupByOutputType[P]>
+            : GetScalarType<T[P], ViaArrastreTorreonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ViaArrastreTorreonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    secciones?: boolean | ViaArrastreTorreon$seccionesArgs<ExtArgs>
+    _count?: boolean | ViaArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["viaArrastreTorreon"]>
+
+  export type ViaArrastreTorreonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["viaArrastreTorreon"]>
+
+  export type ViaArrastreTorreonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["viaArrastreTorreon"]>
+
+  export type ViaArrastreTorreonSelectScalar = {
+    id?: boolean
+    localidadId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ViaArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "localidadId" | "numero" | "nombre" | "activa" | "createdAt" | "updatedAt", ExtArgs["result"]["viaArrastreTorreon"]>
+  export type ViaArrastreTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    secciones?: boolean | ViaArrastreTorreon$seccionesArgs<ExtArgs>
+    _count?: boolean | ViaArrastreTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ViaArrastreTorreonIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ViaArrastreTorreonIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $ViaArrastreTorreonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ViaArrastreTorreon"
+    objects: {
+      secciones: Prisma.$SeccionArrastreTorreonPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      localidadId: number
+      numero: number
+      nombre: string
+      activa: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["viaArrastreTorreon"]>
+    composites: {}
+  }
+
+  type ViaArrastreTorreonGetPayload<S extends boolean | null | undefined | ViaArrastreTorreonDefaultArgs> = $Result.GetResult<Prisma.$ViaArrastreTorreonPayload, S>
+
+  type ViaArrastreTorreonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ViaArrastreTorreonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ViaArrastreTorreonCountAggregateInputType | true
+    }
+
+  export interface ViaArrastreTorreonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ViaArrastreTorreon'], meta: { name: 'ViaArrastreTorreon' } }
+    /**
+     * Find zero or one ViaArrastreTorreon that matches the filter.
+     * @param {ViaArrastreTorreonFindUniqueArgs} args - Arguments to find a ViaArrastreTorreon
+     * @example
+     * // Get one ViaArrastreTorreon
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ViaArrastreTorreonFindUniqueArgs>(args: SelectSubset<T, ViaArrastreTorreonFindUniqueArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ViaArrastreTorreon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ViaArrastreTorreonFindUniqueOrThrowArgs} args - Arguments to find a ViaArrastreTorreon
+     * @example
+     * // Get one ViaArrastreTorreon
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ViaArrastreTorreonFindUniqueOrThrowArgs>(args: SelectSubset<T, ViaArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ViaArrastreTorreon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonFindFirstArgs} args - Arguments to find a ViaArrastreTorreon
+     * @example
+     * // Get one ViaArrastreTorreon
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ViaArrastreTorreonFindFirstArgs>(args?: SelectSubset<T, ViaArrastreTorreonFindFirstArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ViaArrastreTorreon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonFindFirstOrThrowArgs} args - Arguments to find a ViaArrastreTorreon
+     * @example
+     * // Get one ViaArrastreTorreon
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ViaArrastreTorreonFindFirstOrThrowArgs>(args?: SelectSubset<T, ViaArrastreTorreonFindFirstOrThrowArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ViaArrastreTorreons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ViaArrastreTorreons
+     * const viaArrastreTorreons = await prisma.viaArrastreTorreon.findMany()
+     * 
+     * // Get first 10 ViaArrastreTorreons
+     * const viaArrastreTorreons = await prisma.viaArrastreTorreon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const viaArrastreTorreonWithIdOnly = await prisma.viaArrastreTorreon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ViaArrastreTorreonFindManyArgs>(args?: SelectSubset<T, ViaArrastreTorreonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ViaArrastreTorreon.
+     * @param {ViaArrastreTorreonCreateArgs} args - Arguments to create a ViaArrastreTorreon.
+     * @example
+     * // Create one ViaArrastreTorreon
+     * const ViaArrastreTorreon = await prisma.viaArrastreTorreon.create({
+     *   data: {
+     *     // ... data to create a ViaArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    create<T extends ViaArrastreTorreonCreateArgs>(args: SelectSubset<T, ViaArrastreTorreonCreateArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ViaArrastreTorreons.
+     * @param {ViaArrastreTorreonCreateManyArgs} args - Arguments to create many ViaArrastreTorreons.
+     * @example
+     * // Create many ViaArrastreTorreons
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ViaArrastreTorreonCreateManyArgs>(args?: SelectSubset<T, ViaArrastreTorreonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ViaArrastreTorreons and returns the data saved in the database.
+     * @param {ViaArrastreTorreonCreateManyAndReturnArgs} args - Arguments to create many ViaArrastreTorreons.
+     * @example
+     * // Create many ViaArrastreTorreons
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ViaArrastreTorreons and only return the `id`
+     * const viaArrastreTorreonWithIdOnly = await prisma.viaArrastreTorreon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ViaArrastreTorreonCreateManyAndReturnArgs>(args?: SelectSubset<T, ViaArrastreTorreonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ViaArrastreTorreon.
+     * @param {ViaArrastreTorreonDeleteArgs} args - Arguments to delete one ViaArrastreTorreon.
+     * @example
+     * // Delete one ViaArrastreTorreon
+     * const ViaArrastreTorreon = await prisma.viaArrastreTorreon.delete({
+     *   where: {
+     *     // ... filter to delete one ViaArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ViaArrastreTorreonDeleteArgs>(args: SelectSubset<T, ViaArrastreTorreonDeleteArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ViaArrastreTorreon.
+     * @param {ViaArrastreTorreonUpdateArgs} args - Arguments to update one ViaArrastreTorreon.
+     * @example
+     * // Update one ViaArrastreTorreon
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ViaArrastreTorreonUpdateArgs>(args: SelectSubset<T, ViaArrastreTorreonUpdateArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ViaArrastreTorreons.
+     * @param {ViaArrastreTorreonDeleteManyArgs} args - Arguments to filter ViaArrastreTorreons to delete.
+     * @example
+     * // Delete a few ViaArrastreTorreons
+     * const { count } = await prisma.viaArrastreTorreon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ViaArrastreTorreonDeleteManyArgs>(args?: SelectSubset<T, ViaArrastreTorreonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ViaArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ViaArrastreTorreons
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ViaArrastreTorreonUpdateManyArgs>(args: SelectSubset<T, ViaArrastreTorreonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ViaArrastreTorreons and returns the data updated in the database.
+     * @param {ViaArrastreTorreonUpdateManyAndReturnArgs} args - Arguments to update many ViaArrastreTorreons.
+     * @example
+     * // Update many ViaArrastreTorreons
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ViaArrastreTorreons and only return the `id`
+     * const viaArrastreTorreonWithIdOnly = await prisma.viaArrastreTorreon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ViaArrastreTorreonUpdateManyAndReturnArgs>(args: SelectSubset<T, ViaArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ViaArrastreTorreon.
+     * @param {ViaArrastreTorreonUpsertArgs} args - Arguments to update or create a ViaArrastreTorreon.
+     * @example
+     * // Update or create a ViaArrastreTorreon
+     * const viaArrastreTorreon = await prisma.viaArrastreTorreon.upsert({
+     *   create: {
+     *     // ... data to create a ViaArrastreTorreon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ViaArrastreTorreon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ViaArrastreTorreonUpsertArgs>(args: SelectSubset<T, ViaArrastreTorreonUpsertArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ViaArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonCountArgs} args - Arguments to filter ViaArrastreTorreons to count.
+     * @example
+     * // Count the number of ViaArrastreTorreons
+     * const count = await prisma.viaArrastreTorreon.count({
+     *   where: {
+     *     // ... the filter for the ViaArrastreTorreons we want to count
+     *   }
+     * })
+    **/
+    count<T extends ViaArrastreTorreonCountArgs>(
+      args?: Subset<T, ViaArrastreTorreonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ViaArrastreTorreonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ViaArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ViaArrastreTorreonAggregateArgs>(args: Subset<T, ViaArrastreTorreonAggregateArgs>): Prisma.PrismaPromise<GetViaArrastreTorreonAggregateType<T>>
+
+    /**
+     * Group by ViaArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ViaArrastreTorreonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ViaArrastreTorreonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ViaArrastreTorreonGroupByArgs['orderBy'] }
+        : { orderBy?: ViaArrastreTorreonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ViaArrastreTorreonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetViaArrastreTorreonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ViaArrastreTorreon model
+   */
+  readonly fields: ViaArrastreTorreonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ViaArrastreTorreon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ViaArrastreTorreonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    secciones<T extends ViaArrastreTorreon$seccionesArgs<ExtArgs> = {}>(args?: Subset<T, ViaArrastreTorreon$seccionesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ViaArrastreTorreon model
+   */
+  interface ViaArrastreTorreonFieldRefs {
+    readonly id: FieldRef<"ViaArrastreTorreon", 'Int'>
+    readonly localidadId: FieldRef<"ViaArrastreTorreon", 'Int'>
+    readonly numero: FieldRef<"ViaArrastreTorreon", 'Int'>
+    readonly nombre: FieldRef<"ViaArrastreTorreon", 'String'>
+    readonly activa: FieldRef<"ViaArrastreTorreon", 'Boolean'>
+    readonly createdAt: FieldRef<"ViaArrastreTorreon", 'DateTime'>
+    readonly updatedAt: FieldRef<"ViaArrastreTorreon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ViaArrastreTorreon findUnique
+   */
+  export type ViaArrastreTorreonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ViaArrastreTorreon to fetch.
+     */
+    where: ViaArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ViaArrastreTorreon findUniqueOrThrow
+   */
+  export type ViaArrastreTorreonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ViaArrastreTorreon to fetch.
+     */
+    where: ViaArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ViaArrastreTorreon findFirst
+   */
+  export type ViaArrastreTorreonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ViaArrastreTorreon to fetch.
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ViaArrastreTorreons to fetch.
+     */
+    orderBy?: ViaArrastreTorreonOrderByWithRelationInput | ViaArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ViaArrastreTorreons.
+     */
+    cursor?: ViaArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ViaArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ViaArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ViaArrastreTorreons.
+     */
+    distinct?: ViaArrastreTorreonScalarFieldEnum | ViaArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ViaArrastreTorreon findFirstOrThrow
+   */
+  export type ViaArrastreTorreonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ViaArrastreTorreon to fetch.
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ViaArrastreTorreons to fetch.
+     */
+    orderBy?: ViaArrastreTorreonOrderByWithRelationInput | ViaArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ViaArrastreTorreons.
+     */
+    cursor?: ViaArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ViaArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ViaArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ViaArrastreTorreons.
+     */
+    distinct?: ViaArrastreTorreonScalarFieldEnum | ViaArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ViaArrastreTorreon findMany
+   */
+  export type ViaArrastreTorreonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which ViaArrastreTorreons to fetch.
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ViaArrastreTorreons to fetch.
+     */
+    orderBy?: ViaArrastreTorreonOrderByWithRelationInput | ViaArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ViaArrastreTorreons.
+     */
+    cursor?: ViaArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ViaArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ViaArrastreTorreons.
+     */
+    skip?: number
+    distinct?: ViaArrastreTorreonScalarFieldEnum | ViaArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ViaArrastreTorreon create
+   */
+  export type ViaArrastreTorreonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ViaArrastreTorreon.
+     */
+    data: XOR<ViaArrastreTorreonCreateInput, ViaArrastreTorreonUncheckedCreateInput>
+  }
+
+  /**
+   * ViaArrastreTorreon createMany
+   */
+  export type ViaArrastreTorreonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ViaArrastreTorreons.
+     */
+    data: ViaArrastreTorreonCreateManyInput | ViaArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ViaArrastreTorreon createManyAndReturn
+   */
+  export type ViaArrastreTorreonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to create many ViaArrastreTorreons.
+     */
+    data: ViaArrastreTorreonCreateManyInput | ViaArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ViaArrastreTorreon update
+   */
+  export type ViaArrastreTorreonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ViaArrastreTorreon.
+     */
+    data: XOR<ViaArrastreTorreonUpdateInput, ViaArrastreTorreonUncheckedUpdateInput>
+    /**
+     * Choose, which ViaArrastreTorreon to update.
+     */
+    where: ViaArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ViaArrastreTorreon updateMany
+   */
+  export type ViaArrastreTorreonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ViaArrastreTorreons.
+     */
+    data: XOR<ViaArrastreTorreonUpdateManyMutationInput, ViaArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which ViaArrastreTorreons to update
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * Limit how many ViaArrastreTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ViaArrastreTorreon updateManyAndReturn
+   */
+  export type ViaArrastreTorreonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to update ViaArrastreTorreons.
+     */
+    data: XOR<ViaArrastreTorreonUpdateManyMutationInput, ViaArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which ViaArrastreTorreons to update
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * Limit how many ViaArrastreTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ViaArrastreTorreon upsert
+   */
+  export type ViaArrastreTorreonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ViaArrastreTorreon to update in case it exists.
+     */
+    where: ViaArrastreTorreonWhereUniqueInput
+    /**
+     * In case the ViaArrastreTorreon found by the `where` argument doesn't exist, create a new ViaArrastreTorreon with this data.
+     */
+    create: XOR<ViaArrastreTorreonCreateInput, ViaArrastreTorreonUncheckedCreateInput>
+    /**
+     * In case the ViaArrastreTorreon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ViaArrastreTorreonUpdateInput, ViaArrastreTorreonUncheckedUpdateInput>
+  }
+
+  /**
+   * ViaArrastreTorreon delete
+   */
+  export type ViaArrastreTorreonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter which ViaArrastreTorreon to delete.
+     */
+    where: ViaArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * ViaArrastreTorreon deleteMany
+   */
+  export type ViaArrastreTorreonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ViaArrastreTorreons to delete
+     */
+    where?: ViaArrastreTorreonWhereInput
+    /**
+     * Limit how many ViaArrastreTorreons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ViaArrastreTorreon.secciones
+   */
+  export type ViaArrastreTorreon$seccionesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    where?: SeccionArrastreTorreonWhereInput
+    orderBy?: SeccionArrastreTorreonOrderByWithRelationInput | SeccionArrastreTorreonOrderByWithRelationInput[]
+    cursor?: SeccionArrastreTorreonWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SeccionArrastreTorreonScalarFieldEnum | SeccionArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * ViaArrastreTorreon without action
+   */
+  export type ViaArrastreTorreonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ViaArrastreTorreon
+     */
+    select?: ViaArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ViaArrastreTorreon
+     */
+    omit?: ViaArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ViaArrastreTorreonInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SeccionArrastreTorreon
+   */
+
+  export type AggregateSeccionArrastreTorreon = {
+    _count: SeccionArrastreTorreonCountAggregateOutputType | null
+    _avg: SeccionArrastreTorreonAvgAggregateOutputType | null
+    _sum: SeccionArrastreTorreonSumAggregateOutputType | null
+    _min: SeccionArrastreTorreonMinAggregateOutputType | null
+    _max: SeccionArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  export type SeccionArrastreTorreonAvgAggregateOutputType = {
+    id: number | null
+    viaId: number | null
+    numero: number | null
+  }
+
+  export type SeccionArrastreTorreonSumAggregateOutputType = {
+    id: number | null
+    viaId: number | null
+    numero: number | null
+  }
+
+  export type SeccionArrastreTorreonMinAggregateOutputType = {
+    id: number | null
+    viaId: number | null
+    numero: number | null
+    nombre: string | null
+    activa: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SeccionArrastreTorreonMaxAggregateOutputType = {
+    id: number | null
+    viaId: number | null
+    numero: number | null
+    nombre: string | null
+    activa: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SeccionArrastreTorreonCountAggregateOutputType = {
+    id: number
+    viaId: number
+    numero: number
+    nombre: number
+    activa: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type SeccionArrastreTorreonAvgAggregateInputType = {
+    id?: true
+    viaId?: true
+    numero?: true
+  }
+
+  export type SeccionArrastreTorreonSumAggregateInputType = {
+    id?: true
+    viaId?: true
+    numero?: true
+  }
+
+  export type SeccionArrastreTorreonMinAggregateInputType = {
+    id?: true
+    viaId?: true
+    numero?: true
+    nombre?: true
+    activa?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SeccionArrastreTorreonMaxAggregateInputType = {
+    id?: true
+    viaId?: true
+    numero?: true
+    nombre?: true
+    activa?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SeccionArrastreTorreonCountAggregateInputType = {
+    id?: true
+    viaId?: true
+    numero?: true
+    nombre?: true
+    activa?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type SeccionArrastreTorreonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SeccionArrastreTorreon to aggregate.
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SeccionArrastreTorreons to fetch.
+     */
+    orderBy?: SeccionArrastreTorreonOrderByWithRelationInput | SeccionArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SeccionArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SeccionArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SeccionArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SeccionArrastreTorreons
+    **/
+    _count?: true | SeccionArrastreTorreonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: SeccionArrastreTorreonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: SeccionArrastreTorreonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SeccionArrastreTorreonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SeccionArrastreTorreonMaxAggregateInputType
+  }
+
+  export type GetSeccionArrastreTorreonAggregateType<T extends SeccionArrastreTorreonAggregateArgs> = {
+        [P in keyof T & keyof AggregateSeccionArrastreTorreon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSeccionArrastreTorreon[P]>
+      : GetScalarType<T[P], AggregateSeccionArrastreTorreon[P]>
+  }
+
+
+
+
+  export type SeccionArrastreTorreonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SeccionArrastreTorreonWhereInput
+    orderBy?: SeccionArrastreTorreonOrderByWithAggregationInput | SeccionArrastreTorreonOrderByWithAggregationInput[]
+    by: SeccionArrastreTorreonScalarFieldEnum[] | SeccionArrastreTorreonScalarFieldEnum
+    having?: SeccionArrastreTorreonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SeccionArrastreTorreonCountAggregateInputType | true
+    _avg?: SeccionArrastreTorreonAvgAggregateInputType
+    _sum?: SeccionArrastreTorreonSumAggregateInputType
+    _min?: SeccionArrastreTorreonMinAggregateInputType
+    _max?: SeccionArrastreTorreonMaxAggregateInputType
+  }
+
+  export type SeccionArrastreTorreonGroupByOutputType = {
+    id: number
+    viaId: number
+    numero: number
+    nombre: string
+    activa: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: SeccionArrastreTorreonCountAggregateOutputType | null
+    _avg: SeccionArrastreTorreonAvgAggregateOutputType | null
+    _sum: SeccionArrastreTorreonSumAggregateOutputType | null
+    _min: SeccionArrastreTorreonMinAggregateOutputType | null
+    _max: SeccionArrastreTorreonMaxAggregateOutputType | null
+  }
+
+  type GetSeccionArrastreTorreonGroupByPayload<T extends SeccionArrastreTorreonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SeccionArrastreTorreonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SeccionArrastreTorreonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SeccionArrastreTorreonGroupByOutputType[P]>
+            : GetScalarType<T[P], SeccionArrastreTorreonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SeccionArrastreTorreonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    viaId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    via?: boolean | ViaArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["seccionArrastreTorreon"]>
+
+  export type SeccionArrastreTorreonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    viaId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    via?: boolean | ViaArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["seccionArrastreTorreon"]>
+
+  export type SeccionArrastreTorreonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    viaId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    via?: boolean | ViaArrastreTorreonDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["seccionArrastreTorreon"]>
+
+  export type SeccionArrastreTorreonSelectScalar = {
+    id?: boolean
+    viaId?: boolean
+    numero?: boolean
+    nombre?: boolean
+    activa?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type SeccionArrastreTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "viaId" | "numero" | "nombre" | "activa" | "createdAt" | "updatedAt", ExtArgs["result"]["seccionArrastreTorreon"]>
+  export type SeccionArrastreTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    via?: boolean | ViaArrastreTorreonDefaultArgs<ExtArgs>
+  }
+  export type SeccionArrastreTorreonIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    via?: boolean | ViaArrastreTorreonDefaultArgs<ExtArgs>
+  }
+  export type SeccionArrastreTorreonIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    via?: boolean | ViaArrastreTorreonDefaultArgs<ExtArgs>
+  }
+
+  export type $SeccionArrastreTorreonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SeccionArrastreTorreon"
+    objects: {
+      via: Prisma.$ViaArrastreTorreonPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      viaId: number
+      numero: number
+      nombre: string
+      activa: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["seccionArrastreTorreon"]>
+    composites: {}
+  }
+
+  type SeccionArrastreTorreonGetPayload<S extends boolean | null | undefined | SeccionArrastreTorreonDefaultArgs> = $Result.GetResult<Prisma.$SeccionArrastreTorreonPayload, S>
+
+  type SeccionArrastreTorreonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SeccionArrastreTorreonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SeccionArrastreTorreonCountAggregateInputType | true
+    }
+
+  export interface SeccionArrastreTorreonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SeccionArrastreTorreon'], meta: { name: 'SeccionArrastreTorreon' } }
+    /**
+     * Find zero or one SeccionArrastreTorreon that matches the filter.
+     * @param {SeccionArrastreTorreonFindUniqueArgs} args - Arguments to find a SeccionArrastreTorreon
+     * @example
+     * // Get one SeccionArrastreTorreon
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SeccionArrastreTorreonFindUniqueArgs>(args: SelectSubset<T, SeccionArrastreTorreonFindUniqueArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one SeccionArrastreTorreon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SeccionArrastreTorreonFindUniqueOrThrowArgs} args - Arguments to find a SeccionArrastreTorreon
+     * @example
+     * // Get one SeccionArrastreTorreon
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SeccionArrastreTorreonFindUniqueOrThrowArgs>(args: SelectSubset<T, SeccionArrastreTorreonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SeccionArrastreTorreon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonFindFirstArgs} args - Arguments to find a SeccionArrastreTorreon
+     * @example
+     * // Get one SeccionArrastreTorreon
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SeccionArrastreTorreonFindFirstArgs>(args?: SelectSubset<T, SeccionArrastreTorreonFindFirstArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SeccionArrastreTorreon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonFindFirstOrThrowArgs} args - Arguments to find a SeccionArrastreTorreon
+     * @example
+     * // Get one SeccionArrastreTorreon
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SeccionArrastreTorreonFindFirstOrThrowArgs>(args?: SelectSubset<T, SeccionArrastreTorreonFindFirstOrThrowArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more SeccionArrastreTorreons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SeccionArrastreTorreons
+     * const seccionArrastreTorreons = await prisma.seccionArrastreTorreon.findMany()
+     * 
+     * // Get first 10 SeccionArrastreTorreons
+     * const seccionArrastreTorreons = await prisma.seccionArrastreTorreon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const seccionArrastreTorreonWithIdOnly = await prisma.seccionArrastreTorreon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SeccionArrastreTorreonFindManyArgs>(args?: SelectSubset<T, SeccionArrastreTorreonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a SeccionArrastreTorreon.
+     * @param {SeccionArrastreTorreonCreateArgs} args - Arguments to create a SeccionArrastreTorreon.
+     * @example
+     * // Create one SeccionArrastreTorreon
+     * const SeccionArrastreTorreon = await prisma.seccionArrastreTorreon.create({
+     *   data: {
+     *     // ... data to create a SeccionArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    create<T extends SeccionArrastreTorreonCreateArgs>(args: SelectSubset<T, SeccionArrastreTorreonCreateArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many SeccionArrastreTorreons.
+     * @param {SeccionArrastreTorreonCreateManyArgs} args - Arguments to create many SeccionArrastreTorreons.
+     * @example
+     * // Create many SeccionArrastreTorreons
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SeccionArrastreTorreonCreateManyArgs>(args?: SelectSubset<T, SeccionArrastreTorreonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SeccionArrastreTorreons and returns the data saved in the database.
+     * @param {SeccionArrastreTorreonCreateManyAndReturnArgs} args - Arguments to create many SeccionArrastreTorreons.
+     * @example
+     * // Create many SeccionArrastreTorreons
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SeccionArrastreTorreons and only return the `id`
+     * const seccionArrastreTorreonWithIdOnly = await prisma.seccionArrastreTorreon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SeccionArrastreTorreonCreateManyAndReturnArgs>(args?: SelectSubset<T, SeccionArrastreTorreonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a SeccionArrastreTorreon.
+     * @param {SeccionArrastreTorreonDeleteArgs} args - Arguments to delete one SeccionArrastreTorreon.
+     * @example
+     * // Delete one SeccionArrastreTorreon
+     * const SeccionArrastreTorreon = await prisma.seccionArrastreTorreon.delete({
+     *   where: {
+     *     // ... filter to delete one SeccionArrastreTorreon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SeccionArrastreTorreonDeleteArgs>(args: SelectSubset<T, SeccionArrastreTorreonDeleteArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one SeccionArrastreTorreon.
+     * @param {SeccionArrastreTorreonUpdateArgs} args - Arguments to update one SeccionArrastreTorreon.
+     * @example
+     * // Update one SeccionArrastreTorreon
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SeccionArrastreTorreonUpdateArgs>(args: SelectSubset<T, SeccionArrastreTorreonUpdateArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more SeccionArrastreTorreons.
+     * @param {SeccionArrastreTorreonDeleteManyArgs} args - Arguments to filter SeccionArrastreTorreons to delete.
+     * @example
+     * // Delete a few SeccionArrastreTorreons
+     * const { count } = await prisma.seccionArrastreTorreon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SeccionArrastreTorreonDeleteManyArgs>(args?: SelectSubset<T, SeccionArrastreTorreonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SeccionArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SeccionArrastreTorreons
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SeccionArrastreTorreonUpdateManyArgs>(args: SelectSubset<T, SeccionArrastreTorreonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SeccionArrastreTorreons and returns the data updated in the database.
+     * @param {SeccionArrastreTorreonUpdateManyAndReturnArgs} args - Arguments to update many SeccionArrastreTorreons.
+     * @example
+     * // Update many SeccionArrastreTorreons
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more SeccionArrastreTorreons and only return the `id`
+     * const seccionArrastreTorreonWithIdOnly = await prisma.seccionArrastreTorreon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SeccionArrastreTorreonUpdateManyAndReturnArgs>(args: SelectSubset<T, SeccionArrastreTorreonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one SeccionArrastreTorreon.
+     * @param {SeccionArrastreTorreonUpsertArgs} args - Arguments to update or create a SeccionArrastreTorreon.
+     * @example
+     * // Update or create a SeccionArrastreTorreon
+     * const seccionArrastreTorreon = await prisma.seccionArrastreTorreon.upsert({
+     *   create: {
+     *     // ... data to create a SeccionArrastreTorreon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SeccionArrastreTorreon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SeccionArrastreTorreonUpsertArgs>(args: SelectSubset<T, SeccionArrastreTorreonUpsertArgs<ExtArgs>>): Prisma__SeccionArrastreTorreonClient<$Result.GetResult<Prisma.$SeccionArrastreTorreonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of SeccionArrastreTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonCountArgs} args - Arguments to filter SeccionArrastreTorreons to count.
+     * @example
+     * // Count the number of SeccionArrastreTorreons
+     * const count = await prisma.seccionArrastreTorreon.count({
+     *   where: {
+     *     // ... the filter for the SeccionArrastreTorreons we want to count
+     *   }
+     * })
+    **/
+    count<T extends SeccionArrastreTorreonCountArgs>(
+      args?: Subset<T, SeccionArrastreTorreonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SeccionArrastreTorreonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SeccionArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SeccionArrastreTorreonAggregateArgs>(args: Subset<T, SeccionArrastreTorreonAggregateArgs>): Prisma.PrismaPromise<GetSeccionArrastreTorreonAggregateType<T>>
+
+    /**
+     * Group by SeccionArrastreTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SeccionArrastreTorreonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SeccionArrastreTorreonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SeccionArrastreTorreonGroupByArgs['orderBy'] }
+        : { orderBy?: SeccionArrastreTorreonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SeccionArrastreTorreonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSeccionArrastreTorreonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SeccionArrastreTorreon model
+   */
+  readonly fields: SeccionArrastreTorreonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SeccionArrastreTorreon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SeccionArrastreTorreonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    via<T extends ViaArrastreTorreonDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ViaArrastreTorreonDefaultArgs<ExtArgs>>): Prisma__ViaArrastreTorreonClient<$Result.GetResult<Prisma.$ViaArrastreTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SeccionArrastreTorreon model
+   */
+  interface SeccionArrastreTorreonFieldRefs {
+    readonly id: FieldRef<"SeccionArrastreTorreon", 'Int'>
+    readonly viaId: FieldRef<"SeccionArrastreTorreon", 'Int'>
+    readonly numero: FieldRef<"SeccionArrastreTorreon", 'Int'>
+    readonly nombre: FieldRef<"SeccionArrastreTorreon", 'String'>
+    readonly activa: FieldRef<"SeccionArrastreTorreon", 'Boolean'>
+    readonly createdAt: FieldRef<"SeccionArrastreTorreon", 'DateTime'>
+    readonly updatedAt: FieldRef<"SeccionArrastreTorreon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SeccionArrastreTorreon findUnique
+   */
+  export type SeccionArrastreTorreonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which SeccionArrastreTorreon to fetch.
+     */
+    where: SeccionArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * SeccionArrastreTorreon findUniqueOrThrow
+   */
+  export type SeccionArrastreTorreonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which SeccionArrastreTorreon to fetch.
+     */
+    where: SeccionArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * SeccionArrastreTorreon findFirst
+   */
+  export type SeccionArrastreTorreonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which SeccionArrastreTorreon to fetch.
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SeccionArrastreTorreons to fetch.
+     */
+    orderBy?: SeccionArrastreTorreonOrderByWithRelationInput | SeccionArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SeccionArrastreTorreons.
+     */
+    cursor?: SeccionArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SeccionArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SeccionArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SeccionArrastreTorreons.
+     */
+    distinct?: SeccionArrastreTorreonScalarFieldEnum | SeccionArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * SeccionArrastreTorreon findFirstOrThrow
+   */
+  export type SeccionArrastreTorreonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which SeccionArrastreTorreon to fetch.
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SeccionArrastreTorreons to fetch.
+     */
+    orderBy?: SeccionArrastreTorreonOrderByWithRelationInput | SeccionArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SeccionArrastreTorreons.
+     */
+    cursor?: SeccionArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SeccionArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SeccionArrastreTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SeccionArrastreTorreons.
+     */
+    distinct?: SeccionArrastreTorreonScalarFieldEnum | SeccionArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * SeccionArrastreTorreon findMany
+   */
+  export type SeccionArrastreTorreonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which SeccionArrastreTorreons to fetch.
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SeccionArrastreTorreons to fetch.
+     */
+    orderBy?: SeccionArrastreTorreonOrderByWithRelationInput | SeccionArrastreTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SeccionArrastreTorreons.
+     */
+    cursor?: SeccionArrastreTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SeccionArrastreTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SeccionArrastreTorreons.
+     */
+    skip?: number
+    distinct?: SeccionArrastreTorreonScalarFieldEnum | SeccionArrastreTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * SeccionArrastreTorreon create
+   */
+  export type SeccionArrastreTorreonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to create a SeccionArrastreTorreon.
+     */
+    data: XOR<SeccionArrastreTorreonCreateInput, SeccionArrastreTorreonUncheckedCreateInput>
+  }
+
+  /**
+   * SeccionArrastreTorreon createMany
+   */
+  export type SeccionArrastreTorreonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SeccionArrastreTorreons.
+     */
+    data: SeccionArrastreTorreonCreateManyInput | SeccionArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SeccionArrastreTorreon createManyAndReturn
+   */
+  export type SeccionArrastreTorreonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to create many SeccionArrastreTorreons.
+     */
+    data: SeccionArrastreTorreonCreateManyInput | SeccionArrastreTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * SeccionArrastreTorreon update
+   */
+  export type SeccionArrastreTorreonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to update a SeccionArrastreTorreon.
+     */
+    data: XOR<SeccionArrastreTorreonUpdateInput, SeccionArrastreTorreonUncheckedUpdateInput>
+    /**
+     * Choose, which SeccionArrastreTorreon to update.
+     */
+    where: SeccionArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * SeccionArrastreTorreon updateMany
+   */
+  export type SeccionArrastreTorreonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SeccionArrastreTorreons.
+     */
+    data: XOR<SeccionArrastreTorreonUpdateManyMutationInput, SeccionArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which SeccionArrastreTorreons to update
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * Limit how many SeccionArrastreTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SeccionArrastreTorreon updateManyAndReturn
+   */
+  export type SeccionArrastreTorreonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to update SeccionArrastreTorreons.
+     */
+    data: XOR<SeccionArrastreTorreonUpdateManyMutationInput, SeccionArrastreTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which SeccionArrastreTorreons to update
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * Limit how many SeccionArrastreTorreons to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * SeccionArrastreTorreon upsert
+   */
+  export type SeccionArrastreTorreonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * The filter to search for the SeccionArrastreTorreon to update in case it exists.
+     */
+    where: SeccionArrastreTorreonWhereUniqueInput
+    /**
+     * In case the SeccionArrastreTorreon found by the `where` argument doesn't exist, create a new SeccionArrastreTorreon with this data.
+     */
+    create: XOR<SeccionArrastreTorreonCreateInput, SeccionArrastreTorreonUncheckedCreateInput>
+    /**
+     * In case the SeccionArrastreTorreon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SeccionArrastreTorreonUpdateInput, SeccionArrastreTorreonUncheckedUpdateInput>
+  }
+
+  /**
+   * SeccionArrastreTorreon delete
+   */
+  export type SeccionArrastreTorreonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+    /**
+     * Filter which SeccionArrastreTorreon to delete.
+     */
+    where: SeccionArrastreTorreonWhereUniqueInput
+  }
+
+  /**
+   * SeccionArrastreTorreon deleteMany
+   */
+  export type SeccionArrastreTorreonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SeccionArrastreTorreons to delete
+     */
+    where?: SeccionArrastreTorreonWhereInput
+    /**
+     * Limit how many SeccionArrastreTorreons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * SeccionArrastreTorreon without action
+   */
+  export type SeccionArrastreTorreonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SeccionArrastreTorreon
+     */
+    select?: SeccionArrastreTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SeccionArrastreTorreon
+     */
+    omit?: SeccionArrastreTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SeccionArrastreTorreonInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model IncidenteArrastreTorreon
    */
 
@@ -15133,6 +17611,32 @@ export namespace Prisma {
   export type ArrastreTorreonVagonScalarFieldEnum = (typeof ArrastreTorreonVagonScalarFieldEnum)[keyof typeof ArrastreTorreonVagonScalarFieldEnum]
 
 
+  export const ViaArrastreTorreonScalarFieldEnum: {
+    id: 'id',
+    localidadId: 'localidadId',
+    numero: 'numero',
+    nombre: 'nombre',
+    activa: 'activa',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ViaArrastreTorreonScalarFieldEnum = (typeof ViaArrastreTorreonScalarFieldEnum)[keyof typeof ViaArrastreTorreonScalarFieldEnum]
+
+
+  export const SeccionArrastreTorreonScalarFieldEnum: {
+    id: 'id',
+    viaId: 'viaId',
+    numero: 'numero',
+    nombre: 'nombre',
+    activa: 'activa',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type SeccionArrastreTorreonScalarFieldEnum = (typeof SeccionArrastreTorreonScalarFieldEnum)[keyof typeof SeccionArrastreTorreonScalarFieldEnum]
+
+
   export const IncidenteArrastreTorreonScalarFieldEnum: {
     id: 'id',
     arrastreId: 'arrastreId',
@@ -16404,6 +18908,144 @@ export namespace Prisma {
     fechaFin?: DateTimeNullableWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ArrastreTorreonVagon"> | Date | string
+  }
+
+  export type ViaArrastreTorreonWhereInput = {
+    AND?: ViaArrastreTorreonWhereInput | ViaArrastreTorreonWhereInput[]
+    OR?: ViaArrastreTorreonWhereInput[]
+    NOT?: ViaArrastreTorreonWhereInput | ViaArrastreTorreonWhereInput[]
+    id?: IntFilter<"ViaArrastreTorreon"> | number
+    localidadId?: IntFilter<"ViaArrastreTorreon"> | number
+    numero?: IntFilter<"ViaArrastreTorreon"> | number
+    nombre?: StringFilter<"ViaArrastreTorreon"> | string
+    activa?: BoolFilter<"ViaArrastreTorreon"> | boolean
+    createdAt?: DateTimeFilter<"ViaArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"ViaArrastreTorreon"> | Date | string
+    secciones?: SeccionArrastreTorreonListRelationFilter
+  }
+
+  export type ViaArrastreTorreonOrderByWithRelationInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    secciones?: SeccionArrastreTorreonOrderByRelationAggregateInput
+  }
+
+  export type ViaArrastreTorreonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    localidadId_numero?: ViaArrastreTorreonLocalidadIdNumeroCompoundUniqueInput
+    localidadId_nombre?: ViaArrastreTorreonLocalidadIdNombreCompoundUniqueInput
+    AND?: ViaArrastreTorreonWhereInput | ViaArrastreTorreonWhereInput[]
+    OR?: ViaArrastreTorreonWhereInput[]
+    NOT?: ViaArrastreTorreonWhereInput | ViaArrastreTorreonWhereInput[]
+    localidadId?: IntFilter<"ViaArrastreTorreon"> | number
+    numero?: IntFilter<"ViaArrastreTorreon"> | number
+    nombre?: StringFilter<"ViaArrastreTorreon"> | string
+    activa?: BoolFilter<"ViaArrastreTorreon"> | boolean
+    createdAt?: DateTimeFilter<"ViaArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"ViaArrastreTorreon"> | Date | string
+    secciones?: SeccionArrastreTorreonListRelationFilter
+  }, "id" | "localidadId_numero" | "localidadId_nombre">
+
+  export type ViaArrastreTorreonOrderByWithAggregationInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ViaArrastreTorreonCountOrderByAggregateInput
+    _avg?: ViaArrastreTorreonAvgOrderByAggregateInput
+    _max?: ViaArrastreTorreonMaxOrderByAggregateInput
+    _min?: ViaArrastreTorreonMinOrderByAggregateInput
+    _sum?: ViaArrastreTorreonSumOrderByAggregateInput
+  }
+
+  export type ViaArrastreTorreonScalarWhereWithAggregatesInput = {
+    AND?: ViaArrastreTorreonScalarWhereWithAggregatesInput | ViaArrastreTorreonScalarWhereWithAggregatesInput[]
+    OR?: ViaArrastreTorreonScalarWhereWithAggregatesInput[]
+    NOT?: ViaArrastreTorreonScalarWhereWithAggregatesInput | ViaArrastreTorreonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"ViaArrastreTorreon"> | number
+    localidadId?: IntWithAggregatesFilter<"ViaArrastreTorreon"> | number
+    numero?: IntWithAggregatesFilter<"ViaArrastreTorreon"> | number
+    nombre?: StringWithAggregatesFilter<"ViaArrastreTorreon"> | string
+    activa?: BoolWithAggregatesFilter<"ViaArrastreTorreon"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"ViaArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ViaArrastreTorreon"> | Date | string
+  }
+
+  export type SeccionArrastreTorreonWhereInput = {
+    AND?: SeccionArrastreTorreonWhereInput | SeccionArrastreTorreonWhereInput[]
+    OR?: SeccionArrastreTorreonWhereInput[]
+    NOT?: SeccionArrastreTorreonWhereInput | SeccionArrastreTorreonWhereInput[]
+    id?: IntFilter<"SeccionArrastreTorreon"> | number
+    viaId?: IntFilter<"SeccionArrastreTorreon"> | number
+    numero?: IntFilter<"SeccionArrastreTorreon"> | number
+    nombre?: StringFilter<"SeccionArrastreTorreon"> | string
+    activa?: BoolFilter<"SeccionArrastreTorreon"> | boolean
+    createdAt?: DateTimeFilter<"SeccionArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"SeccionArrastreTorreon"> | Date | string
+    via?: XOR<ViaArrastreTorreonScalarRelationFilter, ViaArrastreTorreonWhereInput>
+  }
+
+  export type SeccionArrastreTorreonOrderByWithRelationInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    via?: ViaArrastreTorreonOrderByWithRelationInput
+  }
+
+  export type SeccionArrastreTorreonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    viaId_numero?: SeccionArrastreTorreonViaIdNumeroCompoundUniqueInput
+    viaId_nombre?: SeccionArrastreTorreonViaIdNombreCompoundUniqueInput
+    AND?: SeccionArrastreTorreonWhereInput | SeccionArrastreTorreonWhereInput[]
+    OR?: SeccionArrastreTorreonWhereInput[]
+    NOT?: SeccionArrastreTorreonWhereInput | SeccionArrastreTorreonWhereInput[]
+    viaId?: IntFilter<"SeccionArrastreTorreon"> | number
+    numero?: IntFilter<"SeccionArrastreTorreon"> | number
+    nombre?: StringFilter<"SeccionArrastreTorreon"> | string
+    activa?: BoolFilter<"SeccionArrastreTorreon"> | boolean
+    createdAt?: DateTimeFilter<"SeccionArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"SeccionArrastreTorreon"> | Date | string
+    via?: XOR<ViaArrastreTorreonScalarRelationFilter, ViaArrastreTorreonWhereInput>
+  }, "id" | "viaId_numero" | "viaId_nombre">
+
+  export type SeccionArrastreTorreonOrderByWithAggregationInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: SeccionArrastreTorreonCountOrderByAggregateInput
+    _avg?: SeccionArrastreTorreonAvgOrderByAggregateInput
+    _max?: SeccionArrastreTorreonMaxOrderByAggregateInput
+    _min?: SeccionArrastreTorreonMinOrderByAggregateInput
+    _sum?: SeccionArrastreTorreonSumOrderByAggregateInput
+  }
+
+  export type SeccionArrastreTorreonScalarWhereWithAggregatesInput = {
+    AND?: SeccionArrastreTorreonScalarWhereWithAggregatesInput | SeccionArrastreTorreonScalarWhereWithAggregatesInput[]
+    OR?: SeccionArrastreTorreonScalarWhereWithAggregatesInput[]
+    NOT?: SeccionArrastreTorreonScalarWhereWithAggregatesInput | SeccionArrastreTorreonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"SeccionArrastreTorreon"> | number
+    viaId?: IntWithAggregatesFilter<"SeccionArrastreTorreon"> | number
+    numero?: IntWithAggregatesFilter<"SeccionArrastreTorreon"> | number
+    nombre?: StringWithAggregatesFilter<"SeccionArrastreTorreon"> | string
+    activa?: BoolWithAggregatesFilter<"SeccionArrastreTorreon"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"SeccionArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"SeccionArrastreTorreon"> | Date | string
   }
 
   export type IncidenteArrastreTorreonWhereInput = {
@@ -17695,6 +20337,149 @@ export namespace Prisma {
     fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ViaArrastreTorreonCreateInput = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    secciones?: SeccionArrastreTorreonCreateNestedManyWithoutViaInput
+  }
+
+  export type ViaArrastreTorreonUncheckedCreateInput = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    secciones?: SeccionArrastreTorreonUncheckedCreateNestedManyWithoutViaInput
+  }
+
+  export type ViaArrastreTorreonUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    secciones?: SeccionArrastreTorreonUpdateManyWithoutViaNestedInput
+  }
+
+  export type ViaArrastreTorreonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    secciones?: SeccionArrastreTorreonUncheckedUpdateManyWithoutViaNestedInput
+  }
+
+  export type ViaArrastreTorreonCreateManyInput = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ViaArrastreTorreonUpdateManyMutationInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ViaArrastreTorreonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SeccionArrastreTorreonCreateInput = {
+    id: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    via: ViaArrastreTorreonCreateNestedOneWithoutSeccionesInput
+  }
+
+  export type SeccionArrastreTorreonUncheckedCreateInput = {
+    id: number
+    viaId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SeccionArrastreTorreonUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    via?: ViaArrastreTorreonUpdateOneRequiredWithoutSeccionesNestedInput
+  }
+
+  export type SeccionArrastreTorreonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    viaId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SeccionArrastreTorreonCreateManyInput = {
+    id: number
+    viaId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SeccionArrastreTorreonUpdateManyMutationInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SeccionArrastreTorreonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    viaId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19061,6 +21846,125 @@ export namespace Prisma {
     _max?: NestedEnumEstadoVagonArrastreTorreonFilter<$PrismaModel>
   }
 
+  export type SeccionArrastreTorreonListRelationFilter = {
+    every?: SeccionArrastreTorreonWhereInput
+    some?: SeccionArrastreTorreonWhereInput
+    none?: SeccionArrastreTorreonWhereInput
+  }
+
+  export type SeccionArrastreTorreonOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ViaArrastreTorreonLocalidadIdNumeroCompoundUniqueInput = {
+    localidadId: number
+    numero: number
+  }
+
+  export type ViaArrastreTorreonLocalidadIdNombreCompoundUniqueInput = {
+    localidadId: number
+    nombre: string
+  }
+
+  export type ViaArrastreTorreonCountOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ViaArrastreTorreonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+  }
+
+  export type ViaArrastreTorreonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ViaArrastreTorreonMinOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ViaArrastreTorreonSumOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    numero?: SortOrder
+  }
+
+  export type ViaArrastreTorreonScalarRelationFilter = {
+    is?: ViaArrastreTorreonWhereInput
+    isNot?: ViaArrastreTorreonWhereInput
+  }
+
+  export type SeccionArrastreTorreonViaIdNumeroCompoundUniqueInput = {
+    viaId: number
+    numero: number
+  }
+
+  export type SeccionArrastreTorreonViaIdNombreCompoundUniqueInput = {
+    viaId: number
+    nombre: string
+  }
+
+  export type SeccionArrastreTorreonCountOrderByAggregateInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SeccionArrastreTorreonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+  }
+
+  export type SeccionArrastreTorreonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SeccionArrastreTorreonMinOrderByAggregateInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+    nombre?: SortOrder
+    activa?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SeccionArrastreTorreonSumOrderByAggregateInput = {
+    id?: SortOrder
+    viaId?: SortOrder
+    numero?: SortOrder
+  }
+
   export type EnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel = never> = {
     equals?: $Enums.EstadoIncidenteArrastreTorreon | EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
     in?: $Enums.EstadoIncidenteArrastreTorreon[] | ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel>
@@ -19796,6 +22700,62 @@ export namespace Prisma {
     update?: IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput | IncidenteArrastreTorreonUpdateWithWhereUniqueWithoutVagonInput[]
     updateMany?: IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput | IncidenteArrastreTorreonUpdateManyWithWhereWithoutVagonInput[]
     deleteMany?: IncidenteArrastreTorreonScalarWhereInput | IncidenteArrastreTorreonScalarWhereInput[]
+  }
+
+  export type SeccionArrastreTorreonCreateNestedManyWithoutViaInput = {
+    create?: XOR<SeccionArrastreTorreonCreateWithoutViaInput, SeccionArrastreTorreonUncheckedCreateWithoutViaInput> | SeccionArrastreTorreonCreateWithoutViaInput[] | SeccionArrastreTorreonUncheckedCreateWithoutViaInput[]
+    connectOrCreate?: SeccionArrastreTorreonCreateOrConnectWithoutViaInput | SeccionArrastreTorreonCreateOrConnectWithoutViaInput[]
+    createMany?: SeccionArrastreTorreonCreateManyViaInputEnvelope
+    connect?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+  }
+
+  export type SeccionArrastreTorreonUncheckedCreateNestedManyWithoutViaInput = {
+    create?: XOR<SeccionArrastreTorreonCreateWithoutViaInput, SeccionArrastreTorreonUncheckedCreateWithoutViaInput> | SeccionArrastreTorreonCreateWithoutViaInput[] | SeccionArrastreTorreonUncheckedCreateWithoutViaInput[]
+    connectOrCreate?: SeccionArrastreTorreonCreateOrConnectWithoutViaInput | SeccionArrastreTorreonCreateOrConnectWithoutViaInput[]
+    createMany?: SeccionArrastreTorreonCreateManyViaInputEnvelope
+    connect?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+  }
+
+  export type SeccionArrastreTorreonUpdateManyWithoutViaNestedInput = {
+    create?: XOR<SeccionArrastreTorreonCreateWithoutViaInput, SeccionArrastreTorreonUncheckedCreateWithoutViaInput> | SeccionArrastreTorreonCreateWithoutViaInput[] | SeccionArrastreTorreonUncheckedCreateWithoutViaInput[]
+    connectOrCreate?: SeccionArrastreTorreonCreateOrConnectWithoutViaInput | SeccionArrastreTorreonCreateOrConnectWithoutViaInput[]
+    upsert?: SeccionArrastreTorreonUpsertWithWhereUniqueWithoutViaInput | SeccionArrastreTorreonUpsertWithWhereUniqueWithoutViaInput[]
+    createMany?: SeccionArrastreTorreonCreateManyViaInputEnvelope
+    set?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    disconnect?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    delete?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    connect?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    update?: SeccionArrastreTorreonUpdateWithWhereUniqueWithoutViaInput | SeccionArrastreTorreonUpdateWithWhereUniqueWithoutViaInput[]
+    updateMany?: SeccionArrastreTorreonUpdateManyWithWhereWithoutViaInput | SeccionArrastreTorreonUpdateManyWithWhereWithoutViaInput[]
+    deleteMany?: SeccionArrastreTorreonScalarWhereInput | SeccionArrastreTorreonScalarWhereInput[]
+  }
+
+  export type SeccionArrastreTorreonUncheckedUpdateManyWithoutViaNestedInput = {
+    create?: XOR<SeccionArrastreTorreonCreateWithoutViaInput, SeccionArrastreTorreonUncheckedCreateWithoutViaInput> | SeccionArrastreTorreonCreateWithoutViaInput[] | SeccionArrastreTorreonUncheckedCreateWithoutViaInput[]
+    connectOrCreate?: SeccionArrastreTorreonCreateOrConnectWithoutViaInput | SeccionArrastreTorreonCreateOrConnectWithoutViaInput[]
+    upsert?: SeccionArrastreTorreonUpsertWithWhereUniqueWithoutViaInput | SeccionArrastreTorreonUpsertWithWhereUniqueWithoutViaInput[]
+    createMany?: SeccionArrastreTorreonCreateManyViaInputEnvelope
+    set?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    disconnect?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    delete?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    connect?: SeccionArrastreTorreonWhereUniqueInput | SeccionArrastreTorreonWhereUniqueInput[]
+    update?: SeccionArrastreTorreonUpdateWithWhereUniqueWithoutViaInput | SeccionArrastreTorreonUpdateWithWhereUniqueWithoutViaInput[]
+    updateMany?: SeccionArrastreTorreonUpdateManyWithWhereWithoutViaInput | SeccionArrastreTorreonUpdateManyWithWhereWithoutViaInput[]
+    deleteMany?: SeccionArrastreTorreonScalarWhereInput | SeccionArrastreTorreonScalarWhereInput[]
+  }
+
+  export type ViaArrastreTorreonCreateNestedOneWithoutSeccionesInput = {
+    create?: XOR<ViaArrastreTorreonCreateWithoutSeccionesInput, ViaArrastreTorreonUncheckedCreateWithoutSeccionesInput>
+    connectOrCreate?: ViaArrastreTorreonCreateOrConnectWithoutSeccionesInput
+    connect?: ViaArrastreTorreonWhereUniqueInput
+  }
+
+  export type ViaArrastreTorreonUpdateOneRequiredWithoutSeccionesNestedInput = {
+    create?: XOR<ViaArrastreTorreonCreateWithoutSeccionesInput, ViaArrastreTorreonUncheckedCreateWithoutSeccionesInput>
+    connectOrCreate?: ViaArrastreTorreonCreateOrConnectWithoutSeccionesInput
+    upsert?: ViaArrastreTorreonUpsertWithoutSeccionesInput
+    connect?: ViaArrastreTorreonWhereUniqueInput
+    update?: XOR<XOR<ViaArrastreTorreonUpdateToOneWithWhereWithoutSeccionesInput, ViaArrastreTorreonUpdateWithoutSeccionesInput>, ViaArrastreTorreonUncheckedUpdateWithoutSeccionesInput>
   }
 
   export type ArrastreTorreonCreateNestedOneWithoutIncidentesInput = {
@@ -21829,6 +24789,119 @@ export namespace Prisma {
     data: XOR<IncidenteArrastreTorreonUpdateManyMutationInput, IncidenteArrastreTorreonUncheckedUpdateManyWithoutVagonInput>
   }
 
+  export type SeccionArrastreTorreonCreateWithoutViaInput = {
+    id: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SeccionArrastreTorreonUncheckedCreateWithoutViaInput = {
+    id: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SeccionArrastreTorreonCreateOrConnectWithoutViaInput = {
+    where: SeccionArrastreTorreonWhereUniqueInput
+    create: XOR<SeccionArrastreTorreonCreateWithoutViaInput, SeccionArrastreTorreonUncheckedCreateWithoutViaInput>
+  }
+
+  export type SeccionArrastreTorreonCreateManyViaInputEnvelope = {
+    data: SeccionArrastreTorreonCreateManyViaInput | SeccionArrastreTorreonCreateManyViaInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SeccionArrastreTorreonUpsertWithWhereUniqueWithoutViaInput = {
+    where: SeccionArrastreTorreonWhereUniqueInput
+    update: XOR<SeccionArrastreTorreonUpdateWithoutViaInput, SeccionArrastreTorreonUncheckedUpdateWithoutViaInput>
+    create: XOR<SeccionArrastreTorreonCreateWithoutViaInput, SeccionArrastreTorreonUncheckedCreateWithoutViaInput>
+  }
+
+  export type SeccionArrastreTorreonUpdateWithWhereUniqueWithoutViaInput = {
+    where: SeccionArrastreTorreonWhereUniqueInput
+    data: XOR<SeccionArrastreTorreonUpdateWithoutViaInput, SeccionArrastreTorreonUncheckedUpdateWithoutViaInput>
+  }
+
+  export type SeccionArrastreTorreonUpdateManyWithWhereWithoutViaInput = {
+    where: SeccionArrastreTorreonScalarWhereInput
+    data: XOR<SeccionArrastreTorreonUpdateManyMutationInput, SeccionArrastreTorreonUncheckedUpdateManyWithoutViaInput>
+  }
+
+  export type SeccionArrastreTorreonScalarWhereInput = {
+    AND?: SeccionArrastreTorreonScalarWhereInput | SeccionArrastreTorreonScalarWhereInput[]
+    OR?: SeccionArrastreTorreonScalarWhereInput[]
+    NOT?: SeccionArrastreTorreonScalarWhereInput | SeccionArrastreTorreonScalarWhereInput[]
+    id?: IntFilter<"SeccionArrastreTorreon"> | number
+    viaId?: IntFilter<"SeccionArrastreTorreon"> | number
+    numero?: IntFilter<"SeccionArrastreTorreon"> | number
+    nombre?: StringFilter<"SeccionArrastreTorreon"> | string
+    activa?: BoolFilter<"SeccionArrastreTorreon"> | boolean
+    createdAt?: DateTimeFilter<"SeccionArrastreTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"SeccionArrastreTorreon"> | Date | string
+  }
+
+  export type ViaArrastreTorreonCreateWithoutSeccionesInput = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ViaArrastreTorreonUncheckedCreateWithoutSeccionesInput = {
+    id: number
+    localidadId: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ViaArrastreTorreonCreateOrConnectWithoutSeccionesInput = {
+    where: ViaArrastreTorreonWhereUniqueInput
+    create: XOR<ViaArrastreTorreonCreateWithoutSeccionesInput, ViaArrastreTorreonUncheckedCreateWithoutSeccionesInput>
+  }
+
+  export type ViaArrastreTorreonUpsertWithoutSeccionesInput = {
+    update: XOR<ViaArrastreTorreonUpdateWithoutSeccionesInput, ViaArrastreTorreonUncheckedUpdateWithoutSeccionesInput>
+    create: XOR<ViaArrastreTorreonCreateWithoutSeccionesInput, ViaArrastreTorreonUncheckedCreateWithoutSeccionesInput>
+    where?: ViaArrastreTorreonWhereInput
+  }
+
+  export type ViaArrastreTorreonUpdateToOneWithWhereWithoutSeccionesInput = {
+    where?: ViaArrastreTorreonWhereInput
+    data: XOR<ViaArrastreTorreonUpdateWithoutSeccionesInput, ViaArrastreTorreonUncheckedUpdateWithoutSeccionesInput>
+  }
+
+  export type ViaArrastreTorreonUpdateWithoutSeccionesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ViaArrastreTorreonUncheckedUpdateWithoutSeccionesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ArrastreTorreonCreateWithoutIncidentesInput = {
     empresaId: number
     creadoPorId: number
@@ -22785,6 +25858,42 @@ export namespace Prisma {
     seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
     fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
     fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SeccionArrastreTorreonCreateManyViaInput = {
+    id: number
+    numero: number
+    nombre: string
+    activa?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SeccionArrastreTorreonUpdateWithoutViaInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SeccionArrastreTorreonUncheckedUpdateWithoutViaInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SeccionArrastreTorreonUncheckedUpdateManyWithoutViaInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    numero?: IntFieldUpdateOperationsInput | number
+    nombre?: StringFieldUpdateOperationsInput | string
+    activa?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

@@ -18,7 +18,7 @@ function parsePositiveId(value?: string) {
 }
 
 const arrastreVagonBaseSchema = z.object({
-  numeroVagon: z.string().trim().min(1).optional(),
+  numeroVagon: z.string().trim().min(1, "Número de vagón requerido").max(40).optional(),
   carga: z.enum(["VACIO", "LLENO"]),
   viaOrigen: textRefSchema.optional(),
   seccionOrigen: textRefSchema.optional(),
@@ -37,17 +37,17 @@ const arrastreVagonBaseSchema = z.object({
 });
 
 function normalizeVagonRefs(data: z.infer<typeof arrastreVagonBaseSchema>) {
-  const viaOrigen = data.viaOrigen ?? data.viaOrigenNombre ?? data.viaOrigenId;
-  const seccionOrigen = data.seccionOrigen ?? data.seccionOrigenNombre ?? data.seccionOrigenId;
-  const viaDestino = data.viaDestino ?? data.viaDestinoNombre ?? data.viaId;
-  const seccionDestino = data.seccionDestino ?? data.seccionDestinoNombre ?? data.seccionId;
+  const viaOrigen = data.viaOrigenNombre ?? data.viaOrigen ?? data.viaOrigenId;
+  const seccionOrigen = data.seccionOrigenNombre ?? data.seccionOrigen ?? data.seccionOrigenId;
+  const viaDestino = data.viaDestinoNombre ?? data.viaDestino ?? data.viaId;
+  const seccionDestino = data.seccionDestinoNombre ?? data.seccionDestino ?? data.seccionId;
 
   return {
     ...data,
-    viaOrigenId: parsePositiveId(viaOrigen),
-    seccionOrigenId: parsePositiveId(seccionOrigen),
-    viaId: parsePositiveId(viaDestino),
-    seccionId: parsePositiveId(seccionDestino),
+    viaOrigenId: parsePositiveId(data.viaOrigenId ?? data.viaOrigen ?? viaOrigen),
+    seccionOrigenId: parsePositiveId(data.seccionOrigenId ?? data.seccionOrigen ?? seccionOrigen),
+    viaId: parsePositiveId(data.viaId ?? data.viaDestino ?? viaDestino),
+    seccionId: parsePositiveId(data.seccionId ?? data.seccionDestino ?? seccionDestino),
     viaOrigenNombre: viaOrigen,
     seccionOrigenNombre: seccionOrigen,
     viaDestinoNombre: viaDestino,
@@ -56,6 +56,10 @@ function normalizeVagonRefs(data: z.infer<typeof arrastreVagonBaseSchema>) {
 }
 
 export const arrastreVagonInputSchema = arrastreVagonBaseSchema
+  .refine((data) => Boolean(data.numeroVagon), {
+    message: "Número de vagón requerido",
+    path: ["numeroVagon"],
+  })
   .refine((data) => Boolean(data.viaOrigen ?? data.viaOrigenNombre ?? data.viaOrigenId), {
     message: "Via origen requerida",
     path: ["viaOrigen"],
@@ -82,12 +86,23 @@ const withCapturas = z.object({
 const capacidadArrastre = (vagones: Array<{ carga: "VACIO" | "LLENO" }>) =>
   vagones.reduce((total, vagon) => total + (vagon.carga === "LLENO" ? 2 : 1), 0);
 
-const validarCapacidad = (data: { vagones: Array<{ carga: "VACIO" | "LLENO" }> }, ctx: z.RefinementCtx) => {
+const validarArrastre = (data: { vagones: Array<{ numeroVagon?: string; carga: "VACIO" | "LLENO" }> }, ctx: z.RefinementCtx) => {
   const puntos = capacidadArrastre(data.vagones);
   if (puntos > 8) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Arrastre excede capacidad: maximo 8 vacios equivalentes, cada lleno cuenta como 2",
+      path: ["vagones"],
+    });
+  }
+
+  const numbers = data.vagones
+    .map((vagon) => String(vagon.numeroVagon || "").trim().toLocaleUpperCase("es-MX"))
+    .filter(Boolean);
+  if (new Set(numbers).size !== numbers.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "No repitas el mismo número de vagón",
       path: ["vagones"],
     });
   }
@@ -102,7 +117,7 @@ export const createArrastreSchema = z.object({
   localidadId: idSchema,
   instrucciones: z.string().trim().min(3),
   vagones: z.array(arrastreVagonInputSchema).min(1).max(8),
-}).superRefine(validarCapacidad);
+}).superRefine(validarArrastre);
 
 export const iniciarArrastreSchema = z.object({
   operadorId: idSchema.optional(),
@@ -136,7 +151,7 @@ export const finalizarVagonArrastreSchema = z.object({
 });
 
 export const editarVagonArrastreSchema = z.object({
-  numeroVagon: z.string().trim().min(1).optional(),
+  numeroVagon: z.string().trim().min(1).max(40).optional(),
   carga: z.enum(["VACIO", "LLENO"]).optional(),
   viaOrigen: optionalTextRefSchema,
   seccionOrigen: optionalTextRefSchema,

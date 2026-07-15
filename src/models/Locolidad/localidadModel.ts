@@ -41,7 +41,7 @@ export class LocalidadModel {
     this.localidadesLiteCache = { data, exp: Date.now() + this.CACHE_TTL_MS };
   }
 
-  private static clearLocalidadesLiteCache() {
+  static invalidateLiteCache() {
     this.localidadesLiteCache = null;
   }
 
@@ -89,7 +89,7 @@ export class LocalidadModel {
       const created = await prisma.localidad.create({
         data: { nombre, estado },
       });
-      this.clearLocalidadesLiteCache();
+      this.invalidateLiteCache();
       return created;
     } catch (error) {
       localidadLogger.error(`Error al crear localidad ${nombre}`, { error });

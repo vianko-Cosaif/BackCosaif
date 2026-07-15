@@ -3,6 +3,7 @@ import { movimientoRouter } from "../modules/movimientos/movimiento.routes";
 import { incidenteRouter } from "../modules/incidentes/incidente.routes";
 import { rondaRouter } from "../modules/rondas/ronda.routes";
 import { arrastreRouter } from "../modules/arrastres/arrastre.routes";
+import { catalogoArrastreRouter } from "../modules/catalogosArrastre/catalogoArrastre.routes";
 
 export const apiRouter = Router();
 
@@ -25,6 +26,8 @@ apiRouter.get("/estructura", (_req, res) => {
       "arrastre_torreon_vagon",
       "incidente_arrastre_torreon",
       "incidente_arrastre_foto",
+      "via_arrastre_torreon",
+      "seccion_arrastre_torreon",
     ],
     reglaIncidentes: "ABIERTO bloquea la via/seccion. Resolver reencola primero el movimiento; cerrar cancela el movimiento ligado y registra el incidente como RESUELTO.",
     reglaArrastre: {
@@ -56,3 +59,4 @@ apiRouter.use("/movimientos", movimientoRouter);
 apiRouter.use("/incidentes", incidenteRouter);
 apiRouter.use("/rondas", rondaRouter);
 apiRouter.use("/arrastres", arrastreRouter);
+apiRouter.use("/catalogos/arrastre", catalogoArrastreRouter);

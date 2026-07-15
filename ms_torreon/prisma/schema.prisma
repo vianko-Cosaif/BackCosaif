@@ -350,6 +350,42 @@ model ArrastreTorreonVagon {
   @@map("arrastre_torreon_vagon")
 }
 
+/// Catálogo exclusivo del patio de Arrastre. No comparte IDs ni configuración
+/// con las vías utilizadas por los movimientos naturales de Torreón.
+model ViaArrastreTorreon {
+  id          Int      @id
+  localidadId Int      @map("localidad_id")
+  numero      Int
+  nombre      String
+  activa      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  secciones SeccionArrastreTorreon[]
+
+  @@unique([localidadId, numero])
+  @@unique([localidadId, nombre])
+  @@index([localidadId, activa, numero])
+  @@map("via_arrastre_torreon")
+}
+
+model SeccionArrastreTorreon {
+  id        Int      @id
+  viaId     Int      @map("via_id")
+  numero    Int
+  nombre    String
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  via ViaArrastreTorreon @relation(fields: [viaId], references: [id], onDelete: Cascade)
+
+  @@unique([viaId, numero])
+  @@unique([viaId, nombre])
+  @@index([viaId, activa, numero])
+  @@map("seccion_arrastre_torreon")
+}
+
 model IncidenteArrastreTorreon {
   id                 Int                            @id @default(autoincrement())
   arrastreId         Int                            @map("arrastre_id")

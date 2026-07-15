@@ -302,7 +302,7 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
 function applyListScope(rest: string, user?: AuthenticatedUser) {
   const role = userRole(user);
   const [path, query = ""] = rest.split("?");
-  if (!["/arrastres", "/movimientos", "/incidentes", "/rondas"].includes(path)) return rest;
+  if (!["/arrastres", "/movimientos", "/incidentes", "/rondas", "/catalogos/arrastre"].includes(path)) return rest;
 
   const params = new URLSearchParams(query);
   const empresaId = readEmpresaId(user);
@@ -318,6 +318,10 @@ function applyListScope(rest: string, user?: AuthenticatedUser) {
   }
 
   if (LOCAL_OPERATION_ROLES.has(role) && localidadId && !params.has("localidadId")) {
+    params.set("localidadId", String(localidadId));
+  }
+
+  if (path === "/catalogos/arrastre" && role !== "ADMINISTRADOR" && localidadId) {
     params.set("localidadId", String(localidadId));
   }
 
@@ -847,6 +851,17 @@ router.all("/*", async (req, res) => {
     ? req.originalUrl.slice(base.length)
     : req.originalUrl;
   const scopedRest = req.method.toUpperCase() === "GET" ? applyListScope(originalRest || "/", user) : originalRest || "/";
+
+  if (
+    scopedRest.split("?")[0] === "/catalogos/arrastre" &&
+    req.method.toUpperCase() !== "GET" &&
+    role !== "ADMINISTRADOR"
+  ) {
+    return res.status(403).json({
+      error: "No autorizado para configurar el patio de arrastre",
+      message: "Solo un administrador puede crear o modificar vías de arrastre.",
+    });
+  }
 
   if (isReadonlyClient(user) && !isAllowedClientMutation(req.method, scopedRest)) {
     return res.status(403).json({

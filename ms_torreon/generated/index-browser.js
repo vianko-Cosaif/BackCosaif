@@ -277,6 +277,26 @@ exports.Prisma.ArrastreTorreonVagonScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ViaArrastreTorreonScalarFieldEnum = {
+  id: 'id',
+  localidadId: 'localidadId',
+  numero: 'numero',
+  nombre: 'nombre',
+  activa: 'activa',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SeccionArrastreTorreonScalarFieldEnum = {
+  id: 'id',
+  viaId: 'viaId',
+  numero: 'numero',
+  nombre: 'nombre',
+  activa: 'activa',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.IncidenteArrastreTorreonScalarFieldEnum = {
   id: 'id',
   arrastreId: 'arrastreId',
@@ -419,6 +439,8 @@ exports.Prisma.ModelName = {
   IncidenteTorreonFoto: 'IncidenteTorreonFoto',
   ArrastreTorreon: 'ArrastreTorreon',
   ArrastreTorreonVagon: 'ArrastreTorreonVagon',
+  ViaArrastreTorreon: 'ViaArrastreTorreon',
+  SeccionArrastreTorreon: 'SeccionArrastreTorreon',
   IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
   IncidenteArrastreFoto: 'IncidenteArrastreFoto'
 };

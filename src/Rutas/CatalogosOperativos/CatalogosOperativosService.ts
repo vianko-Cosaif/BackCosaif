@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { prisma } from "../../lib/prisma";
+import { LocalidadModel } from "../../models/Locolidad/localidadModel";
+import { ViaModel } from "../../models/Via/viaModel";
 import { proxyToTornoMs } from "../../services/tornoMs/tornoMsClient";
 
 const localidadSchema = z.object({
@@ -29,7 +31,36 @@ const tornoConfigSchema = z.object({
 export const localidadOperativaPayloadSchema = z.object({
   localidad: localidadSchema,
   vias: z.array(viaSchema).min(1).max(300),
+  viasEliminadas: z.array(z.number().int().positive()).max(300).default([]),
   torno: tornoConfigSchema.default({ configurar: false, cantidadNavajas: 0 }),
+}).superRefine((payload, ctx) => {
+  const numeros = new Set<number>();
+  const nombres = new Set<string>();
+  const ids = new Set<number>();
+  const eliminadas = new Set(payload.viasEliminadas);
+
+  payload.vias.forEach((via, index) => {
+    if (numeros.has(via.numero)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vias", index, "numero"], message: "Numero de via duplicado" });
+    }
+    numeros.add(via.numero);
+
+    const nombre = (via.nombre?.trim() || `Via ${via.numero}`).toLocaleLowerCase("es-MX");
+    if (nombres.has(nombre)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vias", index, "nombre"], message: "Nombre de via duplicado" });
+    }
+    nombres.add(nombre);
+
+    if (via.id) {
+      if (ids.has(via.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vias", index, "id"], message: "Via repetida en la solicitud" });
+      }
+      if (eliminadas.has(via.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vias", index, "id"], message: "Una via no puede editarse y eliminarse al mismo tiempo" });
+      }
+      ids.add(via.id);
+    }
+  });
 });
 
 export type LocalidadOperativaPayload = z.infer<typeof localidadOperativaPayloadSchema>;
@@ -44,6 +75,13 @@ type NavaRecord = {
   localidadId: number;
   cantidad: number;
 };
+
+export class CatalogConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CatalogConflictError";
+  }
+}
 
 function unwrapArray(input: unknown): any[] {
   if (Array.isArray(input)) return input;
@@ -200,6 +238,70 @@ export class CatalogosOperativosService {
             update: { estado: payload.localidad.estado },
           });
 
+      const viasEliminadas = [...new Set(payload.viasEliminadas)];
+      if (viasEliminadas.length) {
+        const candidates = await tx.via.findMany({
+          where: { id: { in: viasEliminadas } },
+          select: {
+            id: true,
+            numero: true,
+            nombre: true,
+            localidadId: true,
+            ocupada: true,
+            movimientoId: true,
+            secciones: { select: { ocupada: true, movimientoId: true } },
+            _count: { select: { movimientosOrigen: true, movimientosDestino: true } },
+          },
+        });
+
+        if (candidates.length !== viasEliminadas.length) {
+          throw new CatalogConflictError("Una de las vias que intentas eliminar ya no existe");
+        }
+
+        for (const candidate of candidates) {
+          if (candidate.localidadId !== localidad.id) {
+            throw new CatalogConflictError(`La via ${candidate.id} no pertenece a la localidad ${localidad.nombre}`);
+          }
+
+          const hasActiveOperation = candidate.ocupada || candidate.movimientoId != null ||
+            candidate.secciones.some((seccion) => seccion.ocupada || seccion.movimientoId != null);
+          const hasHistory = candidate._count.movimientosOrigen > 0 || candidate._count.movimientosDestino > 0;
+
+          if (hasActiveOperation || hasHistory) {
+            throw new CatalogConflictError(
+              `No se puede eliminar ${candidate.nombre || `Via ${candidate.numero}`} porque tiene movimientos relacionados`
+            );
+          }
+
+          await tx.via.delete({ where: { id: candidate.id } });
+        }
+      }
+
+      const existingViaIds = payload.vias.flatMap((via) => via.id ? [via.id] : []);
+      if (existingViaIds.length) {
+        const existingVias = await tx.via.findMany({
+          where: { id: { in: existingViaIds } },
+          select: { id: true, localidadId: true },
+        });
+        if (existingVias.length !== existingViaIds.length) {
+          throw new CatalogConflictError("Una de las vias que intentas editar ya no existe");
+        }
+        if (existingVias.some((via) => via.localidadId !== localidad.id)) {
+          throw new CatalogConflictError(`Una de las vias no pertenece a la localidad ${localidad.nombre}`);
+        }
+
+        // Libera temporalmente las llaves unicas para permitir intercambiar numeros o nombres.
+        for (const via of existingVias) {
+          await tx.via.update({
+            where: { id: via.id },
+            data: {
+              numero: -2_000_000_000 + via.id,
+              nombre: `__catalogos_operativos_${localidad.id}_${via.id}`,
+            },
+          });
+        }
+      }
+
       const vias = [];
       for (const viaInput of payload.vias) {
         const existing = viaInput.id
@@ -214,7 +316,7 @@ export class CatalogosOperativosService {
             });
 
         if (existing && existing.localidadId !== localidad.id) {
-          throw new Error(`La via ${existing.id} no pertenece a la localidad ${localidad.nombre}`);
+          throw new CatalogConflictError(`La via ${existing.id} no pertenece a la localidad ${localidad.nombre}`);
         }
 
         const via = existing
@@ -234,11 +336,28 @@ export class CatalogosOperativosService {
             });
 
         const sectionPlan = normalizeSectionPlan(viaInput);
-        const currentSectionCount = await tx.seccionVia.count({ where: { viaId: via.id } });
-        if (currentSectionCount > sectionPlan.length && sectionPlan.length > 0) {
+        const desiredSectionNumbers = new Set(sectionPlan.map((seccion) => seccion.numero));
+        const currentSections = await tx.seccionVia.findMany({
+          where: { viaId: via.id },
+          select: { id: true, numero: true, ocupada: true, movimientoId: true },
+        });
+        const sectionsOutsidePlan = currentSections.filter(
+          (seccion) => !desiredSectionNumbers.has(seccion.numero)
+        );
+        const removableSectionIds = sectionsOutsidePlan
+          .filter((seccion) => !seccion.ocupada && seccion.movimientoId == null)
+          .map((seccion) => seccion.id);
+        const protectedSections = sectionsOutsidePlan.filter(
+          (seccion) => seccion.ocupada || seccion.movimientoId != null
+        );
+
+        if (removableSectionIds.length) {
+          await tx.seccionVia.deleteMany({ where: { id: { in: removableSectionIds } } });
+        }
+        if (protectedSections.length) {
           warnings.push({
             scope: "seccion",
-            message: `Via ${via.numero} ya tiene ${currentSectionCount} secciones; no se borraron para proteger operacion.`,
+            message: `Via ${via.numero}: ${protectedSections.length} seccion(es) ocupada(s) se conservaron para proteger la operacion.`,
           });
         }
 
@@ -272,6 +391,9 @@ export class CatalogosOperativosService {
 
       return { localidad, vias };
     });
+
+    LocalidadModel.invalidateLiteCache();
+    ViaModel.invalidateLiteCache();
 
     let torno: NavaRecord | null = null;
     if (payload.torno.configurar) {
