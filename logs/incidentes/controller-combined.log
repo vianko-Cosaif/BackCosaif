@@ -198,3 +198,23 @@
   message: 'crear.close',
   timestamp: '2026-06-16 11:43:39'
 }
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 515,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-07-20 17:55:04'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 516,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-07-20 17:55:04'
+}

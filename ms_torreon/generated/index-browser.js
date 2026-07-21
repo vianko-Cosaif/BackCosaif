@@ -257,6 +257,7 @@ exports.Prisma.ArrastreTorreonScalarFieldEnum = {
 exports.Prisma.ArrastreTorreonVagonScalarFieldEnum = {
   id: 'id',
   arrastreId: 'arrastreId',
+  operadorId: 'operadorId',
   orden: 'orden',
   numeroVagon: 'numeroVagon',
   carga: 'carga',
@@ -275,6 +276,18 @@ exports.Prisma.ArrastreTorreonVagonScalarFieldEnum = {
   fechaFin: 'fechaFin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ArrastreTorreonEdicionScalarFieldEnum = {
+  id: 'id',
+  arrastreId: 'arrastreId',
+  editadoPorId: 'editadoPorId',
+  editadoPorRol: 'editadoPorRol',
+  editadoPorNombre: 'editadoPorNombre',
+  motivo: 'motivo',
+  antes: 'antes',
+  despues: 'despues',
+  fechaEdicion: 'fechaEdicion'
 };
 
 exports.Prisma.ViaArrastreTorreonScalarFieldEnum = {
@@ -306,6 +319,7 @@ exports.Prisma.IncidenteArrastreTorreonScalarFieldEnum = {
   estado: 'estado',
   motivo: 'motivo',
   solucion: 'solucion',
+  bloqueoGeneral: 'bloqueoGeneral',
   localidadId: 'localidadId',
   viaBloqueadaId: 'viaBloqueadaId',
   seccionBloqueadaId: 'seccionBloqueadaId',
@@ -333,6 +347,10 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -341,6 +359,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.PrioridadTorreon = exports.$Enums.PrioridadTorreon = {
   BAJA: 'BAJA',
@@ -439,6 +463,7 @@ exports.Prisma.ModelName = {
   IncidenteTorreonFoto: 'IncidenteTorreonFoto',
   ArrastreTorreon: 'ArrastreTorreon',
   ArrastreTorreonVagon: 'ArrastreTorreonVagon',
+  ArrastreTorreonEdicion: 'ArrastreTorreonEdicion',
   ViaArrastreTorreon: 'ViaArrastreTorreon',
   SeccionArrastreTorreon: 'SeccionArrastreTorreon',
   IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',

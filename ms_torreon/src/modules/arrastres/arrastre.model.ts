@@ -2,7 +2,6 @@ import {
   CargaVagonArrastreTorreon,
   EstadoArrastreTorreon,
   EstadoIncidenteArrastreTorreon,
-  EstadoIncidenteTorreon,
   EstadoVagonArrastreTorreon,
   Prisma,
   PrismaClient,
@@ -16,6 +15,7 @@ import {
   cancelarArrastreSchema,
   createArrastreSchema,
   crearIncidenteArrastreSchema,
+  editarArrastreSchema,
   editarVagonArrastreSchema,
   finalizarArrastreSchema,
   finalizarVagonArrastreSchema,
@@ -155,6 +155,44 @@ const assertCapacidadArrastre = (vagones: Array<{ carga: CargaVagonArrastreTorre
   }
 };
 
+type ArrastreCatalogVagon = {
+  viaOrigenId?: number | null;
+  seccionOrigenId?: number | null;
+  viaId?: number | null;
+  seccionId?: number | null;
+};
+
+async function resolveArrastreCatalogVagones<T extends ArrastreCatalogVagon>(
+  tx: Tx,
+  localidadId: number,
+  vagones: T[]
+) {
+  const viaIds = normalizeIdList(...vagones.flatMap((vagon) => [vagon.viaOrigenId, vagon.viaId]));
+  const vias = await tx.viaArrastreTorreon.findMany({
+    where: { id: { in: viaIds }, localidadId, activa: true },
+    include: { secciones: { where: { activa: true } } },
+  });
+  const viasById = new Map(vias.map((via) => [via.id, via]));
+
+  return vagones.map((vagon, index) => {
+    const origen = vagon.viaOrigenId ? viasById.get(vagon.viaOrigenId) : undefined;
+    const destino = vagon.viaId ? viasById.get(vagon.viaId) : undefined;
+    const seccionOrigen = origen?.secciones.find((seccion) => seccion.id === vagon.seccionOrigenId);
+    const seccionDestino = destino?.secciones.find((seccion) => seccion.id === vagon.seccionId);
+    if (!origen || !destino || !seccionOrigen || !seccionDestino) {
+      throw new DomainError(400, `El vagón ${index + 1} debe usar vías y secciones activas del patio de Arrastre de esta localidad`);
+    }
+
+    return {
+      ...vagon,
+      viaOrigenNombre: origen.nombre,
+      seccionOrigenNombre: seccionOrigen.nombre,
+      viaDestinoNombre: destino.nombre,
+      seccionDestinoNombre: seccionDestino.nombre,
+    };
+  });
+}
+
 const isArrastreCerrado = (estado: EstadoArrastreTorreon) => (
   estado === EstadoArrastreTorreon.CONCLUIDO || estado === EstadoArrastreTorreon.CANCELADO
 );
@@ -241,13 +279,22 @@ function buildArrastreResourceFilters(refs: ArrastreRefs): BloqueoResourceFilter
 
 function vagonEstaBloqueadoPorIncidente(
   vagon: {
+    arrastreId?: number;
     viaOrigenId?: number | null;
     seccionOrigenId?: number | null;
     viaId?: number | null;
     seccionId?: number | null;
   },
-  incidente: { viaBloqueadaId: number | null; seccionBloqueadaId: number | null }
+  incidente: {
+    arrastreId?: number;
+    bloqueoGeneral?: boolean;
+    viaBloqueadaId: number | null;
+    seccionBloqueadaId: number | null;
+  }
 ) {
+  if (incidente.bloqueoGeneral) {
+    return incidente.arrastreId != null && incidente.arrastreId === vagon.arrastreId;
+  }
   const tieneVia = typeof incidente.viaBloqueadaId === "number";
   const tieneSeccion = typeof incidente.seccionBloqueadaId === "number";
   const puntos = [
@@ -363,61 +410,39 @@ export class ArrastreModel {
     excludeIncidentId?: number
   ) {
     const filters = buildArrastreResourceFilters(refs);
-    if (!filters.length) return undefined;
+    const arrastreFilters = [
+      { bloqueoGeneral: true, arrastreId: refs.id },
+      ...filters.map((filter) => ({ bloqueoGeneral: false, ...filter })),
+    ];
 
-    const [incidenteArrastre, incidenteNatural] = await Promise.all([
-      tx.incidenteArrastreTorreon.findFirst({
-        where: {
-          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
-          localidadId: refs.localidadId,
-          ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
-          OR: filters,
-        },
-        orderBy: { fechaInicio: "asc" },
-      }),
-      tx.incidenteTorreonFerro.findFirst({
-        where: {
-          estado: EstadoIncidenteTorreon.ABIERTO,
-          localidadId: refs.localidadId,
-          OR: filters,
-        },
-        orderBy: { fechaInicio: "asc" },
-      }),
-    ]);
+    const incidenteArrastre = await tx.incidenteArrastreTorreon.findFirst({
+      where: {
+        estado: EstadoIncidenteArrastreTorreon.ABIERTO,
+        localidadId: refs.localidadId,
+        ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
+        OR: arrastreFilters,
+      },
+      orderBy: { fechaInicio: "asc" },
+    });
 
-    if (!incidenteArrastre) return incidenteNatural ?? undefined;
-    if (!incidenteNatural) return incidenteArrastre;
-    return incidenteArrastre.fechaInicio <= incidenteNatural.fechaInicio ? incidenteArrastre : incidenteNatural;
+    return incidenteArrastre ?? undefined;
   }
 
   static async recalcularBloqueosLocalidad(tx: Tx, localidadId: number) {
-    const [incidentesArrastre, incidentesNaturales] = await Promise.all([
-      tx.incidenteArrastreTorreon.findMany({
-        where: {
-          localidadId,
-          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
-        },
-        orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          viaBloqueadaId: true,
-          seccionBloqueadaId: true,
-        },
-      }),
-      tx.incidenteTorreonFerro.findMany({
-        where: {
-          localidadId,
-          estado: EstadoIncidenteTorreon.ABIERTO,
-        },
-        orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          viaBloqueadaId: true,
-          seccionBloqueadaId: true,
-        },
-      }),
-    ]);
-    const incidentesAbiertos = [...incidentesArrastre, ...incidentesNaturales];
+    const incidentesAbiertos = await tx.incidenteArrastreTorreon.findMany({
+      where: {
+        localidadId,
+        estado: EstadoIncidenteArrastreTorreon.ABIERTO,
+      },
+      orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        arrastreId: true,
+        bloqueoGeneral: true,
+        viaBloqueadaId: true,
+        seccionBloqueadaId: true,
+      },
+    });
 
     const arrastres = await tx.arrastreTorreon.findMany({
       where: {
@@ -440,6 +465,7 @@ export class ArrastreModel {
       orderBy: [{ arrastreId: "asc" }, { orden: "asc" }],
       select: {
         id: true,
+        arrastreId: true,
         viaOrigenId: true,
         seccionOrigenId: true,
         viaId: true,
@@ -592,6 +618,7 @@ export class ArrastreModel {
     assertCapacidadArrastre(input.vagones);
 
     const arrastreId = await prismaTorreon.$transaction(async (tx) => {
+      const vagones = await resolveArrastreCatalogVagones(tx, input.localidadId, input.vagones);
       const last = await tx.arrastreTorreon.findFirst({
         where: { localidadId: input.localidadId },
         orderBy: [{ ordenSolicitud: "desc" }, { id: "desc" }],
@@ -608,7 +635,7 @@ export class ArrastreModel {
           ordenSolicitud: (last?.ordenSolicitud ?? 0) + 1,
           instrucciones: input.instrucciones,
           vagones: {
-            create: input.vagones.map((vagon, index) => compact({
+            create: vagones.map((vagon, index) => compact({
               orden: index + 1,
               numeroVagon: vagon.numeroVagon,
               carga: vagon.carga,
@@ -632,6 +659,115 @@ export class ArrastreModel {
     });
 
     return getArrastreDetalle(arrastreId);
+  }
+
+  static async editar(id: number, input: z.infer<typeof editarArrastreSchema>) {
+    const arrastreId = await prismaTorreon.$transaction(async (tx) => {
+      const arrastre = await getArrastreOrThrow(tx, id);
+      if (arrastre.estado !== EstadoArrastreTorreon.SOLICITADO) {
+        throw new DomainError(409, `Solo se puede editar una solicitud antes de iniciar. Estado actual: ${arrastre.estado}`);
+      }
+      assertArrastreSinVagonEnProceso(arrastre.vagones);
+
+      const noPendientes = arrastre.vagones.filter((vagon) => vagon.estado !== EstadoVagonArrastreTorreon.PENDIENTE);
+      if (noPendientes.length) {
+        throw new DomainError(409, "No se puede editar una solicitud que ya tiene vagones operados", {
+          vagones: noPendientes.map((vagon) => ({ id: vagon.id, estado: vagon.estado })),
+        });
+      }
+
+      const existingIds = new Set(arrastre.vagones.map((vagon) => vagon.id));
+      const inputIds = input.vagones.map((vagon) => vagon.id);
+      const includesEveryVagon = inputIds.length === existingIds.size
+        && new Set(inputIds).size === inputIds.length
+        && inputIds.every((vagonId) => existingIds.has(vagonId));
+      if (!includesEveryVagon) {
+        throw new DomainError(400, "La edición debe incluir todos los vagones existentes una sola vez");
+      }
+
+      const vagones = await resolveArrastreCatalogVagones(tx, arrastre.localidadId, input.vagones);
+      assertCapacidadArrastre(vagones);
+      const antes = {
+        instrucciones: arrastre.instrucciones,
+        vagones: arrastre.vagones.map((vagon) => ({
+          id: vagon.id,
+          orden: vagon.orden,
+          numeroVagon: vagon.numeroVagon,
+          carga: vagon.carga,
+          viaOrigenId: vagon.viaOrigenId,
+          seccionOrigenId: vagon.seccionOrigenId,
+          viaId: vagon.viaId,
+          seccionId: vagon.seccionId,
+          viaOrigenNombre: vagon.viaOrigenNombre,
+          seccionOrigenNombre: vagon.seccionOrigenNombre,
+          viaDestinoNombre: vagon.viaDestinoNombre,
+          seccionDestinoNombre: vagon.seccionDestinoNombre,
+        })),
+      };
+      const despues = {
+        instrucciones: input.instrucciones,
+        vagones: vagones.map((vagon, index) => ({
+          id: vagon.id,
+          orden: index + 1,
+          numeroVagon: vagon.numeroVagon,
+          carga: vagon.carga,
+          viaOrigenId: vagon.viaOrigenId,
+          seccionOrigenId: vagon.seccionOrigenId,
+          viaId: vagon.viaId,
+          seccionId: vagon.seccionId,
+          viaOrigenNombre: vagon.viaOrigenNombre,
+          seccionOrigenNombre: vagon.seccionOrigenNombre,
+          viaDestinoNombre: vagon.viaDestinoNombre,
+          seccionDestinoNombre: vagon.seccionDestinoNombre,
+        })),
+      };
+      await tx.arrastreTorreon.update({
+        where: { id },
+        data: { instrucciones: input.instrucciones },
+      });
+      await Promise.all(vagones.map((vagon, index) => tx.arrastreTorreonVagon.update({
+        where: { id: vagon.id },
+        data: compact({
+          orden: index + 1,
+          numeroVagon: vagon.numeroVagon,
+          carga: vagon.carga,
+          viaOrigenId: vagon.viaOrigenId,
+          seccionOrigenId: vagon.seccionOrigenId,
+          viaId: vagon.viaId,
+          seccionId: vagon.seccionId,
+          viaOrigenNombre: vagon.viaOrigenNombre,
+          seccionOrigenNombre: vagon.seccionOrigenNombre,
+          viaDestinoNombre: vagon.viaDestinoNombre,
+          seccionDestinoNombre: vagon.seccionDestinoNombre,
+        }),
+      })));
+
+      await tx.arrastreTorreonEdicion.create({
+        data: {
+          arrastreId: id,
+          editadoPorId: input.editadoPorId,
+          editadoPorRol: input.editadoPorRol,
+          editadoPorNombre: input.editadoPorNombre,
+          motivo: input.motivoEdicion,
+          antes,
+          despues,
+        },
+      });
+
+      await this.recalcularBloqueosLocalidad(tx, arrastre.localidadId);
+      return id;
+    });
+
+    return getArrastreDetalle(arrastreId);
+  }
+
+  static async listarEdiciones(id: number) {
+    const exists = await prismaTorreon.arrastreTorreon.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) throw new DomainError(404, "Arrastre no encontrado");
+    return prismaTorreon.arrastreTorreonEdicion.findMany({
+      where: { arrastreId: id },
+      orderBy: [{ fechaEdicion: "desc" }, { id: "desc" }],
+    });
   }
 
   static async reordenarSolicitudes(input: z.infer<typeof reordenarSolicitudesArrastreSchema>) {
@@ -812,9 +948,15 @@ export class ArrastreModel {
 
   static async iniciarVagon(id: number, vagonId: number, input: z.infer<typeof iniciarVagonArrastreSchema>) {
     const arrastreId = await prismaTorreon.$transaction(async (tx) => {
+      // Serializa los inicios de una misma ronda para impedir que dos maquinistas
+      // distintos pasen la validación al mismo tiempo.
+      await tx.$queryRaw`SELECT id FROM "arrastre_torreon" WHERE id = ${id} FOR UPDATE`;
       const arrastre = await getArrastreOrThrow(tx, id);
       if (isArrastreCerrado(arrastre.estado)) {
         throw new DomainError(409, `Arrastre no puede iniciar vagones en estado ${arrastre.estado}`);
+      }
+      if (!input.operadorId) {
+        throw new DomainError(400, "Se requiere el maquinista para iniciar vagones de la ronda");
       }
       const vagon = arrastre.vagones.find((item) => item.id === vagonId);
       if (!vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
@@ -830,14 +972,36 @@ export class ArrastreModel {
         }
       }
 
-      const activo = arrastre.vagones.find((item) => item.estado === EstadoVagonArrastreTorreon.EN_PROCESO);
-      if (activo && activo.id !== vagonId) {
-        throw new DomainError(409, "Ya hay un vagon en proceso dentro de este arrastre", {
-          vagonActivoId: activo.id,
-          ordenActivo: activo.orden,
+      const activos = arrastre.vagones.filter(
+        (item) => item.estado === EstadoVagonArrastreTorreon.EN_PROCESO
+      );
+      const activo = activos.find((item) => item.id === vagonId);
+      if (activo) {
+        const operadorActivoId = vagon.operadorId ?? arrastre.operadorId;
+        if (operadorActivoId == null) {
+          throw new DomainError(409, "Vagon en proceso sin maquinista asignado; requiere revision", {
+            vagonId: vagon.id,
+          });
+        }
+        if (operadorActivoId && operadorActivoId !== input.operadorId) {
+          throw new DomainError(409, "Vagon ya esta en proceso por otro maquinista", {
+            operadorId: operadorActivoId,
+          });
+        }
+        return id;
+      }
+
+      const activoDeOtroMaquinista = activos.find((item) => {
+        const operadorActivoId = item.operadorId ?? arrastre.operadorId;
+        return operadorActivoId == null || operadorActivoId !== input.operadorId;
+      });
+      if (activoDeOtroMaquinista) {
+        throw new DomainError(409, "La ronda ya tiene vagones en proceso por otro maquinista", {
+          vagonActivoId: activoDeOtroMaquinista.id,
+          ordenActivo: activoDeOtroMaquinista.orden,
+          operadorId: activoDeOtroMaquinista.operadorId ?? arrastre.operadorId,
         });
       }
-      if (activo?.id === vagonId) return id;
 
       const incidenteConfirmado = await this.assertPuedeEjecutar(tx, { ...arrastre, vagones: [vagon] }, Boolean(input.confirmarIncidente));
       const fechaInicio = vagon.fechaInicio ?? input.fechaInicio ?? new Date();
@@ -850,14 +1014,23 @@ export class ArrastreModel {
         where: { id: vagonId },
         data: {
           estado: EstadoVagonArrastreTorreon.EN_PROCESO,
+          operadorId: input.operadorId,
           fechaInicio,
           comentario: mergeComentarios(comentarioActual, comentarioIncidente, input.comentarioOperacion),
         },
       });
-      if (input.operadorId && arrastre.operadorId !== input.operadorId) {
+      if (
+        (input.operadorId && arrastre.operadorId !== input.operadorId) ||
+        (input.supervisorId && arrastre.supervisorId !== input.supervisorId) ||
+        (input.coordinadorId && arrastre.coordinadorId !== input.coordinadorId)
+      ) {
         await tx.arrastreTorreon.update({
           where: { id },
-          data: { operadorId: input.operadorId },
+          data: compact({
+            operadorId: input.operadorId,
+            supervisorId: input.supervisorId,
+            coordinadorId: input.coordinadorId,
+          }),
         });
       }
       await this.sincronizarEstadoOperativo(tx, id, fechaInicio);
@@ -873,6 +1046,7 @@ export class ArrastreModel {
       const arrastre = await getArrastreOrThrow(tx, id);
       const vagon = arrastre.vagones.find((item) => item.id === vagonId);
       if (!vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
+      if (vagon.estado === EstadoVagonArrastreTorreon.CONCLUIDO) return id;
       if (vagon.estado !== EstadoVagonArrastreTorreon.EN_PROCESO) {
         throw new DomainError(409, `Vagon debe estar EN_PROCESO para finalizar. Estado actual: ${vagon.estado}`);
       }
@@ -985,20 +1159,28 @@ export class ArrastreModel {
         throw new DomainError(409, `Arrastre no puede detenerse en estado ${arrastre.estado}`);
       }
 
-      const incidenteAbierto = await this.obtenerActivo(tx, id);
-      if (incidenteAbierto) {
-        throw new DomainError(409, "El arrastre ya tiene incidente abierto", {
-          incidenteId: incidenteAbierto.id,
-        });
-      }
-
       const vagon = input.vagonId ? arrastre.vagones.find((item) => item.id === input.vagonId) : undefined;
       if (input.vagonId && !vagon) throw new DomainError(404, "Vagon no pertenece al arrastre");
 
       const viaBloqueadaId = input.viaBloqueadaId ?? vagon?.viaId ?? vagon?.viaOrigenId ?? arrastre.viaDestinoId ?? arrastre.viaOrigenId;
       const seccionBloqueadaId = input.seccionBloqueadaId ?? vagon?.seccionId ?? vagon?.seccionOrigenId ?? arrastre.seccionDestinoId ?? arrastre.seccionOrigenId;
 
-      if (!viaBloqueadaId && !seccionBloqueadaId) {
+      const incidenteAbierto = await this.obtenerActivo(tx, id);
+      if (incidenteAbierto) {
+        const mismoReporte =
+          incidenteAbierto.creadoPorId === input.creadoPorId &&
+          incidenteAbierto.motivo === input.motivo &&
+          incidenteAbierto.vagonId === (vagon?.id ?? null) &&
+          incidenteAbierto.bloqueoGeneral === input.bloqueoGeneral &&
+          incidenteAbierto.viaBloqueadaId === (input.bloqueoGeneral ? null : viaBloqueadaId ?? null) &&
+          incidenteAbierto.seccionBloqueadaId === (input.bloqueoGeneral ? null : seccionBloqueadaId ?? null);
+        if (mismoReporte) return { arrastreId: id, incidenteId: incidenteAbierto.id };
+        throw new DomainError(409, "El arrastre ya tiene incidente abierto", {
+          incidenteId: incidenteAbierto.id,
+        });
+      }
+
+      if (!input.bloqueoGeneral && !viaBloqueadaId && !seccionBloqueadaId) {
         throw new DomainError(400, "Debe existir via o seccion para bloquear");
       }
 
@@ -1008,9 +1190,10 @@ export class ArrastreModel {
           vagonId: vagon?.id,
           creadoPorId: input.creadoPorId,
           motivo: input.motivo,
+          bloqueoGeneral: input.bloqueoGeneral,
           localidadId: arrastre.localidadId,
-          viaBloqueadaId,
-          seccionBloqueadaId,
+          viaBloqueadaId: input.bloqueoGeneral ? null : viaBloqueadaId,
+          seccionBloqueadaId: input.bloqueoGeneral ? null : seccionBloqueadaId,
           fechaInicio: input.fechaInicio ?? new Date(),
         },
       });
@@ -1028,7 +1211,9 @@ export class ArrastreModel {
       await tx.arrastreTorreonVagon.updateMany({
         where: {
           arrastreId: id,
-          ...(vagon
+          ...(input.bloqueoGeneral
+            ? {}
+            : vagon
             ? { id: vagon.id }
             : viaBloqueadaId && seccionBloqueadaId
               ? {
@@ -1042,7 +1227,7 @@ export class ArrastreModel {
                 : seccionBloqueadaId
                   ? { OR: [{ seccionOrigenId: seccionBloqueadaId }, { seccionId: seccionBloqueadaId }] }
                   : {}),
-          estado: EstadoVagonArrastreTorreon.PENDIENTE,
+          estado: { in: [EstadoVagonArrastreTorreon.PENDIENTE, EstadoVagonArrastreTorreon.EN_PROCESO] },
         },
         data: { estado: EstadoVagonArrastreTorreon.BLOQUEADO },
       });
@@ -1086,23 +1271,19 @@ export class ArrastreModel {
       await this.recalcularBloqueosLocalidad(tx, incidente.localidadId);
       await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
 
-      const [incidentesAbiertos, vagonesPendientes] = await Promise.all([
+      const [incidentesAbiertos, vagonesPendientes, vagonesEnProceso] = await Promise.all([
         tx.incidenteArrastreTorreon.count({
           where: { arrastreId: id, estado: EstadoIncidenteArrastreTorreon.ABIERTO },
         }),
         tx.arrastreTorreonVagon.count({
           where: { arrastreId: id, estado: { not: EstadoVagonArrastreTorreon.CONCLUIDO } },
         }),
+        tx.arrastreTorreonVagon.count({
+          where: { arrastreId: id, estado: EstadoVagonArrastreTorreon.EN_PROCESO },
+        }),
       ]);
 
-      if (incidentesAbiertos === 0 && vagonesPendientes > 0) {
-        await tx.arrastreTorreonVagon.updateMany({
-          where: {
-            arrastreId: id,
-            estado: EstadoVagonArrastreTorreon.EN_PROCESO,
-          },
-          data: { estado: EstadoVagonArrastreTorreon.PENDIENTE },
-        });
+      if (incidentesAbiertos === 0 && vagonesPendientes > 0 && vagonesEnProceso === 0) {
         await tx.arrastreTorreon.update({
           where: { id },
           data: {

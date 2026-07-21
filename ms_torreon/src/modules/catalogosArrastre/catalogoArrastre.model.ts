@@ -11,9 +11,6 @@ const catalogInclude = {
   secciones: { where: { activa: true }, orderBy: [{ numero: "asc" as const }, { id: "asc" as const }] },
 };
 
-const VIA_ID_NAMESPACE = 1_000_000_000;
-const SECTION_ID_NAMESPACE = 1_500_000_000;
-
 async function assertCompleteCatalog(tx: Tx, input: SaveCatalog) {
   const current = await tx.viaArrastreTorreon.findMany({
     where: { localidadId: input.localidadId },
@@ -80,8 +77,8 @@ export class CatalogoArrastreModel {
         tx.viaArrastreTorreon.aggregate({ _max: { id: true } }),
         tx.seccionArrastreTorreon.aggregate({ _max: { id: true } }),
       ]);
-      let nextViaId = Math.max(VIA_ID_NAMESPACE - 1, viaMax._max.id ?? 0) + 1;
-      let nextSectionId = Math.max(SECTION_ID_NAMESPACE - 1, sectionMax._max.id ?? 0) + 1;
+      let nextViaId = (viaMax._max.id ?? 0) + 1;
+      let nextSectionId = (sectionMax._max.id ?? 0) + 1;
 
       await assertCompleteCatalog(tx, input);
       await stageExistingRecords(tx, input);

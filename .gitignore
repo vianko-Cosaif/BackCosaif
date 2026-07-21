@@ -10,6 +10,7 @@ logs/*
 .env
 .env.torno
 msTorno/generated
+msComercial/generated
 src/logs
 dist
 logs/

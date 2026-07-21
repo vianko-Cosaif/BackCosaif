@@ -13,6 +13,8 @@ import { LocomotorasPdfController } from '../controller/locomotorasPdf';
 import { EmpresasPdfController } from '../controller/empresasPdf';
 import { ClienteCargaOperativaController } from '../controller/clienteCargaOperativaController';
 import { ClienteReportesOperativosController } from '../controller/clienteReportesOperativosController';
+import { ComercialReporteriaController } from '../controller/comercialController';
+import { requireCommercialReportAccess } from '../commercialAccess';
 
 const router = Router();
 
@@ -61,6 +63,7 @@ router.use(authenticateAccess);
  */
 router.get('/movimientos/pdf', MovimientoPdfController.generar);
 router.get('/admin', AdminReporteriaController.getJSON);
+router.get('/comercial', requireCommercialReportAccess, ComercialReporteriaController.getJSON);
 router.get('/admin/pdf', AdminReporteriaController.getPDF);
 router.get('/ceo/cumplimiento', CeoReportsController.cumplimientoJSON);
 router.get('/ceo/cumplimiento/pdf', CeoReportsController.cumplimientoPDF);

@@ -450,3 +450,3796 @@
   layer: 'HTTP',
   timestamp: '2026-05-11 11:38:20'
 }
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1939:16)
+      at listenInCluster (node:net:1996:12)
+      at node:net:2205:7
+      at processTicksAndRejections (node:internal/process/task_queues:90:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n' +
+    '    at listenInCluster (node:net:1996:12)\n' +
+    '    at node:net:2205:7\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:90:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n' +
+    '    at listenInCluster (node:net:1996:12)\n' +
+    '    at node:net:2205:7\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:90:21)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:35:10 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 30340,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/usr/local/bin/node',
+    version: 'v22.16.0',
+    argv: [ '/usr/local/bin/node', 'index.ts' ],
+    memoryUsage: {
+      rss: 154648576,
+      heapTotal: 85442560,
+      heapUsed: 64607464,
+      external: 2828240,
+      arrayBuffers: 71727
+    }
+  },
+  os: {
+    loadavg: [ 2.5185546875, 3.16455078125, 3.5703125 ],
+    uptime: 325778
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1939,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1996,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: null,
+      line: 2205,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 90,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:35:10'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:54:55 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 40473,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145391616,
+      heapTotal: 81723392,
+      heapUsed: 49820944,
+      external: 2731946,
+      arrayBuffers: 114826
+    }
+  },
+  os: {
+    loadavg: [ 3.302734375, 3.0341796875, 3.1845703125 ],
+    uptime: 326963
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:54:55'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:55:00 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 41935,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145506304,
+      heapTotal: 80936960,
+      heapUsed: 49894984,
+      external: 2731952,
+      arrayBuffers: 114832
+    }
+  },
+  os: {
+    loadavg: [ 3.2783203125, 3.033203125, 3.18310546875 ],
+    uptime: 326968
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:55:00'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:55:32 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 43853,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145637376,
+      heapTotal: 81461248,
+      heapUsed: 49851312,
+      external: 2731964,
+      arrayBuffers: 114844
+    }
+  },
+  os: {
+    loadavg: [ 2.29931640625, 2.82080078125, 3.1005859375 ],
+    uptime: 327000
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:55:32'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:55:56 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 45429,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 146227200,
+      heapTotal: 81199104,
+      heapUsed: 50252664,
+      external: 2738913,
+      arrayBuffers: 121793
+    }
+  },
+  os: {
+    loadavg: [ 2.2177734375, 2.767578125, 3.072265625 ],
+    uptime: 327024
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:55:56'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:56:01 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 46763,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145866752,
+      heapTotal: 81199104,
+      heapUsed: 49903560,
+      external: 2731964,
+      arrayBuffers: 114844
+    }
+  },
+  os: {
+    loadavg: [ 2.5205078125, 2.82080078125, 3.08935546875 ],
+    uptime: 327029
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:56:01'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:56:08 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 48097,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145309696,
+      heapTotal: 81739776,
+      heapUsed: 49846336,
+      external: 2731946,
+      arrayBuffers: 114826
+    }
+  },
+  os: {
+    loadavg: [ 2.3984375, 2.79052734375, 3.07666015625 ],
+    uptime: 327036
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:56:08'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:56:11 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 48803,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145620992,
+      heapTotal: 81281024,
+      heapUsed: 49690800,
+      external: 2731912,
+      arrayBuffers: 114792
+    }
+  },
+  os: { loadavg: [ 2.3662109375, 2.77734375, 3.0703125 ], uptime: 327039 },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:56:11'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/TornoMs/TornoMsRoutes.ts(192,5): error TS2561: Object literal may only specify known properties, but 'incidenteHijoId' does not exist in type '{ movimientoId: number; incidenteId?: string | number | null | undefined; status?: string | null | undefined; tipoFalla?: string | null | undefined; comentario?: string | null | undefined; resuelto?: boolean | ... 1 more ... | undefined; numeroLocomotora?: number | ... 1 more ... | undefined; }'. Did you mean to write 'incidenteId'?\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:32:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js:69:33)',
+  exception: true,
+  date: 'Mon Jul 20 2026 10:56:30 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 49804,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 145424384,
+      heapTotal: 81477632,
+      heapUsed: 49887864,
+      external: 2731912,
+      arrayBuffers: 114792
+    }
+  },
+  os: { loadavg: [ 2.2109375, 2.71044921875, 3.0390625 ], uptime: 327058 },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/TornoMs/TornoMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 32,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-7273017595766149.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 10:56:30'
+}
+{
+  error: Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
+      at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+      at listenInCluster (node:net:1965:12)
+      at doListen (node:net:2139:7)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21) {
+    code: 'EADDRINUSE',
+    errno: -48,
+    syscall: 'listen',
+    address: '0.0.0.0',
+    port: 3000
+  },
+  level: 'error',
+  message: 'uncaughtException: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  stack: 'Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n' +
+    '    at Server.setupListenHandle [as _listen2] (node:net:1908:16)\n' +
+    '    at listenInCluster (node:net:1965:12)\n' +
+    '    at doListen (node:net:2139:7)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:83:21)',
+  exception: true,
+  date: 'Mon Jul 20 2026 11:44:38 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 69576,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 150847488,
+      heapTotal: 86278144,
+      heapUsed: 52877344,
+      external: 2725609,
+      arrayBuffers: 77895
+    }
+  },
+  os: {
+    loadavg: [ 3.96337890625, 3.9931640625, 3.87060546875 ],
+    uptime: 329946
+  },
+  trace: [
+    {
+      column: 16,
+      file: 'node:net',
+      function: 'Server.setupListenHandle [as _listen2]',
+      line: 1908,
+      method: 'setupListenHandle [as _listen2]',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:net',
+      function: 'listenInCluster',
+      line: 1965,
+      method: null,
+      native: false
+    },
+    {
+      column: 7,
+      file: 'node:net',
+      function: 'doListen',
+      line: 2139,
+      method: null,
+      native: false
+    },
+    {
+      column: 21,
+      file: 'node:internal/process/task_queues',
+      function: 'processTicksAndRejections',
+      line: 83,
+      method: null,
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-20 11:44:38'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/reporteria/modelos/comercial-excel.ts(140,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.
+    The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.
+      Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-excel.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/controller/comercialExcelController.ts:3:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-excel.ts(140,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.\n" +
+    "  The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.\n" +
+    `    Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-excel.ts(140,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.\n" +
+    "  The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.\n" +
+    `    Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/controller/comercialExcelController.ts:3:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-excel.ts(140,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.\n" +
+    "  The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.\n" +
+    `    Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/controller/comercialExcelController.ts:3:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 10:38:40 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 47288,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 146096128,
+      heapTotal: 81166336,
+      heapUsed: 53361904,
+      external: 2734462,
+      arrayBuffers: 117342
+    }
+  },
+  os: { loadavg: [ 4.7109375, 5.177734375, 4.80078125 ], uptime: 412388 },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-excel.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/controller/comercialExcelController.ts',
+      function: null,
+      line: 3,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 10:38:40'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/reporteria/modelos/comercial-crm-excel.ts(230,12): error TS2339: Property 'company' does not exist on type 'Workbook'.
+  src/reporteria/modelos/comercial-crm-excel.ts(231,12): error TS2339: Property 'subject' does not exist on type 'Workbook'.
+  src/reporteria/modelos/comercial-crm-excel.ts(232,12): error TS2339: Property 'title' does not exist on type 'Workbook'.
+  src/reporteria/modelos/comercial-crm-excel.ts(239,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.
+    The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.
+      Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-crm-excel.ts(230,12): error TS2339: Property 'company' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(231,12): error TS2339: Property 'subject' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(232,12): error TS2339: Property 'title' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(239,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.\n" +
+    "  The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.\n" +
+    `    Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-crm-excel.ts(230,12): error TS2339: Property 'company' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(231,12): error TS2339: Property 'subject' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(232,12): error TS2339: Property 'title' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(239,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.\n" +
+    "  The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.\n" +
+    `    Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-crm-excel.ts(230,12): error TS2339: Property 'company' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(231,12): error TS2339: Property 'subject' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(232,12): error TS2339: Property 'title' does not exist on type 'Workbook'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(239,39): error TS2322: Type 'Buffer<ArrayBufferLike>' is not assignable to type 'Buffer'.\n" +
+    "  The types of 'slice(...)[Symbol.toStringTag]' are incompatible between these types.\n" +
+    `    Type '"Uint8Array"' is not assignable to type '"ArrayBuffer"'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 11:57:50 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 32939,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 149798912,
+      heapTotal: 84180992,
+      heapUsed: 54305112,
+      external: 2751516,
+      arrayBuffers: 134396
+    }
+  },
+  os: { loadavg: [ 4.96875, 4.697265625, 4.59326171875 ], uptime: 417138 },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 7,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 11:57:50'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.
+  src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.
+  src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:6:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.\n' +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.\n" +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.\n' +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.\n" +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:6:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.\n' +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.\n" +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:6:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 12:07:32 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 65677,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 148324352,
+      heapTotal: 82935808,
+      heapUsed: 55585456,
+      external: 2753050,
+      arrayBuffers: 135930
+    }
+  },
+  os: {
+    loadavg: [ 4.65380859375, 8.26953125, 7.60107421875 ],
+    uptime: 417720
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 6,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 12:07:32'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.
+  src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.
+  src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:6:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.\n' +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.\n" +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.\n' +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.\n" +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:6:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-analytics.ts(375,19): error TS2554: Expected 3 arguments, but got 2.\n' +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(378,37): error TS2304: Cannot find name 'monthKey'.\n" +
+    "src/reporteria/modelos/comercial-crm-analytics.ts(405,11): error TS2304: Cannot find name 'monthKey'.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:6:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 12:07:37 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 70978,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 148471808,
+      heapTotal: 82935808,
+      heapUsed: 55681840,
+      external: 2753050,
+      arrayBuffers: 135930
+    }
+  },
+  os: {
+    loadavg: [ 5.32177734375, 8.34765625, 7.63232421875 ],
+    uptime: 417725
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-analytics.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 6,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 12:07:37'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/reporteria/modelos/comercial-crm-excel.ts(248,86): error TS2554: Expected 4 arguments, but got 5.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-excel.ts(248,86): error TS2554: Expected 4 arguments, but got 5.\n' +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-excel.ts(248,86): error TS2554: Expected 4 arguments, but got 5.\n' +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/reporteria/modelos/comercial-crm-excel.ts(248,86): error TS2554: Expected 4 arguments, but got 5.\n' +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 12:08:40 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 84814,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 149700608,
+      heapTotal: 83623936,
+      heapUsed: 55821912,
+      external: 2749642,
+      arrayBuffers: 132522
+    }
+  },
+  os: {
+    loadavg: [ 5.9267578125, 7.9326171875, 7.52734375 ],
+    uptime: 417788
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 7,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 12:08:40'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/ComercialMs/ComercialMsRoutes.ts(64,54): error TS2769: No overload matches this call.
+    Overload 1 of 2, '(iterable?: Iterable<CrmExcelSection> | null | undefined): Set<CrmExcelSection>', gave the following error.
+      Argument of type '("NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA")[]' is not assignable to parameter of type 'Iterable<CrmExcelSection>'.
+        The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.
+          Type 'IteratorResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA", undefined>' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.
+            Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.
+              Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorYieldResult<CrmExcelSection>'.
+                Type '"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA"' is not assignable to type 'CrmExcelSection'.
+                  Type '"NATURAL"' is not assignable to type 'CrmExcelSection'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:37:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    'src/Rutas/ComercialMs/ComercialMsRoutes.ts(64,54): error TS2769: No overload matches this call.\n' +
+    "  Overload 1 of 2, '(iterable?: Iterable<CrmExcelSection> | null | undefined): Set<CrmExcelSection>', gave the following error.\n" +
+    `    Argument of type '("NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA")[]' is not assignable to parameter of type 'Iterable<CrmExcelSection>'.\n` +
+    "      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.\n" +
+    `        Type 'IteratorResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA", undefined>' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.\n` +
+    `          Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.\n` +
+    `            Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorYieldResult<CrmExcelSection>'.\n` +
+    `              Type '"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA"' is not assignable to type 'CrmExcelSection'.\n` +
+    `                Type '"NATURAL"' is not assignable to type 'CrmExcelSection'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/Rutas/ComercialMs/ComercialMsRoutes.ts(64,54): error TS2769: No overload matches this call.\n' +
+    "  Overload 1 of 2, '(iterable?: Iterable<CrmExcelSection> | null | undefined): Set<CrmExcelSection>', gave the following error.\n" +
+    `    Argument of type '("NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA")[]' is not assignable to parameter of type 'Iterable<CrmExcelSection>'.\n` +
+    "      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.\n" +
+    `        Type 'IteratorResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA", undefined>' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.\n` +
+    `          Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.\n` +
+    `            Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorYieldResult<CrmExcelSection>'.\n` +
+    `              Type '"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA"' is not assignable to type 'CrmExcelSection'.\n` +
+    `                Type '"NATURAL"' is not assignable to type 'CrmExcelSection'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:37:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    'src/Rutas/ComercialMs/ComercialMsRoutes.ts(64,54): error TS2769: No overload matches this call.\n' +
+    "  Overload 1 of 2, '(iterable?: Iterable<CrmExcelSection> | null | undefined): Set<CrmExcelSection>', gave the following error.\n" +
+    `    Argument of type '("NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA")[]' is not assignable to parameter of type 'Iterable<CrmExcelSection>'.\n` +
+    "      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.\n" +
+    `        Type 'IteratorResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA", undefined>' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.\n` +
+    `          Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorResult<CrmExcelSection, any>'.\n` +
+    `            Type 'IteratorYieldResult<"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA">' is not assignable to type 'IteratorYieldResult<CrmExcelSection>'.\n` +
+    `              Type '"NATURAL" | "ARRASTRE" | "COBRANZA" | "RESUMEN" | "TENDENCIA" | "PATIOS" | "CLIENTES" | "CONTRATOS" | "PAQUETES" | "OPERACIONES" | "GUIA"' is not assignable to type 'CrmExcelSection'.\n` +
+    `                Type '"NATURAL"' is not assignable to type 'CrmExcelSection'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:37:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 12:53:42 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 70491,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 148439040,
+      heapTotal: 82935808,
+      heapUsed: 55142080,
+      external: 2770382,
+      arrayBuffers: 153262
+    }
+  },
+  os: {
+    loadavg: [ 3.67919921875, 4.185546875, 4.623046875 ],
+    uptime: 420490
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 37,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-39868119260615975.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 12:53:42'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/reporteria/modelos/comercial-crm-excel.ts(421,232): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.
+  src/reporteria/modelos/comercial-crm-excel.ts(433,77): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-crm-excel.ts(421,232): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(433,77): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-crm-excel.ts(421,232): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(433,77): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/reporteria/modelos/comercial-crm-excel.ts(421,232): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.\n" +
+    "src/reporteria/modelos/comercial-crm-excel.ts(433,77): error TS2339: Property 'teal' does not exist on type '{ navy: string; slate: string; emerald: string; green: string; blue: string; cyan: string; amber: string; rose: string; white: string; soft: string; line: string; muted: string; }'.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:7:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 13:50:46 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 84048,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 147570688,
+      heapTotal: 83361792,
+      heapUsed: 56690728,
+      external: 2767112,
+      arrayBuffers: 149992
+    }
+  },
+  os: {
+    loadavg: [ 3.09912109375, 3.65673828125, 3.802734375 ],
+    uptime: 423914
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/reporteria/modelos/comercial-crm-excel.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 7,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 13:50:46'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/Rutas/ComercialMs/ComercialMsRoutes.ts(99,49): error TS7006: Parameter 'section' implicitly has an 'any' type.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:37:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/ComercialMs/ComercialMsRoutes.ts(99,49): error TS7006: Parameter 'section' implicitly has an 'any' type.\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/ComercialMs/ComercialMsRoutes.ts(99,49): error TS7006: Parameter 'section' implicitly has an 'any' type.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:37:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/Rutas/ComercialMs/ComercialMsRoutes.ts(99,49): error TS7006: Parameter 'section' implicitly has an 'any' type.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:37:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js:69:33)',
+  exception: true,
+  date: 'Tue Jul 21 2026 13:51:16 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 91878,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 148258816,
+      heapTotal: 82935808,
+      heapUsed: 55312792,
+      external: 2740634,
+      arrayBuffers: 123514
+    }
+  },
+  os: {
+    loadavg: [ 4.14404296875, 3.8623046875, 3.8720703125 ],
+    uptime: 423944
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Rutas/ComercialMs/ComercialMsRoutes.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 37,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-2130653164138021.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-07-21 13:51:16'
+}

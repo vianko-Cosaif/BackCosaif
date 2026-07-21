@@ -264,6 +264,17 @@ export class MovimientoModel {
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await getMovimientoOrThrow(tx, id);
 
+      if (
+        movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO &&
+        movimiento.operadorId === (input.operadorId ?? movimiento.operadorId)
+      ) {
+        return id;
+      }
+      if (movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO) {
+        throw new DomainError(409, "Movimiento ya esta en proceso por otro maquinista", {
+          operadorId: movimiento.operadorId,
+        });
+      }
       if (isMovimientoCerrado(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede iniciar en estado ${movimiento.estado}`);
       }
@@ -302,6 +313,8 @@ export class MovimientoModel {
         data: {
           estado: EstadoMovimientoTorreon.EN_PROCESO,
           operadorId: input.operadorId ?? movimiento.operadorId,
+          supervisorId: input.supervisorId ?? movimiento.supervisorId,
+          coordinadorId: input.coordinadorId ?? movimiento.coordinadorId,
           fechaInicio,
           fechaPausa: null,
         },
@@ -332,6 +345,7 @@ export class MovimientoModel {
   static async finalizar(id: number, input: z.infer<typeof finalizarMovimientoSchema>) {
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await getMovimientoOrThrow(tx, id);
+      if (movimiento.estado === EstadoMovimientoTorreon.CONCLUIDO) return id;
       if (movimiento.estado !== EstadoMovimientoTorreon.EN_PROCESO) {
         throw new DomainError(409, `Movimiento debe estar EN_PROCESO para finalizar. Estado actual: ${movimiento.estado}`);
       }

@@ -1,5 +1,4 @@
 import {
-  EstadoIncidenteArrastreTorreon,
   EstadoIncidenteTorreon,
   EstadoMovimientoTorreon,
   EstadoRondaMovimientoTorreon,
@@ -448,38 +447,23 @@ export class RondaModel {
   }
 
   static async recalcularBloqueosLocalidad(tx: Tx, localidadId: number) {
-    const [incidentesNaturales, incidentesArrastre] = await Promise.all([
-      tx.incidenteTorreonFerro.findMany({
-        where: {
-          localidadId,
-          estado: EstadoIncidenteTorreon.ABIERTO,
-        },
-        orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          localidadId: true,
-          viaBloqueadaId: true,
-          seccionBloqueadaId: true,
-        },
-      }),
-      tx.incidenteArrastreTorreon.findMany({
-        where: {
-          localidadId,
-          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
-        },
-        orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          localidadId: true,
-          viaBloqueadaId: true,
-          seccionBloqueadaId: true,
-        },
-      }),
-    ]);
-    const incidentesAbiertos: IncidenteBloqueoRefs[] = [
-      ...incidentesNaturales.map((incidente) => ({ ...incidente, origen: "NATURAL" as const })),
-      ...incidentesArrastre.map((incidente) => ({ ...incidente, origen: "ARRASTRE" as const })),
-    ];
+    const incidentesNaturales = await tx.incidenteTorreonFerro.findMany({
+      where: {
+        localidadId,
+        estado: EstadoIncidenteTorreon.ABIERTO,
+      },
+      orderBy: [{ fechaInicio: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        localidadId: true,
+        viaBloqueadaId: true,
+        seccionBloqueadaId: true,
+      },
+    });
+    const incidentesAbiertos: IncidenteBloqueoRefs[] = incidentesNaturales.map((incidente) => ({
+      ...incidente,
+      origen: "NATURAL" as const,
+    }));
 
     const rondas = await tx.rondaTorreon.findMany({
       where: {

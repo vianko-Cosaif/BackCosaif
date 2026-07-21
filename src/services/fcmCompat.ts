@@ -64,6 +64,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
         tag: String(tag),
         renotify: true,
         requireInteraction: true,
+        silent: false,
         ...((payload.webpush as any)?.notification ?? {}),
       },
     },

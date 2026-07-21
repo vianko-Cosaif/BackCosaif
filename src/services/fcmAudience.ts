@@ -3,7 +3,14 @@ import { prisma } from '../lib/prisma';
 
 const CLIENT_ROLES: Rol[] = [Rol.CLIENTE, Rol.CLIENTE_ADMIN, Rol.ARRASTRE_TORREON];
 const CLIENT_COORDINATION_ROLES: Rol[] = [Rol.CLIENTE_COOR];
-const LOCAL_OPERATION_ROLES: Rol[] = [Rol.SUPERVISOR, Rol.OPERADOR, Rol.MAQUINISTA, Rol.MAQUINISTA_ARRASTRE];
+const LOCAL_OPERATION_ROLES: Rol[] = [
+  Rol.SUPERVISOR,
+  Rol.OPERADOR,
+  Rol.MAQUINISTA,
+  Rol.MAQUINISTA_ARRASTRE,
+  Rol.TORNO,
+  Rol.LAVADO,
+];
 const LOCATION_AWARE_ROLES: Rol[] = [Rol.COORDINADOR, Rol.ADMINISTRADOR];
 
 type UserWithTokens = {
@@ -67,6 +74,7 @@ export async function usuariosAudienciaOperacion(params: {
   empresaId: number | null | undefined;
   localidadId: number | null | undefined;
   usuarioIds?: Array<number | null | undefined>;
+  roles?: Rol[];
 }) {
   const { empresaId, localidadId } = params;
   const scopeLocalidadId = toPositiveInt(localidadId);
@@ -142,13 +150,16 @@ export async function usuariosAudienciaOperacion(params: {
       : Promise.resolve([]),
   ]);
 
-  return uniqueUsers([...clientes, ...clientesCoordinacion, ...locales, ...coordinacion, ...usuariosForzados]);
+  const usuarios = uniqueUsers([...clientes, ...clientesCoordinacion, ...locales, ...coordinacion, ...usuariosForzados]);
+  const roles = params.roles?.length ? new Set(params.roles) : null;
+  return roles ? usuarios.filter((usuario) => roles.has(usuario.rol)) : usuarios;
 }
 
 export async function tokensAudienciaOperacion(params: {
   empresaId: number | null | undefined;
   localidadId: number | null | undefined;
   usuarioIds?: Array<number | null | undefined>;
+  roles?: Rol[];
 }) {
   const usuarios = await usuariosAudienciaOperacion(params);
   return {

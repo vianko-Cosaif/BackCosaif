@@ -2300,9 +2300,11 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
     try {
       const movimiento = await MovimientoModel.iniciarMovimiento(id, operadorId);
       res.status(200).json({ message: 'Movimiento iniciado', movimiento });
-    } catch (error) {
+    } catch (error: any) {
       log.error('Error al iniciar movimiento', { id, operadorId, error });
-      res.status(500).json({ message: 'Error al iniciar movimiento' });
+      res.status(Number(error?.status) || 500).json({
+        message: error?.message || 'Error al iniciar movimiento',
+      });
     }
   };
 

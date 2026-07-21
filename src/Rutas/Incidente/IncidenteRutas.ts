@@ -2,6 +2,7 @@
 
 import { Router } from 'express';
 import { authenticateAccess } from '../../auth/authenticateAccess';
+import { idempotentMutation } from '../../middlewares/idempotentMutation';
 import {
   IncidenteController,
   uploadImagenes,
@@ -12,6 +13,7 @@ const router = Router();
 
 // Todas las rutas requieren JWT
 router.use(authenticateAccess);
+router.use(idempotentMutation);
 
 
 // ——— RUTAS DE CONSULTA ———

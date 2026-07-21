@@ -556,6 +556,15 @@ export class IncidenteModel {
 
         await this.reprogramarMovimientoPorIncidenteNoResuelto(incidenteId);
 
+        const incidenteCerrado = await prisma.incidente.findUnique({ where: { id: incidenteId } });
+        if (incidenteCerrado) {
+          await bestEffort(
+            'NotificadorFCM.notificarCambioEstado(timeout)',
+            () => NotificadorFCM.notificarCambioEstado(incidenteCerrado, 'ABIERTO', 'incidente_timeout'),
+            { rid, incidenteId }
+          );
+        }
+
         trace('info', 'Incidente autocerrado por timeout exacto', {
           rid,
           incidenteId,
@@ -1575,6 +1584,24 @@ export class IncidenteModel {
           include: { empresa: true, localidad: true, ronda: true },
         });
         if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
+
+        const incidenteExistente = await prisma.incidente.findFirst({
+          where: {
+            movimientoId: data.movimientoId,
+            usuarioId: data.usuarioId,
+            descripcion: data.descripcion,
+            estado: 'ABIERTO',
+          },
+          orderBy: { fechaInicio: 'desc' },
+        });
+        if (incidenteExistente) {
+          trace('info', 'crearIncidente:idempotente', {
+            rid,
+            incidenteId: incidenteExistente.id,
+            movimientoId: data.movimientoId,
+          });
+          return incidenteExistente;
+        }
 
         const fechaInicioIncidente = new Date();
 

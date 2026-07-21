@@ -317,6 +317,7 @@ model ArrastreTorreon {
 model ArrastreTorreonVagon {
   id                   Int                        @id @default(autoincrement())
   arrastreId           Int                        @map("arrastre_id")
+  operadorId           Int?                       @map("operador_id")
   orden                Int
   numeroVagon          String?                    @map("numero_vagon")
   carga                CargaVagonArrastreTorreon
@@ -341,6 +342,7 @@ model ArrastreTorreonVagon {
 
   @@unique([arrastreId, orden])
   @@index([arrastreId, estado])
+  @@index([operadorId, estado])
   @@index([viaOrigenId, estado])
   @@index([seccionOrigenId, estado])
   @@index([viaOrigenId, seccionOrigenId, estado])
@@ -348,6 +350,24 @@ model ArrastreTorreonVagon {
   @@index([seccionId, estado])
   @@index([viaId, seccionId, estado])
   @@map("arrastre_torreon_vagon")
+}
+
+/// Bitácora inmutable de cambios realizados a una solicitud de Arrastre.
+/// Conserva evidencia aunque el contenido operativo cambie posteriormente.
+model ArrastreTorreonEdicion {
+  id               Int      @id @default(autoincrement())
+  arrastreId       Int      @map("arrastre_id")
+  editadoPorId     Int      @map("editado_por_id")
+  editadoPorRol    String   @map("editado_por_rol")
+  editadoPorNombre String?  @map("editado_por_nombre")
+  motivo           String?
+  antes            Json
+  despues          Json
+  fechaEdicion     DateTime @default(now()) @map("fecha_edicion")
+
+  @@index([arrastreId, fechaEdicion])
+  @@index([editadoPorId, fechaEdicion])
+  @@map("arrastre_torreon_edicion")
 }
 
 /// Catálogo exclusivo del patio de Arrastre. No comparte IDs ni configuración
@@ -395,6 +415,7 @@ model IncidenteArrastreTorreon {
   estado             EstadoIncidenteArrastreTorreon @default(ABIERTO)
   motivo             String
   solucion           String?
+  bloqueoGeneral     Boolean                        @default(false) @map("bloqueo_general")
   localidadId        Int                            @map("localidad_id")
   viaBloqueadaId     Int?                           @map("via_bloqueada_id")
   seccionBloqueadaId Int?                           @map("seccion_bloqueada_id")

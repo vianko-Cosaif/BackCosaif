@@ -119,6 +119,22 @@ export const createArrastreSchema = z.object({
   vagones: z.array(arrastreVagonInputSchema).min(1).max(8),
 }).superRefine(validarArrastre);
 
+const editarArrastreVagonSchema = z.intersection(
+  arrastreVagonInputSchema,
+  z.object({
+    id: idSchema,
+  })
+);
+
+export const editarArrastreSchema = z.object({
+  editadoPorId: idSchema,
+  editadoPorRol: z.string().trim().min(2).max(50),
+  editadoPorNombre: z.string().trim().min(2).max(120).optional(),
+  motivoEdicion: z.string().trim().min(3).max(300).optional(),
+  instrucciones: z.string().trim().min(3).max(1_000),
+  vagones: z.array(editarArrastreVagonSchema).min(1).max(8),
+}).superRefine(validarArrastre);
+
 export const iniciarArrastreSchema = z.object({
   operadorId: idSchema.optional(),
   iniciadoPorId: idSchema,
@@ -138,6 +154,8 @@ export const cancelarArrastreSchema = z.object({
 
 export const iniciarVagonArrastreSchema = z.object({
   operadorId: idSchema.optional(),
+  supervisorId: idSchema.optional(),
+  coordinadorId: idSchema.optional(),
   iniciadoPorId: idSchema.optional(),
   fechaInicio: z.coerce.date().optional(),
   confirmarIncidente: z.coerce.boolean().optional(),
@@ -235,6 +253,7 @@ export const crearIncidenteArrastreSchema = withCapturas.extend({
   creadoPorId: idSchema,
   motivo: z.string().trim().min(3),
   vagonId: idSchema.optional(),
+  bloqueoGeneral: z.coerce.boolean().optional().default(false),
   viaBloqueadaId: idSchema.optional(),
   seccionBloqueadaId: idSchema.optional(),
   fechaInicio: z.coerce.date().optional(),

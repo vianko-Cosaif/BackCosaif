@@ -7,6 +7,8 @@ import { MovimientoExcelController } from '../controller/movimientoExcel';
 import { LocomotorasExcelController } from '../controller/locomotorasExcel';
 import { EmpresasExcelController } from '../controller/empresasExcel';
 import { EmpresaLocomotorasExcelController } from '../controller/empresaLocomotorasExcel';
+import { ComercialExcelController } from '../controller/comercialExcelController';
+import { requireCommercialReportAccess } from '../commercialAccess';
 
 const router = Router();
 
@@ -26,5 +28,6 @@ router.get('/movimientos/excel', MovimientoExcelController.generar);
 router.get('/locomotoras/excel', LocomotorasExcelController.generar);
 router.get('/empresas/excel', EmpresasExcelController.generar);
 router.get('/empresa-locomotoras/excel', EmpresaLocomotorasExcelController.generar);
+router.post('/comercial/excel', requireCommercialReportAccess, ComercialExcelController.generar);
 
 export default router;

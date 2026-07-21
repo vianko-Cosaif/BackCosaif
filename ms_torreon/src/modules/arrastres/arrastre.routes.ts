@@ -7,6 +7,8 @@ export const arrastreRouter = Router();
 arrastreRouter.get("/", asyncHandler(ArrastreController.listar));
 arrastreRouter.post("/", asyncHandler(ArrastreController.crear));
 arrastreRouter.patch("/orden-solicitudes", asyncHandler(ArrastreController.reordenarSolicitudes));
+arrastreRouter.get("/:id/ediciones", asyncHandler(ArrastreController.listarEdiciones));
+arrastreRouter.patch("/:id", asyncHandler(ArrastreController.editar));
 arrastreRouter.get("/:id", asyncHandler(ArrastreController.obtener));
 arrastreRouter.post("/:id/iniciar", asyncHandler(ArrastreController.iniciar));
 arrastreRouter.patch("/:id/finalizar", asyncHandler(ArrastreController.finalizar));

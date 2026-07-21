@@ -62,6 +62,10 @@ const COORDINADOR_LOCAL_ALLOWED_ROLES = new Set<Rol>([
   Rol.MAQUINISTA,
   Rol.MAQUINISTA_ARRASTRE,
 ]);
+const ADMIN_ONLY_USER_ROLES = new Set<Rol>([
+  Rol.ADMINISTRADOR,
+  Rol.COMERCIAL,
+]);
 
 const getActor = (req: Request) => req.user as AuthenticatedUser | undefined;
 const getActorRole = (req: Request) => String(getActor(req)?.rol ?? '').toUpperCase();
@@ -125,7 +129,8 @@ const parseRequestedRole = (value: unknown): Rol | undefined => {
   return Object.values(Rol).includes(raw as Rol) ? (raw as Rol) : undefined;
 };
 
-const forbiddenAdminMessage = 'Solo ADMINISTRADOR puede crear o modificar administradores';
+const isAdminOnlyUserRole = (role?: Rol) => Boolean(role && ADMIN_ONLY_USER_ROLES.has(role));
+const forbiddenAdminMessage = 'Solo ADMINISTRADOR puede crear o modificar usuarios ADMINISTRADOR o COMERCIAL';
 
 export class UsuarioController {
   static obtenerUsuarios: RequestHandler = async (req, res) => {
@@ -136,7 +141,7 @@ export class UsuarioController {
       return res.status(403).json({ error: 'No tienes permisos para ver usuarios' });
     }
     try {
-      const data = await UsuarioModel.obtenerUsuarios({ reqId }, { includeAdministradores: isAdministrator(req) });
+      const data = await UsuarioModel.obtenerUsuarios({ reqId }, { includeAdminOnlyRoles: isAdministrator(req) });
       log.info('usuarios:list:ok', { reqId, count: data.length, ms: dt(t0) });
       res.json(data);
     } catch (error) {
@@ -160,7 +165,7 @@ export class UsuarioController {
       log.warn('usuarios:create:bad_request', { reqId, bodyKeys: Object.keys(req.body||{}), ms: dt(t0) });
       return res.status(400).json({ error: 'Datos incompletos' });
     }
-    if (rol === Rol.ADMINISTRADOR && !isAdministrator(req)) {
+    if (isAdminOnlyUserRole(rol) && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
     const scopeError = validateRestrictedCoordinatorScope(req, rol, localidadIdNum, 'crear');
@@ -204,8 +209,8 @@ export class UsuarioController {
 
     const target = await UsuarioModel.obtenerUsuarioResumen(userId, { reqId });
     if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const touchesAdministrator = target.rol === Rol.ADMINISTRADOR || rol === Rol.ADMINISTRADOR;
-    if (touchesAdministrator && !isAdministrator(req)) {
+    const touchesAdminOnlyRole = isAdminOnlyUserRole(target.rol) || isAdminOnlyUserRole(rol);
+    if (touchesAdminOnlyRole && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
 
@@ -264,7 +269,7 @@ export class UsuarioController {
 
     const target = await UsuarioModel.obtenerUsuarioResumen(id, { reqId });
     if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
-    if (target.rol === Rol.ADMINISTRADOR && !isAdministrator(req)) {
+    if (isAdminOnlyUserRole(target.rol) && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
     const scopeError = validateRestrictedCoordinatorScope(req, target.rol, target.localidadId, 'desactivar');

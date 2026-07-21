@@ -15,6 +15,7 @@
 
 import { Router } from 'express';
 import { authenticateAccess } from '../../auth/authenticateAccess';
+import { idempotentMutation } from '../../middlewares/idempotentMutation';
 import { MovimientoController } from './MovimientoController'; // <-- asegura que coincide con el nombre real del archivo
 
 const router = Router();
@@ -42,6 +43,7 @@ const router = Router();
  *  - 500 Internal Server Error
  */
 router.use(authenticateAccess);
+router.use(idempotentMutation);
 router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendientes);
 
 /**

@@ -33,6 +33,8 @@ import tornoMsRoutes from "../Rutas/TornoMs/TornoMsRoutes";
 import torreonMsRoutes from "../Rutas/TorreonMs/TorreonMsRoutes";
 import realtimeRoutes from "../Rutas/Realtime/RealtimeRoutes";
 import catalogosOperativosRoutes from "../Rutas/CatalogosOperativos/CatalogosOperativosRoutes";
+import offlineRoutes from "../Rutas/Offline/OfflineRoutes";
+import comercialMsRoutes from "../Rutas/ComercialMs/ComercialMsRoutes";
 import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
 // Carga variables de entorno
 dotenv.config();
@@ -86,6 +88,8 @@ export function iniciarServidor(): void {
     app.use("/torreon", torreonMsRoutes);
     app.use("/realtime", realtimeRoutes);
     app.use("/catalogos-operativos", catalogosOperativosRoutes);
+    app.use("/offline", offlineRoutes);
+    app.use("/comercial", comercialMsRoutes);
 
     // ---------------- Arranque del servidor ----------------
     const server = createServer(app);

@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { authenticateAccess } from "../../auth/authenticateAccess";
+import { idempotentMutation } from "../../middlewares/idempotentMutation";
 import type { AuthenticatedUser } from "../../types/auth";
 import { proxyToTorreonMs } from "../../services/torreonMs/torreonMsClient";
 import { NotificadorFCM } from "../../services/NotificadorFCM";
 import { publishRealtimeEvent, type RealtimeEventType } from "../../realtime/realtimeHub";
 import { prisma } from "../../lib/prisma";
+import { resolverAudienciaFcmTorreon } from "../../services/torreonFcmRouting";
 
 const { PrismaClient: TorreonPrismaClient } = require("../../../ms_torreon/generated");
 const prismaTorreon = new TorreonPrismaClient();
@@ -23,6 +25,7 @@ const ALLOWED_ROLES = new Set([
 ]);
 
 router.use(authenticateAccess);
+router.use(idempotentMutation);
 
 function userRole(user?: AuthenticatedUser) {
   return String(user?.rol ?? "")
@@ -47,7 +50,6 @@ function readLocalidadId(user?: AuthenticatedUser) {
   return positiveInt(user?.localidad?.id);
 }
 
-type ResponsableCampo = "supervisorId" | "coordinadorId";
 type TorreonResponsableScope = "NATURAL" | "ARRASTRE";
 
 async function obtenerResponsableActivoMasReciente(
@@ -82,57 +84,155 @@ async function obtenerResponsableActivoMasReciente(
   return localidad?.usuarioId ?? null;
 }
 
-async function obtenerUltimoResponsableTorreon(
-  campo: ResponsableCampo,
-  scope: TorreonResponsableScope,
+async function obtenerResponsableConfigurado(
+  rol: "SUPERVISOR" | "COORDINADOR",
   localidadId: number,
   empresaId?: number | null
 ) {
-  const where = {
-    localidadId,
-    ...(empresaId ? { empresaId } : {}),
-    [campo]: { not: null },
-  } as any;
-  const select = { [campo]: true } as any;
+  if (empresaId) {
+    const exacto = await prisma.usuario.findFirst({
+      where: { activo: true, rol, localidadId, empresaId },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      select: { id: true },
+    });
+    if (exacto) return exacto.id;
+  }
 
-  const row = scope === "ARRASTRE"
-    ? await prismaTorreon.arrastreTorreon.findFirst({
-        where,
-        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-        select,
-      })
-    : await prismaTorreon.movimientoTorreonFerro.findFirst({
-        where,
-        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-        select,
-      });
+  const localidad = await prisma.usuario.findFirst({
+    where: { activo: true, rol, localidadId },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    select: { id: true },
+  });
+  return localidad?.id ?? null;
+}
 
-  return positiveInt((row as any)?.[campo]);
+async function validarResponsableGuardado(
+  value: unknown,
+  rol: "SUPERVISOR" | "COORDINADOR",
+  localidadId: number
+) {
+  const id = positiveInt(value);
+  if (!id) return null;
+
+  const usuario = await prisma.usuario.findFirst({
+    where: { id, activo: true, rol, localidadId },
+    select: { id: true },
+  });
+  return usuario?.id ?? null;
 }
 
 async function resolverResponsablesTorreon(
   source: Record<string, unknown>,
   user: AuthenticatedUser | undefined,
-  scope: TorreonResponsableScope
+  _scope: TorreonResponsableScope
 ) {
   const localidadId = positiveInt(source.localidadId) ?? readLocalidadId(user);
   if (!localidadId) return {};
 
   const empresaId = positiveInt(source.empresaId) ?? readEmpresaId(user);
-  const [supervisorActivo, coordinadorActivo] = await Promise.all([
-    source.supervisorId ? null : obtenerResponsableActivoMasReciente("SUPERVISOR", localidadId, empresaId),
-    source.coordinadorId ? null : obtenerResponsableActivoMasReciente("COORDINADOR", localidadId, empresaId),
+  const actorRole = userRole(user);
+  const actorLocalidadId = readLocalidadId(user);
+  const actorId = positiveInt(user?.id);
+  const supervisorActor = actorRole === "SUPERVISOR" && actorLocalidadId === localidadId ? actorId : null;
+  const coordinadorActor = actorRole === "COORDINADOR" && actorLocalidadId === localidadId ? actorId : null;
+
+  const [supervisorConectado, coordinadorConectado] = await Promise.all([
+    supervisorActor ? null : obtenerResponsableActivoMasReciente("SUPERVISOR", localidadId, empresaId),
+    coordinadorActor ? null : obtenerResponsableActivoMasReciente("COORDINADOR", localidadId, empresaId),
   ]);
 
-  const [supervisorFallback, coordinadorFallback] = await Promise.all([
-    source.supervisorId || supervisorActivo ? null : obtenerUltimoResponsableTorreon("supervisorId", scope, localidadId, empresaId),
-    source.coordinadorId || coordinadorActivo ? null : obtenerUltimoResponsableTorreon("coordinadorId", scope, localidadId, empresaId),
+  const [supervisorGuardado, coordinadorGuardado] = await Promise.all([
+    supervisorActor || supervisorConectado ? null : validarResponsableGuardado(source.supervisorId, "SUPERVISOR", localidadId),
+    coordinadorActor || coordinadorConectado ? null : validarResponsableGuardado(source.coordinadorId, "COORDINADOR", localidadId),
+  ]);
+
+  const [supervisorConfigurado, coordinadorConfigurado] = await Promise.all([
+    supervisorActor || supervisorConectado || supervisorGuardado
+      ? null
+      : obtenerResponsableConfigurado("SUPERVISOR", localidadId, empresaId),
+    coordinadorActor || coordinadorConectado || coordinadorGuardado
+      ? null
+      : obtenerResponsableConfigurado("COORDINADOR", localidadId, empresaId),
   ]);
 
   return {
-    ...(source.supervisorId ? {} : { supervisorId: supervisorActivo ?? supervisorFallback ?? undefined }),
-    ...(source.coordinadorId ? {} : { coordinadorId: coordinadorActivo ?? coordinadorFallback ?? undefined }),
+    supervisorId: supervisorActor
+      ?? supervisorConectado
+      ?? supervisorGuardado
+      ?? supervisorConfigurado
+      ?? undefined,
+    coordinadorId: coordinadorActor
+      ?? coordinadorConectado
+      ?? coordinadorGuardado
+      ?? coordinadorConfigurado
+      ?? undefined,
   };
+}
+
+function exigirResponsables(
+  responsables: { supervisorId?: number; coordinadorId?: number },
+  localidadId: number
+) {
+  if (responsables.supervisorId || responsables.coordinadorId) return responsables;
+
+  const error = new Error(
+    `No se puede continuar: falta un coordinador o supervisor activo para la localidad ${localidadId}.`
+  );
+  (error as any).status = 409;
+  (error as any).details = {
+    localidadId,
+    faltantes: ["coordinador_o_supervisor"],
+    accion: "Configura un usuario activo con la localidad correcta o inicia sesión con ese responsable.",
+  };
+  throw error;
+}
+
+async function resolverResponsablesArrastreAlIniciar(path: string, user?: AuthenticatedUser) {
+  const match = path.match(/^\/arrastres\/(\d+)\/vagones\/\d+\/iniciar$/);
+  const arrastreId = positiveInt(match?.[1]);
+  if (!arrastreId) return null;
+
+  const arrastre = await prismaTorreon.arrastreTorreon.findUnique({
+    where: { id: arrastreId },
+    select: {
+      localidadId: true,
+      empresaId: true,
+      supervisorId: true,
+      coordinadorId: true,
+    },
+  });
+  if (!arrastre) return null;
+
+  const responsables = await resolverResponsablesTorreon(
+    arrastre as unknown as Record<string, unknown>,
+    user,
+    "ARRASTRE"
+  );
+  return exigirResponsables(responsables, arrastre.localidadId);
+}
+
+async function resolverResponsablesMovimientoAlIniciar(path: string, user?: AuthenticatedUser) {
+  const match = path.match(/^\/movimientos\/(\d+)\/iniciar$/);
+  const movimientoId = positiveInt(match?.[1]);
+  if (!movimientoId) return null;
+
+  const movimiento = await prismaTorreon.movimientoTorreonFerro.findUnique({
+    where: { id: movimientoId },
+    select: {
+      localidadId: true,
+      empresaId: true,
+      supervisorId: true,
+      coordinadorId: true,
+    },
+  });
+  if (!movimiento) return null;
+
+  const responsables = await resolverResponsablesTorreon(
+    movimiento as unknown as Record<string, unknown>,
+    user,
+    "NATURAL"
+  );
+  return exigirResponsables(responsables, movimiento.localidadId);
 }
 
 function isReadonlyClient(user?: AuthenticatedUser) {
@@ -144,11 +244,18 @@ function canUseTorreon(user?: AuthenticatedUser) {
   return ALLOWED_ROLES.has(userRole(user));
 }
 
+function normalizeProxyPath(rest: string) {
+  const path = rest.split("?")[0].trim();
+  const withLeadingSlash = path.startsWith("/") ? path : `/${path}`;
+  return withLeadingSlash.length > 1 ? withLeadingSlash.replace(/\/+$/, "") : withLeadingSlash;
+}
+
 function isAllowedClientMutation(method: string, rest: string) {
   const verb = method.toUpperCase();
-  const path = rest.split("?")[0];
+  const path = normalizeProxyPath(rest);
   if (verb === "GET") return true;
   if (verb === "POST" && path === "/arrastres") return true;
+  if (verb === "PATCH" && /^\/arrastres\/\d+$/.test(path)) return true;
   if (verb === "PATCH" && path === "/arrastres/orden-solicitudes") return true;
   if (verb === "PATCH" && /^\/arrastres\/\d+\/cancelar$/.test(path)) return true;
   if (verb === "PATCH" && /^\/arrastres\/\d+\/vagones\/orden$/.test(path)) return true;
@@ -162,7 +269,7 @@ function isAllowedClientMutation(method: string, rest: string) {
 
 function isAllowedMaquinistaArrastreMutation(method: string, rest: string) {
   const verb = method.toUpperCase();
-  const path = rest.split("?")[0];
+  const path = normalizeProxyPath(rest);
   if (verb === "GET") return true;
   if (verb === "POST" && /^\/arrastres\/\d+\/incidentes$/.test(path)) return true;
   if (verb === "PATCH" && /^\/arrastres\/\d+\/vagones\/\d+\/iniciar$/.test(path)) return true;
@@ -189,6 +296,13 @@ function incidentMutationDetailPath(method: string, rest: string) {
   return `/incidentes/${match[1]}${query ? `?${query}` : ""}`;
 }
 
+function arrastreMutationDetailPath(method: string, rest: string) {
+  if (method.toUpperCase() === "GET") return null;
+  const path = rest.split("?")[0];
+  const match = path.match(/^\/arrastres\/(\d+)(?:\/|$)/);
+  return match ? `/arrastres/${match[1]}` : null;
+}
+
 async function withActorDefaults(method: string, rest: string, body: unknown, user?: AuthenticatedUser) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return body;
 
@@ -204,35 +318,49 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   if (verb === "POST" && path === "/arrastres") {
     const payload = {
       ...source,
-      creadoPorId: source.creadoPorId ?? userId,
+      creadoPorId: userId,
       ...(empresaId ? { empresaId: source.empresaId ?? empresaId } : {}),
       ...(localidadId ? { localidadId: source.localidadId ?? localidadId } : {}),
     };
+    const responsables = await resolverResponsablesTorreon(payload, user, "ARRASTRE");
     return {
       ...payload,
-      ...(await resolverResponsablesTorreon(payload, user, "ARRASTRE")),
+      ...exigirResponsables(responsables, positiveInt(payload.localidadId)!),
+    };
+  }
+
+  if (verb === "PATCH" && /^\/arrastres\/\d+$/.test(path)) {
+    return {
+      ...source,
+      editadoPorId: userId,
+      editadoPorRol: userRole(user),
+      editadoPorNombre: user?.nombre?.trim() || undefined,
     };
   }
 
   if (verb === "POST" && path === "/movimientos") {
     const payload = {
       ...source,
-      creadoPorId: source.creadoPorId ?? userId,
+      creadoPorId: userId,
       clienteId: source.clienteId ?? (CLIENT_COMPANY_ROLES.has(userRole(user)) || CLIENT_LOCAL_ROLES.has(userRole(user)) ? userId : undefined),
       ...(empresaId ? { empresaId: source.empresaId ?? empresaId } : {}),
       ...(localidadId ? { localidadId: source.localidadId ?? localidadId } : {}),
     };
+    const responsables = await resolverResponsablesTorreon(payload, user, "NATURAL");
     return {
       ...payload,
-      ...(await resolverResponsablesTorreon(payload, user, "NATURAL")),
+      ...exigirResponsables(responsables, positiveInt(payload.localidadId)!),
     };
   }
 
   if (verb === "POST" && /^\/movimientos\/\d+\/iniciar$/.test(path)) {
+    const responsables = await resolverResponsablesMovimientoAlIniciar(path, user);
+    const isMaquinistaNatural = userRole(user) === "MAQUINISTA";
     return {
       ...source,
-      iniciadoPorId: source.iniciadoPorId ?? userId,
-      operadorId: source.operadorId ?? userId,
+      iniciadoPorId: isMaquinistaNatural ? userId : source.iniciadoPorId ?? userId,
+      operadorId: isMaquinistaNatural ? userId : source.operadorId ?? userId,
+      ...(responsables ?? {}),
     };
   }
 
@@ -245,7 +373,7 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   }
 
   if (verb === "POST" && /^\/movimientos\/\d+\/(?:detener|incidentes)$/.test(path)) {
-    return { ...source, creadoPorId: source.creadoPorId ?? userId };
+    return { ...source, creadoPorId: userId };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/movimientos\/\d+\/reanudar$/.test(path)) {
@@ -269,10 +397,13 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/vagones\/\d+\/iniciar$/.test(path)) {
+    const responsables = await resolverResponsablesArrastreAlIniciar(path, user);
+    const isMaquinistaArrastre = userRole(user) === "MAQUINISTA_ARRASTRE";
     return {
       ...source,
-      iniciadoPorId: source.iniciadoPorId ?? userId,
-      operadorId: source.operadorId ?? userId,
+      iniciadoPorId: isMaquinistaArrastre ? userId : source.iniciadoPorId ?? userId,
+      operadorId: isMaquinistaArrastre ? userId : source.operadorId ?? userId,
+      ...(responsables ?? {}),
     };
   }
 
@@ -285,7 +416,7 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   }
 
   if (verb === "POST" && /^\/arrastres\/\d+\/incidentes$/.test(path)) {
-    return { ...source, creadoPorId: source.creadoPorId ?? userId };
+    return { ...source, creadoPorId: userId };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/incidentes\/\d+\/resolver$/.test(path)) {
@@ -299,7 +430,13 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   return body;
 }
 
-function applyListScope(rest: string, user?: AuthenticatedUser) {
+function isGeneralLocalityQueueList(rest: string, user?: AuthenticatedUser) {
+  const [path, query = ""] = rest.split("?");
+  if (!["/arrastres", "/rondas"].includes(path) || !isReadonlyClient(user) || !readLocalidadId(user)) return false;
+  return new URLSearchParams(query).get("alcance") === "localidad";
+}
+
+function applyListScope(rest: string, user?: AuthenticatedUser, generalLocalityQueue = false) {
   const role = userRole(user);
   const [path, query = ""] = rest.split("?");
   if (!["/arrastres", "/movimientos", "/incidentes", "/rondas", "/catalogos/arrastre"].includes(path)) return rest;
@@ -308,11 +445,19 @@ function applyListScope(rest: string, user?: AuthenticatedUser) {
   const empresaId = readEmpresaId(user);
   const localidadId = readLocalidadId(user);
 
-  if (CLIENT_COMPANY_ROLES.has(role) && empresaId && !params.has("empresaId")) {
+  // `alcance` es una señal interna del gateway; no se reenvía al microservicio.
+  params.delete("alcance");
+
+  if (generalLocalityQueue && ["/arrastres", "/rondas"].includes(path) && localidadId) {
+    params.delete("empresaId");
+    params.set("localidadId", String(localidadId));
+  }
+
+  if (!generalLocalityQueue && CLIENT_COMPANY_ROLES.has(role) && empresaId && !params.has("empresaId")) {
     params.set("empresaId", String(empresaId));
   }
 
-  if (CLIENT_LOCAL_ROLES.has(role)) {
+  if (!generalLocalityQueue && CLIENT_LOCAL_ROLES.has(role)) {
     if (empresaId && !params.has("empresaId")) params.set("empresaId", String(empresaId));
     if (localidadId && !params.has("localidadId")) params.set("localidadId", String(localidadId));
   }
@@ -343,7 +488,7 @@ function applyListScope(rest: string, user?: AuthenticatedUser) {
   return qs ? `${path}?${qs}` : path;
 }
 
-function isItemVisibleForUser(item: any, user?: AuthenticatedUser) {
+function isItemVisibleForUser(item: any, user?: AuthenticatedUser, generalLocalityQueue = false) {
   const role = userRole(user);
   if (ADMIN_ROLES.has(role)) return true;
 
@@ -351,6 +496,10 @@ function isItemVisibleForUser(item: any, user?: AuthenticatedUser) {
   const itemLocalidadId = positiveInt(item?.localidadId ?? item?.movimiento?.localidadId ?? item?.arrastre?.localidadId);
   const empresaId = readEmpresaId(user);
   const localidadId = readLocalidadId(user);
+
+  if (generalLocalityQueue && isReadonlyClient(user)) {
+    return Boolean(localidadId) && itemLocalidadId === localidadId;
+  }
 
   if (CLIENT_COMPANY_ROLES.has(role)) return !empresaId || itemEmpresaId === empresaId;
   if (CLIENT_LOCAL_ROLES.has(role)) {
@@ -363,21 +512,80 @@ function isItemVisibleForUser(item: any, user?: AuthenticatedUser) {
   return false;
 }
 
-function filterDataForUser(data: unknown, user?: AuthenticatedUser) {
-  if (Array.isArray(data)) return data.filter((item) => isItemVisibleForUser(item, user));
+function filterDataForUser(data: unknown, user?: AuthenticatedUser, generalLocalityQueue = false) {
+  if (Array.isArray(data)) return data.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
   if (!data || typeof data !== "object") return data;
 
   const source = data as Record<string, unknown>;
   if (Array.isArray(source.data)) {
-    const rows = source.data.filter((item) => isItemVisibleForUser(item, user));
+    const rows = source.data.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
     return { ...source, data: rows, meta: source.meta ? { ...(source.meta as object), total: rows.length } : source.meta };
   }
   if (Array.isArray(source.items)) {
-    const rows = source.items.filter((item) => isItemVisibleForUser(item, user));
+    const rows = source.items.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
     return { ...source, items: rows, meta: source.meta ? { ...(source.meta as object), total: rows.length } : source.meta };
   }
 
-  return isItemVisibleForUser(source, user) ? data : null;
+  return isItemVisibleForUser(source, user, generalLocalityQueue) ? data : null;
+}
+
+const RESPONSABLE_FIELDS = [
+  { id: "supervisorId", detail: "supervisor" },
+  { id: "coordinadorId", detail: "coordinador" },
+  { id: "operadorId", detail: "operador" },
+] as const;
+
+function collectResponsableIds(value: unknown, ids: Set<number>, depth = 0) {
+  if (depth > 8 || value == null) return;
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectResponsableIds(item, ids, depth + 1));
+    return;
+  }
+  if (typeof value !== "object") return;
+
+  const source = value as Record<string, unknown>;
+  RESPONSABLE_FIELDS.forEach((field) => {
+    const id = positiveInt(source[field.id]);
+    if (id) ids.add(id);
+  });
+  Object.values(source).forEach((child) => collectResponsableIds(child, ids, depth + 1));
+}
+
+function decorateResponsables(
+  value: unknown,
+  users: Map<number, { id: number; nombre: string; rol: string }>,
+  depth = 0
+): unknown {
+  if (depth > 8 || value == null) return value;
+  if (Array.isArray(value)) return value.map((item) => decorateResponsables(item, users, depth + 1));
+  if (typeof value !== "object") return value;
+
+  const source = value as Record<string, unknown>;
+  const decorated = Object.fromEntries(
+    Object.entries(source).map(([key, child]) => [key, decorateResponsables(child, users, depth + 1)])
+  ) as Record<string, unknown>;
+
+  RESPONSABLE_FIELDS.forEach((field) => {
+    const id = positiveInt(source[field.id]);
+    if (id) decorated[field.detail] = users.get(id) ?? { id, nombre: `Usuario #${id}`, rol: "" };
+  });
+  return decorated;
+}
+
+async function enrichTorreonResponsables(data: unknown) {
+  const ids = new Set<number>();
+  collectResponsableIds(data, ids);
+  if (!ids.size) return data;
+
+  const usuarios = await prisma.usuario.findMany({
+    where: { id: { in: Array.from(ids) } },
+    select: { id: true, nombre: true, rol: true },
+  });
+  const usersById = new Map(usuarios.map((usuario) => [
+    usuario.id,
+    { ...usuario, rol: String(usuario.rol) },
+  ]));
+  return decorateResponsables(data, usersById);
 }
 
 function readRecord(value: unknown): Record<string, any> | null {
@@ -390,6 +598,71 @@ function readArray(value: unknown): any[] {
   if (Array.isArray(record?.data)) return record.data;
   if (Array.isArray(record?.items)) return record.items;
   return [];
+}
+
+function collectTorreonOperations(value: unknown, rows: Array<{ entity: Record<string, any>; scope: TorreonResponsableScope }> = []) {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectTorreonOperations(item, rows));
+    return rows;
+  }
+
+  const entity = readRecord(value);
+  if (!entity) return rows;
+
+  const id = positiveInt(entity.id);
+  const localidadId = positiveInt(entity.localidadId);
+  const isArrastre = Array.isArray(entity.vagones);
+  const isNatural = entity.locomotiveNumber != null;
+  if (id && localidadId && (isArrastre || isNatural)) {
+    rows.push({ entity, scope: isArrastre ? "ARRASTRE" : "NATURAL" });
+    return rows;
+  }
+
+  for (const key of ["data", "items", "rows", "results", "arrastres", "movimientos", "arrastre", "movimiento"]) {
+    if (entity[key] != null) collectTorreonOperations(entity[key], rows);
+  }
+  return rows;
+}
+
+async function completarResponsablesFaltantes(data: unknown, user?: AuthenticatedUser) {
+  const operations = collectTorreonOperations(data).filter(({ entity }) => (
+    !positiveInt(entity.supervisorId) || !positiveInt(entity.coordinadorId)
+  ));
+  if (!operations.length) return data;
+
+  const cache = new Map<string, Promise<{ supervisorId?: number; coordinadorId?: number }>>();
+  await Promise.all(operations.map(async ({ entity, scope }) => {
+    const localidadId = positiveInt(entity.localidadId);
+    const empresaId = positiveInt(entity.empresaId);
+    const id = positiveInt(entity.id);
+    if (!localidadId || !id) return;
+
+    const cacheKey = `${scope}:${localidadId}:${empresaId ?? "all"}`;
+    let resolution = cache.get(cacheKey);
+    if (!resolution) {
+      resolution = resolverResponsablesTorreon(entity, user, scope);
+      cache.set(cacheKey, resolution);
+    }
+    const responsables = await resolution;
+    const patch = {
+      ...(!positiveInt(entity.supervisorId) && responsables.supervisorId
+        ? { supervisorId: responsables.supervisorId }
+        : {}),
+      ...(!positiveInt(entity.coordinadorId) && responsables.coordinadorId
+        ? { coordinadorId: responsables.coordinadorId }
+        : {}),
+    };
+    if (!Object.keys(patch).length) return;
+
+    if (scope === "ARRASTRE") {
+      await prismaTorreon.arrastreTorreon.update({ where: { id }, data: patch });
+    } else {
+      await prismaTorreon.movimientoTorreonFerro.update({ where: { id }, data: patch });
+    }
+    Object.assign(entity, patch);
+  }));
+
+  return data;
 }
 
 function firstTorreonEntity(data: unknown) {
@@ -463,8 +736,14 @@ function formatArrastreTitle(arrastre: Record<string, any> | null) {
 
 function vagonLabel(vagon: Record<string, any> | null) {
   const numero = vagon?.numeroVagon ? `vagon ${vagon.numeroVagon}` : vagon?.orden ? `vagon ${vagon.orden}` : "vagon";
-  const via = vagon?.viaId ? ` · Via ${vagon.viaId}` : "";
-  const seccion = vagon?.seccionId ? ` / Seccion ${vagon.seccionId}` : "";
+  const viaNombre = String(vagon?.viaDestinoNombre ?? "").trim();
+  const seccionNombre = String(vagon?.seccionDestinoNombre ?? "").trim();
+  const via = viaNombre
+    ? " · " + viaNombre
+    : vagon?.viaId ? " · Vía " + vagon.viaId : "";
+  const seccion = seccionNombre
+    ? " / " + seccionNombre
+    : vagon?.seccionId ? " / Sección " + vagon.seccionId : "";
   return `${numero}${via}${seccion}`;
 }
 
@@ -517,6 +796,19 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
       sendFcm: true,
       arrastreId,
       accion: "crear",
+    };
+  }
+
+  if (verb === "PATCH" && /^\/arrastres\/\d+$/.test(path)) {
+    return {
+      realtimeType: "torreon.arrastre.orden",
+      fcmTipo: "arrastre_editado",
+      title: "Solicitud de arrastre editada",
+      body: `${arrastreTitle} · ${(arrastre?.vagones ?? []).length || 0} vagones`,
+      url: "/cliente/torreon/movimientos",
+      sendFcm: true,
+      arrastreId,
+      accion: "editar_arrastre",
     };
   }
 
@@ -593,7 +885,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
       title: "Vagon de arrastre editado",
       body: `${arrastreTitle} · ${vagonLabel(vagon)}`,
       url: "/cliente/torreon/movimientos",
-      sendFcm: false,
+      sendFcm: true,
       arrastreId,
       vagonId,
       accion: "editar_vagon",
@@ -710,7 +1002,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
   if (/^\/movimientos\/\d+\/(?:detener|incidentes)$/.test(path)) {
     return {
       realtimeType: "torreon.movimiento.incidente",
-      fcmTipo: "torreon_movimiento_incidente",
+      fcmTipo: "nuevo_incidente",
       title: "Incidente en movimiento Torreon",
       body: `Movimiento #${movimientoId ?? ""} detenido${incidenteId ? ` · Incidente #${incidenteId}` : ""}`,
       url: "/incidentes?source=torreon",
@@ -737,7 +1029,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
   if (/^\/incidentes\/\d+\/resolver$/.test(path)) {
     return {
       realtimeType: "torreon.incidente.estado",
-      fcmTipo: "torreon_incidente_resuelto",
+      fcmTipo: "incidente_resuelto_cliente",
       title: "Incidente Torreon resuelto",
       body: incidenteId ? `Incidente #${incidenteId}` : "Incidente resuelto",
       url: "/incidentes?source=torreon",
@@ -751,7 +1043,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
     const entityLabel = arrastreId ? `Arrastre #${arrastreId}` : movimientoId ? `Movimiento #${movimientoId}` : "Movimiento Torreon";
     return {
       realtimeType: "torreon.incidente.estado",
-      fcmTipo: "torreon_incidente_cierre_cancelacion",
+      fcmTipo: "incidente_cerrado_manual",
       title: arrastreId ? "Arrastre Torreon cancelado" : "Movimiento Torreon cancelado",
       body: incidenteId
         ? `${entityLabel} · incidente #${incidenteId} cerrado`
@@ -808,6 +1100,8 @@ function dispatchTorreonSideEffects(method: string, rest: string, data: unknown,
 
   if (!operation.sendFcm) return;
 
+  const fcmRouting = resolverAudienciaFcmTorreon(operation.fcmTipo);
+
   setImmediate(() => {
     void NotificadorFCM.notificarOperacionTorreon({
       tipo: operation.fcmTipo,
@@ -816,10 +1110,12 @@ function dispatchTorreonSideEffects(method: string, rest: string, data: unknown,
       empresaId,
       localidadId,
       usuarioIds: [positiveInt(user?.id), positiveInt(entity?.creadoPorId), positiveInt(entity?.operadorId), positiveInt(entity?.clienteId)],
-      url: operation.url,
+      roles: fcmRouting?.roles,
+      url: fcmRouting?.url ?? operation.url,
       tag: `torreon:${operation.fcmTipo}:${arrastreId ?? movimientoId ?? operation.incidenteId ?? Date.now()}`,
       data: {
         eventType: operation.realtimeType,
+        audience: fcmRouting?.audience,
         source: "torreon",
         entity: realtimeEntity.entity,
         entityId: realtimeEntity.entityId,
@@ -850,7 +1146,19 @@ router.all("/*", async (req, res) => {
   const originalRest = req.originalUrl.startsWith(base)
     ? req.originalUrl.slice(base.length)
     : req.originalUrl;
-  const scopedRest = req.method.toUpperCase() === "GET" ? applyListScope(originalRest || "/", user) : originalRest || "/";
+  const generalLocalityQueue = req.method.toUpperCase() === "GET"
+    && isGeneralLocalityQueueList(originalRest || "/", user);
+  const scopedRest = req.method.toUpperCase() === "GET"
+    ? applyListScope(originalRest || "/", user, generalLocalityQueue)
+    : originalRest || "/";
+
+  if (
+    req.method.toUpperCase() === "GET" &&
+    /^\/arrastres\/\d+\/ediciones(?:\?|$)/.test(scopedRest) &&
+    role !== "ADMINISTRADOR"
+  ) {
+    return res.status(403).json({ error: "Solo administración puede consultar la bitácora de ediciones" });
+  }
 
   if (
     scopedRest.split("?")[0] === "/catalogos/arrastre" &&
@@ -866,7 +1174,7 @@ router.all("/*", async (req, res) => {
   if (isReadonlyClient(user) && !isAllowedClientMutation(req.method, scopedRest)) {
     return res.status(403).json({
       error: "No autorizado para operar arrastre",
-      message: "El cliente puede consultar, crear, cancelar, editar vagones fuera de proceso y resolver incidentes propios; no puede iniciar ni finalizar vagones.",
+      message: "El cliente puede consultar, crear, cancelar y editar solicitudes o vagones antes de que inicien, además de resolver incidentes propios; no puede iniciar ni finalizar vagones.",
     });
   }
 
@@ -899,6 +1207,20 @@ router.all("/*", async (req, res) => {
       }
     }
 
+    const arrastreDetailPath = arrastreMutationDetailPath(req.method, scopedRest);
+    if (arrastreDetailPath && !ADMIN_ROLES.has(role)) {
+      const detailResult = await proxyToTorreonMs(arrastreDetailPath, {
+        method: "GET",
+        headers: {
+          ...(user?.id ? { "x-user-id": String(user.id) } : {}),
+          ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
+        },
+      });
+      if (filterDataForUser(detailResult.data, user) == null) {
+        return res.status(403).json({ error: "No autorizado para este arrastre" });
+      }
+    }
+
     const proxiedBody =
       req.method === "GET" || req.method === "DELETE"
         ? undefined
@@ -914,13 +1236,14 @@ router.all("/*", async (req, res) => {
     });
 
     if (req.method.toUpperCase() === "GET") {
-      const filtered = filterDataForUser(result.data, user);
+      const filtered = filterDataForUser(result.data, user, generalLocalityQueue);
       if (filtered == null) return res.status(403).json({ error: "No autorizado para este recurso" });
-      return res.status(result.status).send(filtered);
+      const completed = await completarResponsablesFaltantes(filtered, user);
+      return res.status(result.status).send(await enrichTorreonResponsables(completed));
     }
 
     dispatchTorreonSideEffects(req.method, scopedRest, result.data, user, proxiedBody);
-    return res.status(result.status).send(result.data);
+    return res.status(result.status).send(await enrichTorreonResponsables(result.data));
   } catch (error: any) {
     const status = Number(error?.status) || 502;
     return res.status(status).json({

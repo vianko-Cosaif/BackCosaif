@@ -5,6 +5,7 @@ import {
   cancelarArrastreSchema,
   createArrastreSchema,
   crearIncidenteArrastreSchema,
+  editarArrastreSchema,
   editarVagonArrastreSchema,
   finalizarArrastreSchema,
   finalizarVagonArrastreSchema,
@@ -60,6 +61,16 @@ export class ArrastreController {
     const payload = createArrastreSchema.parse(req.body);
     const data = await ArrastreModel.crear(payload);
     return res.status(201).json(data);
+  }
+
+  static async editar(req: Request, res: Response) {
+    const payload = editarArrastreSchema.parse(req.body);
+    const data = await ArrastreModel.editar(parseIdParam(req), payload);
+    return ok(res, data);
+  }
+
+  static async listarEdiciones(req: Request, res: Response) {
+    return ok(res, await ArrastreModel.listarEdiciones(parseIdParam(req)));
   }
 
   static async iniciar(req: Request, res: Response) {

@@ -63,6 +63,8 @@ export const createMovimientoSchema = z.object({
 
 export const iniciarMovimientoSchema = withCapturas.extend({
   operadorId: idSchema.optional(),
+  supervisorId: idSchema.optional(),
+  coordinadorId: idSchema.optional(),
   iniciadoPorId: idSchema,
   fechaInicio: z.coerce.date().optional(),
 }).transform((data) => ({

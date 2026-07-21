@@ -265,33 +265,18 @@ export class IncidenteModel {
     const filters = buildMovimientoResourceFilters(refs);
     if (!filters.length) return null;
 
-    const [natural, arrastre] = await Promise.all([
-      tx.incidenteTorreonFerro.findFirst({
-        where: {
-          estado: EstadoIncidenteTorreon.ABIERTO,
-          localidadId: refs.localidadId,
-          ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
-          OR: filters,
-        },
-        orderBy: { fechaInicio: "asc" },
-        select: { id: true, fechaInicio: true },
-      }),
-      tx.incidenteArrastreTorreon.findFirst({
-        where: {
-          estado: EstadoIncidenteArrastreTorreon.ABIERTO,
-          localidadId: refs.localidadId,
-          OR: filters,
-        },
-        orderBy: { fechaInicio: "asc" },
-        select: { id: true, fechaInicio: true },
-      }),
-    ]);
+    const natural = await tx.incidenteTorreonFerro.findFirst({
+      where: {
+        estado: EstadoIncidenteTorreon.ABIERTO,
+        localidadId: refs.localidadId,
+        ...(excludeIncidentId ? { id: { not: excludeIncidentId } } : {}),
+        OR: filters,
+      },
+      orderBy: { fechaInicio: "asc" },
+      select: { id: true, fechaInicio: true },
+    });
 
-    const naturalResult = natural ? { ...natural, origen: "NATURAL" as const } : null;
-    const arrastreResult = arrastre ? { ...arrastre, origen: "ARRASTRE" as const } : null;
-    if (!naturalResult) return arrastreResult;
-    if (!arrastreResult) return naturalResult;
-    return naturalResult.fechaInicio <= arrastreResult.fechaInicio ? naturalResult : arrastreResult;
+    return natural ? { ...natural, origen: "NATURAL" as const } : null;
   }
 
   static async crearParaMovimiento(
@@ -299,15 +284,21 @@ export class IncidenteModel {
     movimiento: MovimientoIncidenteRefs,
     input: CrearIncidenteInput
   ) {
+    const viaBloqueadaId = input.viaBloqueadaId ?? movimiento.viaDestinoId ?? movimiento.viaOrigenId;
+    const seccionBloqueadaId = input.seccionBloqueadaId ?? movimiento.seccionDestinoId ?? movimiento.seccionOrigenId;
+
     const incidenteAbierto = await this.obtenerActivoDeMovimiento(tx, movimiento.id);
     if (incidenteAbierto) {
+      const mismoReporte =
+        incidenteAbierto.creadoPorId === input.creadoPorId &&
+        incidenteAbierto.motivo === input.motivo &&
+        incidenteAbierto.viaBloqueadaId === (viaBloqueadaId ?? null) &&
+        incidenteAbierto.seccionBloqueadaId === (seccionBloqueadaId ?? null);
+      if (mismoReporte) return incidenteAbierto;
       throw new DomainError(409, "El movimiento ya tiene incidente abierto", {
         incidenteId: incidenteAbierto.id,
       });
     }
-
-    const viaBloqueadaId = input.viaBloqueadaId ?? movimiento.viaDestinoId ?? movimiento.viaOrigenId;
-    const seccionBloqueadaId = input.seccionBloqueadaId ?? movimiento.seccionDestinoId ?? movimiento.seccionOrigenId;
 
     if (!viaBloqueadaId && !seccionBloqueadaId) {
       throw new DomainError(400, "Debe existir via o seccion para bloquear");
