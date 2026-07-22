@@ -18,6 +18,7 @@ type Json = Record<string, unknown> | unknown[] | string | number | boolean | nu
 type CommercialActor = {
   id: number;
   role: string;
+  name?: string;
 };
 
 function config() {
@@ -74,6 +75,7 @@ export async function proxyToComercialMs(
   const timestamp = String(Date.now());
   const nonce = crypto.randomUUID();
   const bodyHash = sha256(body);
+  const actorName = encodeURIComponent(String(init.actor.name || "").slice(0, 180));
   const signed = signature({ method, path: signedPath, timestamp, nonce, bodyHash, actor: init.actor, secret });
 
   const response = await fetch(url, {
@@ -86,6 +88,7 @@ export async function proxyToComercialMs(
       "x-signature": signed,
       "x-actor-id": String(init.actor.id),
       "x-actor-role": init.actor.role.toUpperCase(),
+      "x-actor-name": actorName,
       ...(body ? { "content-type": "application/json" } : {}),
     },
     body: body || undefined,

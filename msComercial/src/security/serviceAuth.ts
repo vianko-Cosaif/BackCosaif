@@ -3,7 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 
 export type CommercialRequest = Request & {
   rawBody?: Buffer;
-  commercialActor?: { id: number; role: "ADMINISTRADOR" | "COMERCIAL" };
+  commercialActor?: { id: number; role: "ADMINISTRADOR" | "COMERCIAL"; name?: string };
 };
 
 const DEFAULT_TOLERANCE_MS = 5 * 60 * 1000;
@@ -68,6 +68,7 @@ export function verifyCommercialServiceRequest(req: CommercialRequest, res: Resp
   const signature = req.header("x-signature") ?? "";
   const actorId = req.header("x-actor-id") ?? "";
   const actorRole = (req.header("x-actor-role") ?? "").toUpperCase();
+  const actorNameHeader = req.header("x-actor-name") ?? "";
 
   if (!serviceId || !timestamp || !nonce || !bodyHash || !signature || !actorId || !actorRole) {
     return res.status(401).json({ error: "Solicitud interna incompleta" });
@@ -122,7 +123,13 @@ export function verifyCommercialServiceRequest(req: CommercialRequest, res: Resp
   }
 
   nonceCache.set(nonceKey, requestTime + tolerance);
-  req.commercialActor = { id: actorIdNumber, role: actorRole };
+  let actorName: string | undefined;
+  try {
+    actorName = decodeURIComponent(actorNameHeader).trim().slice(0, 180) || undefined;
+  } catch {
+    actorName = actorNameHeader.trim().slice(0, 180) || undefined;
+  }
+  req.commercialActor = { id: actorIdNumber, role: actorRole, name: actorName };
   return next();
 }
 

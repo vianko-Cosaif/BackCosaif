@@ -9,6 +9,8 @@ const reglaInicialContratoSchema = z.object({
   localidadId: z.coerce.number().int().positive().optional().nullable(),
   estadosIncluidos: z.array(z.enum(["SOLICITADO", "ASIGNADO", "EN_PROCESO", "DETENIDO", "ESPERA", "MODIFICADO", "CONCLUIDO", "CANCELADO", "AGENDADO"])).min(1).max(9).default(["CONCLUIDO"]),
   cantidadIncluida: z.coerce.number().positive().optional().nullable(),
+  montoPaquete: z.coerce.number().min(0).optional().nullable(),
+  importeExcedente: z.coerce.number().min(0).optional().nullable(),
   notas: z.string().trim().max(4000).optional().nullable(),
 });
 

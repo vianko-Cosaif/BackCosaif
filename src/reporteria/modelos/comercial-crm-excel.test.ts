@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import { buildCommercialCrmWorkbook } from "./comercial-crm-excel";
 
 async function run() {
@@ -17,9 +20,12 @@ async function run() {
   }));
   const analytics = {
     meta: {
-      reference: "2026-12",
+      reference: "2026-01_2026-12",
       range: { from: "2026-01-01T00:00:00.000-06:00", toExclusive: "2027-01-01T00:00:00.000-06:00" },
       torreonAvailable: true,
+      months: 2,
+      selectedMonthKeys: ["2026-01", "2026-12"],
+      periodLabel: "enero de 2026 · diciembre de 2026",
     },
     catalogs: { localities: [{ id: 1, nombre: "Torreon" }] },
     kpis: { operations: 210, completed: 190, cancelled: 4, stopped: 3, arrastre: 75, wash: 18, turning: 9, monthlyGrowthPct: 12.5 },
@@ -44,11 +50,15 @@ async function run() {
         localidad: "Torreon",
         locomotiveNumber: null,
         wagons: 4,
+        requestedQuantity: 4,
+        requestedBy: "Cliente Alstom",
+        viaOrigen: "Vía Arrastre A",
+        viaDestino: "Vía Arrastre B",
         status: "CONCLUIDO",
         completed: true,
         cancelled: false,
         stopped: false,
-        services: ["MOVIMIENTO" as const],
+        services: ["MOVIMIENTO" as const, "LAVADO" as const],
         requestedAt: "2026-12-01T12:00:00.000Z",
         completedAt: "2026-12-01T13:00:00.000Z",
         operationAt: "2026-12-01T13:00:00.000Z",
@@ -61,10 +71,27 @@ async function run() {
   const crm = {
     available: true,
     clients: [{ id: 1, empresaId: 1, empresaNombre: "Alstom" }],
-    contracts: [{ id: 1, clienteComercialId: 1, folio: "ALT-2026", nombre: "Contrato Alstom", estado: "VIGENTE", fechaInicio: "2026-01-01", fechaFin: "2026-12-31", diaCorte: 25, cliente: { empresaNombre: "Alstom" }, _count: { paquetes: 1 } }],
-    packages: [{ id: 1, clienteComercialId: 1, nombre: "30 arrastres", servicio: "MOVIMIENTO", origenOperacion: "ARRASTRE", unidad: "MOVIMIENTO", periodicidad: "MENSUAL", localidadId: 1, estadosIncluidos: ["CONCLUIDO", "CANCELADO"], cantidadIncluida: "30", cliente: { empresaId: 1, empresaNombre: "Alstom" }, contrato: { folio: "ALT-2026" } }],
-    cuts: [{ id: 1, folio: "CORTE-12", periodoInicio: "2026-12-01", periodoFin: "2026-12-31", fechaCorte: "2026-12-31", fechaVencimiento: "2027-01-30", estado: "FACTURADO", facturaFolio: "F-100", detalles: [{ id: 1 }], cliente: { empresaNombre: "Alstom" }, cobranza: { total: 100000, pagado: 20000, saldo: 80000, vencido: false, montoPendienteCaptura: false } }],
-    collection: { porCobrar: 80000, vencido: 0, cobrado: 20000, cortesSinMonto: 0 },
+    contracts: [
+      {
+        id: 1, clienteComercialId: 1, folio: "ALT-2026", nombre: "Contrato Alstom", estado: "VIGENTE", fechaInicio: "2026-01-01", fechaFin: "2026-12-31", diaCorte: 25, moneda: "MXN", montoMaximo: null,
+        cliente: { empresaId: 1, empresaNombre: "Alstom" }, _count: { paquetes: 2 },
+        paquetes: [
+          { id: 1, nombre: "Arrastre mensual", servicio: "MOVIMIENTO", origenOperacion: "ARRASTRE", unidad: "VAGON", periodicidad: "MENSUAL", localidadId: 1, estadosIncluidos: ["CONCLUIDO"], cantidadIncluida: "3", montoPaquete: "5000", importeExcedente: "750", vigenciaInicio: "2026-01-01", vigenciaFin: "2026-12-31", activo: true },
+          { id: 2, nombre: "Lavado extra", servicio: "LAVADO", origenOperacion: "ARRASTRE", unidad: "SERVICIO", periodicidad: "MENSUAL", localidadId: 1, estadosIncluidos: ["CONCLUIDO"], cantidadIncluida: "0", montoPaquete: "1200", importeExcedente: "300", vigenciaInicio: "2026-01-01", vigenciaFin: "2026-12-31", activo: true },
+        ],
+      },
+      {
+        id: 2, clienteComercialId: 1, folio: "RESERVADO-2026", nombre: "Contrato sin monto publicado", estado: "VIGENTE", fechaInicio: "2026-01-01", fechaFin: "2026-12-31", diaCorte: 31, moneda: "MXN", montoMaximo: null,
+        cliente: { empresaId: 1, empresaNombre: "Alstom" }, _count: { paquetes: 1 },
+        paquetes: [{ id: 3, nombre: "Servicio reservado", servicio: "MOVIMIENTO", origenOperacion: "NATURAL", unidad: "MOVIMIENTO", periodicidad: "MENSUAL", localidadId: 1, estadosIncluidos: ["CONCLUIDO"], cantidadIncluida: null, montoPaquete: null, importeExcedente: null, vigenciaInicio: "2026-01-01", vigenciaFin: "2026-12-31", activo: true }],
+      },
+    ],
+    packages: [{ id: 1, clienteComercialId: 1, nombre: "Arrastre mensual", servicio: "MOVIMIENTO", origenOperacion: "ARRASTRE", unidad: "VAGON", periodicidad: "MENSUAL", localidadId: 1, estadosIncluidos: ["CONCLUIDO"], cantidadIncluida: "3", cliente: { empresaId: 1, empresaNombre: "Alstom" }, contrato: { folio: "ALT-2026", estado: "VIGENTE" } }],
+    cuts: [
+      { id: 10, contratoId: 2, folio: "CORTE-RES-01", periodoInicio: "2026-01-01", periodoFin: "2026-01-31", fechaCorte: "2026-01-31", fechaVencimiento: null, estado: "APROBADO", total: null, facturaFolio: null, aprobadoPorId: 7, aprobadoAt: "2026-02-01T09:00:00.000Z", updatedById: 7, updatedAt: "2026-02-01T09:00:00.000Z", pagos: [], historial: [], detalles: [], cliente: { empresaId: 1, empresaNombre: "Alstom" }, cobranza: { total: null, pagado: 0, saldo: null, vencido: false, montoPendienteCaptura: true } },
+      { id: 11, contratoId: 1, folio: "CORTE-12", periodoInicio: "2026-12-01", periodoFin: "2026-12-31", fechaCorte: "2026-12-31", fechaVencimiento: "2027-01-30", estado: "PAGADO", total: "7250", facturaFolio: "F-100", aprobadoPorId: 7, aprobadoAt: "2027-01-02T09:00:00.000Z", updatedById: 9, updatedAt: "2027-01-15T16:20:00.000Z", pagos: [{ id: 81, monto: "7250", fechaPago: "2027-01-15", referencia: "TRANSFERENCIA-81", metodo: "SPEI", registradoPorId: 9, createdAt: "2027-01-15T16:20:00.000Z" }], historial: [{ id: 91, accion: "ACTUALIZAR_ESTADO", estadoAnterior: "FACTURADO", estadoNuevo: "PAGADO", actorId: 9, actorNombre: "María Comercial", actorRol: "COMERCIAL", cambios: { estado: { anterior: "FACTURADO", nuevo: "PAGADO" }, pago: { monto: 7250, referencia: "TRANSFERENCIA-81" } }, createdAt: "2027-01-15T16:20:00.000Z" }], detalles: [{ id: 1 }], cliente: { empresaId: 1, empresaNombre: "Alstom" }, cobranza: { total: 7250, pagado: 7250, saldo: 0, vencido: false, montoPendienteCaptura: false } },
+    ],
+    collection: { porCobrar: 0, vencido: 0, cobrado: 7250, cortesSinMonto: 1 },
   };
 
   const buffer = await buildCommercialCrmWorkbook({ analytics, crm, template: "COMPLETO", title: "COSAIF Comercial · Alstom" });
@@ -72,12 +99,29 @@ async function run() {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as any);
   const names = workbook.worksheets.map((sheet) => sheet.name);
-  for (const required of ["Resumen", "Naturales", "Arrastre", "Tendencia del periodo", "Volumen por patio", "Contratos", "Cumplimiento contractual", "Cortes y saldo opcional", "Operaciones auditables", "Guía del archivo"]) {
+  for (const required of ["Resumen", "Naturales", "Arrastre", "Tendencia del periodo", "Volumen por patio", "Contratos", "Cumplimiento contractual", "Cortes y estados", "Control financiero", "Detalle financiero", "Excedentes cobrables", "Pagos registrados", "Historial de cortes", "Operaciones auditables", "Guía del archivo"]) {
     assert.ok(names.includes(required), `Falta la hoja ${required}`);
   }
-  assert.equal(workbook.getWorksheet("Cumplimiento contractual")?.getCell("I2").value, "CONCLUIDO, CANCELADO");
-  assert.equal(workbook.getWorksheet("Cumplimiento contractual")?.getCell("N2").value, "EN RANGO");
-  assert.equal(workbook.getWorksheet("Cortes y saldo opcional")?.getCell("L2").value, 80000);
+  assert.equal(workbook.getWorksheet("Cumplimiento contractual")?.getCell("K2").value, "CONCLUIDO");
+  assert.equal(workbook.getWorksheet("Cumplimiento contractual")?.getCell("R5").value, "EXCEDIDO");
+  assert.equal(workbook.getWorksheet("Cortes y estados")?.getCell("G4").value, "PAGADO");
+  assert.equal(workbook.getWorksheet("Cortes y estados")?.getCell("T4").value, 7250);
+  assert.equal(workbook.getWorksheet("Cortes y estados")?.getCell("U4").value, 7250);
+  assert.equal(workbook.getWorksheet("Cortes y estados")?.getCell("V4").value, 0);
+  assert.equal(workbook.getWorksheet("Cortes y estados")?.getCell("S3").value, "OPCIONAL / NO CAPTURADO");
+  assert.deepEqual(workbook.getWorksheet("Control financiero")?.getCell("B5").value, { formula: "COUNTA('Cortes y estados'!$D$2:$D$5)" });
+  assert.equal(workbook.getWorksheet("Detalle financiero")?.getCell("N5").value, 750);
+  assert.equal(workbook.getWorksheet("Excedentes cobrables")?.getCell("F2").value, "TORREON-1");
+  assert.equal(workbook.getWorksheet("Pagos registrados")?.getCell("J2").value, "TRANSFERENCIA-81");
+  assert.equal(workbook.getWorksheet("Historial de cortes")?.getCell("H2").value, "María Comercial");
+  const zip = await JSZip.loadAsync(buffer);
+  const fileNames = Object.keys(zip.files);
+  assert.ok(fileNames.some((name) => /^xl\/charts\/chart\d+\.xml$/.test(name)), "El Excel debe incluir gráficas nativas");
+  assert.ok(!fileNames.some((name) => /^xl\/media\/image\d+\./.test(name)), "El reporte CRM no debe pegar gráficas como imágenes");
+  if (process.env.COSAIF_EXCEL_OUTPUT) {
+    await mkdir(path.dirname(process.env.COSAIF_EXCEL_OUTPUT), { recursive: true });
+    await writeFile(process.env.COSAIF_EXCEL_OUTPUT, buffer);
+  }
   const customBuffer = await buildCommercialCrmWorkbook({
     analytics,
     crm,

@@ -18,12 +18,17 @@ export type CommercialOperation = {
   localidad: string;
   locomotiveNumber: number | null;
   wagons: number;
+  requestedQuantity?: number;
+  viaOrigen?: string | null;
+  viaDestino?: string | null;
+  requestedBy?: string;
   status: string;
   completed: boolean;
   cancelled: boolean;
   stopped: boolean;
   services: Array<"MOVIMIENTO" | "LAVADO" | "TORNEADO">;
   requestedAt: string;
+  startedAt?: string | null;
   completedAt: string | null;
   operationAt: string;
   incidents: number;
@@ -36,6 +41,7 @@ export type CommercialAnalyticsFilters = {
   period?: CommercialPeriod;
   months?: number;
   empresaId?: number;
+  empresaIds?: number[];
   localidadId?: number;
   origin?: "NATURAL" | "ARRASTRE";
   page?: number;
@@ -102,16 +108,39 @@ function parseRange(filters: CommercialAnalyticsFilters) {
 }
 
 function operationDateWhere(startUTC: Date, endUTC: Date) {
-  return {
-    OR: [
-      { fechaFin: { gte: startUTC, lt: endUTC } },
-      { fechaFin: null, fechaSolicitud: { gte: startUTC, lt: endUTC } },
-    ],
-  };
+  return { fechaSolicitud: { gte: startUTC, lt: endUTC } };
 }
 
-function operationDate(fechaSolicitud: Date, fechaFin?: Date | null) {
-  return fechaFin ?? fechaSolicitud;
+function operationDate(fechaSolicitud: Date, _fechaFin?: Date | null) {
+  // El mes comercial corresponde a la solicitud. Inicio y fin describen el
+  // avance, pero no deben mover mayo al mes en que terminó el movimiento.
+  return fechaSolicitud;
+}
+
+function normalizeServicePlace(value?: string | null) {
+  const text = String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const compact = text.replace(/[^a-z0-9]+/g, "");
+  if (compact.includes("lavado") || compact.includes("lavada") || compact === "lav") return "LAVADO";
+  if (compact.includes("torno") || compact.includes("torneado")) return "TORNEADO";
+  return null;
+}
+
+function operationServices(row: {
+  lavado?: boolean | null;
+  torno?: boolean | null;
+  viaDestinoId?: number | null;
+  viaOrigen?: { nombre?: string | null } | null;
+  viaDestino?: { nombre?: string | null } | null;
+}) {
+  const destinationService = normalizeServicePlace(row.viaDestino?.nombre);
+  const originService = normalizeServicePlace(row.viaOrigen?.nombre);
+  const services: Array<"MOVIMIENTO" | "LAVADO" | "TORNEADO"> = ["MOVIMIENTO"];
+  if (destinationService && destinationService !== originService) services.push(destinationService);
+  else if (row.viaDestinoId == null) {
+    if (row.lavado && originService !== "LAVADO") services.push("LAVADO");
+    if (row.torno && originService !== "TORNEADO") services.push("TORNEADO");
+  }
+  return services;
 }
 
 function pct(current: number, previous: number) {
@@ -211,10 +240,15 @@ export class CommercialCrmAnalyticsModel {
     ]);
     const companyNames = new Map(companies.map((item) => [item.id, item.nombre]));
     const localityNames = new Map(localities.map((item) => [item.id, item.nombre]));
+    const companyFilter = filters.empresaIds?.length
+      ? { empresaId: { in: [...new Set(filters.empresaIds)] } }
+      : filters.empresaId
+        ? { empresaId: filters.empresaId }
+        : {};
 
     const coreWhere: Prisma.MovimientoWhereInput = {
       ...operationDateWhere(range.queryStartUTC, range.endUTC),
-      ...(filters.empresaId ? { empresaId: filters.empresaId } : {}),
+      ...companyFilter,
       ...(filters.localidadId ? { localidadId: filters.localidadId } : {}),
     };
     const corePromise = filters.origin === "ARRASTRE"
@@ -224,12 +258,19 @@ export class CommercialCrmAnalyticsModel {
           select: {
             id: true,
             empresaId: true,
+            creadoPorId: true,
+            clienteId: true,
             localidadId: true,
             locomotiveNumber: true,
+            viaOrigenId: true,
+            viaDestinoId: true,
+            viaOrigen: { select: { nombre: true } },
+            viaDestino: { select: { nombre: true } },
             estado: true,
             torno: true,
             lavado: true,
             fechaSolicitud: true,
+            fechaInicio: true,
             fechaFin: true,
             empresa: { select: { nombre: true } },
             localidad: { select: { nombre: true } },
@@ -249,19 +290,24 @@ export class CommercialCrmAnalyticsModel {
           : prismaTorreon.movimientoTorreonFerro.findMany({
               where: {
                 ...operationDateWhere(range.queryStartUTC, range.endUTC),
-                ...(filters.empresaId ? { empresaId: filters.empresaId } : {}),
+                ...companyFilter,
                 ...(filters.localidadId ? { localidadId: filters.localidadId } : {}),
               },
               select: {
                 id: true,
                 empresaId: true,
+                creadoPorId: true,
+                clienteId: true,
                 localidadId: true,
                 locomotiveNumber: true,
                 estado: true,
                 fechaSolicitud: true,
+                fechaInicio: true,
                 fechaFin: true,
                 empresaNombreSnapshot: true,
                 localidadNombreSnapshot: true,
+                viaOrigenNombreSnapshot: true,
+                viaDestinoNombreSnapshot: true,
                 incidentes: { select: { id: true } },
               },
             }),
@@ -270,17 +316,21 @@ export class CommercialCrmAnalyticsModel {
           : prismaTorreon.arrastreTorreon.findMany({
               where: {
                 ...operationDateWhere(range.queryStartUTC, range.endUTC),
-                ...(filters.empresaId ? { empresaId: filters.empresaId } : {}),
+                ...companyFilter,
                 ...(filters.localidadId ? { localidadId: filters.localidadId } : {}),
               },
               select: {
                 id: true,
                 empresaId: true,
+                creadoPorId: true,
                 localidadId: true,
+                viaOrigenId: true,
+                viaDestinoId: true,
                 estado: true,
                 fechaSolicitud: true,
+                fechaInicio: true,
                 fechaFin: true,
-                vagones: { select: { id: true } },
+                vagones: { select: { id: true, viaOrigenNombre: true, viaDestinoNombre: true } },
                 incidentes: { select: { id: true } },
               },
             }),
@@ -291,6 +341,14 @@ export class CommercialCrmAnalyticsModel {
     }
 
     const coreRows = await corePromise;
+    const requesterIds = [...new Set([
+      ...coreRows.map((row) => row.clienteId ?? row.creadoPorId),
+      ...torreonNatural.map((row) => row.clienteId ?? row.creadoPorId),
+      ...torreonArrastre.map((row) => row.creadoPorId),
+    ].filter((value): value is number => Number.isInteger(value) && value > 0))];
+    const requesterNames = new Map((requesterIds.length
+      ? await prisma.usuario.findMany({ where: { id: { in: requesterIds } }, select: { id: true, nombre: true } })
+      : []).map((item) => [item.id, item.nombre]));
     const operations: CommercialOperation[] = [];
     for (const row of coreRows) {
       const incidents = row.incidentes.length
@@ -308,12 +366,17 @@ export class CommercialCrmAnalyticsModel {
         localidad: row.localidad.nombre,
         locomotiveNumber: row.locomotiveNumber,
         wagons: 0,
+        requestedQuantity: 1,
+        viaOrigen: row.viaOrigen?.nombre ?? null,
+        viaDestino: row.viaDestino?.nombre ?? null,
+        requestedBy: requesterNames.get(row.clienteId ?? row.creadoPorId) || row.empresa.nombre,
         status: row.estado,
         completed: row.estado === "CONCLUIDO",
         cancelled: row.estado === "CANCELADO",
         stopped: row.estado === "DETENIDO",
-        services: ["MOVIMIENTO", ...(row.lavado ? ["LAVADO" as const] : []), ...(row.torno ? ["TORNEADO" as const] : [])],
+        services: operationServices(row),
         requestedAt: row.fechaSolicitud.toISOString(),
+        startedAt: row.fechaInicio?.toISOString() ?? null,
         completedAt: row.fechaFin?.toISOString() ?? null,
         operationAt: date.toISOString(),
         incidents,
@@ -333,12 +396,17 @@ export class CommercialCrmAnalyticsModel {
         localidad: row.localidadNombreSnapshot || localityNames.get(row.localidadId) || `Patio #${row.localidadId}`,
         locomotiveNumber: row.locomotiveNumber,
         wagons: 0,
+        requestedQuantity: 1,
+        viaOrigen: row.viaOrigenNombreSnapshot ?? null,
+        viaDestino: row.viaDestinoNombreSnapshot ?? null,
+        requestedBy: requesterNames.get(row.clienteId ?? row.creadoPorId) || row.empresaNombreSnapshot || companyNames.get(row.empresaId) || `Empresa #${row.empresaId}`,
         status: String(row.estado),
         completed: row.estado === "CONCLUIDO",
         cancelled: row.estado === "CANCELADO",
         stopped: row.estado === "DETENIDO",
         services: ["MOVIMIENTO"],
         requestedAt: row.fechaSolicitud.toISOString(),
+        startedAt: row.fechaInicio?.toISOString() ?? null,
         completedAt: row.fechaFin?.toISOString() ?? null,
         operationAt: date.toISOString(),
         incidents: row.incidentes.length,
@@ -347,6 +415,8 @@ export class CommercialCrmAnalyticsModel {
     }
     for (const row of torreonArrastre) {
       const date = operationDate(row.fechaSolicitud, row.fechaFin);
+      const wagonOrigins = [...new Set(row.vagones.map((item: any) => item.viaOrigenNombre).filter(Boolean))];
+      const wagonDestinations = [...new Set(row.vagones.map((item: any) => item.viaDestinoNombre).filter(Boolean))];
       operations.push({
         key: `TORREON:ARRASTRE:${row.id}`,
         sourceSystem: "TORREON",
@@ -358,12 +428,17 @@ export class CommercialCrmAnalyticsModel {
         localidad: localityNames.get(row.localidadId) || `Patio #${row.localidadId}`,
         locomotiveNumber: null,
         wagons: row.vagones.length,
+        requestedQuantity: row.vagones.length,
+        viaOrigen: wagonOrigins.join(", ") || (row.viaOrigenId ? `Vía #${row.viaOrigenId}` : null),
+        viaDestino: wagonDestinations.join(", ") || (row.viaDestinoId ? `Vía #${row.viaDestinoId}` : null),
+        requestedBy: requesterNames.get(row.creadoPorId) || companyNames.get(row.empresaId) || `Empresa #${row.empresaId}`,
         status: String(row.estado),
         completed: row.estado === "CONCLUIDO",
         cancelled: row.estado === "CANCELADO",
         stopped: row.estado === "DETENIDO",
         services: ["MOVIMIENTO"],
         requestedAt: row.fechaSolicitud.toISOString(),
+        startedAt: row.fechaInicio?.toISOString() ?? null,
         completedAt: row.fechaFin?.toISOString() ?? null,
         operationAt: date.toISOString(),
         incidents: row.incidentes.length,
@@ -439,7 +514,23 @@ export class CommercialCrmAnalyticsModel {
       wagons: number;
       incidents: number;
     }>();
+    const contractTrendMap = new Map<string, {
+      bucketKey: string;
+      bucketLabel: string;
+      empresaId: number;
+      localidadId: number;
+      empresa: string;
+      localidad: string;
+      origin: "NATURAL" | "ARRASTRE";
+      service: "MOVIMIENTO" | "LAVADO" | "TORNEADO";
+      status: string;
+      count: number;
+      wagons: number;
+      incidents: number;
+    }>();
     for (const operation of selectedOperations) {
+      const date = DateTime.fromISO(operation.operationAt, { zone: "utc" }).setZone(range.tz);
+      const bucket = trendBuckets.find((item) => date >= item.from && date < item.to);
       for (const service of operation.services) {
         const key = `${operation.empresaId}:${operation.localidadId}:${operation.origin}:${service}:${operation.status}`;
         const item = contractBreakdownMap.get(key) ?? {
@@ -458,6 +549,27 @@ export class CommercialCrmAnalyticsModel {
         item.wagons += service === "MOVIMIENTO" ? operation.wagons : 0;
         item.incidents += operation.incidents;
         contractBreakdownMap.set(key, item);
+        if (bucket) {
+          const trendKey = `${bucket.key}:${key}`;
+          const trendItem = contractTrendMap.get(trendKey) ?? {
+            bucketKey: bucket.key,
+            bucketLabel: bucket.label,
+            empresaId: operation.empresaId,
+            localidadId: operation.localidadId,
+            empresa: operation.empresa,
+            localidad: operation.localidad,
+            origin: operation.origin,
+            service,
+            status: operation.status,
+            count: 0,
+            wagons: 0,
+            incidents: 0,
+          };
+          trendItem.count += 1;
+          trendItem.wagons += service === "MOVIMIENTO" ? operation.wagons : 0;
+          trendItem.incidents += operation.incidents;
+          contractTrendMap.set(trendKey, trendItem);
+        }
       }
     }
     const page = Math.max(1, Math.trunc(filters.page || 1));
@@ -486,6 +598,7 @@ export class CommercialCrmAnalyticsModel {
         referenceDate: range.reference.toISODate()!,
         period: range.period,
         periodLabel,
+        dateBasis: "FECHA_SOLICITUD" as const,
         torreonAvailable,
         readOnly: true,
       },
@@ -512,6 +625,7 @@ export class CommercialCrmAnalyticsModel {
       trend,
       currentBreakdown: [...currentBreakdownMap.values()].sort((a, b) => b.completed - a.completed),
       contractBreakdown: [...contractBreakdownMap.values()].sort((a, b) => a.empresa.localeCompare(b.empresa, "es") || a.localidad.localeCompare(b.localidad, "es") || a.status.localeCompare(b.status, "es")),
+      contractTrend: [...contractTrendMap.values()].sort((a, b) => a.bucketKey.localeCompare(b.bucketKey) || a.empresa.localeCompare(b.empresa, "es") || a.localidad.localeCompare(b.localidad, "es") || a.status.localeCompare(b.status, "es")),
       clients: summarize(selectedOperations, "empresaId"),
       yards: summarize(selectedOperations, "localidadId"),
       operations: {
@@ -520,4 +634,113 @@ export class CommercialCrmAnalyticsModel {
       },
     };
   }
+}
+
+function mergeNumericRows<T extends Record<string, any>>(rows: T[], keyFields: string[], numericFields: string[]): T[] {
+  const grouped = new Map<string, T>();
+  for (const row of rows) {
+    const key = keyFields.map((field) => String(row[field] ?? "")).join(":");
+    const target = grouped.get(key) ?? { ...row } as T;
+    if (grouped.has(key)) {
+      for (const field of numericFields) (target as Record<string, any>)[field] = Number(target[field] || 0) + Number(row[field] || 0);
+    }
+    grouped.set(key, target);
+  }
+  return [...grouped.values()];
+}
+
+function selectedMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
+export async function generateCommercialAnalyticsForMonths(filters: CommercialAnalyticsFilters, monthKeys: string[]) {
+  const selected = [...new Set(monthKeys.filter((value) => /^\d{4}-\d{2}$/.test(value)))].sort().slice(0, 24);
+  if (!selected.length) return CommercialCrmAnalyticsModel.generate(filters);
+  const parts = await Promise.all(selected.map((month) => CommercialCrmAnalyticsModel.generate({
+    ...filters,
+    period: "MONTH",
+    reference: month,
+    referenceDate: `${month}-01`,
+    page: 1,
+    pageSize: 10_000,
+    exportAll: true,
+  })));
+  if (parts.length === 1) return { ...parts[0], meta: { ...parts[0].meta, selectedMonthKeys: selected } };
+
+  const operations = parts.flatMap((part) => part.operations.data);
+  const previousPeriod = parts.reduce((sum, part) => sum + Number(part.kpis.previousPeriod || 0), 0);
+  const selectedPeriod = operations.length;
+  const completed = operations.filter((item) => item.completed).length;
+  const previousCompleted = parts.reduce((sum, part) => {
+    const current = Number(part.kpis.completed || 0);
+    const growth = Number(part.kpis.completedGrowthPct || 0);
+    return sum + (growth === -100 ? 0 : growth ? current / (1 + growth / 100) : current);
+  }, 0);
+  const kpis = {
+    operations: selectedPeriod,
+    completed,
+    cancelled: operations.filter((item) => item.cancelled).length,
+    stopped: operations.filter((item) => item.stopped).length,
+    incidents: operations.reduce((sum, item) => sum + item.incidents, 0),
+    natural: operations.filter((item) => item.origin === "NATURAL").length,
+    arrastre: operations.filter((item) => item.origin === "ARRASTRE").length,
+    wagons: operations.reduce((sum, item) => sum + item.wagons, 0),
+    wash: operations.filter((item) => item.completed && item.services.includes("LAVADO")).length,
+    turning: operations.filter((item) => item.completed && item.services.includes("TORNEADO")).length,
+    selectedPeriod,
+    previousPeriod,
+    periodGrowthPct: pct(selectedPeriod, previousPeriod),
+    completedGrowthPct: pct(completed, Math.round(previousCompleted)),
+    currentMonth: selectedPeriod,
+    previousMonth: previousPeriod,
+    monthlyGrowthPct: pct(selectedPeriod, previousPeriod),
+  };
+  const clients = mergeNumericRows(parts.flatMap((part) => part.clients), ["id"], ["total", "completed", "natural", "arrastre", "wagons", "wash", "turning"])
+    .sort((a, b) => Number(b.total) - Number(a.total) || String(a.name).localeCompare(String(b.name), "es"));
+  const yards = mergeNumericRows(parts.flatMap((part) => part.yards), ["id"], ["total", "completed", "natural", "arrastre", "wagons", "wash", "turning"])
+    .sort((a, b) => Number(b.total) - Number(a.total) || String(a.name).localeCompare(String(b.name), "es"));
+  const currentBreakdown = mergeNumericRows(parts.flatMap((part) => part.currentBreakdown), ["empresaId", "localidadId"], ["natural", "arrastre", "wagons", "wash", "turning", "completed"])
+    .sort((a, b) => Number(b.completed) - Number(a.completed));
+  const contractBreakdown = mergeNumericRows(parts.flatMap((part) => part.contractBreakdown), ["empresaId", "localidadId", "origin", "service", "status"], ["count", "wagons", "incidents"])
+    .sort((a, b) => String(a.empresa).localeCompare(String(b.empresa), "es") || String(a.localidad).localeCompare(String(b.localidad), "es") || String(a.status).localeCompare(String(b.status), "es"));
+  const contractTrend = parts.flatMap((part, index) => part.contractBreakdown.map((row) => ({
+    ...row,
+    bucketKey: selected[index],
+    bucketLabel: selectedMonthLabel(selected[index]),
+  })));
+  const trend = parts.map((part, index) => ({
+    key: selected[index],
+    label: selectedMonthLabel(selected[index]),
+    natural: Number(part.kpis.natural || 0),
+    arrastre: Number(part.kpis.arrastre || 0),
+    wagons: Number(part.kpis.wagons || 0),
+    wash: Number(part.kpis.wash || 0),
+    turning: Number(part.kpis.turning || 0),
+    total: Number(part.kpis.operations || 0),
+    completed: Number(part.kpis.completed || 0),
+    cancelled: Number(part.kpis.cancelled || 0),
+  }));
+  return {
+    ...parts[0],
+    meta: {
+      ...parts[0].meta,
+      months: selected.length,
+      range: { from: parts[0].meta.range.from, toExclusive: parts[parts.length - 1].meta.range.toExclusive },
+      reference: selected.join("_"),
+      referenceDate: `${selected[0]}-01`,
+      period: "MONTH" as const,
+      periodLabel: selected.map(selectedMonthLabel).join(" · "),
+      torreonAvailable: parts.some((part) => part.meta.torreonAvailable),
+      selectedMonthKeys: selected,
+    },
+    kpis,
+    trend,
+    currentBreakdown,
+    contractBreakdown,
+    contractTrend,
+    clients,
+    yards,
+    operations: { data: operations, meta: { page: 1, pageSize: operations.length || 1, total: operations.length, totalPages: 1 } },
+  };
 }

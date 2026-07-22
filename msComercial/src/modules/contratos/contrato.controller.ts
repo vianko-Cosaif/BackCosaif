@@ -12,6 +12,13 @@ const contractId = (raw: string) => {
   return id;
 };
 
+const dateKey = (date: Date) => date.toISOString().slice(0, 10);
+
+const todayKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
+
 export async function listContratos(req: Request, res: Response) {
   const filters = contratoListSchema.parse(req.query);
   const page = paginationSchema.parse(req.query);
@@ -35,9 +42,26 @@ export async function listContratos(req: Request, res: Response) {
         cliente: { select: { id: true, empresaId: true, empresaNombre: true } },
         paquetes: {
           where: { activo: true },
-          select: { id: true, nombre: true, unidad: true, periodicidad: true, cantidadIncluida: true },
+          select: {
+            id: true,
+            nombre: true,
+            servicio: true,
+            origenOperacion: true,
+            unidad: true,
+            periodicidad: true,
+            localidadId: true,
+            estadosIncluidos: true,
+            cantidadIncluida: true,
+            tarifaExcedenteId: true,
+            montoPaquete: true,
+            importeExcedente: true,
+            moneda: true,
+            vigenciaInicio: true,
+            vigenciaFin: true,
+            activo: true,
+            tarifaExcedente: { select: { id: true, concepto: true, importeUnitario: true, moneda: true } },
+          },
           orderBy: [{ vigenciaInicio: "desc" as const }, { id: "desc" as const }],
-          take: 3,
         },
         _count: { select: { tarifas: true, planes: true, paquetes: true } },
       },
@@ -57,7 +81,10 @@ export async function getContrato(req: Request, res: Response) {
       cliente: { select: { id: true, empresaId: true, empresaNombre: true } },
       tarifas: { orderBy: { vigenciaInicio: "desc" } },
       planes: { orderBy: { fechaInicio: "desc" } },
-      paquetes: { orderBy: [{ activo: "desc" }, { vigenciaInicio: "desc" }] },
+      paquetes: {
+        include: { tarifaExcedente: { select: { id: true, concepto: true, importeUnitario: true, moneda: true } } },
+        orderBy: [{ activo: "desc" }, { vigenciaInicio: "desc" }],
+      },
     },
   });
   if (!data) throw new CommercialDomainError("Contrato no encontrado", 404);
@@ -76,7 +103,7 @@ export async function createContrato(req: Request, res: Response) {
   const { reglaInicial, ...contratoData } = input;
   const data = await prismaComercial.$transaction(async (tx) => {
     const contrato = await tx.contratoComercial.create({
-      data: { ...contratoData, createdById: actor.id, updatedById: actor.id },
+      data: { ...contratoData, diaCorte: contratoData.diaCorte ?? 31, createdById: actor.id, updatedById: actor.id },
     });
 
     if (reglaInicial) {
@@ -92,6 +119,9 @@ export async function createContrato(req: Request, res: Response) {
           localidadId: reglaInicial.localidadId,
           estadosIncluidos: reglaInicial.estadosIncluidos,
           cantidadIncluida: reglaInicial.unidad === "TARIFA_FIJA" ? null : reglaInicial.cantidadIncluida,
+          montoPaquete: reglaInicial.montoPaquete,
+          importeExcedente: reglaInicial.importeExcedente,
+          moneda: contrato.moneda,
           vigenciaInicio: contrato.fechaInicio,
           vigenciaFin: contrato.fechaFin,
           notas: reglaInicial.notas,
@@ -107,7 +137,25 @@ export async function createContrato(req: Request, res: Response) {
         cliente: { select: { id: true, empresaId: true, empresaNombre: true } },
         paquetes: {
           where: { activo: true },
-          select: { id: true, nombre: true, unidad: true, periodicidad: true, cantidadIncluida: true },
+          select: {
+            id: true,
+            nombre: true,
+            servicio: true,
+            origenOperacion: true,
+            unidad: true,
+            periodicidad: true,
+            localidadId: true,
+            estadosIncluidos: true,
+            cantidadIncluida: true,
+            tarifaExcedenteId: true,
+            montoPaquete: true,
+            importeExcedente: true,
+            moneda: true,
+            vigenciaInicio: true,
+            vigenciaFin: true,
+            activo: true,
+            tarifaExcedente: { select: { id: true, concepto: true, importeUnitario: true, moneda: true } },
+          },
           orderBy: [{ vigenciaInicio: "desc" }, { id: "desc" }],
         },
         _count: { select: { tarifas: true, planes: true, paquetes: true } },
@@ -122,6 +170,9 @@ export async function updateContrato(req: Request, res: Response) {
   const input = contratoUpdateSchema.parse(req.body);
   const current = await prismaComercial.contratoComercial.findUnique({ where: { id } });
   if (!current) throw new CommercialDomainError("Contrato no encontrado", 404);
+  if (current.fechaFin && dateKey(current.fechaFin) < todayKey()) {
+    throw new CommercialDomainError("La vigencia del contrato ya terminó; no se puede editar.", 409);
+  }
   if (current.estado === "CANCELADO") {
     throw new CommercialDomainError("Un contrato cancelado ya no puede editarse", 409);
   }

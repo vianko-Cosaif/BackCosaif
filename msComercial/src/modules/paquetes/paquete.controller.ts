@@ -12,11 +12,21 @@ const positiveId = (raw: string, label = "paqueteId") => {
   return value;
 };
 
+const dateKey = (date: Date) => date.toISOString().slice(0, 10);
+
+const todayKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
+
 async function validateReferences(input: {
   clienteComercialId: number;
   contratoId?: number | null;
   tarifaExcedenteId?: number | null;
 }) {
+  if (!input.contratoId) {
+    throw new CommercialDomainError("Los movimientos contratados se generan desde un contrato. Cree o edite el contrato para cambiar el control.", 409);
+  }
   const [cliente, contrato, tarifa] = await Promise.all([
     prismaComercial.clienteComercial.findUnique({ where: { id: input.clienteComercialId }, select: { id: true, activo: true } }),
     input.contratoId
@@ -94,6 +104,9 @@ export async function updatePaquete(req: Request, res: Response) {
   const input = paqueteUpdateSchema.parse(req.body);
   const current = await prismaComercial.paqueteComercial.findUnique({ where: { id } });
   if (!current) throw new CommercialDomainError("Paquete no encontrado", 404);
+  if (current.vigenciaFin && dateKey(current.vigenciaFin) < todayKey()) {
+    throw new CommercialDomainError("La vigencia de esta regla ya terminó; no se puede editar.", 409);
+  }
   const contratoId = input.contratoId === undefined ? current.contratoId : input.contratoId;
   const tarifaExcedenteId = input.tarifaExcedenteId === undefined ? current.tarifaExcedenteId : input.tarifaExcedenteId;
   await validateReferences({ clienteComercialId: current.clienteComercialId, contratoId, tarifaExcedenteId });
