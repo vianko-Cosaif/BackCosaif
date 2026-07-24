@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("LAVADO_DATABASE_URL")
+  shadowDatabaseUrl = env("LAVADO_SHADOW_DATABASE_URL")
+}
+
+enum TipoLavado {
+  MANUAL
+  AUTOMATICO
+  PROFUNDO
+}
+
+enum EstadoLavadoProceso {
+  PENDIENTE
+  EN_PROCESO
+  FINALIZADO
+}
+
+enum EstadoLavadoFase {
+  PENDIENTE
+  EN_PROCESO
+  FINALIZADA
+}
+
+enum AccionLavadoBitacora {
+  PROCESO_CREADO
+  PROCESO_ACTUALIZADO
+  FASE_INICIADA
+  FASE_FINALIZADA
+  PROCESO_FINALIZADO
+}
+
+model LavadoProceso {
+  id                       String               @id @default(uuid()) @db.Uuid
+  folio                    String               @unique @db.VarChar(32)
+  movimientoId             Int                  @unique @map("movimiento_id")
+  locomotiveNumber         Int                  @map("locomotive_number")
+  empresaId                Int                  @map("empresa_id")
+  empresaNombreSnapshot    String               @map("empresa_nombre_snapshot")
+  localidadId              Int                  @map("localidad_id")
+  localidadNombreSnapshot  String               @map("localidad_nombre_snapshot")
+  tipoLavado               TipoLavado           @map("tipo_lavado")
+  estado                   EstadoLavadoProceso  @default(PENDIENTE)
+  fechaInicio              DateTime?            @map("fecha_inicio") @db.Timestamptz(3)
+  fechaFin                 DateTime?            @map("fecha_fin") @db.Timestamptz(3)
+  duracionEstimadaMinutos  Int?                 @map("duracion_estimada_minutos")
+  duracionRealSegundos     Int?                 @map("duracion_real_segundos")
+  creadoPorId              Int                  @map("creado_por_id")
+  createdAt                DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  fases     LavadoFase[]
+  bitacora  LavadoBitacora[]
+
+  @@index([estado, createdAt])
+  @@index([localidadId, estado, createdAt])
+  @@index([empresaId, estado])
+  @@index([locomotiveNumber, createdAt])
+  @@map("lavado_proceso")
+}
+
+model LavadoFase {
+  id                       String             @id @default(uuid()) @db.Uuid
+  lavadoProcesoId          String             @map("lavado_proceso_id") @db.Uuid
+  clave                    String             @db.VarChar(40)
+  nombre                   String             @db.VarChar(80)
+  orden                    Int
+  estado                   EstadoLavadoFase   @default(PENDIENTE)
+  fechaInicio              DateTime?          @map("fecha_inicio") @db.Timestamptz(3)
+  fechaFin                 DateTime?          @map("fecha_fin") @db.Timestamptz(3)
+  duracionEstimadaMinutos  Int?               @map("duracion_estimada_minutos")
+  duracionRealSegundos     Int?               @map("duracion_real_segundos")
+  responsableId            Int?               @map("responsable_id")
+  observaciones            String?            @db.Text
+  createdAt                DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  proceso   LavadoProceso    @relation(fields: [lavadoProcesoId], references: [id], onDelete: Cascade)
+  bitacora  LavadoBitacora[]
+
+  @@unique([lavadoProcesoId, orden])
+  @@unique([lavadoProcesoId, clave])
+  @@index([lavadoProcesoId, estado, orden])
+  @@index([responsableId, estado])
+  @@map("lavado_fase")
+}
+
+model LavadoBitacora {
+  id                String                  @id @default(uuid()) @db.Uuid
+  lavadoProcesoId   String                  @map("lavado_proceso_id") @db.Uuid
+  lavadoFaseId      String?                 @map("lavado_fase_id") @db.Uuid
+  accion            AccionLavadoBitacora
+  descripcion       String                  @db.Text
+  realizadoPorId    Int                     @map("realizado_por_id")
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  proceso  LavadoProceso  @relation(fields: [lavadoProcesoId], references: [id], onDelete: Cascade)
+  fase     LavadoFase?     @relation(fields: [lavadoFaseId], references: [id], onDelete: SetNull)
+
+  @@index([lavadoProcesoId, createdAt])
+  @@index([lavadoFaseId, createdAt])
+  @@index([realizadoPorId, createdAt])
+  @@map("lavado_bitacora")
+}

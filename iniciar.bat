@@ -40,10 +40,16 @@ timeout /t 2 /nobreak >nul
 echo Iniciando msTorno...
 start "msTorno API" cmd.exe /k "cd /d ""%ROOT%"" && npm.cmd run dev:torno"
 
+timeout /t 2 /nobreak >nul
+
+echo Iniciando msLavado...
+start "msLavado API" cmd.exe /k "cd /d ""%ROOT%"" && npm.cmd run dev:lavado"
+
 echo.
 echo Servicios lanzados:
 echo   BackCosaif: puerto configurado en .env
 echo   msTorno:    TORNO_PORT configurado o puerto 3001
+echo   msLavado:   LAVADO_PORT configurado o puerto 3004
 echo.
 
 endlocal

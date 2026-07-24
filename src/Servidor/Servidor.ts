@@ -32,6 +32,7 @@ import bannerRoutes from "../Rutas/Banner/BannerRoutes";
 import tornoMsRoutes from "../Rutas/TornoMs/TornoMsRoutes";
 import realtimeRoutes from "../Rutas/Realtime/RealtimeRoutes";
 import catalogosOperativosRoutes from "../Rutas/CatalogosOperativos/CatalogosOperativosRoutes";
+import lavadoMsRoutes from "../Rutas/LavadoMs/LavadoMsRoutes";
 import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
 // Carga variables de entorno
 dotenv.config();
@@ -84,6 +85,7 @@ export function iniciarServidor(): void {
     app.use("/torno", tornoMsRoutes);
     app.use("/realtime", realtimeRoutes);
     app.use("/catalogos-operativos", catalogosOperativosRoutes);
+    app.use("/lavado", lavadoMsRoutes);
 
     // ---------------- Arranque del servidor ----------------
     const server = createServer(app);

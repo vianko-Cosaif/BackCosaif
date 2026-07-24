@@ -9,7 +9,9 @@ node_modules
 logs/*
 .env
 .env.torno
+.env.lavado
 msTorno/generated
+msLavado/generated
 src/logs
 dist
 logs/

@@ -17,7 +17,11 @@
     "build:torreon": "tsc -p ms_torreon/tsconfig.json",
     "prisma:torreon:push": "DOTENV_CONFIG_PATH=ms_torreon/.env.torreon node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema ms_torreon/prisma/schema.prisma",
     "prisma:torreon:generate": "DOTENV_CONFIG_PATH=ms_torreon/.env.torreon node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema ms_torreon/prisma/schema.prisma",
-    "seed:torreon:cosaif": "node scripts/seed-torreon-cosaif.cjs"
+    "seed:torreon:cosaif": "node scripts/seed-torreon-cosaif.cjs",
+    "dev:lavado": "ts-node-dev --project msLavado/tsconfig.json msLavado/src/index.ts",
+    "build:lavado": "tsc -p msLavado/tsconfig.json",
+    "prisma:lavado:push": "DOTENV_CONFIG_PATH=msLavado/.env.lavado node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema msLavado/prisma/schema.prisma",
+    "prisma:lavado:generate": "DOTENV_CONFIG_PATH=msLavado/.env.lavado node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema msLavado/prisma/schema.prisma"
   },
   "resolutions": {
     "braces": "3.0.2",

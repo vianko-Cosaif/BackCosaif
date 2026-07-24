@@ -1,5 +1,11 @@
 # BackCosaif
 
+## msLavado
+
+El MVP de lavado vive en `msLavado/`, usa una base PostgreSQL independiente y se
+expone al frontend mediante `/lavado` en este backend. La configuracion, los
+comandos de inicializacion y los ejemplos de API estan en
+`msLavado/README.md`.
 
 ## Arquitectura (rápida)
 - **Routes**: `src/Rutas/**` (HTTP, JWT, validaciones mínimas)
