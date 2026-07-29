@@ -5,7 +5,9 @@ import { proxyToLavadoMs } from "../../services/lavadoMs/lavadoMsClient";
 import type { AuthenticatedUser } from "../../types/auth";
 
 const router = Router();
-const WRITE_ROLES = new Set(["LAVADO", "SUPERVISOR", "COORDINADOR", "ADMINISTRADOR"]);
+// LAVADO y ADMINISTRADOR tienen el mismo acceso completo dentro de este modulo.
+// Esto no otorga al rol LAVADO permisos administrativos sobre otros dominios.
+const WRITE_ROLES = new Set(["LAVADO", "ADMINISTRADOR", "SUPERVISOR", "COORDINADOR"]);
 
 router.use(authenticateAccess);
 

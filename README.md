@@ -5,7 +5,8 @@
 El MVP de lavado vive en `msLavado/`, usa una base PostgreSQL independiente y se
 expone al frontend mediante `/lavado` en este backend. La configuracion, los
 comandos de inicializacion y los ejemplos de API estan en
-`msLavado/README.md`.
+`msLavado/README.md`; el contrato para las pantallas móviles está en
+`msLavado/README_FRONTEND.md`.
 
 ## Arquitectura (rápida)
 - **Routes**: `src/Rutas/**` (HTTP, JWT, validaciones mínimas)

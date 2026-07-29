@@ -3,6 +3,9 @@
 Microservicio independiente para el MVP de lavado industrial. Su base de datos no
 comparte tablas ni llaves foraneas con la base principal de BackCosaif.
 
+El contrato de consumo para las pantallas web o móviles está documentado en
+[`README_FRONTEND.md`](README_FRONTEND.md).
+
 ## Alcance
 
 El MVP administra:

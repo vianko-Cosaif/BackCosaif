@@ -6,6 +6,7 @@ const EXTENDED_ACCESS_TTL: StringValue = '24h';
 
 const EXTENDED_SESSION_ROLES = new Set<Rol>([
   Rol.ADMINISTRADOR,
+  Rol.LAVADO,
   Rol.COORDINADOR,
   Rol.SUPERVISOR,
   Rol.CLIENTE,
