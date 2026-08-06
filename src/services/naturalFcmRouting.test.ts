@@ -3,8 +3,8 @@ import { Rol } from '@prisma/client';
 import { resolverAudienciaFcmNatural } from './naturalFcmRouting';
 
 const creado = resolverAudienciaFcmNatural('nuevo_movimiento');
-assert.equal(creado?.audience, 'MAQUINISTA_NATURAL');
-assert.deepEqual(creado?.roles, [Rol.MAQUINISTA]);
+assert.equal(creado?.audience, 'OPERACION_LOCAL_NATURAL');
+assert.deepEqual(creado?.roles, [Rol.MAQUINISTA, Rol.COORDINADOR, Rol.SUPERVISOR]);
 
 const editado = resolverAudienciaFcmNatural('movimiento_editado');
 assert.equal(editado?.audience, 'MAQUINISTA_NATURAL');
@@ -15,8 +15,14 @@ assert.ok(iniciado?.roles.includes(Rol.CLIENTE));
 assert.ok(!iniciado?.roles.includes(Rol.ARRASTRE_TORREON));
 
 const incidente = resolverAudienciaFcmNatural('nuevo_incidente');
-assert.equal(incidente?.audience, 'CLIENTE_NATURAL');
+assert.equal(incidente?.audience, 'CLIENTE_CONTROL_NATURAL');
 assert.equal(incidente?.url, '/incidentes');
+assert.ok(incidente?.roles.includes(Rol.CLIENTE));
+assert.ok(incidente?.roles.includes(Rol.CLIENTE_ADMIN));
+assert.ok(incidente?.roles.includes(Rol.CLIENTE_COOR));
+assert.ok(incidente?.roles.includes(Rol.COORDINADOR));
+assert.ok(incidente?.roles.includes(Rol.SUPERVISOR));
+assert.ok(!incidente?.roles.includes(Rol.MAQUINISTA));
 
 for (const tipo of [
   'incidente_resuelto_cliente',

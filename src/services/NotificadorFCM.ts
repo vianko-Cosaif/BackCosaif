@@ -158,6 +158,16 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
       tokens,
     });
 
+    console.info('FCM nuevo movimiento', {
+      movimientoId: mov.id,
+      localidadId: mov.localidadId,
+      audience: routing?.audience,
+      roleCounts,
+      tokens: tokens.length,
+      enviados: resp.successCount,
+      fallidos: resp.failureCount,
+    });
+
     const invalid = new Set([
       'messaging/registration-token-not-registered',
       'messaging/invalid-registration-token',
@@ -199,13 +209,23 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
 
     const contexto = contextoMovimientoFcm(mov);
     const routing = resolverAudienciaFcmMovimiento('nuevo_incidente', mov);
-    const { tokens } = await tokensAudienciaOperacion({
+    const { tokens, roleCounts } = await tokensAudienciaOperacion({
       empresaId: mov.empresaId,
       localidadId: mov.localidadId,
       usuarioIds: [mov.operadorId, mov.clienteId, mov.supervisorId, mov.coordinadorId, mov.creadoPorId],
       roles: routing?.roles,
     });
-    if (!tokens.length) return;
+    if (!tokens.length) {
+      console.warn('FCM: sin tokens', {
+        evento: 'nuevo_incidente',
+        incidenteId: inc.id,
+        movId: mov.id,
+        loc: mov.localidadId,
+        emp: mov.empresaId,
+        roleCounts,
+      });
+      return;
+    }
 
     // Mensaje limpio y con truncado correcto
     const empresa   = mov.empresa?.nombre   ?? 'Sin Empresa';
@@ -245,6 +265,17 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
         timestamp   : iso
       },
       tokens
+    });
+
+    console.info('FCM nuevo incidente', {
+      incidenteId: inc.id,
+      movimientoId: mov.id,
+      localidadId: mov.localidadId,
+      audience: routing?.audience,
+      roleCounts,
+      tokens: tokens.length,
+      enviados: resp.successCount,
+      fallidos: resp.failureCount,
     });
 
     // 6) Limpieza de tokens inválidos

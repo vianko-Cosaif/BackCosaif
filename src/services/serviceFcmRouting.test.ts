@@ -14,15 +14,15 @@ assert.equal(tipoServicioFcm({}), null);
 
 assert.deepEqual(
   resolverAudienciaFcmMovimiento('nuevo_movimiento', { torno: true })?.roles,
-  [Rol.MAQUINISTA]
+  [Rol.MAQUINISTA, Rol.COORDINADOR, Rol.SUPERVISOR]
 );
 assert.deepEqual(
   resolverAudienciaFcmMovimiento('nuevo_movimiento', { lavado: true })?.roles,
-  [Rol.MAQUINISTA]
+  [Rol.MAQUINISTA, Rol.COORDINADOR, Rol.SUPERVISOR]
 );
 assert.deepEqual(
   resolverAudienciaFcmMovimiento('nuevo_movimiento', {})?.roles,
-  [Rol.MAQUINISTA]
+  [Rol.MAQUINISTA, Rol.COORDINADOR, Rol.SUPERVISOR]
 );
 assert.deepEqual(
   resolverAudienciaFcmMovimiento('movimiento_editado', { torno: true })?.roles,
@@ -40,7 +40,13 @@ assert.ok(
 );
 assert.equal(
   resolverAudienciaFcmMovimiento('nuevo_incidente', { lavado: true })?.audience,
-  'CLIENTE_NATURAL'
+  'CLIENTE_CONTROL_NATURAL'
+);
+assert.ok(
+  resolverAudienciaFcmMovimiento('nuevo_incidente', { lavado: true })?.roles.includes(Rol.COORDINADOR)
+);
+assert.ok(
+  resolverAudienciaFcmMovimiento('nuevo_incidente', { lavado: true })?.roles.includes(Rol.SUPERVISOR)
 );
 
 const concluido = resolverAudienciaFcmServicio('servicio_torno_concluido', 'TORNO');

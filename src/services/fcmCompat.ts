@@ -54,6 +54,13 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
     },
     webpush: {
       ...((payload.webpush as any) ?? {}),
+      headers: {
+        // Conserva el push hasta 24 h si el dispositivo está temporalmente
+        // sin conexión y solicita entrega inmediata al volver a conectarse.
+        TTL: '86400',
+        Urgency: 'high',
+        ...((payload.webpush as any)?.headers ?? {}),
+      },
       fcmOptions: {
         link,
         ...((payload.webpush as any)?.fcmOptions ?? {}),

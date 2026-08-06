@@ -1,6 +1,11 @@
 import { Rol } from '@prisma/client';
 
-export type NaturalFcmAudience = 'MAQUINISTA_NATURAL' | 'CLIENTE_NATURAL' | 'AMBOS_NATURAL';
+export type NaturalFcmAudience =
+  | 'OPERACION_LOCAL_NATURAL'
+  | 'CLIENTE_CONTROL_NATURAL'
+  | 'MAQUINISTA_NATURAL'
+  | 'CLIENTE_NATURAL'
+  | 'AMBOS_NATURAL';
 
 export type NaturalFcmRouting = {
   audience: NaturalFcmAudience;
@@ -10,9 +15,17 @@ export type NaturalFcmRouting = {
 
 const MAQUINISTA_ROLES: Rol[] = [Rol.MAQUINISTA];
 const CLIENTE_ROLES: Rol[] = [Rol.CLIENTE, Rol.CLIENTE_ADMIN, Rol.CLIENTE_COOR];
+const CONTROL_LOCAL_ROLES: Rol[] = [Rol.COORDINADOR, Rol.SUPERVISOR];
+
+const PARA_OPERACION_LOCAL = new Set([
+  'nuevo_movimiento',
+]);
+
+const PARA_CLIENTE_Y_CONTROL = new Set([
+  'nuevo_incidente',
+]);
 
 const PARA_MAQUINISTA = new Set([
-  'nuevo_movimiento',
   'movimiento_editado',
   'cambio_prioridad',
   'movimiento_cancelado',
@@ -29,7 +42,6 @@ const PARA_CLIENTE = new Set([
   'movimiento_reanudado',
   'movimiento_detenido',
   'movimiento_concluido',
-  'nuevo_incidente',
   'fin_servicio',
 ]);
 
@@ -38,6 +50,22 @@ const PARA_AMBOS = new Set([
 ]);
 
 export function resolverAudienciaFcmNatural(tipo: string): NaturalFcmRouting | null {
+  if (PARA_OPERACION_LOCAL.has(tipo)) {
+    return {
+      audience: 'OPERACION_LOCAL_NATURAL',
+      roles: [...MAQUINISTA_ROLES, ...CONTROL_LOCAL_ROLES],
+      url: '/movimientos',
+    };
+  }
+
+  if (PARA_CLIENTE_Y_CONTROL.has(tipo)) {
+    return {
+      audience: 'CLIENTE_CONTROL_NATURAL',
+      roles: [...CLIENTE_ROLES, ...CONTROL_LOCAL_ROLES],
+      url: '/incidentes',
+    };
+  }
+
   if (PARA_MAQUINISTA.has(tipo)) {
     return {
       audience: 'MAQUINISTA_NATURAL',

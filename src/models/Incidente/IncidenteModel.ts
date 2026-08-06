@@ -1742,14 +1742,7 @@ export class IncidenteModel {
           },
         });
 
-        const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
-        if (incPlano) {
-          await bestEffort('NotificadorFCM.notificarNuevoIncidente', () => NotificadorFCM.notificarNuevoIncidente(incPlano), {
-            rid,
-            incidenteId: incPlano.id,
-          });
-        }
-
+        // El aviso realtime debe llegar a la web incluso si Firebase falla o tarda.
         publishRealtimeEvent({
           type: 'movimiento.incidente',
           movimientoId: movimiento.id,
@@ -1762,6 +1755,14 @@ export class IncidenteModel {
           descripcion: nuevoIncidente.descripcion,
           locomotiveNumber: movimiento.locomotiveNumber,
         });
+
+        const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
+        if (incPlano) {
+          await bestEffort('NotificadorFCM.notificarNuevoIncidente', () => NotificadorFCM.notificarNuevoIncidente(incPlano), {
+            rid,
+            incidenteId: incPlano.id,
+          });
+        }
 
         this.ensureIncidentScheduler();
         this.scheduleIncidentAutoClose(nuevoIncidente.id, nuevoIncidente.fechaInicio);

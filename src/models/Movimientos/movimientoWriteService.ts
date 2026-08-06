@@ -579,6 +579,9 @@ export class MovimientoWriteService {
         prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
       });
 
+      // Realtime no depende de Firebase: la web se actualiza aunque FCM falle.
+      publishMovimientoCreadoEvent(movimiento);
+
       try {
         await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
       } catch (error: any) {
@@ -587,8 +590,6 @@ export class MovimientoWriteService {
           err: error?.message,
         });
       }
-
-      publishMovimientoCreadoEvent(movimiento);
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
 
@@ -634,6 +635,9 @@ export class MovimientoWriteService {
         prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
       });
 
+      // Realtime no depende de Firebase: la web se actualiza aunque FCM falle.
+      publishMovimientoCreadoEvent(movimiento);
+
       try {
         await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
       } catch (error: any) {
@@ -642,8 +646,6 @@ export class MovimientoWriteService {
           err: error?.message,
         });
       }
-
-      publishMovimientoCreadoEvent(movimiento);
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
 
