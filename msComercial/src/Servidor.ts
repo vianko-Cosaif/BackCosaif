@@ -1,12 +1,14 @@
 import cors from "cors";
-import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type RequestHandler, type Response } from "express";
 import { Prisma } from "../generated";
 import { ZodError } from "zod";
 import { comercialApiRouter } from "./routes/api";
 import { type CommercialRequest, verifyCommercialServiceRequest } from "./security/serviceAuth";
 import { CommercialDomainError } from "./utils/domainError";
+import { prismaComercial } from "./db/prisma";
+import { createComercialGuardianAgent } from "./guardianAgent";
 
-export function createComercialApp(): Express {
+export function createComercialApp(guardianMiddleware?: RequestHandler): Express {
   const app = express();
   app.use(cors());
   app.use(express.json({
@@ -15,6 +17,7 @@ export function createComercialApp(): Express {
       req.rawBody = Buffer.from(buffer);
     },
   }));
+  if (guardianMiddleware) app.use(guardianMiddleware);
 
   app.get("/", (_req, res) => res.json({ ok: true, servicio: "msComercial" }));
   app.get("/health", (_req, res) => res.json({ ok: true, status: "healthy" }));
@@ -48,7 +51,14 @@ export function iniciarServidorComercial(): void {
   if (!process.env.COMERCIAL_DATABASE_URL) throw new Error("COMERCIAL_DATABASE_URL no configurada");
   if (!process.env.COMERCIAL_SERVICE_SECRET) throw new Error("COMERCIAL_SERVICE_SECRET no configurado");
 
-  createComercialApp().listen(port, host, () => {
+  const guardianAgent = createComercialGuardianAgent({
+    databaseCheck: async () => {
+      await prismaComercial.$queryRaw`SELECT 1`;
+      return true;
+    },
+  });
+  createComercialApp(guardianAgent.middleware).listen(port, host, () => {
     console.log(`msComercial corriendo en http://${host}:${port}`);
+    guardianAgent.start();
   });
 }

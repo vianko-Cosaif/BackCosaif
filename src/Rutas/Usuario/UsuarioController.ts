@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getAccessTtlForRole } from '../../auth/sessionPolicy';
 import { buildOperacionLocalidad } from '../../utils/operacionLocalidad';
 import type { AuthenticatedUser } from '../../types/auth';
+import { buildAuthorizationProfile } from '../../auth/accessPolicy';
 
 type ErrorShape = {
   name?: string;
@@ -133,6 +134,36 @@ const isAdminOnlyUserRole = (role?: Rol) => Boolean(role && ADMIN_ONLY_USER_ROLE
 const forbiddenAdminMessage = 'Solo ADMINISTRADOR puede crear o modificar usuarios ADMINISTRADOR o COMERCIAL';
 
 export class UsuarioController {
+  static me: RequestHandler = async (req, res) => {
+    const user = getActor(req);
+    if (!user) {
+      return res.status(401).json({ error: 'No autorizado', code: 'UNAUTHENTICATED' });
+    }
+
+    const authorization = buildAuthorizationProfile(user);
+    const operacionLocalidad = buildOperacionLocalidad(user.localidad);
+    res.setHeader('Cache-Control', 'no-store');
+
+    return res.json({
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        rol: user.rol,
+        empresaId: user.empresa?.id ?? null,
+        localidadId: user.localidad?.id ?? null,
+        empresa: user.empresa ?? null,
+        localidad: user.localidad ?? null,
+        operacionLocalidad,
+        authorization,
+      },
+      authorization,
+      operacionLocalidad,
+      session: {
+        expiresAt: user.auth.expiresAt ?? null,
+      },
+    });
+  };
+
   static obtenerUsuarios: RequestHandler = async (req, res) => {
     const reqId = (req.headers['x-request-id'] as string) || randomUUID();
     const t0 = process.hrtime.bigint();
@@ -141,7 +172,15 @@ export class UsuarioController {
       return res.status(403).json({ error: 'No tienes permisos para ver usuarios' });
     }
     try {
-      const data = await UsuarioModel.obtenerUsuarios({ reqId }, { includeAdminOnlyRoles: isAdministrator(req) });
+      const actor = getActor(req);
+      const localidadId = isRestrictedLocalCoordinator(req) ? actor?.localidad?.id : undefined;
+      const data = await UsuarioModel.obtenerUsuarios(
+        { reqId },
+        {
+          includeAdminOnlyRoles: isAdministrator(req),
+          localidadId,
+        },
+      );
       log.info('usuarios:list:ok', { reqId, count: data.length, ms: dt(t0) });
       res.json(data);
     } catch (error) {
@@ -381,11 +420,14 @@ static login: RequestHandler = async (req, res) => {
     }));
 
     const operacionLocalidad = buildOperacionLocalidad(user.localidad);
+    const authorization = buildAuthorizationProfile(user);
 
+    res.setHeader('Cache-Control', 'no-store');
     return res.json({
       token,
       expiresAt: new Date(exp * 1000).toISOString(),
       operacionLocalidad,
+      authorization,
       user: {
         id: user.id,
         nombre: user.nombre,
@@ -396,6 +438,7 @@ static login: RequestHandler = async (req, res) => {
         empresa: user.empresa,
         localidad: user.localidad,
         operacionLocalidad,
+        authorization,
       },
     });
   } catch (error) {

@@ -218,3 +218,43 @@
   message: 'crear.close',
   timestamp: '2026-07-20 17:55:04'
 }
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 392,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-08-05 12:21:06'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 394,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-08-05 12:21:06'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 348,
+  status: 201,
+  level: 'info',
+  message: 'crear.finish',
+  timestamp: '2026-08-05 12:23:25'
+}
+{
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  ms: 350,
+  status: 201,
+  level: 'warn',
+  message: 'crear.close',
+  timestamp: '2026-08-05 12:23:25'
+}

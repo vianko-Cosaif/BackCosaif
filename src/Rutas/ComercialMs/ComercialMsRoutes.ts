@@ -3,6 +3,8 @@ import { authenticateAccess } from "../../auth/authenticateAccess";
 import { prisma } from "../../lib/prisma";
 import { proxyToComercialMs } from "../../services/comercialMs/comercialMsClient";
 import type { AuthenticatedUser } from "../../types/auth";
+import { PERMISSIONS } from "../../auth/accessPolicy";
+import { requirePermission } from "../../auth/authorize";
 import { CommercialCrmAnalyticsModel, generateCommercialAnalyticsForMonths, type CommercialAnalyticsFilters } from "../../reporteria/modelos/comercial-crm-analytics";
 import { buildCommercialCutEvidence, renderCommercialCutEvidencePdf, renderCommercialGeneralCutPdf } from "../../reporteria/modelos/comercial-cut-evidence";
 import { buildContractMonthWorkbook } from "../../reporteria/modelos/comercial-contract-month-excel";
@@ -14,17 +16,9 @@ import {
 } from "../../reporteria/modelos/comercial-crm-excel";
 
 const router = Router();
-const ALLOWED_ROLES = new Set(["ADMINISTRADOR", "COMERCIAL"]);
 
 router.use(authenticateAccess);
-router.use((req, res, next) => {
-  const user = req.user as AuthenticatedUser | undefined;
-  const role = String(user?.rol ?? "").toUpperCase();
-  if (!user || !ALLOWED_ROLES.has(role)) {
-    return res.status(403).json({ error: "Solo ADMINISTRADOR o COMERCIAL puede acceder al CRM comercial" });
-  }
-  return next();
-});
+router.use(requirePermission(PERMISSIONS.REPORTS_COMMERCIAL_READ));
 
 function restPath(req: Request) {
   const base = req.baseUrl;

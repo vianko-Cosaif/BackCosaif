@@ -2,6 +2,8 @@ import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { ZodError } from "zod";
 import { apiRouter } from "./routes/api";
+import { prismaTorno } from "./db/prisma";
+import { createTornoGuardianAgent } from "./guardianAgent";
 
 export function iniciarServidorTorno(): void {
   try {
@@ -10,15 +12,22 @@ export function iniciarServidorTorno(): void {
     const SERVICE_TOKEN = process.env.TORNO_SERVICE_TOKEN;
 
     if (!SERVICE_TOKEN) {
-      throw new Error("TORNO_SERVICE_TOKEN no está configurado");
+      throw new Error("TORNO_SERVICE_TOKEN no estÃ¡ configurado");
     }
 
     const app: Express = express();
 
     app.use(express.json({ limit: "50mb" }));
     app.use(cors());
+    const guardianAgent = createTornoGuardianAgent({
+      databaseCheck: async () => {
+        await prismaTorno.$queryRaw`SELECT 1`;
+        return true;
+      },
+    });
+    app.use(guardianAgent.middleware);
 
-    // Autenticación simple entre servicios (3000 -> 3001)
+    // AutenticaciÃ³n simple entre servicios (3000 -> 3001)
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === "/health") {
         return next();
@@ -54,6 +63,7 @@ export function iniciarServidorTorno(): void {
 
     app.listen(Number(PORT), HOST, () => {
       console.log(`msTorno corriendo en http://${HOST}:${PORT}`);
+      guardianAgent.start();
     });
   } catch (error) {
     console.error("Error al iniciar msTorno:", error);

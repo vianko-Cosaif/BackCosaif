@@ -10,10 +10,11 @@
 
 import express, { Express, Request, Response } from "express";
 import { createServer } from "http";
-import cors from "cors";
 import dotenv from "dotenv";
 import passport from "../middlewares/passport";
 import { traceLoginTraffic } from "../auth/loginProbe";
+import { securityHeaders } from "../auth/securityHeaders";
+import { corsPolicy } from "../auth/corsPolicy";
 
 // --------------- Rutas de dominio ---------------
 import localidadRoutes from "../Rutas/Localidad/LocalidadRutas";
@@ -36,6 +37,9 @@ import catalogosOperativosRoutes from "../Rutas/CatalogosOperativos/CatalogosOpe
 import offlineRoutes from "../Rutas/Offline/OfflineRoutes";
 import comercialMsRoutes from "../Rutas/ComercialMs/ComercialMsRoutes";
 import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
+import { createGuardianAgent } from "../guardian/guardianAgent";
+import { prisma } from "../lib/prisma";
+import { securityAuditMiddleware } from "../security/securityAudit";
 // Carga variables de entorno
 dotenv.config();
 
@@ -50,18 +54,35 @@ const HOST = process.env.HOST || '0.0.0.0';
 export function iniciarServidor(): void {
   try {
     const app: Express = express();
+    app.disable('x-powered-by');
 
     // ---------------- Middlewares globales ----------------
+    app.use(securityHeaders);
     app.use(traceLoginTraffic);
+
+    // CORS gradual: compat conserva clientes actuales; enforce usa lista explícita.
+    app.use(corsPolicy);
 
     // Parseo de JSON para todo el API
     app.use(express.json({ limit: '50mb' }));
 
-    // CORS abierto (ajustar origin en producción)
-    app.use(cors());
+    const guardianAgent = createGuardianAgent({
+      service: "cosaif-api",
+      databaseCheck: async () => {
+        await prisma.$queryRaw`SELECT 1`;
+        return true;
+      },
+      movementsToday: async () => {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        return prisma.movimiento.count({ where: { createdAt: { gte: start } } });
+      },
+    });
+    app.use(guardianAgent.middleware);
 
     // Inicializa estrategia JWT de Passport
     app.use(passport.initialize());
+    app.use(securityAuditMiddleware);
 
     // ---------------- Rutas base ----------------
 
@@ -98,6 +119,7 @@ export function iniciarServidor(): void {
     server.listen(Number(PORT), HOST, () => {
       console.log(`Servidor corriendo en ${HOST}:${PORT}`);
       console.log('Autenticacion por sesion cargada con renovacion por rol');
+      guardianAgent.start();
     });
   } catch (error) {
     // Error crítico al iniciar el server: se termina el proceso

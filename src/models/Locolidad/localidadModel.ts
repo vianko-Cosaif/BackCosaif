@@ -49,9 +49,14 @@ export class LocalidadModel {
     try {
       return await prisma.localidad.findMany({
         include: {
-          vias: true,
-          usuarios: true,
-          movimientos: true,
+          vias: {
+            select: {
+              id: true,
+              nombre: true,
+              numero: true,
+              localidadId: true,
+            },
+          },
         },
       });
     } catch (error) {

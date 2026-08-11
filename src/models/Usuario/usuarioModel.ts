@@ -36,6 +36,7 @@ type EditarUsuarioInput = {
 
 type ObtenerUsuariosOptions = {
   includeAdminOnlyRoles?: boolean;
+  localidadId?: number;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,16 +77,16 @@ export class UsuarioModel {
     const t0 = process.hrtime.bigint();
     try {
       const rows = await prisma.usuario.findMany({
-        where: options.includeAdminOnlyRoles
-          ? undefined
-          : { rol: { notIn: [Rol.ADMINISTRADOR, Rol.COMERCIAL] } },
+        where: {
+          ...(options.includeAdminOnlyRoles
+            ? {}
+            : { rol: { notIn: [Rol.ADMINISTRADOR, Rol.COMERCIAL] } }),
+          ...(options.localidadId ? { localidadId: options.localidadId } : {}),
+        },
         select: {
           id: true, nombre: true, email: true, empresaId: true, localidadId: true, rol: true, activo: true,
           empresa: { select: { id: true, nombre: true } },
           localidad: { select: { id: true, nombre: true, estado: true } },
-          tokens: { select: { jti: true, deviceId: true, ip: true, issuedAt: true, expiresAt: true, revokedAt: true, reason: true } },
-          fcmTokens: { select: { id: true, token: true, createdAt: true } },
-          ips: { select: { ip: true, tipoDispositivo: true } },
         },
         orderBy: { id: 'asc' },
       });

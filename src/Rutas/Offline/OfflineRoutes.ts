@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import { authenticateAccess } from "../../auth/authenticateAccess";
 import type { AuthenticatedUser } from "../../types/auth";
+import { PERMISSIONS } from "../../auth/accessPolicy";
+import { requirePermission } from "../../auth/authorize";
 import {
   createMaquinistaOfflinePackage,
   getMaquinistaOfflinePackageFile,
@@ -9,6 +11,7 @@ import {
 
 const router = Router();
 router.use(authenticateAccess);
+router.use('/maquinista', requirePermission(PERMISSIONS.OFFLINE_MAQUINISTA_READ));
 
 router.get("/maquinista/availability", (req, res) => {
   const user = req.user as AuthenticatedUser;

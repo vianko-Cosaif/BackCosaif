@@ -4,6 +4,8 @@ import { ZodError } from "zod";
 import { apiRouter } from "./routes/api";
 import { RequestWithRawBody, verifyServiceSignature } from "./security/serviceAuth";
 import { DomainError } from "./utils/domainError";
+import { prismaTorreon } from "./db/prisma";
+import { createTorreonGuardianAgent } from "./guardianAgent";
 
 export function iniciarServidorTorreon(): void {
   try {
@@ -24,6 +26,13 @@ export function iniciarServidorTorreon(): void {
       },
     }));
     app.use(cors());
+    const guardianAgent = createTorreonGuardianAgent({
+      databaseCheck: async () => {
+        await prismaTorreon.$queryRaw`SELECT 1`;
+        return true;
+      },
+    });
+    app.use(guardianAgent.middleware);
 
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === "/" || req.path === "/health") {
@@ -61,6 +70,7 @@ export function iniciarServidorTorreon(): void {
 
     app.listen(Number(PORT), HOST, () => {
       console.log(`ms_torreon corriendo en http://${HOST}:${PORT}`);
+      guardianAgent.start();
     });
   } catch (error) {
     console.error("Error al iniciar ms_torreon:", error);

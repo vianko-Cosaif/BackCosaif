@@ -39,6 +39,7 @@ import { movimientoControllerLogger as logger } from "../movimiento.controller.l
 import { prisma } from "../../../lib/prisma";
 import { esLocalidadTorreon } from "../../../utils/operacionLocalidad";
 import { requestTorreonMs } from "../../../services/torreonMs/torreonMsClient";
+import { resourceFitsAuthorizationScope } from "../../../auth/resourceScope";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -62,6 +63,15 @@ function asPositiveNumber(input: unknown): number | null {
 
 function asText(input: unknown): string | null {
   return typeof input === "string" && input.trim() ? input.trim() : null;
+}
+
+function filterRondasForRequest<T extends { empresaId: number; localidadId: number }>(
+  req: Parameters<RequestHandler>[0],
+  rondas: T[],
+) {
+  const authorization = req.authorization;
+  if (!authorization) return [];
+  return rondas.filter((ronda) => resourceFitsAuthorizationScope(authorization, ronda));
 }
 
 async function localidadUsaTorreon(localidadId: number) {
@@ -120,7 +130,7 @@ function mapMovimientoTorreon(movimiento: UnknownRecord, detail: UnknownRecord) 
   };
 }
 
-function mapRondasTorreon(raw: unknown, concluido: boolean) {
+function mapRondasTorreon(raw: unknown, concluido: boolean, localidadId: number) {
   const rondas = extractArray(raw);
   const rows: UnknownRecord[] = [];
 
@@ -146,6 +156,8 @@ function mapRondasTorreon(raw: unknown, concluido: boolean) {
         empresa: mappedMovimiento.empresa,
         movimiento: mappedMovimiento,
         movimientoId,
+        empresaId: mappedMovimiento.empresaId,
+        localidadId,
         createdAt: detail.fechaAsignado ?? movimiento.fechaSolicitud ?? ronda.fechaApertura ?? ronda.createdAt ?? null,
         source: "torreon",
       });
@@ -165,7 +177,7 @@ async function obtenerRondasTorreon(localidadId: number, concluido: boolean) {
   const params = new URLSearchParams({ localidadId: String(localidadId) });
   if (concluido) params.set("estado", "CERRADA");
   const result = await requestTorreonMs<unknown[]>(`/rondas?${params.toString()}`, { method: "GET" });
-  return mapRondasTorreon(result.data, concluido);
+  return mapRondasTorreon(result.data, concluido, localidadId);
 }
 
 function siguienteTorreonDesdeRondas(rows: UnknownRecord[]) {
@@ -272,10 +284,10 @@ export class RondaController {
    * @returns 200 Rondas con empresa y movimiento embebidos.
    * @returns 500 Error del servidor.
    */
-  static obtenerRondas: RequestHandler = async (_req, res) => {
+  static obtenerRondas: RequestHandler = async (req, res) => {
     try {
       const rondas = await RondaModel.obtenerRondas();
-      res.status(200).json(rondas);
+      res.status(200).json(filterRondasForRequest(req, rondas));
     } catch (error) {
       logger.error("Error al obtener rondas", { error });
       res.status(500).json({ message: "Error al obtener rondas" });
@@ -329,12 +341,12 @@ export class RondaController {
     try {
       if (await localidadUsaTorreon(localidadId)) {
         const rondas = await obtenerRondasTorreon(localidadId, false);
-        res.status(200).json(rondas);
+        res.status(200).json(filterRondasForRequest(req, rondas as any));
         return;
       }
 
       const rondas = await RondaModel.obtenerRondasPorLocalidad(localidadId);
-      res.status(200).json(rondas);
+      res.status(200).json(filterRondasForRequest(req, rondas));
     } catch (error) {
       logger.error("Error al obtener rondas por localidad", { error, localidadId });
       res.status(500).json({ message: "Error al obtener rondas por localidad" });
@@ -365,12 +377,12 @@ export class RondaController {
     try {
       if (await localidadUsaTorreon(localidadId)) {
         const rondas = await obtenerRondasTorreon(localidadId, concluido);
-        res.status(200).json(rondas);
+        res.status(200).json(filterRondasForRequest(req, rondas as any));
         return;
       }
 
       const rondas = await RondaModel.obtenerRondasPorLocalidadConEstado(localidadId, concluido);
-      res.status(200).json(rondas);
+      res.status(200).json(filterRondasForRequest(req, rondas));
     } catch (error) {
       logger.error("Error al obtener rondas por localidad y estado", { error, localidadId, concluido });
       res.status(500).json({ message: "Error al obtener rondas por localidad y estado" });

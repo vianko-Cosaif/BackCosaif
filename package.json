@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "dev": "ts-node-dev index.ts",
+    "dev": "ts-node-dev --files index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "cypress:open": "cypress open",
     "build": "tsc && node scripts/copy-config-json.cjs",
@@ -22,6 +22,9 @@
     "ms:torreon": "ts-node-dev --project ms_torreon/tsconfig.json ms_torreon/src/index.ts",
     "build:torreon": "tsc -p ms_torreon/tsconfig.json",
     "test:realtime": "ts-node src/realtime/realtimeHub.permissions.test.ts",
+    "test:authz": "ts-node --files src/auth/accessPolicy.test.ts",
+    "test:security-audit": "ts-node --files src/security/securityAudit.test.ts",
+    "audit:verify": "ts-node --files src/security/verifySecurityAudit.ts",
     "test:fcm:natural": "ts-node src/services/naturalFcmRouting.test.ts",
     "test:fcm:service": "ts-node src/services/serviceFcmRouting.test.ts",
     "test:fcm:torreon": "ts-node src/services/torreonFcmRouting.test.ts",
@@ -32,12 +35,24 @@
     "seed:torreon:cosaif": "node scripts/seed-torreon-cosaif.cjs"
   },
   "resolutions": {
-    "braces": "3.0.2",
+    "braces": "3.0.3",
     "micromatch": "5.0.7",
     "readdirp": "3.6.0"
   },
   "overrides": {
     "exceljs": {
+      "uuid": "11.1.1"
+    },
+    "firebase-admin": {
+      "uuid": "11.1.1"
+    },
+    "gaxios": {
+      "uuid": "11.1.1"
+    },
+    "google-gax": {
+      "uuid": "11.1.1"
+    },
+    "teeny-request": {
       "uuid": "11.1.1"
     }
   },
@@ -59,17 +74,18 @@
     "envalid": "^8.0.0",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
-    "firebase-admin": "^13.10.0",
-    "jszip": "^3.10.1",
+    "firebase-admin": "12.1.0",
     "jsonwebtoken": "^9.0.2",
+    "jszip": "^3.10.1",
     "luxon": "^3.7.2",
-    "multer": "^2.0.0",
+    "multer": "^2.2.0",
     "node-cron": "^4.2.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "puppeteer": "^24.34.0",
     "redis": "^5.12.1",
-    "sharp": "^0.34.2",
+    "sharp": "^0.35.3",
+    "socket.io-client": "^4.8.3",
     "uuid": "^14.0.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
@@ -87,5 +103,18 @@
     "prisma": "^6.8.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.2"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.1": true,
+    "@prisma/engines@6.19.3": true,
+    "argon2@0.41.1": true,
+    "fsevents@2.3.3": true,
+    "prisma@6.19.3": true,
+    "puppeteer@24.34.0": true,
+    "farmhash@3.3.1": true,
+    "@firebase/util@1.15.2": true,
+    "@firebase/util@1.10.1": true,
+    "protobufjs@7.6.5": true,
+    "sharp@0.35.3": true
   }
 }

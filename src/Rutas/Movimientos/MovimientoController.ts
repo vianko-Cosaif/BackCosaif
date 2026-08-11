@@ -605,7 +605,8 @@ const saveTemporaryTornoRecovery = async (movimiento: {
 
 const reconcileRecentTornoRecoveries = async (
   _authenticatedUserId: number,
-  excludedMovementIds: number[] = []
+  excludedMovementIds: number[] = [],
+  scope: { empresaId?: number; localidadId?: number } = {},
 ) => {
   const now = new Date();
   const recoveryStart = addMinutes(now, -TORNO_RECUPERACION_WINDOW_MINUTES);
@@ -614,6 +615,8 @@ const reconcileRecentTornoRecoveries = async (
       torno: true,
       estado: 'CANCELADO' as any,
       fechaFin: { gte: recoveryStart },
+      ...(scope.empresaId ? { empresaId: scope.empresaId } : {}),
+      ...(scope.localidadId ? { localidadId: scope.localidadId } : {}),
       ...(excludedMovementIds.length ? { id: { notIn: excludedMovementIds } } : {}),
     },
     include: {
@@ -740,6 +743,12 @@ async function enrichWithTornoMeasures<T extends { movimiento?: { id?: number; t
  * ------------------------------------------------------------------------ */
 
 export class MovimientoController {
+  private static scopedQueryIds(req: Parameters<RequestHandler>[0]) {
+    const empresaId = req.query.empresaId === undefined ? undefined : Number(req.query.empresaId);
+    const localidadId = req.query.localidadId === undefined ? undefined : Number(req.query.localidadId);
+    return { empresaId, localidadId };
+  }
+
   private static requirePagination(req: any, res: any) {
     const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
     if (error) {
@@ -765,7 +774,14 @@ export class MovimientoController {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPaginados(pagination);
+      const { empresaId, localidadId } = this.scopedQueryIds(req);
+      const movimientos = empresaId && localidadId
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : empresaId
+          ? await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination)
+          : localidadId
+            ? await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination)
+            : await MovimientoModel.obtenerMovimientosPaginados(pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos', { error, query: req.query });
@@ -810,27 +826,25 @@ export class MovimientoController {
    * @description Los servicios solo serán ofrecidos al maquinista cuando estén **EN_PROCESO**.
    * @auth Requiere JWT.
    * @param {number} req.params.id
-   * @body {{estado:'SOLICITADO'|'EN_PROCESO'|'DETENIDO'|'CONCLUIDO'|'CANCELADO', operadorId?:number, razon?:string, fechaInicio?:string, fechaFin?:string}}
+   * @body {{estado:'SOLICITADO'|'EN_PROCESO'|'DETENIDO'|'CONCLUIDO'|'CANCELADO', razon?:string, fechaInicio?:string, fechaFin?:string}}
    * @returns 200 {message, movimiento} | 400 | 500
    */
   static actualizarEstadoServicio: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { estado, operadorId, razon, fechaInicio, fechaFin } = req.body as {
+    const { estado, razon, fechaInicio, fechaFin } = req.body as {
       estado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO';
-      operadorId?: number;
       razon?: string;
       fechaInicio?: string;
       fechaFin?: string;
     };
+    const operadorId = Number(req.user?.id);
 
     const validos = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO'];
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
     if (!validos.includes(estado)) {
       return res.status(400).json({ message: `Estado inválido. Debe ser uno de: ${validos.join(' | ')}` });
     }
-    if (operadorId !== undefined && typeof operadorId !== 'number') {
-      return res.status(400).json({ message: 'operadorId debe ser numérico si se envía' });
-    }
+    if (!Number.isInteger(operadorId) || operadorId <= 0) return res.status(401).json({ message: 'No autenticado' });
     if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
@@ -1388,8 +1402,16 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       }
 
       const localidadRaw = Number(req.query.localidadId ?? req.query.localidad);
+      const empresaRaw = Number(req.query.empresaId);
       const viaOrigenRaw = Number(req.query.viaOrigenId);
       const authenticatedUserId = Number((req as any).user?.id || 0);
+      const requestedScope = {
+        empresaId: Number.isFinite(empresaRaw) && empresaRaw > 0 ? empresaRaw : undefined,
+        localidadId: Number.isFinite(localidadRaw) && localidadRaw > 0 ? localidadRaw : undefined,
+      };
+      const matchesRequestedScope = (movimiento: { empresaId: number; localidadId: number }) =>
+        (!requestedScope.empresaId || movimiento.empresaId === requestedScope.empresaId) &&
+        (!requestedScope.localidadId || movimiento.localidadId === requestedScope.localidadId);
       try {
         const helperResult = await buscarTornoAgendadoActivable({
           locomotive: locomotiveNumber,
@@ -1411,19 +1433,23 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               creadoPor: { select: { nombre: true } },
             },
           });
-          if (compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado) {
+          const validCompatible = compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado;
+          if (validCompatible && matchesRequestedScope(compatible)) {
             return res.status(200).json({
               activable: true,
               scheduledMovement: getScheduledPayload(compatible, helper),
             });
           }
-          await eliminarTornoAgendadoPorMovimiento(idMovimiento).catch((error: any) =>
-            log.error('No se pudo limpiar índice TornoAgendado huérfano', { movId: idMovimiento, err: error?.message })
-          );
+          if (!validCompatible) {
+            await eliminarTornoAgendadoPorMovimiento(idMovimiento).catch((error: any) =>
+              log.error('No se pudo limpiar índice TornoAgendado huérfano', { movId: idMovimiento, err: error?.message })
+            );
+          }
         }
         const recoveryResult = await buscarTornoAgendadoActivable({
           locomotive: locomotiveNumber,
           tipo: TORNO_RECUPERACION_TIPO,
+          localidad: requestedScope.localidadId ?? null,
         });
         const recoveryHelper = recoveryResult?.scheduled ?? null;
         const recoveryMovimientoId = Number(recoveryHelper?.idMovimiento);
@@ -1442,6 +1468,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           });
           if (
             compatible &&
+            matchesRequestedScope(compatible) &&
             isTornoRecoveryCompatible(compatible, {
               locomotiveNumber,
             })
@@ -1452,12 +1479,14 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               scheduledMovement: getScheduledPayload(compatible, recoveryHelper),
             });
           }
-          await eliminarTornoAgendadoPorMovimiento(recoveryMovimientoId).catch((error: any) =>
-            log.error('No se pudo limpiar recuperacion TornoAgendado huerfana', {
-              movId: recoveryMovimientoId,
-              err: error?.message,
-            })
-          );
+          if (!compatible || !isTornoRecoveryCompatible(compatible, { locomotiveNumber })) {
+            await eliminarTornoAgendadoPorMovimiento(recoveryMovimientoId).catch((error: any) =>
+              log.error('No se pudo limpiar recuperacion TornoAgendado huerfana', {
+                movId: recoveryMovimientoId,
+                err: error?.message,
+              })
+            );
+          }
         }
       } catch (error: any) {
         log.error('No se pudo consultar índice TornoAgendado; usando búsqueda legacy', { err: error?.message });
@@ -1469,6 +1498,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           estado: 'AGENDADO' as any,
           finalizado: false,
           locomotiveNumber,
+          ...(requestedScope.empresaId ? { empresaId: requestedScope.empresaId } : {}),
+          ...(requestedScope.localidadId ? { localidadId: requestedScope.localidadId } : {}),
         },
         orderBy: { fechaSolicitud: 'asc' },
         take: 5,
@@ -1487,6 +1518,10 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
   static listarTornoAgendadosPendientes: RequestHandler = async (req, res) => {
     try {
       const authenticatedUserId = Number((req as any).user?.id || 0);
+      const requestedScope = {
+        empresaId: req.query.empresaId === undefined ? undefined : Number(req.query.empresaId),
+        localidadId: req.query.localidadId === undefined ? undefined : Number(req.query.localidadId),
+      };
       await cleanupExpiredTornoSchedules();
       try {
         const [helperResult, recoveryResult] = await Promise.all([
@@ -1506,6 +1541,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               id: { in: ids },
               torno: true,
               estado: { in: ['AGENDADO', 'CANCELADO'] as any },
+              ...(requestedScope.empresaId ? { empresaId: requestedScope.empresaId } : {}),
+              ...(requestedScope.localidadId ? { localidadId: requestedScope.localidadId } : {}),
             },
             include: {
               empresa: true,
@@ -1532,7 +1569,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               return isScheduled || isRecoveryValid ? getScheduledPayload(movimiento, helper) : null;
             })
             .filter(Boolean);
-          const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, ids);
+          const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, ids, requestedScope);
           return res.status(200).json({
             items: [...items, ...reconciled],
           });
@@ -1546,6 +1583,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           torno: true,
           estado: 'AGENDADO' as any,
           finalizado: false,
+          ...(requestedScope.empresaId ? { empresaId: requestedScope.empresaId } : {}),
+          ...(requestedScope.localidadId ? { localidadId: requestedScope.localidadId } : {}),
         },
         orderBy: { fechaSolicitud: 'asc' },
         take: 100,
@@ -1554,7 +1593,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const items = candidatos
         .filter(canActivateScheduledTorno)
         .map(getScheduledPayload);
-      const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId);
+      const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, [], requestedScope);
 
       return res.status(200).json({ items: [...items, ...reconciled] });
     } catch (error: any) {
@@ -1860,7 +1899,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPaginados(pagination);
+      const { empresaId, localidadId } = this.scopedQueryIds(req);
+      const pendientes = empresaId && localidadId
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : empresaId
+          ? await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination)
+          : localidadId
+            ? await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination)
+            : await MovimientoModel.obtenerMovimientosPendientesPaginados(pagination);
       res.status(200).json(pendientes);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes', { error, query: req.query });
@@ -1884,7 +1930,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination);
+      const localidadId = req.query.localidadId === undefined ? undefined : Number(req.query.localidadId);
+      const pendientes = localidadId
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination);
       res.status(200).json(pendientes);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId, query: req.query });
@@ -1904,7 +1953,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerTodosLosMovimientosPaginados(pagination);
+      const { empresaId, localidadId } = this.scopedQueryIds(req);
+      const movimientos = empresaId && localidadId
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : empresaId
+          ? await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination)
+          : localidadId
+            ? await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination)
+            : await MovimientoModel.obtenerTodosLosMovimientosPaginados(pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener todos los movimientos', { error, query: req.query });
@@ -1928,7 +1984,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination);
+      const localidadId = req.query.localidadId === undefined ? undefined : Number(req.query.localidadId);
+      const movimientos = localidadId
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos por empresa', { error, empresaId, query: req.query });
@@ -1952,7 +2011,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination);
+      const empresaId = req.query.empresaId === undefined ? undefined : Number(req.query.empresaId);
+      const movimientos = empresaId
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId, query: req.query });
@@ -1976,7 +2038,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination);
+      const empresaId = req.query.empresaId === undefined ? undefined : Number(req.query.empresaId);
+      const movimientos = empresaId
+        ? await MovimientoModel.obtenerMovimientosPorLocalidadEmpresaPaginados(localidadId, empresaId, pagination)
+        : await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener todos los movimientos por localidad', { error, localidadId, query: req.query });
@@ -2282,19 +2347,19 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
   /**
    * PATCH /movimientos/:id/iniciar
    *
-   * @summary Marca un movimiento como iniciado por `operadorId`.
+   * @summary Marca un movimiento como iniciado por el usuario autenticado.
    * @auth Requiere JWT.
    * @param {number} req.params.id
-   * @body {{operadorId:number}}
    * @returns 200 { message, movimiento } | 400 | 500
    */
   static iniciarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { operadorId } = req.body;
+    const operadorId = Number(req.user?.id);
 
-    if (!Number.isInteger(id) || typeof operadorId !== 'number') {
-      return res.status(400).json({ message: 'Datos inválidos: id o operadorId faltante o incorrecto' });
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: 'ID de movimiento inválido' });
     }
+    if (!Number.isInteger(operadorId) || operadorId <= 0) return res.status(401).json({ message: 'No autenticado' });
     if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
