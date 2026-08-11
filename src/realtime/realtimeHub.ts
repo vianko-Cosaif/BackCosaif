@@ -30,7 +30,8 @@ export type RealtimeEventType =
   | 'movimiento.creado'
   | 'movimiento.estado'
   | 'movimiento.incidente'
-  | 'incidente.estado';
+  | 'incidente.estado'
+  | 'ronda.reordenada';
 
 export type RealtimeMovementPayload = RealtimeScope & {
   type: RealtimeEventType;
@@ -40,6 +41,10 @@ export type RealtimeMovementPayload = RealtimeScope & {
   incidenteGlobal?: boolean | null;
   finalizado?: boolean | null;
   incidenteId?: number | null;
+  rondaId?: number | null;
+  rondaIds?: number[];
+  movimientoIds?: number[];
+  reason?: string | null;
   descripcion?: string | null;
   locomotiveNumber?: number | string | null;
   occurredAt?: string;
@@ -377,6 +382,29 @@ export function publishMovimientoCreadoEvent(
     clienteId: movimiento.clienteId,
     estado: movimiento.estado,
     locomotiveNumber: movimiento.locomotiveNumber,
+  });
+}
+
+export function publishRondaReordenadaEvent(
+  ronda: RealtimeScope & {
+    id?: number | null;
+    rondaId?: number | null;
+    rondaIds?: Array<number | null | undefined>;
+    movimientoIds?: Array<number | null | undefined>;
+    reason?: string | null;
+  }
+) {
+  const rondaId = ronda.rondaId ?? ronda.id ?? null;
+  publishRealtimeEvent({
+    type: 'ronda.reordenada',
+    movimientoId: ronda.movimientoId,
+    empresaId: ronda.empresaId,
+    localidadId: ronda.localidadId,
+    clienteId: ronda.clienteId,
+    rondaId,
+    rondaIds: (ronda.rondaIds ?? []).filter((id): id is number => Number.isFinite(Number(id))).map(Number),
+    movimientoIds: (ronda.movimientoIds ?? []).filter((id): id is number => Number.isFinite(Number(id))).map(Number),
+    reason: ronda.reason ?? null,
   });
 }
 

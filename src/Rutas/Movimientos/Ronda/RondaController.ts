@@ -36,6 +36,7 @@
 import { RequestHandler } from "express";
 import { RondaModel } from "../../../models/Movimientos/Ronda/RondaModel";
 import { movimientoControllerLogger as logger } from "../movimiento.controller.logger";
+import { publishRondaReordenadaEvent } from "../../../realtime/realtimeHub";
 
 export class RondaController {
   /**
@@ -238,6 +239,18 @@ export class RondaController {
       const locs = Array.from(new Set([ra.localidadId, rb.localidadId]));
       await Promise.all(locs.map(id => RondaModel.siguienteInteligente(id)));
 
+      for (const ronda of [ra, rb]) {
+        publishRondaReordenadaEvent({
+          id: ronda.id,
+          movimientoId: ronda.movimientoId,
+          empresaId: ronda.empresaId,
+          localidadId: ronda.localidadId,
+          rondaIds: [ra.id, rb.id],
+          movimientoIds: [ra.movimientoId, rb.movimientoId],
+          reason: "swap-rondas",
+        });
+      }
+
       res.status(200).json({
         message: "Movimientos de rondas intercambiados exitosamente",
         rondas: [ra, rb]
@@ -272,6 +285,15 @@ export class RondaController {
     try {
       const ronda = await RondaModel.intercambiarMovimientoEnRonda(rondaId, Number(nuevoMovimientoId));
       await RondaModel.siguienteInteligente(ronda.localidadId);
+      publishRondaReordenadaEvent({
+        id: ronda.id,
+        movimientoId: ronda.movimientoId,
+        empresaId: ronda.empresaId,
+        localidadId: ronda.localidadId,
+        rondaIds: [ronda.id],
+        movimientoIds: [ronda.movimientoId],
+        reason: "swap-movimiento",
+      });
 
       res.status(200).json({
         message: "Movimiento de ronda intercambiado exitosamente",
