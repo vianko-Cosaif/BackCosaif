@@ -370,7 +370,10 @@ function readQueueNumber(item: Record<string, any>, key: "rondaNumero" | "orden"
 }
 
 function readTornoActiveStatusRank(item: Record<string, any>) {
-  return readHistorialStatus(item) === "EN_PROCESO" ? 0 : 1;
+  const status = readHistorialStatus(item);
+  if (status === "EN_PROCESO") return 0;
+  if (status === "DETENIDO") return 2;
+  return 1;
 }
 
 function compareHistorialTornoQueue(left: Record<string, any>, right: Record<string, any>) {
