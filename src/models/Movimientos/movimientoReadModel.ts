@@ -288,6 +288,7 @@ export class MovimientoReadModel {
     try {
       const where: any = {
         finalizado: false,
+        locomotiveNumber: { gt: 0 },
         OR: [{ lavado: true }, { torno: true }],
         estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] },
       };
@@ -645,6 +646,7 @@ export class MovimientoReadModel {
     try {
       const where: any = {
         finalizado: false,
+        locomotiveNumber: { gt: 0 },
         OR: [{ lavado: true }, { torno: true }],
         estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] },
       };

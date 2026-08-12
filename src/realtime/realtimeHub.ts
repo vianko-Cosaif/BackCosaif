@@ -30,6 +30,7 @@ export type RealtimeEventType =
   | 'movimiento.creado'
   | 'movimiento.estado'
   | 'movimiento.incidente'
+  | 'torno.estado'
   | 'incidente.estado'
   | 'ronda.reordenada';
 
