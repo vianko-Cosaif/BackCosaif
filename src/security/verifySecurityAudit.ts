@@ -2,10 +2,8 @@ import 'dotenv/config';
 import { resolveSecurityAuditPath, verifySecurityAuditFile } from './securityAudit';
 
 async function main() {
-  const dedicatedKey = String(process.env.AUDIT_HMAC_KEY ?? '').trim();
-  const key = dedicatedKey || String(process.env.JWT_SECRET ?? '').trim();
+  const key = String(process.env.AUDIT_HMAC_KEY ?? '');
   if (key.length < 32) throw new Error('AUDIT_HMAC_KEY es requerida y debe tener al menos 32 caracteres');
-  if (!dedicatedKey) console.warn('Verificando con JWT_SECRET de compatibilidad; configure AUDIT_HMAC_KEY independiente.');
 
   const filePath = resolveSecurityAuditPath();
   const result = await verifySecurityAuditFile(filePath, key);

@@ -7,18 +7,23 @@ Los cuatro procesos de este repositorio envían telemetría interna al Medidor s
 - `torreon` (puerto 3003)
 - `comercial` (puerto 3004)
 
-Cada proceso usa estas variables en su archivo de entorno:
+`cosaif-api` usa estas variables en su archivo de entorno durante la primera fase de migración:
 
 ```dotenv
-GUARDIAN_SOCKET_URL=http://127.0.0.1:4100/agents
-GUARDIAN_AGENT_SECRET=una-llave-aleatoria-exclusiva-de-al-menos-32-caracteres
+GUARDIAN_INGESTION_URL=http://127.0.0.1:4200/api/v1/agents/ingestions
+GUARDIAN_AGENT_COSAIF_API_SECRET=una-llave-aleatoria-exclusiva-de-al-menos-32-caracteres
 GUARDIAN_TELEMETRY_INTERVAL_SECONDS=10
 ```
 
-La llave debe coincidir con la variable `AGENT_*_SECRET` correspondiente de `medidorBack/.env`. No se debe copiar una misma llave entre servicios.
+La llave debe coincidir con `GUARDIAN_AGENT_COSAIF_API_SECRET` en Guardian Spring Boot. No se debe copiar una misma llave entre servicios.
 
-El handshake se firma con HMAC-SHA256 e incluye servicio, timestamp y nonce. Medidor rechaza firmas inválidas, timestamps con más de 30 segundos de diferencia y nonces repetidos. El canal solo acepta WebSocket y limita cada mensaje a 64 KB.
+Cada POST firma con HMAC-SHA256 la versión del protocolo, método, ruta, servicio, timestamp,
+`requestId` y SHA-256 del cuerpo exacto. Guardian rechaza firmas inválidas, timestamps fuera de
+ventana, identificadores contradictorios y cuerpos mayores de 64 KB. Los reintentos idénticos
+son idempotentes.
 
 La telemetría incluye métricas HTTP acumuladas, p95/p99, concurrencia, CPU del proceso, memoria RSS/heap, uptime del proceso y disponibilidad de PostgreSQL. `cosaif-api` agrega el conteo de movimientos del día. Las contraseñas, tokens, cuerpos HTTP y datos de negocio nunca se envían.
 
-Para desarrollo local, primero levante Medidor y después los cuatro procesos. Al iniciar correctamente cada uno imprime `canal autenticado conectado`.
+Para desarrollo local, primero levante Guardian Spring Boot y después `cosaif-api`. Al completar
+la primera entrega imprime `canal HTTP autenticado conectado`. Torno, Torreón y Comercial se
+migrarán como módulos independientes en fases posteriores.

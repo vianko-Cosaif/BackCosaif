@@ -5,6 +5,14 @@ import { apiRouter } from "./routes/api";
 import { prismaTorno } from "./db/prisma";
 import { createTornoGuardianAgent } from "./guardianAgent";
 
+function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
+  const address = req.socket.remoteAddress || "";
+  if (address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1") {
+    return next();
+  }
+  return res.status(404).end();
+}
+
 export function iniciarServidorTorno(): void {
   try {
     const PORT = process.env.TORNO_PORT || "3001";
@@ -26,6 +34,7 @@ export function iniciarServidorTorno(): void {
       },
     });
     app.use(guardianAgent.middleware);
+    app.get("/metrics", loopbackMetricsOnly, guardianAgent.metrics);
 
     // Autenticación simple entre servicios (3000 -> 3001)
     app.use((req: Request, res: Response, next: NextFunction) => {

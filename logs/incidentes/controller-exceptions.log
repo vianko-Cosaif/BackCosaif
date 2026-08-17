@@ -11010,3 +11010,277 @@
   layer: 'HTTP',
   timestamp: '2026-08-11 17:58:48'
 }
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/guardian/guardianAgent.ts(136,13): error TS2304: Cannot find name 'deliver'.
+  src/guardian/guardianAgent.ts(236,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(236,20): error TS2304: Cannot find name 'io'.
+  src/guardian/guardianAgent.ts(238,13): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?
+  src/guardian/guardianAgent.ts(244,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(245,17): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(245,31): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(245,45): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?
+  src/guardian/guardianAgent.ts(247,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(250,7): error TS2304: Cannot find name 'flushEvents'.
+  src/guardian/guardianAgent.ts(252,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(253,13): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(258,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.
+  src/guardian/guardianAgent.ts(258,39): error TS7006: Parameter 'error' implicitly has an 'any' type.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/guardian/guardianAgent.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12)
+      at Module.require (node:internal/modules/cjs/loader:1298:19)
+      at require (node:internal/modules/helpers:182:18)
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:40:1)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:69:33),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    "src/guardian/guardianAgent.ts(136,13): error TS2304: Cannot find name 'deliver'.\n" +
+    "src/guardian/guardianAgent.ts(236,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(236,20): error TS2304: Cannot find name 'io'.\n" +
+    "src/guardian/guardianAgent.ts(238,13): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?\n" +
+    "src/guardian/guardianAgent.ts(244,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,17): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,31): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,45): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?\n" +
+    "src/guardian/guardianAgent.ts(247,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(250,7): error TS2304: Cannot find name 'flushEvents'.\n" +
+    "src/guardian/guardianAgent.ts(252,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(253,13): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(258,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(258,39): error TS7006: Parameter 'error' implicitly has an 'any' type.\n" +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/guardian/guardianAgent.ts(136,13): error TS2304: Cannot find name 'deliver'.\n" +
+    "src/guardian/guardianAgent.ts(236,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(236,20): error TS2304: Cannot find name 'io'.\n" +
+    "src/guardian/guardianAgent.ts(238,13): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?\n" +
+    "src/guardian/guardianAgent.ts(244,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,17): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,31): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,45): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?\n" +
+    "src/guardian/guardianAgent.ts(247,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(250,7): error TS2304: Cannot find name 'flushEvents'.\n" +
+    "src/guardian/guardianAgent.ts(252,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(253,13): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(258,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(258,39): error TS7006: Parameter 'error' implicitly has an 'any' type.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/guardian/guardianAgent.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:40:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:69:33)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    "src/guardian/guardianAgent.ts(136,13): error TS2304: Cannot find name 'deliver'.\n" +
+    "src/guardian/guardianAgent.ts(236,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(236,20): error TS2304: Cannot find name 'io'.\n" +
+    "src/guardian/guardianAgent.ts(238,13): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?\n" +
+    "src/guardian/guardianAgent.ts(244,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,17): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,31): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(245,45): error TS2552: Cannot find name 'credentials'. Did you mean 'Credential'?\n" +
+    "src/guardian/guardianAgent.ts(247,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(250,7): error TS2304: Cannot find name 'flushEvents'.\n" +
+    "src/guardian/guardianAgent.ts(252,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(253,13): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(258,11): error TS2339: Property 'socket' does not exist on type 'AgentState'.\n" +
+    "src/guardian/guardianAgent.ts(258,39): error TS7006: Parameter 'error' implicitly has an 'any' type.\n" +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/guardian/guardianAgent.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)\n' +
+    '    at Module.require (node:internal/modules/cjs/loader:1298:19)\n' +
+    '    at require (node:internal/modules/helpers:182:18)\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts:40:1)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js:69:33)',
+  exception: true,
+  date: 'Thu Aug 13 2026 15:33:19 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 34625,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 149159936,
+      heapTotal: 85049344,
+      heapUsed: 63976176,
+      external: 2598920,
+      arrayBuffers: 143081
+    }
+  },
+  os: {
+    loadavg: [ 5.0205078125, 5.0087890625, 5.11767578125 ],
+    uptime: 26872
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/guardian/guardianAgent.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    },
+    {
+      column: 19,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.require',
+      line: 1298,
+      method: 'require',
+      native: false
+    },
+    {
+      column: 18,
+      file: 'node:internal/modules/helpers',
+      function: 'require',
+      line: 182,
+      method: null,
+      native: false
+    },
+    {
+      column: 1,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/Servidor/Servidor.ts',
+      function: null,
+      line: 40,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-34986628156077826.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    }
+  ],
+  service: 'IncidenteController',
+  module: 'Controllers/Incidente',
+  layer: 'HTTP',
+  timestamp: '2026-08-13 15:33:19'
+}

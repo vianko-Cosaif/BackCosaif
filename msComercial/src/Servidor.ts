@@ -8,7 +8,18 @@ import { CommercialDomainError } from "./utils/domainError";
 import { prismaComercial } from "./db/prisma";
 import { createComercialGuardianAgent } from "./guardianAgent";
 
-export function createComercialApp(guardianMiddleware?: RequestHandler): Express {
+function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
+  const address = req.socket.remoteAddress || "";
+  if (address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1") {
+    return next();
+  }
+  return res.status(404).end();
+}
+
+export function createComercialApp(
+  guardianMiddleware?: RequestHandler,
+  guardianMetrics?: RequestHandler,
+): Express {
   const app = express();
   app.use(cors());
   app.use(express.json({
@@ -18,6 +29,7 @@ export function createComercialApp(guardianMiddleware?: RequestHandler): Express
     },
   }));
   if (guardianMiddleware) app.use(guardianMiddleware);
+  if (guardianMetrics) app.get("/metrics", loopbackMetricsOnly, guardianMetrics);
 
   app.get("/", (_req, res) => res.json({ ok: true, servicio: "msComercial" }));
   app.get("/health", (_req, res) => res.json({ ok: true, status: "healthy" }));
@@ -57,7 +69,7 @@ export function iniciarServidorComercial(): void {
       return true;
     },
   });
-  createComercialApp(guardianAgent.middleware).listen(port, host, () => {
+  createComercialApp(guardianAgent.middleware, guardianAgent.metrics).listen(port, host, () => {
     console.log(`msComercial corriendo en http://${host}:${port}`);
     guardianAgent.start();
   });

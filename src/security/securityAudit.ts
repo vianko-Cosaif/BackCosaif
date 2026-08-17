@@ -143,9 +143,7 @@ export class SecurityAuditLog {
   }
 }
 
-const rawAuditKey = String(process.env.AUDIT_HMAC_KEY ?? '').trim();
-const fallbackJwtKey = String(process.env.JWT_SECRET ?? '').trim();
-const configuredAuditKey = rawAuditKey || fallbackJwtKey;
+const configuredAuditKey = String(process.env.AUDIT_HMAC_KEY ?? '');
 const configuredAuditEnabled = String(process.env.AUDIT_ENABLED ?? 'true').toLowerCase() !== 'false';
 
 export function resolveSecurityAuditPath(
@@ -164,18 +162,13 @@ export function resolveSecurityAuditPath(
 
 const configuredAuditPath = resolveSecurityAuditPath();
 
-if (configuredAuditEnabled && !rawAuditKey && fallbackJwtKey) {
-  logger.warn('security:audit_using_jwt_fallback_key', {
-    message: 'Configure AUDIT_HMAC_KEY independiente para separar llaves criptográficas.',
-  });
-}
 if (configuredAuditEnabled && !configuredAuditKey) {
   logger.error('security:audit_disabled_missing_key', {
-    message: 'No existe AUDIT_HMAC_KEY ni JWT_SECRET; auditoría de mutaciones deshabilitada.',
+    message: 'AUDIT_HMAC_KEY independiente es obligatoria; auditoría de mutaciones deshabilitada.',
   });
 }
 
-let configuredAuditLog: SecurityAuditLog | null = null;
+let configuredAuditLog: SecurityAuditLog | undefined;
 if (configuredAuditEnabled && configuredAuditKey) {
   try {
     configuredAuditLog = new SecurityAuditLog(configuredAuditPath, configuredAuditKey);

@@ -8,7 +8,7 @@
  * 4. Iniciar el servidor en el puerto indicado.
  */
 
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import { createServer } from "http";
 import dotenv from "dotenv";
 import passport from "../middlewares/passport";
@@ -47,6 +47,14 @@ dotenv.config();
 const PORT = process.env.PORT;
 const HOST = process.env.HOST || '0.0.0.0';
 
+function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
+  const address = req.socket.remoteAddress || "";
+  if (address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1") {
+    return next();
+  }
+  return res.status(404).end();
+}
+
 /**
  * Inicializa y arranca el servidor Express.
  * Debe llamarse solo una vez desde el entrypoint (p. ej. src/index.ts).
@@ -79,6 +87,7 @@ export function iniciarServidor(): void {
       },
     });
     app.use(guardianAgent.middleware);
+    app.get("/metrics", loopbackMetricsOnly, guardianAgent.metrics);
 
     // Inicializa estrategia JWT de Passport
     app.use(passport.initialize());

@@ -1,7 +1,9 @@
 import { cpus } from "os";
 import { createHash, createHmac, randomBytes, randomUUID } from "crypto";
+import { monitorEventLoopDelay } from "perf_hooks";
 import type { RequestHandler } from "express";
 import { io, type Socket } from "socket.io-client";
+import { Counter, Gauge, Registry, Summary, collectDefaultMetrics } from "prom-client";
 
 type AgentOptions = { databaseCheck?: () => Promise<boolean> };
 type AgentEvent = {
@@ -17,6 +19,41 @@ export function createTorreonGuardianAgent(options: AgentOptions) {
   const service = "torreon";
   const instanceId = `${service}-${randomBytes(10).toString("hex")}`;
   const durations: number[] = [];
+  const registry = new Registry();
+  collectDefaultMetrics({ register: registry });
+  const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
+  eventLoopDelay.enable();
+  for (const percentilePoint of [50, 95, 99]) {
+    new Gauge({
+      name: `cosaif_event_loop_lag_p${percentilePoint}_seconds`,
+      help: `Percentil ${percentilePoint} del retraso del event loop en segundos`,
+      collect() {
+        const measured = eventLoopDelay.percentile(percentilePoint);
+        this.set(Number.isFinite(measured) ? measured / 1_000_000_000 : 0);
+      },
+      registers: [registry],
+    });
+  }
+  const requestCounter = new Counter({
+    name: "cosaif_http_requests_total",
+    help: "Solicitudes HTTP procesadas por el servicio",
+    labelNames: ["method", "route", "status_code"],
+    registers: [registry],
+  });
+  const requestDuration = new Summary({
+    name: "cosaif_http_request_duration_seconds",
+    help: "Duración HTTP por ruta en segundos",
+    labelNames: ["method", "route", "status_code"],
+    percentiles: [0.5, 0.95, 0.99],
+    maxAgeSeconds: 300,
+    ageBuckets: 5,
+    registers: [registry],
+  });
+  const activeRequestGauge = new Gauge({
+    name: "cosaif_http_active_requests",
+    help: "Solicitudes HTTP activas",
+    registers: [registry],
+  });
   let socket: Socket | undefined;
   let agentSecret = "";
   let lastDatabaseOk: boolean | undefined;
@@ -29,17 +66,26 @@ export function createTorreonGuardianAgent(options: AgentOptions) {
   let lastCpuAt = process.hrtime.bigint();
 
   const middleware: RequestHandler = (request, response, next) => {
-    if (request.path === "/" || request.path === "/health") return next();
+    if (request.path === "/" || request.path === "/health" || request.path === "/metrics") return next();
     const started = performance.now();
     const correlationId = validRequestId(request.get("x-request-id")) || randomUUID();
     response.setHeader("x-request-id", correlationId);
     activeRequests += 1;
+    activeRequestGauge.set(activeRequests);
     intervalMaxConcurrency = Math.max(intervalMaxConcurrency, activeRequests);
     requestsTotal += 1;
     response.once("finish", () => {
       activeRequests = Math.max(0, activeRequests - 1);
+      activeRequestGauge.set(activeRequests);
       if (response.statusCode >= 500) http5xxTotal += 1;
       const durationMs = Number((performance.now() - started).toFixed(2));
+      const labels = {
+        method: request.method.toUpperCase(),
+        route: normalizedRoute(request.path),
+        status_code: String(response.statusCode),
+      };
+      requestCounter.inc(labels);
+      requestDuration.observe(labels, durationMs / 1_000);
       durations.push(durationMs);
       if (durations.length > 2_000) durations.splice(0, durations.length - 2_000);
       const event = buildHttpEvent(service, instanceId, agentSecret, request, response.statusCode, durationMs, correlationId);
@@ -140,7 +186,16 @@ export function createTorreonGuardianAgent(options: AgentOptions) {
     interval.unref();
   }
 
-  return { middleware, start };
+  const metrics: RequestHandler = async (_request, response, next) => {
+    try {
+      response.setHeader("content-type", registry.contentType);
+      response.status(200).send(await registry.metrics());
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  return { middleware, metrics, start };
 }
 
 function percentile(values: number[], point: number) {

@@ -1,7 +1,8 @@
 import { cpus } from "os";
 import { createHash, createHmac, randomBytes, randomUUID } from "crypto";
+import { monitorEventLoopDelay } from "perf_hooks";
 import type { RequestHandler } from "express";
-import { io, type Socket } from "socket.io-client";
+import { Counter, Gauge, Registry, Summary, collectDefaultMetrics } from "prom-client";
 
 type GuardianAgentOptions = {
   service: "cosaif-api" | "torno" | "torreon" | "comercial";
@@ -10,8 +11,11 @@ type GuardianAgentOptions = {
 };
 
 type AgentState = {
-  socket?: Socket;
   interval?: NodeJS.Timeout;
+  endpoint?: URL;
+  inFlight: boolean;
+  connected: boolean;
+  lastWarningAt: number;
 };
 
 type AgentEvent = {
@@ -29,14 +33,53 @@ type AgentEvent = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
   statusCode?: number;
   durationMs?: number;
-  metadata?: Record<string, string | number | boolean | null>;
+  metadata?: Record<string, string | number | boolean>;
 };
 
 export function createGuardianAgent(options: GuardianAgentOptions) {
   const instanceId = `${options.service}-${randomBytes(10).toString("hex")}`;
   const startedAt = Date.now();
   const durations: number[] = [];
-  const state: AgentState = {};
+  const registry = new Registry();
+  collectDefaultMetrics({ register: registry });
+  const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
+  eventLoopDelay.enable();
+  for (const percentilePoint of [50, 95, 99]) {
+    new Gauge({
+      name: `cosaif_event_loop_lag_p${percentilePoint}_seconds`,
+      help: `Percentil ${percentilePoint} del retraso del event loop en segundos`,
+      collect() {
+        const measured = eventLoopDelay.percentile(percentilePoint);
+        this.set(Number.isFinite(measured) ? measured / 1_000_000_000 : 0);
+      },
+      registers: [registry],
+    });
+  }
+  const requestCounter = new Counter({
+    name: "cosaif_http_requests_total",
+    help: "Solicitudes HTTP procesadas por el servicio",
+    labelNames: ["method", "route", "status_code"],
+    registers: [registry],
+  });
+  const requestDuration = new Summary({
+    name: "cosaif_http_request_duration_seconds",
+    help: "Duración HTTP por ruta en segundos",
+    labelNames: ["method", "route", "status_code"],
+    percentiles: [0.5, 0.95, 0.99],
+    maxAgeSeconds: 300,
+    ageBuckets: 5,
+    registers: [registry],
+  });
+  const activeRequestGauge = new Gauge({
+    name: "cosaif_http_active_requests",
+    help: "Solicitudes HTTP activas",
+    registers: [registry],
+  });
+  const state: AgentState = {
+    inFlight: false,
+    connected: false,
+    lastWarningAt: 0,
+  };
   const eventQueue: AgentEvent[] = [];
   let agentSecret = "";
   let lastDatabaseOk: boolean | undefined;
@@ -50,7 +93,7 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
   let movementsCheckedAt = 0;
 
   const middleware: RequestHandler = (request, response, next) => {
-    if (request.path === "/" || request.path === "/health") {
+    if (request.path === "/" || request.path === "/health" || request.path === "/metrics") {
       next();
       return;
     }
@@ -61,12 +104,21 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
       : randomUUID();
     response.setHeader("x-request-id", correlationId);
     activeRequests += 1;
+    activeRequestGauge.set(activeRequests);
     intervalMaxConcurrency = Math.max(intervalMaxConcurrency, activeRequests);
     requestsTotal += 1;
     response.once("finish", () => {
       activeRequests = Math.max(0, activeRequests - 1);
+      activeRequestGauge.set(activeRequests);
       if (response.statusCode >= 500) http5xxTotal += 1;
       const durationMs = Number((performance.now() - started).toFixed(2));
+      const labels = {
+        method: request.method.toUpperCase(),
+        route: normalizedRoute(request.path),
+        status_code: String(response.statusCode),
+      };
+      requestCounter.inc(labels);
+      requestDuration.observe(labels, durationMs / 1_000);
       durations.push(durationMs);
       if (durations.length > 2_000) durations.splice(0, durations.length - 2_000);
       const event = httpEvent(request, response.statusCode, durationMs, correlationId);
@@ -76,55 +128,115 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
   };
 
   async function sample() {
-    const databaseOk = options.databaseCheck
-      ? await options.databaseCheck().catch(() => false)
-      : undefined;
-    if (databaseOk === false && lastDatabaseOk !== false) {
-      emitEvent(baseEvent({
-        level: "ERROR",
-        category: "DEPENDENCY",
-        kind: "DEPENDENCY_FAILURE",
-        message: "La comprobación interna de PostgreSQL no respondió correctamente.",
-        fingerprint: `${options.service}:dependency:postgresql`,
-        metadata: { dependency: "postgresql" },
-      }));
-    } else if (databaseOk === true && lastDatabaseOk === false) {
-      emitEvent(baseEvent({
-        level: "INFO",
-        category: "DEPENDENCY",
-        kind: "DEPENDENCY_RECOVERED",
-        message: "La conexión interna con PostgreSQL volvió a responder.",
-        fingerprint: `${options.service}:dependency:postgresql`,
-        metadata: { dependency: "postgresql" },
-      }));
+    if (state.inFlight || !state.endpoint) return;
+    state.inFlight = true;
+    try {
+      const databaseOk = options.databaseCheck
+        ? await options.databaseCheck().catch(() => false)
+        : undefined;
+      if (databaseOk === false && lastDatabaseOk !== false) {
+        emitEvent(baseEvent({
+          level: "ERROR",
+          category: "DEPENDENCY",
+          kind: "DEPENDENCY_FAILURE",
+          message: "La comprobación interna de PostgreSQL no respondió correctamente.",
+          fingerprint: `${options.service}:dependency:postgresql`,
+          metadata: { dependency: "postgresql" },
+        }));
+      } else if (databaseOk === true && lastDatabaseOk === false) {
+        emitEvent(baseEvent({
+          level: "INFO",
+          category: "DEPENDENCY",
+          kind: "DEPENDENCY_RECOVERED",
+          message: "La conexión interna con PostgreSQL volvió a responder.",
+          fingerprint: `${options.service}:dependency:postgresql`,
+          metadata: { dependency: "postgresql" },
+        }));
+      }
+      lastDatabaseOk = databaseOk;
+      if (
+        options.movementsToday &&
+        Date.now() - movementsCheckedAt >= 60_000
+      ) {
+        movementsCheckedAt = Date.now();
+        movementsValue = await options.movementsToday().catch(() => undefined);
+      }
+      const memory = process.memoryUsage();
+      const payload = {
+        instanceId,
+        sentAt: new Date().toISOString(),
+        processUptimeSeconds: Number((process.uptime()).toFixed(1)),
+        cpuPercent: processCpuPercent(),
+        rssBytes: memory.rss,
+        heapUsedBytes: memory.heapUsed,
+        activeRequests,
+        maxConcurrency: intervalMaxConcurrency,
+        requestsTotal,
+        http5xxTotal,
+        p95Ms: percentile(durations, 0.95),
+        p99Ms: percentile(durations, 0.99),
+        movementsToday: movementsValue,
+        databaseOk,
+      };
+      intervalMaxConcurrency = activeRequests;
+      await deliver(payload);
+    } finally {
+      state.inFlight = false;
     }
-    lastDatabaseOk = databaseOk;
-    if (
-      options.movementsToday &&
-      Date.now() - movementsCheckedAt >= 60_000
-    ) {
-      movementsCheckedAt = Date.now();
-      movementsValue = await options.movementsToday().catch(() => undefined);
+  }
+
+  async function deliver(telemetry: Record<string, unknown>) {
+    const endpoint = state.endpoint;
+    if (!endpoint) return;
+    const pendingEvents = eventQueue.slice(0, 100);
+    const body = JSON.stringify({ telemetry, events: pendingEvents });
+    const requestId = randomUUID();
+    const timestamp = Date.now().toString();
+    const bodySha256 = createHash("sha256").update(body).digest("hex");
+    const canonical = [
+      "v1",
+      "POST",
+      endpoint.pathname,
+      options.service,
+      timestamp,
+      requestId,
+      bodySha256,
+    ].join("\n");
+    const signature = createHmac("sha256", agentSecret)
+      .update(canonical)
+      .digest("base64url");
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-guardian-agent": options.service,
+          "x-guardian-timestamp": timestamp,
+          "x-guardian-request-id": requestId,
+          "x-guardian-signature": signature,
+        },
+        body,
+        signal: AbortSignal.timeout(7_000),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      eventQueue.splice(0, pendingEvents.length);
+      if (!state.connected) {
+        console.log(`[GuardianAgent:${options.service}] canal HTTP autenticado conectado`);
+      }
+      state.connected = true;
+    } catch (error) {
+      state.connected = false;
+      const now = Date.now();
+      if (now - state.lastWarningAt >= 60_000) {
+        state.lastWarningAt = now;
+        const reason = error instanceof Error ? error.message : "delivery-error";
+        console.warn(
+          `[GuardianAgent:${options.service}] entrega pendiente: ${reason}`,
+        );
+      }
     }
-    const memory = process.memoryUsage();
-    const payload = {
-      instanceId,
-      sentAt: new Date().toISOString(),
-      processUptimeSeconds: Number((process.uptime()).toFixed(1)),
-      cpuPercent: processCpuPercent(),
-      rssBytes: memory.rss,
-      heapUsedBytes: memory.heapUsed,
-      activeRequests,
-      maxConcurrency: intervalMaxConcurrency,
-      requestsTotal,
-      http5xxTotal,
-      p95Ms: percentile(durations, 0.95),
-      p99Ms: percentile(durations, 0.99),
-      movementsToday: movementsValue,
-      databaseOk,
-    };
-    intervalMaxConcurrency = activeRequests;
-    state.socket?.emit("agent:telemetry", payload);
   }
 
   function processCpuPercent() {
@@ -143,15 +255,6 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
     );
   }
 
-  function credentials(secret: string) {
-    const timestamp = Date.now().toString();
-    const nonce = randomBytes(18).toString("base64url");
-    const signature = createHmac("sha256", secret)
-      .update(`${options.service}\n${timestamp}\n${nonce}`)
-      .digest("base64url");
-    return { service: options.service, timestamp, nonce, signature };
-  }
-
   function baseEvent(value: Omit<AgentEvent, "eventId" | "instanceId" | "occurredAt">): AgentEvent {
     return {
       eventId: randomUUID(),
@@ -163,17 +266,8 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
 
   function emitEvent(event: AgentEvent) {
     if (!agentSecret) return;
-    if (state.socket?.connected) {
-      state.socket.emit("agent:event", event);
-      return;
-    }
     eventQueue.push(event);
     if (eventQueue.length > 500) eventQueue.shift();
-  }
-
-  function flushEvents() {
-    if (!state.socket?.connected) return;
-    for (const event of eventQueue.splice(0)) state.socket.emit("agent:event", event);
   }
 
   function httpEvent(
@@ -230,46 +324,38 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
   }
 
   function start() {
-    const url = process.env.GUARDIAN_SOCKET_URL;
-    const secret = process.env.GUARDIAN_AGENT_SECRET;
-    if (!url || !secret || secret.length < 32) {
+    const rawUrl = process.env.GUARDIAN_INGESTION_URL;
+    const secret = process.env.GUARDIAN_AGENT_COSAIF_API_SECRET || process.env.GUARDIAN_AGENT_SECRET;
+    if (!rawUrl || !secret || secret.length < 32) {
       console.warn(
-        `[GuardianAgent:${options.service}] deshabilitado: falta URL o secreto seguro`,
+        `[GuardianAgent:${options.service}] deshabilitado: falta endpoint o secreto seguro`,
       );
       return;
     }
+    let endpoint: URL;
+    try {
+      endpoint = new URL(rawUrl);
+    } catch {
+      console.warn(`[GuardianAgent:${options.service}] deshabilitado: endpoint inválido`);
+      return;
+    }
+    const loopback = endpoint.hostname === "127.0.0.1" || endpoint.hostname === "localhost";
+    const localHttp = process.env.NODE_ENV !== "production" && loopback && endpoint.protocol === "http:";
+    const secureTransport = endpoint.protocol === "https:" || localHttp;
+    const canonicalPath = endpoint.pathname === "/api/v1/agents/ingestions"
+      && !endpoint.search
+      && !endpoint.hash;
+    if (!secureTransport || !canonicalPath) {
+      console.warn(`[GuardianAgent:${options.service}] deshabilitado: endpoint no permitido`);
+      return;
+    }
     agentSecret = secret;
-    state.socket = io(url, {
-      transports: ["websocket"],
-      auth: credentials(secret),
-      reconnection: true,
-      reconnectionDelay: 1_000,
-      reconnectionDelayMax: 15_000,
-      timeout: 7_000,
-    });
-    state.socket.io.on("reconnect_attempt", () => {
-      if (state.socket) state.socket.auth = credentials(secret);
-    });
-    state.socket.on("connect", () => {
-      console.log(`[GuardianAgent:${options.service}] canal autenticado conectado`);
-      void sample();
-      flushEvents();
-    });
-    state.socket.on("guardian:ping", () => {
-      state.socket?.emit("agent:pong", {
-        instanceId,
-        at: new Date().toISOString(),
-      });
-    });
-    state.socket.on("connect_error", (error) => {
-      console.warn(
-        `[GuardianAgent:${options.service}] conexion pendiente: ${error.message}`,
-      );
-    });
+    state.endpoint = endpoint;
     const seconds = Math.max(
       5,
       Number(process.env.GUARDIAN_TELEMETRY_INTERVAL_SECONDS || 10),
     );
+    void sample();
     state.interval = setInterval(() => void sample(), seconds * 1_000);
     state.interval.unref();
     process.on("warning", (warning) => reportProcessEvent("PROCESS_WARNING", warning));
@@ -277,7 +363,16 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
     process.on("uncaughtExceptionMonitor", (error) => reportProcessEvent("PROCESS_FATAL", error));
   }
 
-  return { middleware, start };
+  const metrics: RequestHandler = async (_request, response, next) => {
+    try {
+      response.setHeader("content-type", registry.contentType);
+      response.status(200).send(await registry.metrics());
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  return { middleware, metrics, start };
 }
 
 function normalizedRoute(path: string) {

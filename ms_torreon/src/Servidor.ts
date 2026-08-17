@@ -7,6 +7,14 @@ import { DomainError } from "./utils/domainError";
 import { prismaTorreon } from "./db/prisma";
 import { createTorreonGuardianAgent } from "./guardianAgent";
 
+function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
+  const address = req.socket.remoteAddress || "";
+  if (address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1") {
+    return next();
+  }
+  return res.status(404).end();
+}
+
 export function iniciarServidorTorreon(): void {
   try {
     const PORT = process.env.TORREON_PORT || "3003";
@@ -33,6 +41,7 @@ export function iniciarServidorTorreon(): void {
       },
     });
     app.use(guardianAgent.middleware);
+    app.get("/metrics", loopbackMetricsOnly, guardianAgent.metrics);
 
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === "/" || req.path === "/health") {
