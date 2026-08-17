@@ -25,9 +25,9 @@ type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
 
 const MAX_FOTOS_MOVIMIENTO: Record<TipoFotoMovimientoTorreon, number> = {
-  [TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO]: 2,
-  [TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO]: 2,
-  [TipoFotoMovimientoTorreon.FIN_MOVIMIENTO]: 2,
+  [TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO]: 4,
+  [TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO]: 4,
+  [TipoFotoMovimientoTorreon.FIN_MOVIMIENTO]: 4,
 };
 
 const includeMovimientoDetalle = {
@@ -50,6 +50,44 @@ const includeMovimientoDetalle = {
       { orden: "asc" as const },
     ],
   },
+};
+
+const buildMovimientoListInclude = (includeFotos: boolean) => ({
+  rondas: {
+    include: {
+      ronda: true,
+      bloqueadoPorIncidente: true,
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+  incidentes: {
+    include: {
+      _count: { select: { fotos: true } },
+      ...(includeFotos ? { fotos: { orderBy: { orden: "asc" as const } } } : {}),
+    },
+    orderBy: { createdAt: "desc" as const },
+  },
+  _count: { select: { fotos: true } },
+  ...(includeFotos
+    ? {
+        fotos: {
+          orderBy: [
+            { tipo: "asc" as const },
+            { orden: "asc" as const },
+          ],
+        },
+      }
+    : {}),
+}) satisfies Prisma.MovimientoTorreonFerroInclude;
+
+type MovimientoListQuery = {
+  localidadId?: number;
+  empresaId?: number;
+  estado?: string;
+  vista?: string;
+  page?: number;
+  pageSize?: number;
+  includeFotos?: boolean;
 };
 
 const compact = <T extends Record<string, unknown>>(data: T): T => {
@@ -132,16 +170,33 @@ async function createMovimientoFotos(
 }
 
 export class MovimientoModel {
-  static async listar(query: { localidadId?: number; empresaId?: number; estado?: string }) {
+  static async listar(query: MovimientoListQuery) {
+    const vista = String(query.vista || "").toUpperCase();
+    const closedStatuses = [EstadoMovimientoTorreon.CONCLUIDO, EstadoMovimientoTorreon.CANCELADO];
+    const isHistoryVista = ["HISTORIAL", "CONCLUIDOS", "CERRADOS", "PASADOS"].includes(vista);
+    const isActiveVista = ["ACTIVOS", "ABIERTOS", "PENDIENTES"].includes(vista);
+    const pageSize = Math.min(100, Math.max(1, Math.trunc(query.pageSize ?? 50)));
+    const page = Math.max(1, Math.trunc(query.page ?? 1));
+    const estadoByVista = query.estado
+      ? query.estado as EstadoMovimientoTorreon
+      : isHistoryVista
+        ? { in: closedStatuses }
+        : isActiveVista
+          ? { notIn: closedStatuses }
+          : undefined;
+
     return prismaTorreon.movimientoTorreonFerro.findMany({
       where: compact({
         localidadId: query.localidadId,
         empresaId: query.empresaId,
-        estado: query.estado as EstadoMovimientoTorreon | undefined,
-      }),
-      include: includeMovimientoDetalle,
-      orderBy: { createdAt: "desc" },
-      take: 100,
+        estado: estadoByVista,
+      }) as Prisma.MovimientoTorreonFerroWhereInput,
+      include: buildMovimientoListInclude(query.includeFotos === true),
+      orderBy: isHistoryVista
+        ? [{ fechaFin: "desc" }, { fechaSolicitud: "desc" }, { id: "desc" }]
+        : [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
   }
 
@@ -150,9 +205,18 @@ export class MovimientoModel {
   }
 
   static async crear(input: z.infer<typeof createMovimientoSchema>) {
+    if (input.clientRequestId) {
+      const existing = await prismaTorreon.movimientoTorreonFerro.findUnique({
+        where: { clientRequestId: input.clientRequestId },
+        include: includeMovimientoDetalle,
+      });
+      if (existing) return existing;
+    }
+
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await tx.movimientoTorreonFerro.create({
         data: compact({
+          clientRequestId: input.clientRequestId,
           empresaId: input.empresaId,
           creadoPorId: input.creadoPorId,
           clienteId: input.clienteId,
@@ -182,7 +246,13 @@ export class MovimientoModel {
       });
 
       const incidenteBloqueante = await IncidenteModel.findIncidenteBloqueante(tx, movimiento);
-      await RondaModel.insertarMovimiento(tx, movimiento, incidenteBloqueante?.id);
+      await RondaModel.insertarMovimiento(
+        tx,
+        movimiento,
+        incidenteBloqueante?.origen === "NATURAL" ? incidenteBloqueante.id : null,
+        Boolean(incidenteBloqueante)
+      );
+      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
 
       return movimiento.id;
     });
@@ -194,6 +264,17 @@ export class MovimientoModel {
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await getMovimientoOrThrow(tx, id);
 
+      if (
+        movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO &&
+        movimiento.operadorId === (input.operadorId ?? movimiento.operadorId)
+      ) {
+        return id;
+      }
+      if (movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO) {
+        throw new DomainError(409, "Movimiento ya esta en proceso por otro maquinista", {
+          operadorId: movimiento.operadorId,
+        });
+      }
       if (isMovimientoCerrado(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede iniciar en estado ${movimiento.estado}`);
       }
@@ -207,7 +288,12 @@ export class MovimientoModel {
 
       const incidenteBloqueante = await IncidenteModel.findIncidenteBloqueante(tx, movimiento);
       if (incidenteBloqueante) {
-        await RondaModel.marcarMovimientoBloqueado(tx, id, incidenteBloqueante.id);
+        await RondaModel.marcarMovimientoBloqueado(
+          tx,
+          id,
+          incidenteBloqueante.origen === "NATURAL" ? incidenteBloqueante.id : null
+        );
+        await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
         throw new DomainError(409, "La ruta del movimiento esta bloqueada por incidente abierto", {
           incidenteId: incidenteBloqueante.id,
         });
@@ -227,6 +313,8 @@ export class MovimientoModel {
         data: {
           estado: EstadoMovimientoTorreon.EN_PROCESO,
           operadorId: input.operadorId ?? movimiento.operadorId,
+          supervisorId: input.supervisorId ?? movimiento.supervisorId,
+          coordinadorId: input.coordinadorId ?? movimiento.coordinadorId,
           fechaInicio,
           fechaPausa: null,
         },
@@ -257,6 +345,7 @@ export class MovimientoModel {
   static async finalizar(id: number, input: z.infer<typeof finalizarMovimientoSchema>) {
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await getMovimientoOrThrow(tx, id);
+      if (movimiento.estado === EstadoMovimientoTorreon.CONCLUIDO) return id;
       if (movimiento.estado !== EstadoMovimientoTorreon.EN_PROCESO) {
         throw new DomainError(409, `Movimiento debe estar EN_PROCESO para finalizar. Estado actual: ${movimiento.estado}`);
       }
@@ -287,6 +376,7 @@ export class MovimientoModel {
       });
 
       await RondaModel.marcarMovimientoConcluido(tx, id, fechaFin);
+      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
       return id;
     });
 
@@ -349,7 +439,12 @@ export class MovimientoModel {
 
       const stillBlocked = await IncidenteModel.findIncidenteBloqueante(tx, movimiento, incidente.id);
       if (stillBlocked) {
-        await RondaModel.marcarMovimientoBloqueado(tx, id, stillBlocked.id);
+        await RondaModel.marcarMovimientoBloqueado(
+          tx,
+          id,
+          stillBlocked.origen === "NATURAL" ? stillBlocked.id : null
+        );
+        await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
         throw new DomainError(409, "El movimiento sigue bloqueado por otro incidente abierto", {
           incidenteId: stillBlocked.id,
         });

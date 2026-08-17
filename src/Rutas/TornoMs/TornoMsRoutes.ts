@@ -7,6 +7,7 @@ import { MovimientoWriteService } from "../../models/Movimientos/movimientoWrite
 import { RondaModel } from "../../models/Movimientos/Ronda/RondaModel";
 import { NotificadorFCM } from "../../services/NotificadorFCM";
 import { publishRealtimeEvent } from "../../realtime/realtimeHub";
+import { resolverAudienciaFcmServicio } from "../../services/serviceFcmRouting";
 
 const router = Router();
 const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
@@ -134,16 +135,25 @@ function getRondaServicioIdFromTornoStatusResponse(data: unknown, rest: string) 
   return Number.isInteger(fromPath) && fromPath > 0 ? fromPath : null;
 }
 
-function isTornoIncidentNotificationRequest(method: string, rest: string) {
+function getTornoIncidentNotificationKind(method: string, rest: string) {
   const upperMethod = method.toUpperCase();
   const path = rest.split("?")[0];
 
-  if (upperMethod === "POST" && path === "/incidentes") return true;
+  if (upperMethod === "POST" && path === "/incidentes") return "parent" as const;
   if (["PATCH", "PUT", "POST"].includes(upperMethod) && /^\/incidentes\/\d+(?:\/resolver)?$/.test(path)) {
-    return true;
+    return "parent" as const;
+  }
+  if (upperMethod === "POST" && /^\/incidentes\/\d+\/hijos$/.test(path)) {
+    return "child" as const;
+  }
+  if (upperMethod === "POST" && path === "/incidentes-hijos") {
+    return "child" as const;
+  }
+  if (["PATCH", "PUT", "POST"].includes(upperMethod) && /^\/incidentes-hijos\/\d+(?:\/resolver)?$/.test(path)) {
+    return "child" as const;
   }
 
-  return false;
+  return null;
 }
 
 function readPositiveInt(value: unknown) {
@@ -185,21 +195,172 @@ async function resolveMovimientoIdFromTornoIncident(data: unknown) {
 }
 
 async function notifyTornoIncidentIfNeeded(method: string, rest: string, data: unknown) {
-  if (!isTornoIncidentNotificationRequest(method, rest)) return;
+  const kind = getTornoIncidentNotificationKind(method, rest);
+  if (!kind) return;
   if (!data || typeof data !== "object") return;
 
   const source = data as Record<string, any>;
-  const movimientoId = await resolveMovimientoIdFromTornoIncident(source);
+  let incidentSource = source;
+  let incidenteHijoId: number | null = null;
+
+  if (kind === "child") {
+    incidenteHijoId = readPositiveInt(source.id);
+    const nestedParentId = readPositiveInt(rest.split("?")[0].match(/^\/incidentes\/(\d+)\/hijos$/)?.[1]);
+    const parentId = readPositiveInt(source.incidenteTornoId) ?? nestedParentId;
+    if (!parentId) return;
+
+    const parent = await proxyToTornoMs(`/incidentes/${parentId}`, { method: "GET" });
+    if (!parent.data || typeof parent.data !== "object") return;
+    incidentSource = {
+      ...(parent.data as Record<string, any>),
+      status: source.status,
+      resuelto: source.resuelto,
+      comentario: source.comentario,
+    };
+  }
+
+  const movimientoId = await resolveMovimientoIdFromTornoIncident(incidentSource);
   if (!movimientoId) return;
 
   await NotificadorFCM.notificarIncidenteTornoPorMovimiento({
     movimientoId,
-    incidenteId: source.id,
-    status: source.status,
-    tipoFalla: source.tipoFalla,
-    comentario: source.comentario,
-    resuelto: source.resuelto,
-    numeroLocomotora: source.numeroLocomotora,
+    incidenteId: incidentSource.id,
+    incidenteHijoId,
+    status: incidentSource.status,
+    tipoFalla: incidentSource.tipoFalla,
+    comentario: incidentSource.comentario,
+    resuelto: incidentSource.resuelto,
+    numeroLocomotora: incidentSource.numeroLocomotora,
+  });
+}
+
+function inferTornoServiceEvent(method: string, rest: string, body: unknown) {
+  const verb = method.toUpperCase();
+  const path = rest.split("?")[0];
+  if (verb === "POST" && /^\/rondas-servicio\/\d+\/iniciar$/.test(path)) {
+    return { tipo: "servicio_torno_iniciado", title: "Torneado iniciado", accion: "iniciar" };
+  }
+  if (verb === "POST" && /^\/rondas-servicio\/\d+\/concluir$/.test(path)) {
+    return { tipo: "servicio_torno_concluido", title: "Torneado concluido", accion: "concluir" };
+  }
+  if (verb === "POST" && /^\/rondas-servicio\/\d+\/cancelar-externo$/.test(path)) {
+    return { tipo: "servicio_torno_cancelado", title: "Torneado cancelado", accion: "cancelar" };
+  }
+  const statusMutation = /^\/rondas-servicio\/\d+$/.test(path) || /^\/incidentes\/\d+\/ronda-status$/.test(path);
+  if (["PATCH", "PUT", "POST"].includes(verb) && statusMutation) {
+    const source = body && typeof body === "object" ? body as Record<string, unknown> : {};
+    const status = String(source.status ?? source.estado ?? "").toUpperCase();
+    if (status === "DETENIDO") return { tipo: "servicio_torno_detenido", title: "Torneado detenido", accion: "detener" };
+    if (status === "EN_PROCESO") return { tipo: "servicio_torno_reanudado", title: "Torneado reanudado", accion: "reanudar" };
+    if (status === "CONCLUIDO") return { tipo: "servicio_torno_concluido", title: "Torneado concluido", accion: "concluir" };
+    if (status === "CANCELADO") return { tipo: "servicio_torno_cancelado", title: "Torneado cancelado", accion: "cancelar" };
+  }
+  return null;
+}
+
+async function resolveMovimientoIdFromTornoService(data: unknown) {
+  const direct = getMovimientoIdFromTornoStartResponse(data);
+  if (direct) return direct;
+
+  const source = data && typeof data === "object" ? data as Record<string, any> : {};
+  const ruedaSolicitudId = readPositiveInt(source.ruedaSolicitudId ?? source.ruedaSolicitud?.id);
+  if (!ruedaSolicitudId) return null;
+  const solicitud = await proxyToTornoMs(`/rueda-solicitudes/${ruedaSolicitudId}`, { method: "GET" });
+  return getMovimientoIdFromTornoIncident(solicitud.data);
+}
+
+async function notifyTornoServiceIfNeeded(method: string, rest: string, body: unknown, data: unknown, user?: AuthenticatedUser) {
+  const event = inferTornoServiceEvent(method, rest, body);
+  if (!event) return;
+
+  const movimientoId = await resolveMovimientoIdFromTornoService(data);
+  if (!movimientoId) return;
+
+  const movimiento = await prisma.movimiento.findUnique({
+    where: { id: movimientoId },
+    include: { empresa: { select: { nombre: true } } },
+  });
+  if (!movimiento) return;
+
+  const routing = resolverAudienciaFcmServicio(event.tipo, "TORNO");
+  if (!routing) return;
+
+  await NotificadorFCM.notificarOperacionServicio({
+    tipo: event.tipo,
+    servicio: "TORNO",
+    titulo: event.title,
+    mensaje: `Movimiento #${movimiento.id} · Loco ${movimiento.locomotiveNumber} · ${movimiento.empresa?.nombre ?? "Empresa"}`,
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    movimientoId: movimiento.id,
+    usuarioIds: [user?.id, movimiento.clienteId, movimiento.creadoPorId, movimiento.supervisorId, movimiento.coordinadorId],
+    roles: routing.roles,
+    audience: routing.audience,
+    url: "/movimientos",
+    tag: `torno:${event.tipo}:${movimiento.id}`,
+    data: {
+      accion: event.accion,
+      locomotora: movimiento.locomotiveNumber,
+      empresa: movimiento.empresa?.nombre,
+      status: (data as any)?.status,
+    },
+  });
+}
+
+async function notifyCambioNavajaIfNeeded(
+  method: string,
+  rest: string,
+  body: unknown,
+  data: unknown,
+  user?: AuthenticatedUser
+) {
+  const verb = method.toUpperCase();
+  const path = rest.split("?")[0];
+  const isCreate = verb === "POST" && path === "/cambios-navaja";
+  const isUpdate = verb === "PATCH" && /^\/cambios-navaja\/\d+$/.test(path);
+  if (!isCreate && !isUpdate) return;
+  if (!data || typeof data !== "object") return;
+
+  const source = data as Record<string, unknown>;
+  const localidadId = readPositiveInt(source.localidadId);
+  const cambioId = readPositiveInt(source.id);
+  const numeroNavaja = readPositiveInt(source.numeroNavaja);
+  if (!localidadId || !cambioId || !numeroNavaja) return;
+
+  const requestSource = body && typeof body === "object" ? body as Record<string, unknown> : {};
+  const status = String(source.status ?? "").toUpperCase();
+  const cambioDeStatus = isCreate || Object.prototype.hasOwnProperty.call(requestSource, "status");
+  const tipo = cambioDeStatus && status === "PENDIENTE"
+    ? "cambio_navaja_pendiente"
+    : cambioDeStatus && status === "CONCLUIDO"
+      ? "cambio_navaja_concluido"
+      : "cambio_navaja_actualizado";
+  const routing = resolverAudienciaFcmServicio(tipo, "TORNO");
+  if (!routing) return;
+
+  const titulo = cambioDeStatus && status === "PENDIENTE"
+    ? "Cambio de navaja pendiente"
+    : cambioDeStatus && status === "CONCLUIDO"
+      ? "Cambio de navaja registrado"
+      : "Cambio de navaja actualizado";
+
+  await NotificadorFCM.notificarOperacionServicio({
+    tipo,
+    servicio: "TORNO",
+    titulo,
+    mensaje: `Navaja #${numeroNavaja}${source.comentario ? ` · ${String(source.comentario).slice(0, 100)}` : ""}`,
+    localidadId,
+    usuarioIds: [user?.id, readPositiveInt(source.creadoPorId)],
+    roles: routing.roles,
+    audience: routing.audience,
+    url: routing.url,
+    tag: `torno:cambio-navaja:${cambioId}:${status || "actualizado"}`,
+    data: {
+      cambioNavajaId: cambioId,
+      numeroNavaja,
+      status,
+      accion: isCreate ? "crear" : "actualizar",
+    },
   });
 }
 
@@ -233,6 +394,7 @@ async function concludeMovimientoForStartedTorneado(data: unknown, body: unknown
   return MovimientoWriteService.actualizarEstadoServicio(movimientoId, "CONCLUIDO", {
     fechaInicio: inicio,
     fechaFin: fin,
+    notificar: false,
   });
 }
 
@@ -687,19 +849,11 @@ router.all("/*", async (req, res) => {
     if (result.status >= 200 && result.status < 300) {
       try {
         await publishTornoStatusEventIfNeeded(req.method, rest, result.data);
-      } catch (error) {
-        console.warn("No se pudo publicar evento realtime de torno", {
-          rest,
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-
-    if (result.status >= 200 && result.status < 300) {
-      try {
+        await notifyTornoServiceIfNeeded(req.method, rest, req.body, result.data, user);
         await notifyTornoIncidentIfNeeded(req.method, rest, result.data);
+        await notifyCambioNavajaIfNeeded(req.method, rest, req.body, result.data, user);
       } catch (error) {
-        console.warn("No se pudo notificar incidente de torno", {
+        console.warn("No se pudo publicar o notificar evento de torno", {
           rest,
           message: error instanceof Error ? error.message : String(error),
         });

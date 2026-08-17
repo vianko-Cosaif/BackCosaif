@@ -12,6 +12,7 @@ const EXTENDED_SESSION_ROLES = new Set<Rol>([
   Rol.CLIENTE_ADMIN,
   Rol.CLIENTE_COOR,
   Rol.ARRASTRE_TORREON,
+  Rol.COMERCIAL,
 ]);
 
 const normalizeRol = (rol?: string | null): Rol | null => {

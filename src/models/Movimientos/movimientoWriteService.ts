@@ -3,7 +3,16 @@ import { prisma } from '../../lib/prisma';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
-import { notificarCambioPrioridad, notificarMovimientoFinalizado, notificarMovimientoIniciado } from './movimiento.notifications';
+import {
+  notificarCambioPrioridad,
+  notificarMovimientoCancelado,
+  notificarMovimientoDetenido,
+  notificarMovimientoEditado,
+  notificarMovimientoEliminado,
+  notificarMovimientoFinalizado,
+  notificarMovimientoIniciado,
+  notificarMovimientoReanudado,
+} from './movimiento.notifications';
 import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
 import { publishMovimientoCreadoEvent, publishMovimientoEstadoEvent, publishRondaReordenadaEvent } from '../../realtime/realtimeHub';
 
@@ -13,6 +22,23 @@ function stripTornoAgendadoMeta(instrucciones?: string | null) {
     .replace(/\s{2,}/g, ' ')
     .trim();
   return clean || null;
+}
+
+async function notificarMovimientoBestEffort(
+  evento: string,
+  movimientoId: number,
+  enviar: () => Promise<unknown>
+) {
+  try {
+    await enviar();
+  } catch (error: any) {
+    movimientoError.error('Error enviando FCM de movimiento', {
+      evento,
+      movimientoId,
+      errName: error?.name,
+      errMsg: error?.message,
+    });
+  }
 }
 
 export class MovimientoWriteService {
@@ -96,6 +122,9 @@ export class MovimientoWriteService {
         localidad: movimientoDetenido.localidad?.nombre,
       });
 
+      await notificarMovimientoBestEffort('movimiento_detenido', movimientoDetenido.id, () =>
+        notificarMovimientoDetenido(movimientoDetenido.id, razon)
+      );
       await RondaModel.siguienteInteligente(movimientoDetenido.localidadId);
       publishMovimientoEstadoEvent(movimientoDetenido);
       return movimientoDetenido;
@@ -148,6 +177,9 @@ export class MovimientoWriteService {
         return cancelado;
       });
 
+      await notificarMovimientoBestEffort('movimiento_cancelado', movimientoCancelado.id, () =>
+        notificarMovimientoCancelado(movimientoCancelado.id, razonCancelacion)
+      );
       await RondaModel.siguienteInteligente(movimientoCancelado.localidadId);
       publishMovimientoEstadoEvent(movimientoCancelado);
       return movimientoCancelado;
@@ -232,6 +264,10 @@ export class MovimientoWriteService {
       localidadId,
     });
 
+    await notificarMovimientoBestEffort('movimiento_editado', actualizado.id, () =>
+      notificarMovimientoEditado(actualizado.id, Object.keys(cambios))
+    );
+
     return actualizado;
   }
 
@@ -282,7 +318,9 @@ export class MovimientoWriteService {
         localidad: movimientoActual.localidad?.nombre,
       });
 
-      await notificarMovimientoIniciado(movimientoReactivado.id);
+      await notificarMovimientoBestEffort('movimiento_reanudado', movimientoReactivado.id, () =>
+        notificarMovimientoReanudado(movimientoReactivado.id)
+      );
       await RondaModel.siguienteInteligente(movimientoReactivado.localidadId);
       publishMovimientoEstadoEvent({
         ...movimientoReactivado,
@@ -302,7 +340,7 @@ export class MovimientoWriteService {
   static async cambiarEstadoMovimiento(
     id: number,
     nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean; fechaInicio?: Date; fechaFin?: Date } = {}
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean; fechaInicio?: Date; fechaFin?: Date; notificar?: boolean } = {}
   ) {
     try {
       const { razon, forzar = false } = opciones;
@@ -436,16 +474,26 @@ export class MovimientoWriteService {
         localidad: movimientoActual.localidad?.nombre,
       });
 
-      try {
-        if (nuevoEstado === 'EN_PROCESO') await notificarMovimientoIniciado(id);
-        else if (nuevoEstado === 'CONCLUIDO') await notificarMovimientoFinalizado(id);
-      } catch (error: any) {
-        movimientoError.error('Error notificando cambio de estado', {
-          movimientoId: id,
-          nuevoEstado,
-          errName: error?.name,
-          errMsg: error?.message,
-        });
+      if (opciones.notificar !== false) {
+        try {
+          if (nuevoEstado === 'EN_PROCESO') {
+            if (movimientoActual.estado === 'DETENIDO') await notificarMovimientoReanudado(id);
+            else await notificarMovimientoIniciado(id);
+          } else if (nuevoEstado === 'DETENIDO') {
+            await notificarMovimientoDetenido(id, razon);
+          } else if (nuevoEstado === 'CONCLUIDO') {
+            await notificarMovimientoFinalizado(id);
+          } else if (nuevoEstado === 'CANCELADO') {
+            await notificarMovimientoCancelado(id, razon);
+          }
+        } catch (error: any) {
+          movimientoError.error('Error notificando cambio de estado', {
+            movimientoId: id,
+            nuevoEstado,
+            errName: error?.name,
+            errMsg: error?.message,
+          });
+        }
       }
 
       publishMovimientoEstadoEvent({
@@ -531,6 +579,9 @@ export class MovimientoWriteService {
         prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
       });
 
+      // Realtime no depende de Firebase: la web se actualiza aunque FCM falle.
+      publishMovimientoCreadoEvent(movimiento);
+
       try {
         await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
       } catch (error: any) {
@@ -539,8 +590,6 @@ export class MovimientoWriteService {
           err: error?.message,
         });
       }
-
-      publishMovimientoCreadoEvent(movimiento);
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
 
@@ -586,6 +635,9 @@ export class MovimientoWriteService {
         prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
       });
 
+      // Realtime no depende de Firebase: la web se actualiza aunque FCM falle.
+      publishMovimientoCreadoEvent(movimiento);
+
       try {
         await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
       } catch (error: any) {
@@ -594,8 +646,6 @@ export class MovimientoWriteService {
           err: error?.message,
         });
       }
-
-      publishMovimientoCreadoEvent(movimiento);
 
       await RondaModel.siguienteInteligente(movimiento.localidadId);
 
@@ -615,7 +665,7 @@ export class MovimientoWriteService {
   static async actualizarEstadoServicio(
     id: number,
     nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; fechaInicio?: Date; fechaFin?: Date } = {}
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; fechaInicio?: Date; fechaFin?: Date; notificar?: boolean } = {}
   ) {
     try {
       const movimiento = await prisma.movimiento.findUnique({
@@ -632,6 +682,7 @@ export class MovimientoWriteService {
         razon: opciones.razon,
         fechaInicio: opciones.fechaInicio,
         fechaFin: opciones.fechaFin,
+        notificar: opciones.notificar,
         forzar: false,
       });
     } catch (error: any) {
@@ -736,6 +787,9 @@ export class MovimientoWriteService {
       }
 
       await RondaModel.siguienteInteligente(movUpd.localidadId);
+      await notificarMovimientoBestEffort('movimiento_editado', movUpd.id, () =>
+        notificarMovimientoEditado(movUpd.id, Object.keys(data))
+      );
       return movUpd;
     } catch (error: any) {
       movimientoError.error('Error al editar movimiento', {
@@ -775,7 +829,10 @@ export class MovimientoWriteService {
   static async eliminarMovimiento(id: number) {
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const movimiento = await tx.movimiento.findUnique({ where: { id }, include: { ronda: true } });
+        const movimiento = await tx.movimiento.findUnique({
+          where: { id },
+          include: { ronda: true, empresa: { select: { nombre: true } } },
+        });
         if (!movimiento) throw new Error(`Movimiento ${id} no encontrado`);
 
         if (movimiento.ronda) {
@@ -783,11 +840,31 @@ export class MovimientoWriteService {
           await RondaModel.recomponerRondasLocalidad(movimiento.localidadId, tx);
         }
 
-        return await tx.movimiento.delete({ where: { id } });
+        const eliminado = await tx.movimiento.delete({ where: { id } });
+        return {
+          eliminado,
+          notificacion: {
+            id: movimiento.id,
+            empresaId: movimiento.empresaId,
+            localidadId: movimiento.localidadId,
+            locomotiveNumber: movimiento.locomotiveNumber,
+            operadorId: movimiento.operadorId,
+            clienteId: movimiento.clienteId,
+            supervisorId: movimiento.supervisorId,
+            coordinadorId: movimiento.coordinadorId,
+            creadoPorId: movimiento.creadoPorId,
+            empresaNombre: movimiento.empresa?.nombre,
+            torno: movimiento.torno,
+            lavado: movimiento.lavado,
+          },
+        };
       });
 
-      await RondaModel.siguienteInteligente(result.localidadId);
-      return result;
+      await notificarMovimientoBestEffort('movimiento_eliminado', result.eliminado.id, () =>
+        notificarMovimientoEliminado(result.notificacion)
+      );
+      await RondaModel.siguienteInteligente(result.eliminado.localidadId);
+      return result.eliminado;
     } catch (error: any) {
       movimientoError.error('Error al eliminar movimiento', {
         id,
@@ -828,7 +905,9 @@ export class MovimientoWriteService {
         });
       }
 
-      await notificarCambioPrioridad(id, prioridad);
+      await notificarMovimientoBestEffort('cambio_prioridad', id, () =>
+        notificarCambioPrioridad(id, prioridad)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
       publishMovimientoEstadoEvent(movimientoActualizado);
       if (movimiento.estado === 'SOLICITADO') {
@@ -860,9 +939,29 @@ export class MovimientoWriteService {
       const fechaActual = new Date();
       const actual = await prisma.movimiento.findUnique({
         where: { id },
-        select: { id: true, empresaId: true, localidadId: true },
+        select: {
+          id: true,
+          empresaId: true,
+          localidadId: true,
+          estado: true,
+          operadorId: true,
+          fechaInicio: true,
+        },
       });
       if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
+      if (actual.estado === 'EN_PROCESO' && actual.operadorId === maquinistaId) {
+        return prisma.movimiento.findUniqueOrThrow({ where: { id } });
+      }
+      if (actual.estado === 'EN_PROCESO' && actual.operadorId !== maquinistaId) {
+        const conflict = new Error('El movimiento ya está en proceso por otro maquinista');
+        (conflict as any).status = 409;
+        throw conflict;
+      }
+      if (actual.estado === 'CONCLUIDO' || actual.estado === 'CANCELADO') {
+        const conflict = new Error(`Movimiento no puede iniciar en estado ${actual.estado}`);
+        (conflict as any).status = 409;
+        throw conflict;
+      }
 
       await this.assertMovimientoNoBloqueadoPorIncidente(id);
 
@@ -879,7 +978,9 @@ export class MovimientoWriteService {
         },
       });
 
-      await notificarMovimientoIniciado(movimiento.id);
+      await notificarMovimientoBestEffort('movimiento_iniciado', movimiento.id, () =>
+        notificarMovimientoIniciado(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
       publishMovimientoEstadoEvent(movimiento);
       return movimiento;
@@ -889,6 +990,7 @@ export class MovimientoWriteService {
         maquinistaId,
         errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
       });
+      if (error?.status) throw error;
       throw new Error('Error al iniciar movimiento');
     }
   }
@@ -901,6 +1003,9 @@ export class MovimientoWriteService {
         data: { estado: 'DETENIDO', fechaPausa: fechaActual, updatedAt: fechaActual },
       });
 
+      await notificarMovimientoBestEffort('movimiento_detenido', movimiento.id, () =>
+        notificarMovimientoDetenido(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
       publishMovimientoEstadoEvent(movimiento);
       return movimiento;
@@ -931,7 +1036,9 @@ export class MovimientoWriteService {
         data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, updatedAt: fechaActual, ...responsablesActivos },
       });
 
-      await notificarMovimientoIniciado(movimiento.id);
+      await notificarMovimientoBestEffort('movimiento_reanudado', movimiento.id, () =>
+        notificarMovimientoReanudado(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
       publishMovimientoEstadoEvent(movimiento);
       return movimiento;
@@ -968,7 +1075,9 @@ export class MovimientoWriteService {
         return result;
       });
 
-      await notificarMovimientoFinalizado(movimiento.id);
+      await notificarMovimientoBestEffort('movimiento_concluido', movimiento.id, () =>
+        notificarMovimientoFinalizado(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
       publishMovimientoEstadoEvent(movimiento);
       return movimiento;

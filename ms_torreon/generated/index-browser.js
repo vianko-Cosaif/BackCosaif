@@ -123,6 +123,7 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 
 exports.Prisma.MovimientoTorreonFerroScalarFieldEnum = {
   id: 'id',
+  clientRequestId: 'clientRequestId',
   empresaId: 'empresaId',
   creadoPorId: 'creadoPorId',
   clienteId: 'clienteId',
@@ -175,9 +176,11 @@ exports.Prisma.RondaTorreonMovimientoScalarFieldEnum = {
   bloqueadoPorIncidenteId: 'bloqueadoPorIncidenteId',
   empresaId: 'empresaId',
   orden: 'orden',
+  ordenManual: 'ordenManual',
   prioridad: 'prioridad',
   estado: 'estado',
   fechaAsignado: 'fechaAsignado',
+  fechaReordenManual: 'fechaReordenManual',
   fechaInicio: 'fechaInicio',
   fechaFin: 'fechaFin',
   createdAt: 'createdAt',
@@ -232,6 +235,8 @@ exports.Prisma.ArrastreTorreonScalarFieldEnum = {
   id: 'id',
   empresaId: 'empresaId',
   creadoPorId: 'creadoPorId',
+  supervisorId: 'supervisorId',
+  coordinadorId: 'coordinadorId',
   operadorId: 'operadorId',
   localidadId: 'localidadId',
   viaOrigenId: 'viaOrigenId',
@@ -239,6 +244,7 @@ exports.Prisma.ArrastreTorreonScalarFieldEnum = {
   seccionOrigenId: 'seccionOrigenId',
   seccionDestinoId: 'seccionDestinoId',
   estado: 'estado',
+  ordenSolicitud: 'ordenSolicitud',
   instrucciones: 'instrucciones',
   fechaSolicitud: 'fechaSolicitud',
   fechaInicio: 'fechaInicio',
@@ -251,15 +257,55 @@ exports.Prisma.ArrastreTorreonScalarFieldEnum = {
 exports.Prisma.ArrastreTorreonVagonScalarFieldEnum = {
   id: 'id',
   arrastreId: 'arrastreId',
+  operadorId: 'operadorId',
   orden: 'orden',
   numeroVagon: 'numeroVagon',
   carga: 'carga',
+  viaOrigenId: 'viaOrigenId',
+  seccionOrigenId: 'seccionOrigenId',
   viaId: 'viaId',
   seccionId: 'seccionId',
+  viaOrigenNombre: 'viaOrigenNombre',
+  seccionOrigenNombre: 'seccionOrigenNombre',
+  viaDestinoNombre: 'viaDestinoNombre',
+  seccionDestinoNombre: 'seccionDestinoNombre',
+  comentario: 'comentario',
   estado: 'estado',
   fechaSolicitud: 'fechaSolicitud',
   fechaInicio: 'fechaInicio',
   fechaFin: 'fechaFin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ArrastreTorreonEdicionScalarFieldEnum = {
+  id: 'id',
+  arrastreId: 'arrastreId',
+  editadoPorId: 'editadoPorId',
+  editadoPorRol: 'editadoPorRol',
+  editadoPorNombre: 'editadoPorNombre',
+  motivo: 'motivo',
+  antes: 'antes',
+  despues: 'despues',
+  fechaEdicion: 'fechaEdicion'
+};
+
+exports.Prisma.ViaArrastreTorreonScalarFieldEnum = {
+  id: 'id',
+  localidadId: 'localidadId',
+  numero: 'numero',
+  nombre: 'nombre',
+  activa: 'activa',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SeccionArrastreTorreonScalarFieldEnum = {
+  id: 'id',
+  viaId: 'viaId',
+  numero: 'numero',
+  nombre: 'nombre',
+  activa: 'activa',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -273,6 +319,7 @@ exports.Prisma.IncidenteArrastreTorreonScalarFieldEnum = {
   estado: 'estado',
   motivo: 'motivo',
   solucion: 'solucion',
+  bloqueoGeneral: 'bloqueoGeneral',
   localidadId: 'localidadId',
   viaBloqueadaId: 'viaBloqueadaId',
   seccionBloqueadaId: 'seccionBloqueadaId',
@@ -300,6 +347,10 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -308,6 +359,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.PrioridadTorreon = exports.$Enums.PrioridadTorreon = {
   BAJA: 'BAJA',
@@ -406,6 +463,9 @@ exports.Prisma.ModelName = {
   IncidenteTorreonFoto: 'IncidenteTorreonFoto',
   ArrastreTorreon: 'ArrastreTorreon',
   ArrastreTorreonVagon: 'ArrastreTorreonVagon',
+  ArrastreTorreonEdicion: 'ArrastreTorreonEdicion',
+  ViaArrastreTorreon: 'ViaArrastreTorreon',
+  SeccionArrastreTorreon: 'SeccionArrastreTorreon',
   IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
   IncidenteArrastreFoto: 'IncidenteArrastreFoto'
 };

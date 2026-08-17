@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getAccessTtlForRole } from '../../auth/sessionPolicy';
 import { buildOperacionLocalidad } from '../../utils/operacionLocalidad';
 import type { AuthenticatedUser } from '../../types/auth';
+import { buildAuthorizationProfile } from '../../auth/accessPolicy';
 
 type ErrorShape = {
   name?: string;
@@ -61,6 +62,10 @@ const COORDINADOR_LOCAL_ALLOWED_ROLES = new Set<Rol>([
   Rol.ARRASTRE_TORREON,
   Rol.MAQUINISTA,
   Rol.MAQUINISTA_ARRASTRE,
+]);
+const ADMIN_ONLY_USER_ROLES = new Set<Rol>([
+  Rol.ADMINISTRADOR,
+  Rol.COMERCIAL,
 ]);
 
 const getActor = (req: Request) => req.user as AuthenticatedUser | undefined;
@@ -125,9 +130,40 @@ const parseRequestedRole = (value: unknown): Rol | undefined => {
   return Object.values(Rol).includes(raw as Rol) ? (raw as Rol) : undefined;
 };
 
-const forbiddenAdminMessage = 'Solo ADMINISTRADOR puede crear o modificar administradores';
+const isAdminOnlyUserRole = (role?: Rol) => Boolean(role && ADMIN_ONLY_USER_ROLES.has(role));
+const forbiddenAdminMessage = 'Solo ADMINISTRADOR puede crear o modificar usuarios ADMINISTRADOR o COMERCIAL';
 
 export class UsuarioController {
+  static me: RequestHandler = async (req, res) => {
+    const user = getActor(req);
+    if (!user) {
+      return res.status(401).json({ error: 'No autorizado', code: 'UNAUTHENTICATED' });
+    }
+
+    const authorization = buildAuthorizationProfile(user);
+    const operacionLocalidad = buildOperacionLocalidad(user.localidad);
+    res.setHeader('Cache-Control', 'no-store');
+
+    return res.json({
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        rol: user.rol,
+        empresaId: user.empresa?.id ?? null,
+        localidadId: user.localidad?.id ?? null,
+        empresa: user.empresa ?? null,
+        localidad: user.localidad ?? null,
+        operacionLocalidad,
+        authorization,
+      },
+      authorization,
+      operacionLocalidad,
+      session: {
+        expiresAt: user.auth.expiresAt ?? null,
+      },
+    });
+  };
+
   static obtenerUsuarios: RequestHandler = async (req, res) => {
     const reqId = (req.headers['x-request-id'] as string) || randomUUID();
     const t0 = process.hrtime.bigint();
@@ -136,7 +172,15 @@ export class UsuarioController {
       return res.status(403).json({ error: 'No tienes permisos para ver usuarios' });
     }
     try {
-      const data = await UsuarioModel.obtenerUsuarios({ reqId }, { includeAdministradores: isAdministrator(req) });
+      const actor = getActor(req);
+      const localidadId = isRestrictedLocalCoordinator(req) ? actor?.localidad?.id : undefined;
+      const data = await UsuarioModel.obtenerUsuarios(
+        { reqId },
+        {
+          includeAdminOnlyRoles: isAdministrator(req),
+          localidadId,
+        },
+      );
       log.info('usuarios:list:ok', { reqId, count: data.length, ms: dt(t0) });
       res.json(data);
     } catch (error) {
@@ -160,7 +204,7 @@ export class UsuarioController {
       log.warn('usuarios:create:bad_request', { reqId, bodyKeys: Object.keys(req.body||{}), ms: dt(t0) });
       return res.status(400).json({ error: 'Datos incompletos' });
     }
-    if (rol === Rol.ADMINISTRADOR && !isAdministrator(req)) {
+    if (isAdminOnlyUserRole(rol) && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
     const scopeError = validateRestrictedCoordinatorScope(req, rol, localidadIdNum, 'crear');
@@ -204,8 +248,8 @@ export class UsuarioController {
 
     const target = await UsuarioModel.obtenerUsuarioResumen(userId, { reqId });
     if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
-    const touchesAdministrator = target.rol === Rol.ADMINISTRADOR || rol === Rol.ADMINISTRADOR;
-    if (touchesAdministrator && !isAdministrator(req)) {
+    const touchesAdminOnlyRole = isAdminOnlyUserRole(target.rol) || isAdminOnlyUserRole(rol);
+    if (touchesAdminOnlyRole && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
 
@@ -264,7 +308,7 @@ export class UsuarioController {
 
     const target = await UsuarioModel.obtenerUsuarioResumen(id, { reqId });
     if (!target) return res.status(404).json({ error: 'Usuario no encontrado' });
-    if (target.rol === Rol.ADMINISTRADOR && !isAdministrator(req)) {
+    if (isAdminOnlyUserRole(target.rol) && !isAdministrator(req)) {
       return res.status(403).json({ error: forbiddenAdminMessage });
     }
     const scopeError = validateRestrictedCoordinatorScope(req, target.rol, target.localidadId, 'desactivar');
@@ -376,11 +420,14 @@ static login: RequestHandler = async (req, res) => {
     }));
 
     const operacionLocalidad = buildOperacionLocalidad(user.localidad);
+    const authorization = buildAuthorizationProfile(user);
 
+    res.setHeader('Cache-Control', 'no-store');
     return res.json({
       token,
       expiresAt: new Date(exp * 1000).toISOString(),
       operacionLocalidad,
+      authorization,
       user: {
         id: user.id,
         nombre: user.nombre,
@@ -391,6 +438,7 @@ static login: RequestHandler = async (req, res) => {
         empresa: user.empresa,
         localidad: user.localidad,
         operacionLocalidad,
+        authorization,
       },
     });
   } catch (error) {

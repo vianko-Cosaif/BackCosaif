@@ -2,6 +2,7 @@ import type { Request, RequestHandler, Response } from "express";
 import type { AuthenticatedUser } from "../../types/auth";
 import { fail, ok } from "../../utils/http";
 import {
+  CatalogConflictError,
   CatalogosOperativosService,
   localidadOperativaPayloadSchema,
 } from "./CatalogosOperativosService";
@@ -47,7 +48,8 @@ export class CatalogosOperativosController {
       res.status(201);
       ok(res, data);
     } catch (error: any) {
-      fail(res, 500, "No se pudo guardar la localidad operativa", {
+      const isConflict = error instanceof CatalogConflictError || error?.code === "P2002" || error?.code === "P2003";
+      fail(res, isConflict ? 409 : 500, isConflict ? error.message : "No se pudo guardar la localidad operativa", {
         details: error?.message ?? String(error),
       });
     }

@@ -6,6 +6,11 @@ import jwt from 'jsonwebtoken';
 import type { AuthenticatedUser, JwtPayload } from '../types/auth';
 import { prisma } from '../lib/prisma';
 import * as tokenService from '../middlewares/token.service';
+import {
+  getRealtimeBusStats,
+  initializeRealtimeBus,
+  publishRealtimeBus,
+} from './realtimeBus';
 
 type RealtimeScope = {
   empresaId?: number | null;
@@ -32,11 +37,23 @@ export type RealtimeEventType =
   | 'movimiento.incidente'
   | 'torno.estado'
   | 'incidente.estado'
-  | 'ronda.reordenada';
+  | 'ronda.reordenada'
+  | 'torreon.movimiento.creado'
+  | 'torreon.movimiento.estado'
+  | 'torreon.movimiento.incidente'
+  | 'torreon.incidente.estado'
+  | 'torreon.arrastre.creado'
+  | 'torreon.arrastre.estado'
+  | 'torreon.arrastre.vagon'
+  | 'torreon.arrastre.incidente'
+  | 'torreon.arrastre.orden';
 
 export type RealtimeMovementPayload = RealtimeScope & {
   type: RealtimeEventType;
   eventId?: string;
+  source?: 'cosaif' | 'torreon' | string;
+  entity?: 'movimiento' | 'arrastre' | 'vagon' | 'incidente' | string;
+  entityId?: number | string | null;
   estado?: string | null;
   estadoAnterior?: string | null;
   incidenteGlobal?: boolean | null;
@@ -46,9 +63,15 @@ export type RealtimeMovementPayload = RealtimeScope & {
   rondaIds?: number[];
   movimientoIds?: number[];
   reason?: string | null;
+  arrastreId?: number | null;
+  vagonId?: number | null;
+  folio?: string | null;
+  accion?: string | null;
   descripcion?: string | null;
   locomotiveNumber?: number | string | null;
   occurredAt?: string;
+  version?: string | number | null;
+  snapshot?: Record<string, unknown> | null;
 };
 
 type RealtimeClient = {
@@ -67,10 +90,17 @@ type RealtimeClient = {
 const HEARTBEAT_MS = Math.max(10_000, Number(process.env.REALTIME_HEARTBEAT_MS || 25_000));
 const MAX_CLIENTS = Math.max(1, Number(process.env.REALTIME_MAX_CLIENTS || 2_000));
 const WS_TICKET_TTL_MS = Math.max(10_000, Number(process.env.REALTIME_WS_TICKET_TTL_MS || 30_000));
+const EVENT_DEDUPE_MS = Math.max(0, Number(process.env.REALTIME_EVENT_DEDUPE_MS || 450));
 const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 const clients = new Map<string, RealtimeClient>();
 const wsTickets = new Map<string, { user: AuthenticatedUser; audience: RealtimeAudience; expiresAt: number }>();
+const recentEventKeys = new Map<string, number>();
+const realtimeCounters = {
+  published: 0,
+  delivered: 0,
+  suppressed: 0,
+};
 
 let heartbeatTimer: NodeJS.Timeout | null = null;
 let ticketCleanupTimer: NodeJS.Timeout | null = null;
@@ -93,7 +123,7 @@ function requestedScopeFromQuery(query: Request['query']): RealtimeRequestedScop
   };
 }
 
-function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: RealtimeRequestedScope = {}): RealtimeAudience {
+export function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: RealtimeRequestedScope = {}): RealtimeAudience {
   const role = String(user.rol || '').toUpperCase();
 
   if (role === 'ADMINISTRADOR') return { mode: 'all' };
@@ -107,7 +137,7 @@ function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: Realti
 
   if (['CLIENTE', 'ARRASTRE_TORREON'].includes(role)) {
     const empresaId = toPositiveInt(user.empresa?.id);
-    const localidadId = requestedScope.localidadId ?? toPositiveInt(user.localidad?.id);
+    const localidadId = toPositiveInt(user.localidad?.id) ?? requestedScope.localidadId;
     if (empresaId && localidadId) {
       return { mode: 'empresaLocalidad', empresaId, localidadId };
     }
@@ -115,7 +145,7 @@ function realtimeAudienceForUser(user: AuthenticatedUser, requestedScope: Realti
   }
 
   if (role === 'COORDINADOR') {
-    const localidadId = requestedScope.localidadId ?? toPositiveInt(user.localidad?.id);
+    const localidadId = toPositiveInt(user.localidad?.id) ?? requestedScope.localidadId;
     return localidadId ? { mode: 'localidad', id: localidadId } : { mode: 'none' };
   }
 
@@ -130,6 +160,62 @@ function roomsForAudience(audience: RealtimeAudience): string[] {
     return [room('empresa', audience.empresaId), room('localidad', audience.localidadId)].filter(Boolean) as string[];
   }
   return [room(audience.mode, audience.id)].filter(Boolean) as string[];
+}
+
+function compactEventPart(value: unknown) {
+  if (value === null || typeof value === 'undefined' || value === '') return '-';
+  return String(value);
+}
+
+function inferredEventEntity(event: RealtimeMovementPayload): RealtimeMovementPayload['entity'] {
+  if (event.incidenteId) return 'incidente';
+  if (event.vagonId) return 'vagon';
+  if (event.arrastreId) return 'arrastre';
+  return 'movimiento';
+}
+
+function inferredEventEntityId(event: RealtimeMovementPayload) {
+  return event.incidenteId ?? event.vagonId ?? event.arrastreId ?? event.movimientoId ?? null;
+}
+
+function realtimeDedupeKey(event: RealtimeMovementPayload) {
+  if (event.eventId) return `id:${event.eventId}`;
+  return [
+    event.type,
+    event.source,
+    event.entity,
+    event.entityId,
+    event.empresaId,
+    event.localidadId,
+    event.clienteId,
+    event.movimientoId,
+    event.arrastreId,
+    event.vagonId,
+    event.incidenteId,
+    event.accion,
+    event.estado,
+    event.estadoAnterior,
+  ].map(compactEventPart).join('|');
+}
+
+function pruneRecentEventKeys(now: number) {
+  if (recentEventKeys.size < 500) return;
+  for (const [key, expiresAt] of recentEventKeys) {
+    if (expiresAt <= now) recentEventKeys.delete(key);
+  }
+}
+
+function shouldSuppressRealtimeEvent(event: RealtimeMovementPayload) {
+  if (EVENT_DEDUPE_MS <= 0) return false;
+
+  const now = Date.now();
+  pruneRecentEventKeys(now);
+  const key = realtimeDedupeKey(event);
+  const expiresAt = recentEventKeys.get(key);
+  if (expiresAt && expiresAt > now) return true;
+
+  recentEventKeys.set(key, now + EVENT_DEDUPE_MS);
+  return false;
 }
 
 function removeClient(clientId: string) {
@@ -322,24 +408,47 @@ export function attachRealtimeClient(req: Request, res: Response, user: Authenti
   req.on('close', () => removeClient(clientId));
 }
 
-export function publishRealtimeEvent(event: RealtimeMovementPayload) {
-  if (!clients.size) return;
-
-  const eventPayload: RealtimeMovementPayload = {
+function normalizedRealtimeEvent(event: RealtimeMovementPayload): RealtimeMovementPayload {
+  const normalizedEvent: RealtimeMovementPayload = {
     ...event,
+    source: event.source ?? (String(event.type).startsWith('torreon.') ? 'torreon' : 'cosaif'),
+    entity: event.entity ?? inferredEventEntity(event),
+    entityId: event.entityId ?? inferredEventEntityId(event),
+  };
+  return {
+    ...normalizedEvent,
     eventId:
-      event.eventId ??
-      `${event.type}:${event.movimientoId ?? 'x'}:${event.incidenteId ?? 'x'}:${event.estado ?? 'x'}:${Date.now()}`,
+      normalizedEvent.eventId ??
+      `${normalizedEvent.type}:${normalizedEvent.movimientoId ?? normalizedEvent.arrastreId ?? 'x'}:${normalizedEvent.vagonId ?? 'x'}:${normalizedEvent.incidenteId ?? 'x'}:${normalizedEvent.estado ?? 'x'}:${Date.now()}`,
     occurredAt: event.occurredAt ?? new Date().toISOString(),
   };
+}
+
+function deliverRealtimeEvent(eventPayload: RealtimeMovementPayload) {
+  if (shouldSuppressRealtimeEvent(eventPayload)) {
+    realtimeCounters.suppressed += 1;
+    return;
+  }
+
   const sse = sseFrame(eventPayload.type, eventPayload);
   const ws = wsFrame(0x1, JSON.stringify(eventPayload));
 
   for (const client of clients.values()) {
     if (isAuthorizedForEvent(client, eventPayload)) {
-      safeWrite(client, client.transport === 'websocket' ? ws : sse);
+      if (safeWrite(client, client.transport === 'websocket' ? ws : sse)) {
+        realtimeCounters.delivered += 1;
+      }
     }
   }
+}
+
+export function publishRealtimeEvent(event: RealtimeMovementPayload) {
+  const eventPayload = normalizedRealtimeEvent(event);
+  realtimeCounters.published += 1;
+  deliverRealtimeEvent(eventPayload);
+  void publishRealtimeBus(eventPayload).catch((error) => {
+    console.error('[realtime-bus] No se pudo publicar evento.', error);
+  });
 }
 
 export function publishMovimientoEstadoEvent(
@@ -425,6 +534,8 @@ export function getRealtimeStats() {
     pendingWsTickets: wsTickets.size,
     heartbeatMs: HEARTBEAT_MS,
     maxClients: MAX_CLIENTS,
+    events: { ...realtimeCounters },
+    bus: getRealtimeBusStats(),
   };
 }
 
@@ -685,6 +796,10 @@ async function handleRealtimeUpgrade(req: IncomingMessage, socket: Socket) {
 }
 
 export function bindRealtimeWebSocketServer(server: HttpServer) {
+  void initializeRealtimeBus<RealtimeMovementPayload>((event) => {
+    deliverRealtimeEvent(normalizedRealtimeEvent(event));
+  });
+
   server.on('upgrade', (req, socket) => {
     const netSocket = socket as Socket;
     const pathname = new URL(req.url || '/', 'http://localhost').pathname;

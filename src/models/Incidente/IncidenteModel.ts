@@ -561,6 +561,15 @@ export class IncidenteModel {
 
         await this.reprogramarMovimientoPorIncidenteNoResuelto(incidenteId);
 
+        const incidenteCerrado = await prisma.incidente.findUnique({ where: { id: incidenteId } });
+        if (incidenteCerrado) {
+          await bestEffort(
+            'NotificadorFCM.notificarCambioEstado(timeout)',
+            () => NotificadorFCM.notificarCambioEstado(incidenteCerrado, 'ABIERTO', 'incidente_timeout'),
+            { rid, incidenteId }
+          );
+        }
+
         trace('info', 'Incidente autocerrado por timeout exacto', {
           rid,
           incidenteId,
@@ -1606,6 +1615,24 @@ export class IncidenteModel {
         });
         if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
 
+        const incidenteExistente = await prisma.incidente.findFirst({
+          where: {
+            movimientoId: data.movimientoId,
+            usuarioId: data.usuarioId,
+            descripcion: data.descripcion,
+            estado: 'ABIERTO',
+          },
+          orderBy: { fechaInicio: 'desc' },
+        });
+        if (incidenteExistente) {
+          trace('info', 'crearIncidente:idempotente', {
+            rid,
+            incidenteId: incidenteExistente.id,
+            movimientoId: data.movimientoId,
+          });
+          return incidenteExistente;
+        }
+
         const fechaInicioIncidente = new Date();
 
         const nuevoIncidente = await prisma.incidente.create({
@@ -1745,14 +1772,7 @@ export class IncidenteModel {
           },
         });
 
-        const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
-        if (incPlano) {
-          await bestEffort('NotificadorFCM.notificarNuevoIncidente', () => NotificadorFCM.notificarNuevoIncidente(incPlano), {
-            rid,
-            incidenteId: incPlano.id,
-          });
-        }
-
+        // El aviso realtime debe llegar a la web incluso si Firebase falla o tarda.
         publishRealtimeEvent({
           type: 'movimiento.incidente',
           movimientoId: movimiento.id,
@@ -1765,6 +1785,14 @@ export class IncidenteModel {
           descripcion: nuevoIncidente.descripcion,
           locomotiveNumber: movimiento.locomotiveNumber,
         });
+
+        const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
+        if (incPlano) {
+          await bestEffort('NotificadorFCM.notificarNuevoIncidente', () => NotificadorFCM.notificarNuevoIncidente(incPlano), {
+            rid,
+            incidenteId: incPlano.id,
+          });
+        }
 
         this.ensureIncidentScheduler();
         this.scheduleIncidentAutoClose(nuevoIncidente.id, nuevoIncidente.fechaInicio);

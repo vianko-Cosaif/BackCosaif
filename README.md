@@ -55,7 +55,7 @@
 Notas de performance:
 - Listados usan payload recortado (selects mínimos).
 - Detalle completo solo en `GET /movimientos/:id`.
-
+- npm run ms:torreon  para correr torreon
 ---
 
 ### Incidentes
@@ -176,3 +176,30 @@ Para listados que aceptan paginación:
 - `page` inicia en 1
 - `pageSize` default 20, máximo 50
 - respuesta paginada: `{ data, meta }`
+
+---
+
+## Tiempo real
+
+- WebSocket autenticado: `GET /realtime/ws-ticket` y upgrade en `/realtime/ws`.
+- Respaldo SSE: `GET /realtime/events`.
+- Salud (solo administrador): `GET /realtime/stats`.
+- Los eventos se filtran por empresa y localidad antes de entregarse.
+- Torreón publica snapshots compactos para actualizar una sola entidad en la web.
+
+Escalamiento opcional entre varias instancias:
+
+```env
+REDIS_URL=redis://usuario:password@host:6379
+REALTIME_REDIS_CHANNEL=cosaif:realtime:v1
+INSTANCE_ID=backend-1
+```
+
+Sin `REDIS_URL`, el hub continúa en modo local. Con Redis, cada evento se distribuye a los sockets conectados en todas las réplicas.
+
+Verificación:
+
+```bash
+npm run test:realtime
+npm run build
+```

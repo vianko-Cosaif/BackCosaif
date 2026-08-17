@@ -17,8 +17,8 @@ export const crearIncidenteMovimientoSchema = withCapturas.extend({
 }).transform((data) => ({
   ...data,
   fotos: data.fotos ?? data.capturas ?? [],
-})).refine((data) => data.fotos.length >= 4, {
-  message: "El incidente requiere minimo 4 capturas",
+})).refine((data) => data.fotos.length >= 1, {
+  message: "El incidente requiere minimo 1 captura",
 }).refine((data) => data.fotos.length <= 4, {
   message: "El incidente permite maximo 4 capturas",
 });

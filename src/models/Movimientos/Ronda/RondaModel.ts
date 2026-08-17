@@ -4,6 +4,8 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import type { Ronda } from '@prisma/client';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { sendMulticastCompat } from "../../../services/fcmCompat";
+import { tokensAudienciaOperacion } from "../../../services/fcmAudience";
+import { resolverAudienciaFcmMovimiento } from "../../../services/serviceFcmRouting";
 
 const prisma = new PrismaClient();
 type Tx = Prisma.TransactionClient;
@@ -23,14 +25,6 @@ function _isOnHold(movId: number) {
 function ensureAdmin() {
   const apps = getApps();
   if (!apps.length) initializeApp();
-}
-async function tokensDeUsuarios(ids: number[], tx: Tx = prisma) {
-  if (!ids.length) return [];
-  const usuarios = await tx.usuario.findMany({
-    where: { id: { in: ids }, activo: true },
-    include: { fcmTokens: true }
-  });
-  return usuarios.flatMap(u => (u.fcmTokens ?? []).map(t => t.token).filter(Boolean));
 }
 
 // ================== CONSTANTES / GUARDAS ==================
@@ -1448,8 +1442,13 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     });
     if (!m) throw new Error(`Movimiento ${movimientoId} no encontrado`);
 
-    const ids = [(m as any).clienteId, (m as any).supervisorId, (m as any).coordinadorId, (m as any).operadorId].filter(Boolean) as number[];
-    const tokens = await tokensDeUsuarios(ids);
+    const routing = resolverAudienciaFcmMovimiento('fin_servicio', m);
+    const { tokens } = await tokensAudienciaOperacion({
+      empresaId: m.empresaId,
+      localidadId: m.localidadId,
+      usuarioIds: [(m as any).clienteId, (m as any).supervisorId, (m as any).coordinadorId, (m as any).operadorId],
+      roles: routing?.roles,
+    });
     if (!tokens.length) return;
 
     await sendMulticastCompat({
@@ -1462,8 +1461,15 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
         subtipo: tipo.toLowerCase(),
         movimientoId: String(m.id),
         empresa: String(m.empresa?.nombre ?? ''),
+        empresaId: String(m.empresaId),
         localidadId: String(m.localidadId),
-        imagenes: (imagenesUrls ?? []).slice(0, 5).join(',')
+        imagenes: (imagenesUrls ?? []).slice(0, 5).join(','),
+        audience: String(routing?.audience ?? ''),
+        servicio: tipo,
+        source: tipo.toLowerCase(),
+        url: routing?.url ?? '/movimientos',
+        tag: `movimiento:${m.id}:fin_servicio:${tipo.toLowerCase()}`,
+        timestamp: new Date().toISOString(),
       },
       tokens
     });

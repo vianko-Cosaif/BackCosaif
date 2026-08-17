@@ -37,6 +37,174 @@ import { RequestHandler } from "express";
 import { RondaModel } from "../../../models/Movimientos/Ronda/RondaModel";
 import { movimientoControllerLogger as logger } from "../movimiento.controller.logger";
 import { publishRondaReordenadaEvent } from "../../../realtime/realtimeHub";
+import { prisma } from "../../../lib/prisma";
+import { esLocalidadTorreon } from "../../../utils/operacionLocalidad";
+import { requestTorreonMs } from "../../../services/torreonMs/torreonMsClient";
+import { resourceFitsAuthorizationScope } from "../../../auth/resourceScope";
+
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(input: unknown): UnknownRecord {
+  return input && typeof input === "object" ? input as UnknownRecord : {};
+}
+
+function extractArray(input: unknown): UnknownRecord[] {
+  if (Array.isArray(input)) return input as UnknownRecord[];
+  const record = asRecord(input);
+  if (Array.isArray(record.data)) return record.data as UnknownRecord[];
+  if (Array.isArray(record.items)) return record.items as UnknownRecord[];
+  if (Array.isArray(record.rows)) return record.rows as UnknownRecord[];
+  return [];
+}
+
+function asPositiveNumber(input: unknown): number | null {
+  const value = Number(input);
+  return Number.isFinite(value) && value > 0 ? Math.trunc(value) : null;
+}
+
+function asText(input: unknown): string | null {
+  return typeof input === "string" && input.trim() ? input.trim() : null;
+}
+
+function filterRondasForRequest<T extends { empresaId: number; localidadId: number }>(
+  req: Parameters<RequestHandler>[0],
+  rondas: T[],
+) {
+  const authorization = req.authorization;
+  if (!authorization) return [];
+  return rondas.filter((ronda) => resourceFitsAuthorizationScope(authorization, ronda));
+}
+
+async function localidadUsaTorreon(localidadId: number) {
+  const localidad = await prisma.localidad.findUnique({
+    where: { id: localidadId },
+    select: { nombre: true },
+  });
+  return esLocalidadTorreon(localidad?.nombre);
+}
+
+function formatTorreonRef(snapshot: unknown, prefix: string, id: unknown) {
+  const text = asText(snapshot);
+  if (text) return text;
+  const numericId = asPositiveNumber(id);
+  return numericId ? `${prefix} ${numericId}` : null;
+}
+
+function formatTorreonVia(movimiento: UnknownRecord, prefix: "Origen" | "Destino") {
+  const via = formatTorreonRef(movimiento[`via${prefix}NombreSnapshot`], "Via", movimiento[`via${prefix}Id`]);
+  const seccion = formatTorreonRef(movimiento[`seccion${prefix}NombreSnapshot`], "Seccion", movimiento[`seccion${prefix}Id`]);
+  if (via && seccion) return `${via} / ${seccion}`;
+  return via || seccion || null;
+}
+
+function movimientoTorreonConcluido(detail: UnknownRecord, movimiento: UnknownRecord) {
+  const detailState = String(detail.estado ?? "").toUpperCase();
+  const movementState = String(movimiento.estado ?? "").toUpperCase();
+  return ["CONCLUIDO", "CANCELADO"].includes(detailState) || ["CONCLUIDO", "CANCELADO"].includes(movementState);
+}
+
+function mapMovimientoTorreon(movimiento: UnknownRecord, detail: UnknownRecord) {
+  const movimientoId = asPositiveNumber(detail.movimientoId) ?? asPositiveNumber(movimiento.id);
+  const empresaId = asPositiveNumber(detail.empresaId) ?? asPositiveNumber(movimiento.empresaId);
+  const empresaNombre = asText(movimiento.empresaNombreSnapshot) ?? (empresaId ? `Empresa ${empresaId}` : "Empresa");
+  const estado = String(detail.estado ?? movimiento.estado ?? "SOLICITADO").toUpperCase();
+
+  return {
+    id: movimientoId ?? undefined,
+    idTecnico: movimientoId ?? undefined,
+    folioLocalidad: movimientoId ?? null,
+    folioLocalidadLabel: movimientoId ? `#${movimientoId}` : null,
+    empresaId,
+    empresa: empresaId ? { id: empresaId, nombre: empresaNombre } : null,
+    viaOrigen: { nombre: formatTorreonVia(movimiento, "Origen") },
+    viaDestino: { nombre: formatTorreonVia(movimiento, "Destino") },
+    lavado: false,
+    torno: false,
+    estado,
+    prioridad: movimiento.prioridad ?? detail.prioridad ?? "BAJA",
+    locomotiveNumber: movimiento.locomotiveNumber ?? null,
+    locomotora: movimiento.locomotiveNumber == null ? null : String(movimiento.locomotiveNumber),
+    fechaSolicitud: movimiento.fechaSolicitud ?? movimiento.createdAt ?? detail.fechaAsignado ?? null,
+    fechaInicio: detail.fechaInicio ?? movimiento.fechaInicio ?? null,
+    fechaFin: detail.fechaFin ?? movimiento.fechaFin ?? null,
+    instrucciones: movimiento.instrucciones ?? null,
+  };
+}
+
+function mapRondasTorreon(raw: unknown, concluido: boolean, localidadId: number) {
+  const rondas = extractArray(raw);
+  const rows: UnknownRecord[] = [];
+
+  for (const ronda of rondas) {
+    const movimientos = Array.isArray(ronda.movimientos) ? ronda.movimientos as UnknownRecord[] : [];
+    const rondaNumero = asPositiveNumber(ronda.numeroRonda) ?? 0;
+
+    movimientos.forEach((detail, index) => {
+      const movimiento = asRecord(detail.movimiento);
+      const detailId = asPositiveNumber(detail.id);
+      const movimientoId = asPositiveNumber(detail.movimientoId) ?? asPositiveNumber(movimiento.id);
+      if (!detailId || !movimientoId) return;
+
+      const itemDone = movimientoTorreonConcluido(detail, movimiento);
+      if (itemDone !== concluido) return;
+
+      const mappedMovimiento = mapMovimientoTorreon(movimiento, detail);
+      rows.push({
+        id: detailId,
+        rondaNumero,
+        orden: asPositiveNumber(detail.orden) ?? index + 1,
+        concluido: itemDone,
+        empresa: mappedMovimiento.empresa,
+        movimiento: mappedMovimiento,
+        movimientoId,
+        empresaId: mappedMovimiento.empresaId,
+        localidadId,
+        createdAt: detail.fechaAsignado ?? movimiento.fechaSolicitud ?? ronda.fechaApertura ?? ronda.createdAt ?? null,
+        source: "torreon",
+      });
+    });
+  }
+
+  return rows.sort((a, b) => {
+    const rondaDiff = Number(a.rondaNumero ?? 0) - Number(b.rondaNumero ?? 0);
+    if (rondaDiff) return rondaDiff;
+    const ordenDiff = Number(a.orden ?? 0) - Number(b.orden ?? 0);
+    if (ordenDiff) return ordenDiff;
+    return Number(a.id ?? 0) - Number(b.id ?? 0);
+  });
+}
+
+async function obtenerRondasTorreon(localidadId: number, concluido: boolean) {
+  const params = new URLSearchParams({ localidadId: String(localidadId) });
+  if (concluido) params.set("estado", "CERRADA");
+  const result = await requestTorreonMs<unknown[]>(`/rondas?${params.toString()}`, { method: "GET" });
+  return mapRondasTorreon(result.data, concluido, localidadId);
+}
+
+function siguienteTorreonDesdeRondas(rows: UnknownRecord[]) {
+  const next = rows.find((row) => {
+    const movimiento = asRecord(row.movimiento);
+    const estado = String(movimiento.estado ?? "").toUpperCase();
+    return !["BLOQUEADO", "ESPERA", "DETENIDO", "CONCLUIDO", "CANCELADO"].includes(estado);
+  });
+  if (!next) return { vacio: true, motivo: "Sin movimientos pendientes en Torreon", source: "torreon" };
+
+  const movimiento = asRecord(next.movimiento);
+  return {
+    rondaId: next.id,
+    movimientoId: next.movimientoId ?? movimiento.id,
+    empresaId: asPositiveNumber(asRecord(next.empresa).id) ?? asPositiveNumber(movimiento.empresaId),
+    prioridad: movimiento.prioridad ?? "BAJA",
+    locomotiveNumber: movimiento.locomotiveNumber ?? null,
+    viaDestino: asRecord(movimiento.viaDestino).nombre ?? null,
+    bloqueado: false,
+    permiteInicio: true,
+    rondaNumero: next.rondaNumero,
+    orden: next.orden,
+    movimiento,
+    source: "torreon",
+  };
+}
 
 export class RondaController {
   /**
@@ -117,10 +285,10 @@ export class RondaController {
    * @returns 200 Rondas con empresa y movimiento embebidos.
    * @returns 500 Error del servidor.
    */
-  static obtenerRondas: RequestHandler = async (_req, res) => {
+  static obtenerRondas: RequestHandler = async (req, res) => {
     try {
       const rondas = await RondaModel.obtenerRondas();
-      res.status(200).json(rondas);
+      res.status(200).json(filterRondasForRequest(req, rondas));
     } catch (error) {
       logger.error("Error al obtener rondas", { error });
       res.status(500).json({ message: "Error al obtener rondas" });
@@ -172,8 +340,14 @@ export class RondaController {
       return;
     }
     try {
+      if (await localidadUsaTorreon(localidadId)) {
+        const rondas = await obtenerRondasTorreon(localidadId, false);
+        res.status(200).json(filterRondasForRequest(req, rondas as any));
+        return;
+      }
+
       const rondas = await RondaModel.obtenerRondasPorLocalidad(localidadId);
-      res.status(200).json(rondas);
+      res.status(200).json(filterRondasForRequest(req, rondas));
     } catch (error) {
       logger.error("Error al obtener rondas por localidad", { error, localidadId });
       res.status(500).json({ message: "Error al obtener rondas por localidad" });
@@ -202,8 +376,14 @@ export class RondaController {
     }
 
     try {
+      if (await localidadUsaTorreon(localidadId)) {
+        const rondas = await obtenerRondasTorreon(localidadId, concluido);
+        res.status(200).json(filterRondasForRequest(req, rondas as any));
+        return;
+      }
+
       const rondas = await RondaModel.obtenerRondasPorLocalidadConEstado(localidadId, concluido);
-      res.status(200).json(rondas);
+      res.status(200).json(filterRondasForRequest(req, rondas));
     } catch (error) {
       logger.error("Error al obtener rondas por localidad y estado", { error, localidadId, concluido });
       res.status(500).json({ message: "Error al obtener rondas por localidad y estado" });
@@ -332,6 +512,12 @@ static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
   const userId = (req.user as any)?.id ? Number((req.user as any).id) : undefined;
 
   try {
+    if (await localidadUsaTorreon(localidadId)) {
+      const rondas = await obtenerRondasTorreon(localidadId, false);
+      res.status(200).json(siguienteTorreonDesdeRondas(rondas));
+      return;
+    }
+
     const result = await RondaModel.siguienteInteligente(localidadId);
     res.status(200).json(result);
   } catch (error) {
@@ -362,6 +548,12 @@ static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
   const userId = (req.user as any)?.id ? Number((req.user as any).id) : undefined;
 
   try {
+    if (await localidadUsaTorreon(localidadId)) {
+      const rondas = await obtenerRondasTorreon(localidadId, false);
+      res.status(200).json(siguienteTorreonDesdeRondas(rondas));
+      return;
+    }
+
     const result = await RondaModel.siguienteInteligente(localidadId, userId);
     res.status(200).json(result);
   } catch (error) {
