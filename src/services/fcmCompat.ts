@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+﻿import { messaging } from '../config/firebase';
 
 type MulticastMessageCompat = {
   tokens: string[];
@@ -80,7 +80,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
   const responses: SendResponseCompat[] = await Promise.all(
     tokens.map(async (token) => {
       try {
-        const messageId = await admin.messaging().send({ ...sendPayload, token } as any);
+        const messageId = await messaging.send({ ...sendPayload, token } as any);
         return { success: true, messageId };
       } catch (error: any) {
         return {
@@ -116,3 +116,4 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
     failureCount: responses.filter((response) => !response.success).length,
   };
 }
+

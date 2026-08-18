@@ -36,6 +36,7 @@
 import { RequestHandler } from "express";
 import { RondaModel } from "../../../models/Movimientos/Ronda/RondaModel";
 import { movimientoControllerLogger as logger } from "../movimiento.controller.logger";
+import { publishRondaReordenadaEvent } from "../../../realtime/realtimeHub";
 import { prisma } from "../../../lib/prisma";
 import { esLocalidadTorreon } from "../../../utils/operacionLocalidad";
 import { requestTorreonMs } from "../../../services/torreonMs/torreonMsClient";
@@ -74,12 +75,19 @@ function filterRondasForRequest<T extends { empresaId: number; localidadId: numb
 ) {
   const authorization = req.authorization;
   if (!authorization) return [];
+  const wantsLocalityBoard = String(req.query?.alcance ?? "").toLowerCase() === "localidad";
+  const requestedLocalidadId = asPositiveNumber(req.params?.localidadId ?? req.query?.localidadId);
+  if (wantsLocalityBoard && requestedLocalidadId) {
+    const scope = authorization.scope;
+    const canReadRequestedLocality =
+      scope.mode === "GLOBAL" ||
+      scope.mode === "LOCALITY" ||
+      scope.localidadId === requestedLocalidadId;
 
-  const requestedLocalityQueue = String(req.query.alcance ?? "").toLowerCase() === "localidad";
-  if (requestedLocalityQueue) {
-    return rondas.filter((ronda) => resourceFitsSharedLocalityReadScope(authorization, ronda));
+    if (canReadRequestedLocality) {
+      return rondas.filter((ronda) => ronda.localidadId === requestedLocalidadId);
+    }
   }
-
   return rondas.filter((ronda) => resourceFitsAuthorizationScope(authorization, ronda));
 }
 
@@ -427,6 +435,18 @@ export class RondaController {
       const locs = Array.from(new Set([ra.localidadId, rb.localidadId]));
       await Promise.all(locs.map(id => RondaModel.siguienteInteligente(id)));
 
+      for (const ronda of [ra, rb]) {
+        publishRondaReordenadaEvent({
+          id: ronda.id,
+          movimientoId: ronda.movimientoId,
+          empresaId: ronda.empresaId,
+          localidadId: ronda.localidadId,
+          rondaIds: [ra.id, rb.id],
+          movimientoIds: [ra.movimientoId, rb.movimientoId],
+          reason: "swap-rondas",
+        });
+      }
+
       res.status(200).json({
         message: "Movimientos de rondas intercambiados exitosamente",
         rondas: [ra, rb]
@@ -461,6 +481,15 @@ export class RondaController {
     try {
       const ronda = await RondaModel.intercambiarMovimientoEnRonda(rondaId, Number(nuevoMovimientoId));
       await RondaModel.siguienteInteligente(ronda.localidadId);
+      publishRondaReordenadaEvent({
+        id: ronda.id,
+        movimientoId: ronda.movimientoId,
+        empresaId: ronda.empresaId,
+        localidadId: ronda.localidadId,
+        rondaIds: [ronda.id],
+        movimientoIds: [ronda.movimientoId],
+        reason: "swap-movimiento",
+      });
 
       res.status(200).json({
         message: "Movimiento de ronda intercambiado exitosamente",

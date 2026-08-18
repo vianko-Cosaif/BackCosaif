@@ -499,6 +499,7 @@ const isTornoRecoveryCompatible = (
 const extractMedidasFromRuedaSolicitud = (ruedaSolicitud: any): ReturnType<typeof normalizeMedidasRuedaInput> | null => {
   if (!ruedaSolicitud) return null;
   const draft = {
+    wheelCount: ruedaSolicitud.wheelCount,
     l1: ruedaSolicitud.l1,
     l2: ruedaSolicitud.l2,
     l3: ruedaSolicitud.l3,

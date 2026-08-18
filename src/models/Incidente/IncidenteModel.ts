@@ -16,7 +16,12 @@ import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
-import { publishMovimientoEstadoEvent, publishRealtimeEvent } from '../../realtime/realtimeHub';
+import {
+  publishMovimientoCreadoEvent,
+  publishMovimientoEstadoEvent,
+  publishRealtimeEvent,
+  publishRondaReordenadaEvent,
+} from '../../realtime/realtimeHub';
 import {
   cancelarRondaTornoPorMovimiento,
   crearRecuperacionTemporalTornoCancelado,
@@ -848,6 +853,31 @@ export class IncidenteModel {
           () => RondaModel.siguienteInteligente(resultado.localidadId),
           { rid, incidenteId, localidadId: resultado.localidadId }
         );
+
+        const nuevoMovimientoRealtime = await prisma.movimiento.findUnique({
+          where: { id: resultado.nuevoMovimientoId },
+          include: { ronda: true },
+        });
+
+        if (nuevoMovimientoRealtime) {
+          publishMovimientoCreadoEvent(nuevoMovimientoRealtime);
+          publishMovimientoEstadoEvent({
+            ...nuevoMovimientoRealtime,
+            estadoAnterior: 'DETENIDO',
+          });
+          publishRondaReordenadaEvent({
+            id: nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId,
+            movimientoId: nuevoMovimientoRealtime.id,
+            empresaId: nuevoMovimientoRealtime.empresaId,
+            localidadId: nuevoMovimientoRealtime.localidadId,
+            clienteId: nuevoMovimientoRealtime.clienteId,
+            rondaIds: [nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId].filter(
+              (id): id is number => Number.isFinite(Number(id))
+            ),
+            movimientoIds: [resultado.originalMovimientoId, resultado.nuevoMovimientoId],
+            reason: 'incidente-no-resuelto-reprogramado',
+          });
+        }
 
         await bestEffort(
           'NotificadorFCM.notificarNuevoMovimiento(reprogramado)',

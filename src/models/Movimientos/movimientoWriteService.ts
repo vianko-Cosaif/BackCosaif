@@ -14,7 +14,7 @@ import {
   notificarMovimientoReanudado,
 } from './movimiento.notifications';
 import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
-import { publishMovimientoCreadoEvent, publishMovimientoEstadoEvent } from '../../realtime/realtimeHub';
+import { publishMovimientoCreadoEvent, publishMovimientoEstadoEvent, publishRondaReordenadaEvent } from '../../realtime/realtimeHub';
 
 function stripTornoAgendadoMeta(instrucciones?: string | null) {
   const clean = String(instrucciones ?? '')
@@ -909,6 +909,19 @@ export class MovimientoWriteService {
         notificarCambioPrioridad(id, prioridad)
       );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimientoActualizado);
+      if (movimiento.estado === 'SOLICITADO') {
+        publishRondaReordenadaEvent({
+          id: movimiento.ronda?.id ?? null,
+          movimientoId: movimientoActualizado.id,
+          empresaId: movimientoActualizado.empresaId,
+          localidadId: movimientoActualizado.localidadId,
+          clienteId: movimientoActualizado.clienteId,
+          rondaIds: movimiento.ronda?.id ? [movimiento.ronda.id] : [],
+          movimientoIds: [movimientoActualizado.id],
+          reason: 'prioridad',
+        });
+      }
 
       return movimientoActualizado;
     } catch (error: any) {

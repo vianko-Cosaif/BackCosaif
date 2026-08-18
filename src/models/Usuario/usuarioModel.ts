@@ -39,6 +39,21 @@ type ObtenerUsuariosOptions = {
   localidadId?: number;
 };
 
+const INTERNAL_COMPANY_NAMES = new Set(['COSAIF', 'VIANKO']);
+const INTERNAL_OPERATION_ROLES = new Set<Rol>([
+  Rol.MAQUINISTA,
+  Rol.MAQUINISTA_ARRASTRE,
+  Rol.TORNO,
+  Rol.COORDINADOR,
+  Rol.SUPERVISOR,
+]);
+const CLIENT_COMPANY_ROLES = new Set<Rol>([
+  Rol.CLIENTE,
+  Rol.CLIENTE_ADMIN,
+  Rol.CLIENTE_COOR,
+  Rol.ARRASTRE_TORREON,
+]);
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -51,6 +66,26 @@ function readStringField(source: Record<string, unknown>, key: string) {
 export class UsuarioModel {
   private static normalizeEmail(e: string) {
     return e.trim().toLowerCase();
+  }
+
+  private static normalizeCompanyName(value?: string | null) {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toUpperCase();
+  }
+
+  private static validateRoleCompanyRule(rol: Rol, empresaNombre?: string | null) {
+    const isInternalCompany = INTERNAL_COMPANY_NAMES.has(this.normalizeCompanyName(empresaNombre));
+
+    if (INTERNAL_OPERATION_ROLES.has(rol) && !isInternalCompany) {
+      throw new Error('Maquinista, Tornero, Coordinador y Supervisor solo pueden pertenecer a Cosaif o Vianko');
+    }
+
+    if (CLIENT_COMPANY_ROLES.has(rol) && isInternalCompany) {
+      throw new Error('Un cliente no puede pertenecer a Cosaif o Vianko');
+    }
   }
 
   private static dt(t0: bigint) {
@@ -130,6 +165,7 @@ export class UsuarioModel {
       ]);
       if (!empresa) { log.warn('usuarioModel:create:empresa_invalida', { reqId: ctx.reqId, empresaId }); throw new Error('Empresa no válida'); }
       if (!localidad){ log.warn('usuarioModel:create:localidad_invalida', { reqId: ctx.reqId, localidadId }); throw new Error('Localidad no válida'); }
+      this.validateRoleCompanyRule(rol, empresa.nombre);
       const refsMs = this.dt(tRefs);
 
       const tHash = process.hrtime.bigint();
@@ -223,6 +259,16 @@ export class UsuarioModel {
     try {
       if (!Number.isInteger(id) || id <= 0) throw new Error('Usuario inválido');
 
+      const current = await prisma.usuario.findUnique({
+        where: { id },
+        select: {
+          rol: true,
+          empresaId: true,
+          empresa: { select: { id: true, nombre: true } },
+        },
+      });
+      if (!current) throw new Error('Usuario no encontrado');
+
       const dataToUpdate: Prisma.UsuarioUncheckedUpdateInput = {};
       let invalidarSesiones = false;
 
@@ -246,6 +292,7 @@ export class UsuarioModel {
 
       const validarEmpresa = input.empresaId !== undefined;
       const validarLocalidad = input.localidadId !== undefined;
+      let empresaValidada: true | { id: number; nombre: string } = true;
       if (validarEmpresa || validarLocalidad) {
         const [empresa, localidad] = await Promise.all([
           validarEmpresa ? prisma.empresa.findUnique({ where: { id: Number(input.empresaId) } }) : Promise.resolve(true),
@@ -253,7 +300,13 @@ export class UsuarioModel {
         ]);
         if (!empresa) throw new Error('Empresa no válida');
         if (!localidad) throw new Error('Localidad no válida');
+        empresaValidada = empresa as true | { id: number; nombre: string };
       }
+
+      this.validateRoleCompanyRule(
+        input.rol ?? current.rol,
+        validarEmpresa && empresaValidada !== true ? empresaValidada.nombre : current.empresa?.nombre,
+      );
 
       if (validarEmpresa) {
         dataToUpdate.empresaId = Number(input.empresaId);
