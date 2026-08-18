@@ -39,7 +39,10 @@ import { movimientoControllerLogger as logger } from "../movimiento.controller.l
 import { prisma } from "../../../lib/prisma";
 import { esLocalidadTorreon } from "../../../utils/operacionLocalidad";
 import { requestTorreonMs } from "../../../services/torreonMs/torreonMsClient";
-import { resourceFitsAuthorizationScope } from "../../../auth/resourceScope";
+import {
+  resourceFitsAuthorizationScope,
+  resourceFitsSharedLocalityReadScope,
+} from "../../../auth/resourceScope";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -71,6 +74,12 @@ function filterRondasForRequest<T extends { empresaId: number; localidadId: numb
 ) {
   const authorization = req.authorization;
   if (!authorization) return [];
+
+  const requestedLocalityQueue = String(req.query.alcance ?? "").toLowerCase() === "localidad";
+  if (requestedLocalityQueue) {
+    return rondas.filter((ronda) => resourceFitsSharedLocalityReadScope(authorization, ronda));
+  }
+
   return rondas.filter((ronda) => resourceFitsAuthorizationScope(authorization, ronda));
 }
 
