@@ -72,6 +72,19 @@ function filterRondasForRequest<T extends { empresaId: number; localidadId: numb
 ) {
   const authorization = req.authorization;
   if (!authorization) return [];
+  const wantsLocalityBoard = String(req.query?.alcance ?? "").toLowerCase() === "localidad";
+  const requestedLocalidadId = asPositiveNumber(req.params?.localidadId ?? req.query?.localidadId);
+  if (wantsLocalityBoard && requestedLocalidadId) {
+    const scope = authorization.scope;
+    const canReadRequestedLocality =
+      scope.mode === "GLOBAL" ||
+      scope.mode === "LOCALITY" ||
+      scope.localidadId === requestedLocalidadId;
+
+    if (canReadRequestedLocality) {
+      return rondas.filter((ronda) => ronda.localidadId === requestedLocalidadId);
+    }
+  }
   return rondas.filter((ronda) => resourceFitsAuthorizationScope(authorization, ronda));
 }
 
