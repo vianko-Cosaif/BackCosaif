@@ -8,7 +8,10 @@ import {
 } from './accessPolicy';
 import { applyQueryScope } from './authorize';
 import { LoginAttemptStore } from './loginRateLimit';
-import { resourceFitsAuthorizationScope } from './resourceScope';
+import {
+  resourceFitsAuthorizationScope,
+  resourceFitsSharedLocalityReadScope,
+} from './resourceScope';
 import { isCorsOriginAllowed, parseAllowedOrigins } from './corsPolicy';
 
 const profile = (rol: string, empresaId = 10, localidadId = 20) =>
@@ -116,6 +119,12 @@ assert.equal(resourceFitsAuthorizationScope(client, { empresaId: 10, localidadId
 assert.equal(resourceFitsAuthorizationScope(client, { empresaId: 10, localidadId: 21 }), false);
 assert.equal(resourceFitsAuthorizationScope(clientAdmin, { empresaId: 10, localidadId: 999 }), true);
 assert.equal(resourceFitsAuthorizationScope(clientAdmin, { empresaId: 11, localidadId: 20 }), false);
+assert.equal(resourceFitsSharedLocalityReadScope(client, { localidadId: 20 }), true);
+assert.equal(resourceFitsSharedLocalityReadScope(client, { localidadId: 21 }), false);
+assert.equal(resourceFitsSharedLocalityReadScope(clientAdmin, { localidadId: 20 }), true);
+assert.equal(resourceFitsSharedLocalityReadScope(clientAdmin, { localidadId: 21 }), false);
+assert.equal(resourceFitsSharedLocalityReadScope(coordinator, { localidadId: 20 }), true);
+assert.equal(resourceFitsSharedLocalityReadScope(coordinator, { localidadId: 21 }), false);
 
 const corsOrigins = parseAllowedOrigins('https://App.Example.com/, https://admin.example.com');
 assert.equal(isCorsOriginAllowed(undefined, 'enforce', corsOrigins), true);

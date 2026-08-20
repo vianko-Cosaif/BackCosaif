@@ -40,7 +40,10 @@ import { publishRondaReordenadaEvent } from "../../../realtime/realtimeHub";
 import { prisma } from "../../../lib/prisma";
 import { esLocalidadTorreon } from "../../../utils/operacionLocalidad";
 import { requestTorreonMs } from "../../../services/torreonMs/torreonMsClient";
-import { resourceFitsAuthorizationScope } from "../../../auth/resourceScope";
+import {
+  resourceFitsAuthorizationScope,
+  resourceFitsSharedLocalityReadScope,
+} from "../../../auth/resourceScope";
 
 type UnknownRecord = Record<string, unknown>;
 

@@ -12,6 +12,8 @@ type ScopedResource = {
   localidadId: number;
 };
 
+type LocalityScopedResource = Pick<ScopedResource, 'localidadId'>;
+
 const CLIENT_ROLES = new Set(['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR']);
 
 type AuthorizedRequest = Request & {
@@ -92,6 +94,20 @@ export function resourceFitsAuthorizationScope(
     );
   }
   return false;
+}
+
+export function resourceFitsSharedLocalityReadScope(
+  authorization: AuthorizationProfile,
+  resource: LocalityScopedResource,
+): boolean {
+  const { mode, localidadId } = authorization.scope;
+  if (mode === 'GLOBAL') return true;
+
+  return Boolean(
+    localidadId
+    && (mode === 'LOCALITY' || authorization.capabilities.area === 'cliente')
+    && resource.localidadId === localidadId
+  );
 }
 
 export const enforcePathScope: RequestHandler = (req, res, next) => {
