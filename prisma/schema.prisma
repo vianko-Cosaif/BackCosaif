@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model OfflineIdempotency {
+  key                 String   @id @db.VarChar(128)
+  userId              Int      @map("user_id")
+  requestHash         String   @map("request_hash") @db.Char(64)
+  state               String   @db.VarChar(16)
+  responseStatus      Int?     @map("response_status")
+  responseBody        String?  @map("response_body") @db.Text
+  responseContentType String?  @map("response_content_type") @db.Text
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  expiresAt           DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("offline_idempotency")
+}
+
 /**
  * ================== MODELOS BASE ==================
  */
@@ -55,7 +71,7 @@ model Usuario {
   empresaId          Int
   localidadId        Int
   fcmTokens          FcmToken[]
-  activo             Boolean             @default(false)
+  activo             Boolean             @default(true)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   incidentes         Incidente[]
@@ -563,10 +579,13 @@ enum Rol {
   CLIENTE
   CLIENTE_ADMIN
   CLIENTE_COOR
+  ARRASTRE_TORREON
   SUPERVISOR
   COORDINADOR
   OPERADOR
   MAQUINISTA
+  MAQUINISTA_ARRASTRE
+  COMERCIAL
   ADMINISTRADOR
   LAVADO
   TORNO

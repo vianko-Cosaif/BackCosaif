@@ -19,10 +19,31 @@ function readToken(body: unknown) {
   return String((body as { token?: unknown }).token ?? '').trim();
 }
 
-function readLocalidadId(body: unknown, user?: AuthenticatedUser) {
-  const raw = body && typeof body === 'object' ? (body as { localidadId?: unknown }).localidadId : undefined;
-  const parsed = Number(raw ?? user?.localidad?.id ?? NaN);
+function toPositiveInt(value: unknown) {
+  const parsed = Number(value ?? NaN);
   return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : null;
+}
+
+function readRequestedLocalidadId(body: unknown) {
+  const raw = body && typeof body === 'object' ? (body as { localidadId?: unknown }).localidadId : undefined;
+  return toPositiveInt(raw);
+}
+
+function resolveLocalidadId(body: unknown, user?: AuthenticatedUser) {
+  const userLocalidadId = toPositiveInt(user?.localidad?.id);
+  if (!isAdminRole(user)) return userLocalidadId;
+  return readRequestedLocalidadId(body) ?? userLocalidadId;
+}
+
+function readRuntimeEnv(body: unknown) {
+  const raw = body && typeof body === 'object' ? (body as { runtimeEnv?: unknown }).runtimeEnv : undefined;
+  const normalized = String(raw ?? 'production').trim().toLowerCase();
+  return normalized === 'development' ? 'development' : 'production';
+}
+
+function allowRuntimeRegistration(runtimeEnv: 'development' | 'production') {
+  if (runtimeEnv === 'production') return true;
+  return String(process.env.FCM_ALLOW_DEV_REGISTRATION ?? '').trim().toLowerCase() === 'true';
 }
 
 /**
@@ -74,19 +95,25 @@ export class FmcController {
   static registrarToken: RequestHandler = async (req, res) => {
     const user = getAuthUser(req);
     const token = readToken(req.body);
-    const localidadId = readLocalidadId(req.body, user);
+    const localidadId = resolveLocalidadId(req.body, user);
+    const runtimeEnv = readRuntimeEnv(req.body);
 
     if (!user?.id || !token) {
       res.status(400).json({ error: 'Faltan usuario autenticado o token' });
       return;
     }
 
+    if (!allowRuntimeRegistration(runtimeEnv)) {
+      res.status(403).json({ error: 'Registro FCM de desarrollo deshabilitado' });
+      return;
+    }
+
     try {
       await FmcModel.upsertToken(user.id, token, localidadId);
-      fmcControllerLogger.info('Token FCM registrado', { usuarioId: user.id, localidadId });
-      res.status(201).json({ ok: true, localidadId });
+      fmcControllerLogger.info('Token FCM registrado', { usuarioId: user.id, localidadId, runtimeEnv });
+      res.status(201).json({ ok: true, localidadId, runtimeEnv });
     } catch (error) {
-      fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId: user.id, localidadId });
+      fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId: user.id, localidadId, runtimeEnv });
       res.status(500).json({ error: 'Error al registrar token', details: error });
     }
   };

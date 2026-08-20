@@ -4,6 +4,7 @@ import { getAccessTtlForRole, shouldSlideSessionByRole } from './sessionPolicy';
 import { logger } from '../utils/logger';
 import type { AuthenticatedUser } from '../types/auth';
 import * as tokenService from '../middlewares/token.service';
+import { buildAuthorizationProfile, type AuthorizationProfile } from './accessPolicy';
 
 const addSessionHeaders = (res: Response, expiresAt: Date) => {
   res.setHeader('x-session-expires-at', expiresAt.toISOString());
@@ -30,6 +31,8 @@ export const authenticateAccess: RequestHandler = (req, res, next) => {
     if (!user) return res.status(401).json({ error: info?.message ?? 'No autorizado' });
 
     req.user = user;
+    (req as Request & { authorization?: AuthorizationProfile }).authorization =
+      buildAuthorizationProfile(user as AuthenticatedUser);
 
     void (async () => {
       try {

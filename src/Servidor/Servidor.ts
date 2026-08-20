@@ -8,12 +8,13 @@
  * 4. Iniciar el servidor en el puerto indicado.
  */
 
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import { createServer } from "http";
-import cors from "cors";
 import dotenv from "dotenv";
 import passport from "../middlewares/passport";
 import { traceLoginTraffic } from "../auth/loginProbe";
+import { securityHeaders } from "../auth/securityHeaders";
+import { corsPolicy } from "../auth/corsPolicy";
 
 // --------------- Rutas de dominio ---------------
 import localidadRoutes from "../Rutas/Localidad/LocalidadRutas";
@@ -30,14 +31,29 @@ import Reporte from "../reporteria/rutas/rutasPdf";
 import Excel from "../reporteria/rutas/rutasExcel";
 import bannerRoutes from "../Rutas/Banner/BannerRoutes";
 import tornoMsRoutes from "../Rutas/TornoMs/TornoMsRoutes";
+import torreonMsRoutes from "../Rutas/TorreonMs/TorreonMsRoutes";
 import realtimeRoutes from "../Rutas/Realtime/RealtimeRoutes";
+import catalogosOperativosRoutes from "../Rutas/CatalogosOperativos/CatalogosOperativosRoutes";
+import offlineRoutes from "../Rutas/Offline/OfflineRoutes";
+import comercialMsRoutes from "../Rutas/ComercialMs/ComercialMsRoutes";
 import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
+import { createGuardianAgent } from "../guardian/guardianAgent";
+import { prisma } from "../lib/prisma";
+import { securityAuditMiddleware } from "../security/securityAudit";
 // Carga variables de entorno
 dotenv.config();
 
 // Puerto de escucha
 const PORT = process.env.PORT;
 const HOST = process.env.HOST || '0.0.0.0';
+
+function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
+  const address = req.socket.remoteAddress || "";
+  if (address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1") {
+    return next();
+  }
+  return res.status(404).end();
+}
 
 /**
  * Inicializa y arranca el servidor Express.
@@ -46,18 +62,36 @@ const HOST = process.env.HOST || '0.0.0.0';
 export function iniciarServidor(): void {
   try {
     const app: Express = express();
+    app.disable('x-powered-by');
 
     // ---------------- Middlewares globales ----------------
+    app.use(securityHeaders);
     app.use(traceLoginTraffic);
+
+    // CORS gradual: compat conserva clientes actuales; enforce usa lista explícita.
+    app.use(corsPolicy);
 
     // Parseo de JSON para todo el API
     app.use(express.json({ limit: '50mb' }));
 
-    // CORS abierto (ajustar origin en producción)
-    app.use(cors());
+    const guardianAgent = createGuardianAgent({
+      service: "cosaif-api",
+      databaseCheck: async () => {
+        await prisma.$queryRaw`SELECT 1`;
+        return true;
+      },
+      movementsToday: async () => {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        return prisma.movimiento.count({ where: { createdAt: { gte: start } } });
+      },
+    });
+    app.use(guardianAgent.middleware);
+    app.get("/metrics", loopbackMetricsOnly, guardianAgent.metrics);
 
     // Inicializa estrategia JWT de Passport
     app.use(passport.initialize());
+    app.use(securityAuditMiddleware);
 
     // ---------------- Rutas base ----------------
 
@@ -81,7 +115,11 @@ export function iniciarServidor(): void {
     app.use("/reporterias", Excel);
     app.use("/banner", bannerRoutes);
     app.use("/torno", tornoMsRoutes);
+    app.use("/torreon", torreonMsRoutes);
     app.use("/realtime", realtimeRoutes);
+    app.use("/catalogos-operativos", catalogosOperativosRoutes);
+    app.use("/offline", offlineRoutes);
+    app.use("/comercial", comercialMsRoutes);
 
     // ---------------- Arranque del servidor ----------------
     const server = createServer(app);
@@ -90,6 +128,7 @@ export function iniciarServidor(): void {
     server.listen(Number(PORT), HOST, () => {
       console.log(`Servidor corriendo en ${HOST}:${PORT}`);
       console.log('Autenticacion por sesion cargada con renovacion por rol');
+      guardianAgent.start();
     });
   } catch (error) {
     // Error crítico al iniciar el server: se termina el proceso

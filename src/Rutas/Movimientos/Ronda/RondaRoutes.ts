@@ -21,6 +21,15 @@
 import { Router } from "express";
 import { RondaController } from "./RondaController";
 import { authenticateAccess } from "../../../auth/authenticateAccess";
+import { PERMISSIONS } from "../../../auth/accessPolicy";
+import { enforceQueryScope, requirePermission } from "../../../auth/authorize";
+import {
+  enforcePathScope,
+  enforceRoundCreationScope,
+  enforceRoundReplacementScope,
+  requireRoundScope,
+  requireRoundsInBodyScope,
+} from "../../../auth/resourceScope";
 
 const router = Router();
 
@@ -50,7 +59,12 @@ router.use(authenticateAccess);
  *
  * Respuestas: 201 { message, movimientoId, empresaId, localidadId, prioridad, siguienteInteligente } | 400 | 500
  */
-router.post("/movimiento/:movimientoId", RondaController.generarRondaParaMovimiento);
+router.post(
+  "/movimiento/:movimientoId",
+  requirePermission(PERMISSIONS.ROUNDS_CREATE),
+  enforceRoundCreationScope,
+  RondaController.generarRondaParaMovimiento,
+);
 
 // ---------------------------------------------------------------------------
 // 📋 Consultas generales
@@ -62,7 +76,12 @@ router.post("/movimiento/:movimientoId", RondaController.generarRondaParaMovimie
  * Efecto: solo lectura.
  * 200 | 500
  */
-router.get("/", RondaController.obtenerRondas);
+router.get(
+  "/",
+  requirePermission(PERMISSIONS.ROUNDS_READ),
+  enforceQueryScope,
+  RondaController.obtenerRondas,
+);
 
 /**
  * DELETE /rondas/:id
@@ -77,7 +96,12 @@ router.get("/", RondaController.obtenerRondas);
  *
  * 204 | 400 | 500
  */
-router.delete("/:id", RondaController.eliminarRonda);
+router.delete(
+  "/:id",
+  requirePermission(PERMISSIONS.ROUNDS_DELETE),
+  requireRoundScope(),
+  RondaController.eliminarRonda,
+);
 
 // ---------------------------------------------------------------------------
 /**
@@ -88,7 +112,13 @@ router.delete("/:id", RondaController.eliminarRonda);
  *  - localidadId: number
  * 200 | 400 | 500
  */
-router.get("/localidad/:localidadId", RondaController.obtenerRondasPorLocalidad);
+router.get(
+  "/localidad/:localidadId",
+  requirePermission(PERMISSIONS.ROUNDS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  RondaController.obtenerRondasPorLocalidad,
+);
 
 /**
  * GET /rondas/localidad/:localidadId/estado/:concluido
@@ -99,7 +129,13 @@ router.get("/localidad/:localidadId", RondaController.obtenerRondasPorLocalidad)
  *  - concluido: 'true' | 'false'
  * 200 | 400 | 500
  */
-router.get("/localidad/:localidadId/estado/:concluido", RondaController.obtenerRondasPorLocalidadConEstado);
+router.get(
+  "/localidad/:localidadId/estado/:concluido",
+  requirePermission(PERMISSIONS.ROUNDS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  RondaController.obtenerRondasPorLocalidadConEstado,
+);
 
 // ---------------------------------------------------------------------------
 // ⏭️ Siguiente (maquinista)
@@ -117,13 +153,23 @@ router.get("/localidad/:localidadId/estado/:concluido", RondaController.obtenerR
  *
  * Resp: 200 { rondaId, movimientoId, prioridad, viaDestino, bloqueado, permiteInicio } | 400 | 500
  */
-router.get("/localidad/:localidadId/siguiente", RondaController.obtenerSiguienteEnRonda);
+router.get(
+  "/localidad/:localidadId/siguiente",
+  requirePermission(PERMISSIONS.ROUNDS_OPERATE),
+  enforcePathScope,
+  RondaController.obtenerSiguienteEnRonda,
+);
 
 /**
  * GET /rondas/localidad/:localidadId/siguiente-inteligente
  * Alias de la anterior (misma salida, mismo comportamiento).
  */
-router.get("/localidad/:localidadId/siguiente-inteligente", RondaController.obtenerSiguienteInteligente);
+router.get(
+  "/localidad/:localidadId/siguiente-inteligente",
+  requirePermission(PERMISSIONS.ROUNDS_OPERATE),
+  enforcePathScope,
+  RondaController.obtenerSiguienteInteligente,
+);
 
 // ---------------------------------------------------------------------------
 // 🔄 Intercambios / reemplazos
@@ -143,7 +189,12 @@ router.get("/localidad/:localidadId/siguiente-inteligente", RondaController.obte
  *
  * 200 { message, rondas: [rA, rB] } | 400 | 500
  */
-router.patch("/intercambiar-movimientos", RondaController.intercambiarMovimientosEntreRondas);
+router.patch(
+  "/intercambiar-movimientos",
+  requirePermission(PERMISSIONS.ROUNDS_EDIT),
+  requireRoundsInBodyScope("rondaAId", "rondaBId"),
+  RondaController.intercambiarMovimientosEntreRondas,
+);
 
 /**
  * PATCH /rondas/:id/intercambiar-movimiento
@@ -160,7 +211,12 @@ router.patch("/intercambiar-movimientos", RondaController.intercambiarMovimiento
  *
  * 200 { message, ronda } | 400 | 500
  */
-router.patch("/:id/intercambiar-movimiento", RondaController.intercambiarMovimientoEnRonda);
+router.patch(
+  "/:id/intercambiar-movimiento",
+  requirePermission(PERMISSIONS.ROUNDS_EDIT),
+  enforceRoundReplacementScope,
+  RondaController.intercambiarMovimientoEnRonda,
+);
 
 // ---------------------------------------------------------------------------
 // 🔎 Detalle e implementación de cierre
@@ -174,7 +230,12 @@ router.patch("/:id/intercambiar-movimiento", RondaController.intercambiarMovimie
  *  - id: number
  * 200 | 400 | 500
  */
-router.get("/:id/info", RondaController.obtenerInfoRonda);
+router.get(
+  "/:id/info",
+  requirePermission(PERMISSIONS.ROUNDS_READ),
+  requireRoundScope(),
+  RondaController.obtenerInfoRonda,
+);
 
 /**
  * PATCH /rondas/:id/concluir
@@ -188,6 +249,11 @@ router.get("/:id/info", RondaController.obtenerInfoRonda);
  *
  * 200 { message, ronda, siguienteInteligente } | 400 | 500
  */
-router.patch("/:id/concluir", RondaController.marcarRondaComoConcluida);
+router.patch(
+  "/:id/concluir",
+  requirePermission(PERMISSIONS.ROUNDS_OPERATE),
+  requireRoundScope(),
+  RondaController.marcarRondaComoConcluida,
+);
 export default router;
 

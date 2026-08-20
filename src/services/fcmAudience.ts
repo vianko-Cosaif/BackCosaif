@@ -1,8 +1,16 @@
 import { Rol } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
-const CLIENT_ROLES: Rol[] = [Rol.CLIENTE];
-const LOCAL_OPERATION_ROLES: Rol[] = [Rol.SUPERVISOR, Rol.OPERADOR, Rol.MAQUINISTA];
+const CLIENT_ROLES: Rol[] = [Rol.CLIENTE, Rol.CLIENTE_ADMIN, Rol.ARRASTRE_TORREON];
+const CLIENT_COORDINATION_ROLES: Rol[] = [Rol.CLIENTE_COOR];
+const LOCAL_OPERATION_ROLES: Rol[] = [
+  Rol.SUPERVISOR,
+  Rol.OPERADOR,
+  Rol.MAQUINISTA,
+  Rol.MAQUINISTA_ARRASTRE,
+  Rol.TORNO,
+  Rol.LAVADO,
+];
 const LOCATION_AWARE_ROLES: Rol[] = [Rol.COORDINADOR, Rol.ADMINISTRADOR];
 
 type UserWithTokens = {
@@ -11,6 +19,8 @@ type UserWithTokens = {
   localidadId: number | null;
   fcmTokens: Array<{ token: string | null; localidadId: number | null }>;
 };
+
+const EMPTY_USERS: UserWithTokens[] = [];
 
 function uniqueUsers(users: UserWithTokens[]) {
   const seen = new Set<number>();
@@ -66,6 +76,7 @@ export async function usuariosAudienciaOperacion(params: {
   empresaId: number | null | undefined;
   localidadId: number | null | undefined;
   usuarioIds?: Array<number | null | undefined>;
+  roles?: Rol[];
 }) {
   const { empresaId, localidadId } = params;
   const scopeLocalidadId = toPositiveInt(localidadId);
@@ -80,7 +91,7 @@ export async function usuariosAudienciaOperacion(params: {
     fcmTokens: { select: { token: true, localidadId: true } },
   } as const;
 
-  const [clientes, locales, coordinacion, usuariosForzados] = await Promise.all([
+  const [clientes, clientesCoordinacion, locales, coordinacion, usuariosForzados]: UserWithTokens[][] = await Promise.all([
     empresaId && scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
@@ -91,7 +102,21 @@ export async function usuariosAudienciaOperacion(params: {
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
+    empresaId && scopeLocalidadId
+      ? prisma.usuario.findMany({
+          where: {
+            activo: true,
+            empresaId,
+            rol: { in: CLIENT_COORDINATION_ROLES },
+            OR: [
+              { fcmTokens: { some: { localidadId: scopeLocalidadId } } },
+              { fcmTokens: { some: { localidadId: null } } },
+            ],
+          },
+          select,
+        })
+      : Promise.resolve(EMPTY_USERS),
     scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
@@ -101,13 +126,14 @@ export async function usuariosAudienciaOperacion(params: {
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
     scopeLocalidadId
       ? prisma.usuario.findMany({
           where: {
             activo: true,
             rol: { in: LOCATION_AWARE_ROLES },
             OR: [
+              { rol: Rol.ADMINISTRADOR },
               { fcmTokens: { some: { localidadId: scopeLocalidadId } } },
               {
                 localidadId: scopeLocalidadId,
@@ -117,22 +143,25 @@ export async function usuariosAudienciaOperacion(params: {
           },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
     usuarioIds.length
       ? prisma.usuario.findMany({
           where: { id: { in: usuarioIds }, activo: true },
           select,
         })
-      : Promise.resolve([]),
+      : Promise.resolve(EMPTY_USERS),
   ]);
 
-  return uniqueUsers([...clientes, ...locales, ...coordinacion, ...usuariosForzados]);
+  const usuarios = uniqueUsers([...clientes, ...clientesCoordinacion, ...locales, ...coordinacion, ...usuariosForzados]);
+  const roles = params.roles?.length ? new Set(params.roles) : null;
+  return roles ? usuarios.filter((usuario) => roles.has(usuario.rol)) : usuarios;
 }
 
 export async function tokensAudienciaOperacion(params: {
   empresaId: number | null | undefined;
   localidadId: number | null | undefined;
   usuarioIds?: Array<number | null | undefined>;
+  roles?: Rol[];
 }) {
   const usuarios = await usuariosAudienciaOperacion(params);
   return {
