@@ -2,7 +2,6 @@ import { cpus } from "os";
 import { createHash, createHmac, randomBytes, randomUUID } from "crypto";
 import { monitorEventLoopDelay } from "perf_hooks";
 import type { RequestHandler } from "express";
-import { io, type Socket } from "socket.io-client";
 import { Counter, Gauge, Registry, Summary, collectDefaultMetrics } from "prom-client";
 
 type AgentOptions = { databaseCheck?: () => Promise<boolean> };
@@ -13,6 +12,13 @@ type AgentEvent = {
   clientFingerprint?: string; route?: string;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD";
   statusCode?: number; durationMs?: number; metadata?: Record<string, string>;
+};
+type AgentState = {
+  interval?: NodeJS.Timeout;
+  endpoint?: URL;
+  inFlight: boolean;
+  connected: boolean;
+  lastWarningAt: number;
 };
 
 export function createComercialGuardianAgent(options: AgentOptions) {
@@ -54,7 +60,11 @@ export function createComercialGuardianAgent(options: AgentOptions) {
     help: "Solicitudes HTTP activas",
     registers: [registry],
   });
-  let socket: Socket | undefined;
+  const state: AgentState = {
+    inFlight: false,
+    connected: false,
+    lastWarningAt: 0,
+  };
   let agentSecret = "";
   let lastDatabaseOk: boolean | undefined;
   const eventQueue: AgentEvent[] = [];
@@ -95,29 +105,86 @@ export function createComercialGuardianAgent(options: AgentOptions) {
   };
 
   async function sample() {
-    const memory = process.memoryUsage();
-    const databaseOk = options.databaseCheck
-      ? await options.databaseCheck().catch(() => false)
-      : undefined;
-    if (databaseOk === false && lastDatabaseOk !== false) emitEvent(dependencyEvent(service, instanceId, false));
-    if (databaseOk === true && lastDatabaseOk === false) emitEvent(dependencyEvent(service, instanceId, true));
-    lastDatabaseOk = databaseOk;
-    socket?.emit("agent:telemetry", {
-      instanceId,
-      sentAt: new Date().toISOString(),
-      processUptimeSeconds: Number(process.uptime().toFixed(1)),
-      cpuPercent: cpuPercent(),
-      rssBytes: memory.rss,
-      heapUsedBytes: memory.heapUsed,
-      activeRequests,
-      maxConcurrency: intervalMaxConcurrency,
-      requestsTotal,
-      http5xxTotal,
-      p95Ms: percentile(durations, 0.95),
-      p99Ms: percentile(durations, 0.99),
-      databaseOk,
-    });
-    intervalMaxConcurrency = activeRequests;
+    if (state.inFlight || !state.endpoint) return;
+    state.inFlight = true;
+    try {
+      const memory = process.memoryUsage();
+      const databaseOk = options.databaseCheck
+        ? await options.databaseCheck().catch(() => false)
+        : undefined;
+      if (databaseOk === false && lastDatabaseOk !== false) emitEvent(dependencyEvent(service, instanceId, false));
+      if (databaseOk === true && lastDatabaseOk === false) emitEvent(dependencyEvent(service, instanceId, true));
+      lastDatabaseOk = databaseOk;
+      const telemetry = {
+        instanceId,
+        sentAt: new Date().toISOString(),
+        processUptimeSeconds: Number(process.uptime().toFixed(1)),
+        cpuPercent: cpuPercent(),
+        rssBytes: memory.rss,
+        heapUsedBytes: memory.heapUsed,
+        activeRequests,
+        maxConcurrency: intervalMaxConcurrency,
+        requestsTotal,
+        http5xxTotal,
+        p95Ms: percentile(durations, 0.95),
+        p99Ms: percentile(durations, 0.99),
+        databaseOk,
+      };
+      intervalMaxConcurrency = activeRequests;
+      await deliver(telemetry);
+    } finally {
+      state.inFlight = false;
+    }
+  }
+
+  async function deliver(telemetry: Record<string, unknown>) {
+    const endpoint = state.endpoint;
+    if (!endpoint) return;
+    const pendingEvents = eventQueue.slice(0, 100);
+    const body = JSON.stringify({ telemetry, events: pendingEvents });
+    const requestId = randomUUID();
+    const timestamp = Date.now().toString();
+    const bodySha256 = createHash("sha256").update(body).digest("hex");
+    const canonical = [
+      "v1",
+      "POST",
+      endpoint.pathname,
+      service,
+      timestamp,
+      requestId,
+      bodySha256,
+    ].join("\n");
+    const signature = createHmac("sha256", agentSecret)
+      .update(canonical)
+      .digest("base64url");
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-guardian-agent": service,
+          "x-guardian-timestamp": timestamp,
+          "x-guardian-request-id": requestId,
+          "x-guardian-signature": signature,
+        },
+        body,
+        signal: AbortSignal.timeout(7_000),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      eventQueue.splice(0, pendingEvents.length);
+      if (!state.connected) {
+        console.log(`[GuardianAgent:${service}] canal HTTP autenticado conectado`);
+      }
+      state.connected = true;
+    } catch (error) {
+      state.connected = false;
+      const now = Date.now();
+      if (now - state.lastWarningAt >= 60_000) {
+        state.lastWarningAt = now;
+        const reason = error instanceof Error ? error.message : "delivery-error";
+        console.warn(`[GuardianAgent:${service}] entrega pendiente: ${reason}`);
+      }
+    }
   }
 
   function cpuPercent() {
@@ -139,51 +206,45 @@ export function createComercialGuardianAgent(options: AgentOptions) {
         );
   }
 
-  function auth(secret: string) {
-    const timestamp = Date.now().toString();
-    const nonce = randomBytes(18).toString("base64url");
-    const signature = createHmac("sha256", secret)
-      .update(`${service}\n${timestamp}\n${nonce}`)
-      .digest("base64url");
-    return { service, timestamp, nonce, signature };
-  }
-
   function emitEvent(event: AgentEvent) {
     if (!agentSecret) return;
-    if (socket?.connected) return void socket.emit("agent:event", event);
     eventQueue.push(event);
     if (eventQueue.length > 500) eventQueue.shift();
   }
 
   function start() {
-    const url = process.env.GUARDIAN_SOCKET_URL;
+    const rawUrl = process.env.GUARDIAN_INGESTION_URL;
     const secret = process.env.GUARDIAN_AGENT_SECRET;
-    if (!url || !secret || secret.length < 32) return;
+    if (!rawUrl || !secret || secret.length < 32) {
+      console.warn(`[GuardianAgent:${service}] deshabilitado: falta endpoint o secreto seguro`);
+      return;
+    }
+    let endpoint: URL;
+    try {
+      endpoint = new URL(rawUrl);
+    } catch {
+      console.warn(`[GuardianAgent:${service}] deshabilitado: endpoint inválido`);
+      return;
+    }
+    const loopback = endpoint.hostname === "127.0.0.1" || endpoint.hostname === "localhost";
+    const localHttp = process.env.NODE_ENV !== "production" && loopback && endpoint.protocol === "http:";
+    const secureTransport = endpoint.protocol === "https:" || localHttp;
+    const canonicalPath = endpoint.pathname === "/api/v1/agents/ingestions"
+      && !endpoint.search
+      && !endpoint.hash;
+    if (!secureTransport || !canonicalPath) {
+      console.warn(`[GuardianAgent:${service}] deshabilitado: endpoint no permitido`);
+      return;
+    }
     agentSecret = secret;
-    socket = io(url, {
-      transports: ["websocket"],
-      auth: auth(secret),
-      reconnection: true,
-      reconnectionDelayMax: 15_000,
-      timeout: 7_000,
-    });
-    socket.io.on("reconnect_attempt", () => {
-      if (socket) socket.auth = auth(secret);
-    });
-    socket.on("connect", () => {
-      console.log("[GuardianAgent:comercial] canal autenticado conectado");
-      void sample();
-      for (const event of eventQueue.splice(0)) socket?.emit("agent:event", event);
-    });
-    socket.on("guardian:ping", () =>
-      socket?.emit("agent:pong", { instanceId, at: new Date().toISOString() }),
-    );
-    const interval = setInterval(
+    state.endpoint = endpoint;
+    void sample();
+    state.interval = setInterval(
       () => void sample(),
       Math.max(5, Number(process.env.GUARDIAN_TELEMETRY_INTERVAL_SECONDS || 10)) *
         1_000,
     );
-    interval.unref();
+    state.interval.unref();
   }
 
   const metrics: RequestHandler = async (_request, response, next) => {
