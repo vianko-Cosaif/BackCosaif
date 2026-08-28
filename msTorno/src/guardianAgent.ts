@@ -5,6 +5,18 @@ import type { RequestHandler } from "express";
 import { Counter, Gauge, Registry, Summary, collectDefaultMetrics } from "prom-client";
 
 type AgentOptions = { databaseCheck?: () => Promise<boolean> };
+type DatabaseStatus =
+  | "AVAILABLE"
+  | "AUTHENTICATION_FAILED"
+  | "HOST_UNREACHABLE"
+  | "DATABASE_NOT_FOUND"
+  | "TIMEOUT"
+  | "QUERY_FAILED";
+type DatabaseProbe = {
+  ok: boolean;
+  latencyMs: number;
+  status: DatabaseStatus;
+};
 type AgentEvent = {
   eventId: string; instanceId: string; occurredAt: string;
   level: "INFO" | "WARN" | "ERROR"; category: "HTTP" | "DEPENDENCY";
@@ -109,10 +121,14 @@ export function createTornoGuardianAgent(options: AgentOptions) {
     state.inFlight = true;
     try {
       const memory = process.memoryUsage();
-      const databaseOk = options.databaseCheck
-        ? await options.databaseCheck().catch(() => false)
-        : undefined;
-      if (databaseOk === false && lastDatabaseOk !== false) emitEvent(dependencyEvent(service, instanceId, false));
+      const databaseProbe = await runDatabaseProbe(options.databaseCheck);
+      const databaseOk = databaseProbe?.ok;
+      if (databaseProbe && databaseOk === false && lastDatabaseOk !== false) {
+        console.warn(
+          `[GuardianAgent:${service}] PostgreSQL ${databaseProbe.status} (${databaseProbe.latencyMs} ms)`,
+        );
+        emitEvent(dependencyEvent(service, instanceId, false, databaseProbe.status));
+      }
       if (databaseOk === true && lastDatabaseOk === false) emitEvent(dependencyEvent(service, instanceId, true));
       lastDatabaseOk = databaseOk;
       const telemetry = {
@@ -129,6 +145,8 @@ export function createTornoGuardianAgent(options: AgentOptions) {
         p95Ms: percentile(durations, 0.95),
         p99Ms: percentile(durations, 0.99),
         databaseOk,
+        databaseLatencyMs: databaseProbe?.latencyMs,
+        databaseStatus: databaseProbe?.status,
       };
       intervalMaxConcurrency = activeRequests;
       await deliver(telemetry);
@@ -317,7 +335,12 @@ function buildHttpEvent(
   };
 }
 
-function dependencyEvent(service: string, instanceId: string, recovered: boolean): AgentEvent {
+function dependencyEvent(
+  service: string,
+  instanceId: string,
+  recovered: boolean,
+  databaseStatus: DatabaseStatus = "AVAILABLE",
+): AgentEvent {
   return {
     eventId: randomUUID(),
     instanceId,
@@ -329,6 +352,47 @@ function dependencyEvent(service: string, instanceId: string, recovered: boolean
       ? "La conexión interna con PostgreSQL volvió a responder."
       : "La comprobación interna de PostgreSQL no respondió correctamente.",
     fingerprint: `${service}:dependency:postgresql`,
-    metadata: { dependency: "postgresql" },
+    metadata: { dependency: "postgresql", databaseStatus },
   };
+}
+
+async function runDatabaseProbe(
+  databaseCheck: AgentOptions["databaseCheck"],
+): Promise<DatabaseProbe | undefined> {
+  if (!databaseCheck) return undefined;
+  const started = performance.now();
+  let timeout: NodeJS.Timeout | undefined;
+  try {
+    const ok = await new Promise<boolean>((resolve, reject) => {
+      timeout = setTimeout(
+        () => reject(Object.assign(new Error("database-probe-timeout"), { code: "GUARDIAN_TIMEOUT" })),
+        3_000,
+      );
+      databaseCheck().then(resolve, reject);
+    });
+    return {
+      ok,
+      latencyMs: Number((performance.now() - started).toFixed(2)),
+      status: ok ? "AVAILABLE" : "QUERY_FAILED",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      latencyMs: Number((performance.now() - started).toFixed(2)),
+      status: databaseStatus(error),
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function databaseStatus(error: unknown): DatabaseStatus {
+  const code = typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code || "")
+    : "";
+  if (code === "P1000") return "AUTHENTICATION_FAILED";
+  if (code === "P1001") return "HOST_UNREACHABLE";
+  if (code === "P1003") return "DATABASE_NOT_FOUND";
+  if (code === "P1002" || code === "P2024" || code === "GUARDIAN_TIMEOUT") return "TIMEOUT";
+  return "QUERY_FAILED";
 }

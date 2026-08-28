@@ -10,6 +10,20 @@ type GuardianAgentOptions = {
   movementsToday?: () => Promise<number>;
 };
 
+type DatabaseStatus =
+  | "AVAILABLE"
+  | "AUTHENTICATION_FAILED"
+  | "HOST_UNREACHABLE"
+  | "DATABASE_NOT_FOUND"
+  | "TIMEOUT"
+  | "QUERY_FAILED";
+
+type DatabaseProbe = {
+  ok: boolean;
+  latencyMs: number;
+  status: DatabaseStatus;
+};
+
 type AgentState = {
   interval?: NodeJS.Timeout;
   endpoint?: URL;
@@ -131,17 +145,22 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
     if (state.inFlight || !state.endpoint) return;
     state.inFlight = true;
     try {
-      const databaseOk = options.databaseCheck
-        ? await options.databaseCheck().catch(() => false)
-        : undefined;
-      if (databaseOk === false && lastDatabaseOk !== false) {
+      const databaseProbe = await runDatabaseProbe(options.databaseCheck);
+      const databaseOk = databaseProbe?.ok;
+      if (databaseProbe && databaseOk === false && lastDatabaseOk !== false) {
+        console.warn(
+          `[GuardianAgent:${options.service}] PostgreSQL ${databaseProbe.status} (${databaseProbe.latencyMs} ms)`,
+        );
         emitEvent(baseEvent({
           level: "ERROR",
           category: "DEPENDENCY",
           kind: "DEPENDENCY_FAILURE",
           message: "La comprobación interna de PostgreSQL no respondió correctamente.",
           fingerprint: `${options.service}:dependency:postgresql`,
-          metadata: { dependency: "postgresql" },
+          metadata: {
+            dependency: "postgresql",
+            databaseStatus: databaseProbe.status,
+          },
         }));
       } else if (databaseOk === true && lastDatabaseOk === false) {
         emitEvent(baseEvent({
@@ -177,6 +196,8 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
         p99Ms: percentile(durations, 0.99),
         movementsToday: movementsValue,
         databaseOk,
+        databaseLatencyMs: databaseProbe?.latencyMs,
+        databaseStatus: databaseProbe?.status,
       };
       intervalMaxConcurrency = activeRequests;
       await deliver(payload);
@@ -386,4 +407,45 @@ function percentile(values: number[], point: number) {
   if (!values.length) return undefined;
   const sorted = [...values].sort((left, right) => left - right);
   return sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * point) - 1)];
+}
+
+async function runDatabaseProbe(
+  databaseCheck: GuardianAgentOptions["databaseCheck"],
+): Promise<DatabaseProbe | undefined> {
+  if (!databaseCheck) return undefined;
+  const started = performance.now();
+  let timeout: NodeJS.Timeout | undefined;
+  try {
+    const ok = await new Promise<boolean>((resolve, reject) => {
+      timeout = setTimeout(
+        () => reject(Object.assign(new Error("database-probe-timeout"), { code: "GUARDIAN_TIMEOUT" })),
+        3_000,
+      );
+      databaseCheck().then(resolve, reject);
+    });
+    return {
+      ok,
+      latencyMs: Number((performance.now() - started).toFixed(2)),
+      status: ok ? "AVAILABLE" : "QUERY_FAILED",
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      latencyMs: Number((performance.now() - started).toFixed(2)),
+      status: databaseStatus(error),
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function databaseStatus(error: unknown): DatabaseStatus {
+  const code = typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code || "")
+    : "";
+  if (code === "P1000") return "AUTHENTICATION_FAILED";
+  if (code === "P1001") return "HOST_UNREACHABLE";
+  if (code === "P1003") return "DATABASE_NOT_FOUND";
+  if (code === "P1002" || code === "P2024" || code === "GUARDIAN_TIMEOUT") return "TIMEOUT";
+  return "QUERY_FAILED";
 }
