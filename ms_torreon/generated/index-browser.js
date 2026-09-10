@@ -342,12 +342,27 @@ exports.Prisma.IncidenteArrastreFotoScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.OperationalOutboxScalarFieldEnum = {
+  id: 'id',
+  tableName: 'tableName',
+  action: 'action',
+  payload: 'payload',
+  previous: 'previous',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
 };
 
 exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -467,7 +482,8 @@ exports.Prisma.ModelName = {
   ViaArrastreTorreon: 'ViaArrastreTorreon',
   SeccionArrastreTorreon: 'SeccionArrastreTorreon',
   IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
-  IncidenteArrastreFoto: 'IncidenteArrastreFoto'
+  IncidenteArrastreFoto: 'IncidenteArrastreFoto',
+  OperationalOutbox: 'OperationalOutbox'
 };
 
 /**

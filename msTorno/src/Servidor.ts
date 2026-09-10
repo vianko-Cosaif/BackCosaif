@@ -25,7 +25,7 @@ export function iniciarServidorTorno(): void {
 
     const app: Express = express();
 
-    app.use(express.json({ limit: "50mb" }));
+
     app.use(cors());
     const guardianAgent = createTornoGuardianAgent({
       databaseCheck: async () => {
@@ -49,6 +49,19 @@ export function iniciarServidorTorno(): void {
 
       return next();
     });
+
+    let activeRequests = 0;
+    app.disable('x-powered-by');
+    app.use((_req, res, next) => {
+      if (activeRequests >= 4) return res.status(429).json({ error: 'Servicio ocupado; reintenta' });
+      activeRequests++;
+      let released = false;
+      const release = () => { if (!released) { released = true; activeRequests--; } };
+      res.once('finish', release); res.once('close', release);
+      res.setTimeout(60_000, () => res.destroy());
+      next();
+    });
+    app.use(express.json({ limit: "50mb" }));
 
     app.get("/", (_req: Request, res: Response) => {
       res.json({ ok: true, servicio: "msTorno" });

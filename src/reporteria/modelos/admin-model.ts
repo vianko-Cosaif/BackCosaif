@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/admin-model.ts
 // Reporte ADMIN (DIA / SEMANA / MES / BIMESTRE / SEMESTRE / ANUAL)
 //
@@ -13,7 +14,7 @@
 // - Supervisor y Coordinador se infieren al cierre por token más nuevo (si no vienen en movimiento).
 
 import { DateTime } from 'luxon';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export type PeriodoReporte = 'DIA' | 'SEMANA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
 
@@ -24,18 +25,9 @@ export type AdminReporteFilters = {
   empresaId?: number;
 };
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __PRISMA__: PrismaClient | undefined;
-}
 
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 // -------------------- tiempo / rangos --------------------
 const MX_TZ = 'America/Mexico_City';

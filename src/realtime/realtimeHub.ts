@@ -1,3 +1,5 @@
+import { MAX_SESSION_AGE_MS } from '../auth/sessionPolicy';
+import { corsMode, corsAllowedOrigins, isCorsOriginAllowed } from '../auth/corsPolicy';
 import type { Request, Response } from 'express';
 import type { IncomingMessage, Server as HttpServer } from 'http';
 import type { Socket } from 'net';
@@ -85,6 +87,10 @@ type RealtimeClient = {
   audience: RealtimeAudience;
   rooms: string[];
   connectedAt: number;
+  user: AuthenticatedUser;
+  ip: string;
+  lastPongAt: number;
+  expiresAt: number;
 };
 
 const HEARTBEAT_MS = Math.max(10_000, Number(process.env.REALTIME_HEARTBEAT_MS || 25_000));
@@ -104,6 +110,38 @@ const realtimeCounters = {
 
 let heartbeatTimer: NodeJS.Timeout | null = null;
 let ticketCleanupTimer: NodeJS.Timeout | null = null;
+
+function connectionLimit(userId: number, ip: string) {
+  const current = [...clients.values()];
+  return current.length >= MAX_CLIENTS || current.filter(c => c.userId === userId).length >= 10 || current.filter(c => c.ip === ip).length >= 100;
+}
+async function validRealtimeUser(user: AuthenticatedUser) {
+  const session = await tokenService.obtenerSesionVigente(user.auth.jti, user.id);
+  const current = await prisma.usuario.findUnique({ where: { id: user.id }, select: { activo: true, tokenVersion: true, rol: true, empresaId: true, localidadId: true } });
+  return Boolean(session && current?.activo && current.tokenVersion === (user.auth.v ?? 0) && current.rol === user.rol && current.empresaId === user.empresa?.id && current.localidadId === user.localidad?.id);
+}
+let validation: Promise<void> | null = null;
+let pendingDeliveries = 0;
+async function revalidateClients(): Promise<void> {
+  if (validation) return validation;
+  if (!clients.size) return;
+  validation = (async () => {
+    try {
+      const sessions = await prisma.token.findMany({
+        where: { jti: { in: [...new Set([...clients.values()].map(c => c.user.auth.jti))] }, tipo: 'ACCESS', revokedAt: null, expiresAt: { gt: new Date() }, issuedAt: { gt: new Date(Date.now() - MAX_SESSION_AGE_MS) } },
+        select: { jti: true, usuarioId: true, expiresAt: true, issuedAt: true, usuario: { select: { activo: true, tokenVersion: true, rol: true, empresaId: true, localidadId: true } } },
+      });
+      const byJti = new Map(sessions.map(s => [s.jti, s]));
+      for (const client of clients.values()) {
+        const session = byJti.get(client.user.auth.jti);
+        const user = session?.usuario;
+        if (!session || session.usuarioId !== client.userId || !user?.activo || user.tokenVersion !== (client.user.auth.v ?? 0) || user.rol !== client.role || user.empresaId !== client.user.empresa?.id || user.localidadId !== client.user.localidad?.id) removeClient(client.id);
+        else client.expiresAt = Math.min(session.expiresAt.getTime(), session.issuedAt.getTime() + MAX_SESSION_AGE_MS);
+      }
+    } catch { for (const id of clients.keys()) removeClient(id); }
+  })().finally(() => { validation = null; });
+  return validation;
+}
 
 function room(kind: string, id?: number | string | null): string | null {
   if (id === null || typeof id === 'undefined') return null;
@@ -219,7 +257,11 @@ function shouldSuppressRealtimeEvent(event: RealtimeMovementPayload) {
 }
 
 function removeClient(clientId: string) {
+  const client = clients.get(clientId);
   clients.delete(clientId);
+  client?.socket?.destroy();
+  client?.res?.destroy();
+  if (client) client.buffer = Buffer.alloc(0);
   if (!clients.size) stopHeartbeat();
 }
 
@@ -227,7 +269,7 @@ function safeWrite(client: RealtimeClient, payload: string | Buffer): boolean {
   try {
     if (client.transport === 'sse') {
       if (!client.res || client.res.writableEnded) throw new Error('SSE cerrado');
-      client.res.write(payload);
+      if (Buffer.byteLength(payload) > 1024 * 1024 || !client.res.write(payload)) throw new Error('SSE sin capacidad de escritura');
       return true;
     }
 
@@ -235,7 +277,7 @@ function safeWrite(client: RealtimeClient, payload: string | Buffer): boolean {
       throw new Error('WebSocket cerrado');
     }
 
-    client.socket.write(payload);
+    if (Buffer.byteLength(payload) > 1024 * 1024 || !client.socket.write(payload)) throw new Error('WebSocket sin capacidad de escritura');
     return true;
   } catch {
     removeClient(client.id);
@@ -289,7 +331,9 @@ function startHeartbeat() {
     const ssePing = `: ping ${Date.now()}\n\n`;
     const wsPing = wsFrame(0x9, String(Date.now()));
 
+    void revalidateClients();
     for (const client of clients.values()) {
+      if (client.expiresAt <= Date.now() || (client.transport === 'websocket' && Date.now() - client.lastPongAt > HEARTBEAT_MS * 2)) { removeClient(client.id); continue; }
       safeWrite(client, client.transport === 'websocket' ? wsPing : ssePing);
     }
   }, HEARTBEAT_MS);
@@ -319,6 +363,10 @@ function startTicketCleanup() {
 }
 
 export function createRealtimeTicket(user: AuthenticatedUser, requestedScope: RealtimeRequestedScope = {}) {
+  for (const [key, value] of wsTickets) if (value.expiresAt <= Date.now()) wsTickets.delete(key);
+  const owned = [...wsTickets].filter(([, value]) => value.user.id === user.id);
+  if (owned.length >= 5) wsTickets.delete(owned[0][0]);
+  if (wsTickets.size >= MAX_CLIENTS * 5) throw new Error('Demasiados tickets pendientes');
   const ticket = crypto.randomBytes(24).toString('hex');
   const expiresAt = Date.now() + WS_TICKET_TTL_MS;
   const audience = realtimeAudienceForUser(user, requestedScope);
@@ -366,7 +414,7 @@ function isAuthorizedForEvent(client: RealtimeClient, event: RealtimeScope): boo
 }
 
 export function attachRealtimeClient(req: Request, res: Response, user: AuthenticatedUser) {
-  if (clients.size >= MAX_CLIENTS) {
+  if (connectionLimit(user.id, String(req.ip || req.socket.remoteAddress || 'unknown'))) {
     res.status(503).json({ error: 'Realtime ocupado, intenta de nuevo.' });
     return;
   }
@@ -382,8 +430,11 @@ export function attachRealtimeClient(req: Request, res: Response, user: Authenti
     audience,
     rooms: roomsForAudience(audience),
     connectedAt: Date.now(),
+    user, ip: '', lastPongAt: Date.now(),
+    expiresAt: Date.parse(user.auth.expiresAt ?? '') || (user.auth.exp ?? 0) * 1000,
   };
 
+  client.ip = String(req.ip || req.socket.remoteAddress || 'unknown');
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -424,7 +475,10 @@ function normalizedRealtimeEvent(event: RealtimeMovementPayload): RealtimeMoveme
   };
 }
 
-function deliverRealtimeEvent(eventPayload: RealtimeMovementPayload) {
+async function deliverRealtimeEvent(eventPayload: RealtimeMovementPayload) {
+  if (pendingDeliveries >= 128) { for (const id of clients.keys()) removeClient(id); return; }
+  pendingDeliveries++;
+  try { await revalidateClients(); } finally { pendingDeliveries--; }
   if (shouldSuppressRealtimeEvent(eventPayload)) {
     realtimeCounters.suppressed += 1;
     return;
@@ -434,7 +488,7 @@ function deliverRealtimeEvent(eventPayload: RealtimeMovementPayload) {
   const ws = wsFrame(0x1, JSON.stringify(eventPayload));
 
   for (const client of clients.values()) {
-    if (isAuthorizedForEvent(client, eventPayload)) {
+    if (client.expiresAt > Date.now() && isAuthorizedForEvent(client, eventPayload)) {
       if (safeWrite(client, client.transport === 'websocket' ? ws : sse)) {
         realtimeCounters.delivered += 1;
       }
@@ -584,7 +638,7 @@ async function authenticateRealtimeToken(token: string): Promise<AuthenticatedUs
   const userId = userIdFromPayload(payload);
   if (!userId || !payload.jti) return null;
 
-  const tokenOk = await tokenService.esTokenVigente(payload.jti, { usuarioId: userId, note: 'realtime_ws' });
+  const tokenOk = await tokenService.obtenerSesionVigente(payload.jti, userId);
   if (!tokenOk) return null;
 
   const user = await prisma.usuario.findUnique({
@@ -594,11 +648,12 @@ async function authenticateRealtimeToken(token: string): Promise<AuthenticatedUs
       nombre: true,
       rol: true,
       tokenVersion: true,
+      activo: true,
       empresa: { select: { id: true, nombre: true } },
       localidad: { select: { id: true, nombre: true, estado: true } },
     },
   });
-  if (!user) return null;
+  if (!user?.activo) return null;
 
   const tokenVersion = typeof payload.v === 'number' ? payload.v : 0;
   if (tokenVersion !== user.tokenVersion) return null;
@@ -611,6 +666,7 @@ async function authenticateRealtimeToken(token: string): Promise<AuthenticatedUs
     localidad: user.localidad,
     auth: {
       jti: payload.jti,
+      expiresAt: tokenOk.expiresAt.toISOString(),
       iat: payload.iat,
       exp: payload.exp,
       v: tokenVersion,
@@ -623,7 +679,7 @@ async function authenticateRealtimeUpgrade(
   url: URL
 ): Promise<{ user: AuthenticatedUser; audience: RealtimeAudience } | null> {
   const ticketAuth = consumeRealtimeTicket(url.searchParams.get('ticket'));
-  if (ticketAuth) return ticketAuth;
+  if (ticketAuth) return await validRealtimeUser(ticketAuth.user) ? ticketAuth : null;
 
   const token =
     url.searchParams.get('token') ||
@@ -655,8 +711,8 @@ function rejectUpgrade(socket: Socket, statusCode: number, message: string) {
   socket.destroy();
 }
 
-function attachWebSocketClient(socket: Socket, user: AuthenticatedUser, audience: RealtimeAudience) {
-  if (clients.size >= MAX_CLIENTS) {
+function attachWebSocketClient(socket: Socket, user: AuthenticatedUser, audience: RealtimeAudience, head: Buffer = Buffer.alloc(0)) {
+  if (connectionLimit(user.id, socket.remoteAddress ?? 'unknown')) {
     socket.write(wsFrame(0x8, closePayload(1013, 'Realtime ocupado')));
     socket.destroy();
     return;
@@ -672,9 +728,12 @@ function attachWebSocketClient(socket: Socket, user: AuthenticatedUser, audience
     audience,
     rooms: roomsForAudience(audience),
     connectedAt: Date.now(),
+    user, ip: '', lastPongAt: Date.now(),
+    expiresAt: Date.parse(user.auth.expiresAt ?? '') || (user.auth.exp ?? 0) * 1000,
     buffer: Buffer.alloc(0),
   };
 
+  client.ip = socket.remoteAddress ?? 'unknown';
   socket.setNoDelay(true);
   socket.setKeepAlive(true, HEARTBEAT_MS);
   clients.set(clientId, client);
@@ -698,6 +757,8 @@ function attachWebSocketClient(socket: Socket, user: AuthenticatedUser, audience
   socket.on('close', () => removeClient(clientId));
   socket.on('end', () => removeClient(clientId));
   socket.on('error', () => removeClient(clientId));
+  if (head.length) handleWebSocketData(client, head);
+  socket.resume();
 }
 
 function unmaskPayload(payload: Buffer, mask: Buffer) {
@@ -709,6 +770,7 @@ function unmaskPayload(payload: Buffer, mask: Buffer) {
 }
 
 function handleWebSocketData(client: RealtimeClient, chunk: Buffer) {
+  if ((client.buffer?.length ?? 0) + chunk.length > 65550) { removeClient(client.id); return; }
   client.buffer = Buffer.concat([client.buffer ?? Buffer.alloc(0), chunk]);
   let offset = 0;
 
@@ -717,6 +779,8 @@ function handleWebSocketData(client: RealtimeClient, chunk: Buffer) {
     const second = client.buffer[offset + 1];
     const opcode = first & 0x0f;
     const masked = (second & 0x80) !== 0;
+    // This server accepts only complete text/control frames; it does not consume binary or fragmented application messages.
+    if (!masked || (first & 0x70) || !(first & 0x80) || ![1, 8, 9, 10].includes(opcode)) { removeClient(client.id); return; }
     let length = second & 0x7f;
     let headerLength = 2;
 
@@ -727,7 +791,7 @@ function handleWebSocketData(client: RealtimeClient, chunk: Buffer) {
     } else if (length === 127) {
       if (client.buffer.length - offset < 10) break;
       const bigLength = client.buffer.readBigUInt64BE(offset + 2);
-      if (bigLength > BigInt(Number.MAX_SAFE_INTEGER)) {
+      if (bigLength > BigInt(65536)) {
         safeWrite(client, wsFrame(0x8, closePayload(1009, 'Mensaje demasiado grande')));
         client.socket?.destroy();
         removeClient(client.id);
@@ -737,6 +801,7 @@ function handleWebSocketData(client: RealtimeClient, chunk: Buffer) {
       headerLength = 10;
     }
 
+    if (length > 65536 || (opcode >= 8 && length > 125)) { removeClient(client.id); return; }
     const maskLength = masked ? 4 : 0;
     const payloadStart = offset + headerLength + maskLength;
     const payloadEnd = payloadStart + length;
@@ -753,6 +818,7 @@ function handleWebSocketData(client: RealtimeClient, chunk: Buffer) {
       return;
     }
 
+    if (opcode === 0xA) client.lastPongAt = Date.now();
     if (opcode === 0x9) safeWrite(client, wsFrame(0xA, payload));
     if (opcode === 0x1 && payload.toString('utf8') === 'ping') {
       safeWrite(client, wsFrame(0x1, JSON.stringify({ type: 'realtime.pong', occurredAt: new Date().toISOString() })));
@@ -761,20 +827,21 @@ function handleWebSocketData(client: RealtimeClient, chunk: Buffer) {
     offset = payloadEnd;
   }
 
-  client.buffer = client.buffer.subarray(offset);
+  client.buffer = Buffer.from(client.buffer.subarray(offset));
 }
 
-async function handleRealtimeUpgrade(req: IncomingMessage, socket: Socket) {
+async function handleRealtimeUpgrade(req: IncomingMessage, socket: Socket, head: Buffer) {
   const url = new URL(req.url || '/', 'http://localhost');
   const key = req.headers['sec-websocket-key'];
   const upgrade = String(req.headers.upgrade || '').toLowerCase();
 
-  if (upgrade !== 'websocket' || typeof key !== 'string') {
+  if (req.method !== 'GET' || req.headers['sec-websocket-version'] !== '13' || upgrade !== 'websocket' || typeof key !== 'string' || !/^[A-Za-z0-9+/]{22}==$/.test(key) || !isCorsOriginAllowed(req.headers.origin, corsMode, corsAllowedOrigins)) {
     rejectUpgrade(socket, 400, 'Bad Request');
     return;
   }
 
   const auth = await authenticateRealtimeUpgrade(req, url);
+  if (socket.destroyed) return;
   if (!auth) {
     rejectUpgrade(socket, 401, 'Unauthorized');
     return;
@@ -792,7 +859,8 @@ async function handleRealtimeUpgrade(req: IncomingMessage, socket: Socket) {
     ].join('\r\n')
   );
 
-  attachWebSocketClient(socket, auth.user, auth.audience);
+  socket.setTimeout(0);
+  attachWebSocketClient(socket, auth.user, auth.audience, head);
 }
 
 export function bindRealtimeWebSocketServer(server: HttpServer) {
@@ -800,12 +868,15 @@ export function bindRealtimeWebSocketServer(server: HttpServer) {
     deliverRealtimeEvent(normalizedRealtimeEvent(event));
   });
 
-  server.on('upgrade', (req, socket) => {
+  server.on('upgrade', (req, socket, head) => {
     const netSocket = socket as Socket;
     const pathname = new URL(req.url || '/', 'http://localhost').pathname;
-    if (pathname !== '/realtime/ws') return;
+    if (pathname !== '/realtime/ws') { netSocket.destroy(); return; }
+    if (head.length > 65550) { netSocket.destroy(); return; }
+    netSocket.pause();
+    netSocket.setTimeout(10_000, () => netSocket.destroy());
 
-    void handleRealtimeUpgrade(req, netSocket).catch(() => {
+    void handleRealtimeUpgrade(req, netSocket, head).catch(() => {
       if (!netSocket.destroyed) rejectUpgrade(netSocket, 500, 'Realtime Error');
     });
   });

@@ -1,6 +1,6 @@
 import type { CommercialOperation } from "./comercial-crm-analytics";
 import { DateTime } from "luxon";
-import { getBrowser } from "./pdf-browser";
+import { newPdfPage } from "./pdf-browser";
 import { baseCss, escapeHtml, safeFilename } from "./pdf-helpers";
 
 type Rule = {
@@ -310,8 +310,7 @@ export async function renderCommercialCutEvidencePdf(evidence: CommercialCutEvid
     + "<div class='section'><h2>1. Resumen contractual por servicio</h2><table><thead><tr><th style='width:27%'>Servicio y regla</th><th>Incluido</th><th>Consumido</th><th>Excedente</th><th>Tarifa extra</th><th>Importe extra</th></tr></thead><tbody>" + ruleRows + "</tbody></table></div>"
     + "<div class='section'><h2>2. Operaciones que generaron excedente</h2><table><thead><tr><th style='width:12%'>ID / referencia</th><th style='width:9%'>Servicio / estado</th><th style='width:9%'>Solicitante</th><th>Solicitud</th><th>Inicio</th><th>Fin</th><th style='width:13%'>Via origen -> destino</th><th>Cantidad</th><th>Fuera de rango</th><th>Tarifa</th><th>Importe</th></tr></thead><tbody>" + detailRows + "</tbody></table></div>"
     + "<div class='section method'><b>Metodo de determinacion:</b> las operaciones cobrables se ordenan por fecha de solicitud. Cada una consume primero la cantidad incluida del contrato. La porcion que rebasa el limite se identifica como excedente; su importe es cantidad excedente por tarifa unitaria. Si falta una tarifa o el monto base, el total permanece pendiente y el documento lo indica expresamente.<br><b>Generado:</b> " + dateTime(evidence.generatedAt) + ". Este documento conserva los identificadores operativos necesarios para conciliacion y aclaraciones." + (evidence.cut.updatedAt ? "<br><b>Ultima edicion del corte:</b> " + dateTime(evidence.cut.updatedAt) + (evidence.cut.updatedById ? " por usuario #" + evidence.cut.updatedById : "") + "." : "") + "</div></body></html>";
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   try {
     await page.setViewport({ width: 1600, height: 1000, deviceScaleFactor: 2 });
     await page.setContent(html, { waitUntil: "domcontentloaded" });
@@ -419,8 +418,7 @@ export async function renderCommercialGeneralCutPdf(evidences: CommercialCutEvid
     + "<section class='section page-break'><div class='group-title'><h2>Evidencia exacta de excedentes</h2><span>" + totals.operations + " operaciones</span></div>"
     + (audits || "<div class='empty'>En los meses seleccionados no existen operaciones fuera del límite contractual. El resultado cero fue validado contra las reglas y el consumo de cada contrato.</div>") + "</section>"
     + "<div class='section method'><b>Método auditable:</b> las operaciones se ordenan por fecha de solicitud; primero consumen la cantidad incluida y solamente la porción posterior se reporta como excedente. Las tablas de evidencia conservan ID, solicitante, fechas, vías, tarifa e importe.</div></body></html>";
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   try {
     await page.setViewport({ width: 1600, height: 1000, deviceScaleFactor: 2 });
     await page.setContent(html, { waitUntil: "domcontentloaded" });

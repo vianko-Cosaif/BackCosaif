@@ -2,7 +2,7 @@
 // PDF: Cronologia por empresa con siguiente movimiento global
 
 import type { ReporteCronologiaEmpresas } from './cronologia-empresas-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -103,8 +103,7 @@ function buildHtml(r: ReporteCronologiaEmpresas) {
 }
 
 export async function exportarCronologiaEmpresasPDF(reporte: ReporteCronologiaEmpresas): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.etiqueta || 'CRONOLOGIA_EMPRESAS';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

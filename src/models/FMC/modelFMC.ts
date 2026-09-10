@@ -1,21 +1,27 @@
-import { FcmToken } from '@prisma/client';
+import { FcmToken, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 
 export class FmcModel {
+  static async eliminarTokenEnAlcance(token: string, scope: Prisma.FcmTokenWhereInput) {
+    const result = await prisma.fcmToken.deleteMany({ where: { AND: [{ token }, scope] } });
+    return result.count;
+  }
+
   /**
    * Retorna todos los tokens registrados.
    */
-  static async obtenerTokens(): Promise<FcmToken[]> {
-    return await prisma.fcmToken.findMany();
+  static async obtenerTokens(where: Prisma.FcmTokenWhereInput = {}): Promise<FcmToken[]> {
+    return await prisma.fcmToken.findMany({ where, take: 1000 });
   }
 
   /**
    * Retorna todos los tokens asociados a un usuario especifico.
    * @param usuarioId - ID del usuario
    */
-  static async obtenerTokensPorUsuario(usuarioId: number): Promise<FcmToken[]> {
+  static async obtenerTokensPorUsuario(usuarioId: number, scope: Prisma.FcmTokenWhereInput = {}): Promise<FcmToken[]> {
     return await prisma.fcmToken.findMany({
-      where: { usuarioId },
+      take: 1000,
+      where: { AND: [{ usuarioId }, scope] },
     });
   }
 
@@ -56,9 +62,9 @@ export class FmcModel {
    * @param usuarioId - ID del usuario
    * @returns Numero de tokens eliminados
    */
-  static async eliminarTokensPorUsuario(usuarioId: number): Promise<number> {
+  static async eliminarTokensPorUsuario(usuarioId: number, scope: Prisma.FcmTokenWhereInput = {}): Promise<number> {
     const result = await prisma.fcmToken.deleteMany({
-      where: { usuarioId },
+      where: { AND: [{ usuarioId }, scope] },
     });
     return result.count;
   }

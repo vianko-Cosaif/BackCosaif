@@ -2,7 +2,7 @@
 // PDF CEO: Ranking de Maquinistas (avanzado)
 
 import type { ReporteMaquinistas } from './ceo-maquinistas-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtMin, fmtNum, safeFilename, svgBar } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -213,8 +213,7 @@ function buildHtml(r: ReporteMaquinistas) {
 }
 
 export async function exportarMaquinistasPDF(reporte: ReporteMaquinistas): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.etiqueta || 'CEO_Maquinistas';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

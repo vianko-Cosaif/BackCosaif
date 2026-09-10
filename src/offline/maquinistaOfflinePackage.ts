@@ -7,8 +7,7 @@ import path from "path";
 import type { AuthenticatedUser } from "../types/auth";
 import { prisma } from "../lib/prisma";
 
-const { PrismaClient: TorreonPrismaClient } = require("../../ms_torreon/generated");
-const prismaTorreon = new TorreonPrismaClient();
+import { prismaTorreon } from '../lib/servicePrisma';
 
 export type MaquinistaOfflineProfile =
   | "GDL_NATURAL"

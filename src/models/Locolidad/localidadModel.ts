@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma';
 /**
  * localidad.service.ts
  *
@@ -17,7 +18,7 @@
 import { PrismaClient } from '@prisma/client';
 import { localidadLogger } from './localidad.logger';
 
-const prisma = new PrismaClient();
+
 
 /**
  * Obtiene todas las localidades.

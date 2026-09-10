@@ -1,3 +1,4 @@
+import { requireViaMutationScope } from '../../auth/viaScope';
 import { Router } from 'express';
 import { authenticateAccess } from '../../auth/authenticateAccess';
 import { ViaController } from './viaController';
@@ -16,7 +17,7 @@ router.get('/', requirePermission(PERMISSIONS.CATALOGS_READ), ViaController.obte
 router.get('/lite', requirePermission(PERMISSIONS.CATALOGS_READ), ViaController.obtenerViasLite);
 
 // Crear una nueva vía
-router.post('/', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), ViaController.crearVia);
+router.post('/', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), requireViaMutationScope, ViaController.crearVia);
 
 
 // Ruta para obtener vías filtradas por localidad (ej: GET /vias/localidad/1)
@@ -27,9 +28,9 @@ router.get('/localidad/:localidadId/lite', requirePermission(PERMISSIONS.CATALOG
 
 
 // Editar una vía (se espera el id en la URL)
-router.put('/:id', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), ViaController.editarVia);
+router.put('/:id', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), requireViaMutationScope, ViaController.editarVia);
 
 // Eliminar una vía por su ID
-router.delete('/:id', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), ViaController.eliminarVia);
+router.delete('/:id', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), requireViaMutationScope, ViaController.eliminarVia);
 
 export default router;

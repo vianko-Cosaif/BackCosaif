@@ -1,3 +1,4 @@
+import { prisma } from '../../../lib/prisma';
 // SeccionViasModel.ts
 /**
  * ============================================================================
@@ -12,8 +13,8 @@
  * ============================================================================
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
-const prisma = new PrismaClient(); // TODO: inyectar singleton
+import { Prisma } from '@prisma/client';
+
 
 /** Errores de dominio exportables */
 export class NotFoundError extends Error {}

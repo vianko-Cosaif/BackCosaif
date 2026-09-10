@@ -1,8 +1,8 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/coordinador-model.ts
 // Reporte COORDINADOR: volumen operativo sin tiempos ni roles
 
 import type { AdminReporteFilters, PeriodoReporte } from './admin-model';
-import { PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
 import {
   loadMovimientosBase,
@@ -111,7 +111,7 @@ export type CronologiaDia = {
   movimientos: Array<MovimientoDetalle & { ordenDia: number }>;
 };
 
-const prisma = new PrismaClient();
+
 const MX_TZ = 'America/Mexico_City';
 
 function fmtMX(d: Date | null, tz: string) {

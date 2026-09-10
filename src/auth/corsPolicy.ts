@@ -19,14 +19,12 @@ export const isCorsOriginAllowed = (
   allowedOrigins: Set<string>,
 ) => !origin || mode === 'compat' || allowedOrigins.has(normalizeOrigin(origin));
 
-const configuredMode = String(process.env.CORS_MODE ?? 'compat').trim().toLowerCase();
+const configuredMode = String(process.env.CORS_MODE ?? (process.env.NODE_ENV === 'production' ? 'enforce' : 'compat')).trim().toLowerCase();
 export const corsMode: CorsMode = configuredMode === 'enforce' ? 'enforce' : 'compat';
 export const corsAllowedOrigins = parseAllowedOrigins(process.env.CORS_ORIGINS);
 
-if (process.env.NODE_ENV === 'production' && corsMode === 'compat') {
-  logger.warn('security:cors_compat_enabled', {
-    message: 'CORS permanece abierto por compatibilidad. Configure CORS_MODE=enforce y CORS_ORIGINS.',
-  });
+if (process.env.NODE_ENV === 'production' && (corsMode !== 'enforce' || !corsAllowedOrigins.size)) {
+  throw new Error('Producción requiere CORS_MODE=enforce y CORS_ORIGINS explícitos');
 }
 
 const rejectUnknownOrigin: RequestHandler = (req, res, next) => {

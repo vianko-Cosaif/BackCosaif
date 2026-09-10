@@ -1,4 +1,5 @@
-﻿import { getApps, initializeApp } from 'firebase-admin/app';
+import { isDurableJobExecution } from '../jobs/durableJobs';
+import { getApps, initializeApp } from 'firebase-admin/app';
 import type { Incidente, Rol } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { messaging } from '../config/firebase';
@@ -178,6 +179,7 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
       .filter(Boolean) as string[];
     if (toDelete.length) await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
   } catch (e) {
+      if (isDurableJobExecution()) throw e;
     console.error('Error notificarNuevoMovimiento:', e);
   }
 }
@@ -292,6 +294,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
       await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
     }
   } catch (e) {
+      if (isDurableJobExecution()) throw e;
     console.error('Error notificarNuevoIncidente:', e);
     throw e;
   }
@@ -388,6 +391,7 @@ static async notificarCambioEstado(
       await prisma.fcmToken.deleteMany({ where: { token: { in: toDelete } } });
     }
   } catch (e) {
+      if (isDurableJobExecution()) throw e;
     console.error('Error notificarCambioEstado:', e);
   }
 }
@@ -469,6 +473,7 @@ static async notificarCambioEstado(
       await sendMulticastCompat(mensaje_config);
       
     } catch (error) {
+      if (isDurableJobExecution()) throw error;
       console.error('Error enviando notificacion personalizada:', error);
       throw error;
     }
@@ -533,7 +538,9 @@ static async notificarCambioEstado(
       } as any);
 
       await deleteInvalidFcmTokens(tokens, response.responses);
+      if (isDurableJobExecution() && response.responses.some(item => !item.success && !INVALID_FCM_CODES.has(item.error?.code ?? ''))) throw new Error('FCM transitorio; se reintentará la entrega');
     } catch (error) {
+      if (isDurableJobExecution()) throw error;
       console.error('Error notificarOperacionTorreon:', error);
     }
   }
@@ -592,7 +599,9 @@ static async notificarCambioEstado(
       } as any);
 
       await deleteInvalidFcmTokens(tokens, response.responses);
+      if (isDurableJobExecution() && response.responses.some(item => !item.success && !INVALID_FCM_CODES.has(item.error?.code ?? ''))) throw new Error('FCM transitorio; se reintentará la entrega');
     } catch (error) {
+      if (isDurableJobExecution()) throw error;
       console.error('Error notificarOperacionServicio:', error);
     }
   }
@@ -620,6 +629,7 @@ static async notificarCambioEstado(
         throw new Error('No se especificaron tokens ni topico para la notificacion');
       }
     } catch (error: any) {
+      if (isDurableJobExecution()) throw error;
       console.error('Error enviando notificacion FCM:', error);
       throw new Error('Failed to send FCM notification: ' + (error.message || 'Error desconocido'));
     }
@@ -636,6 +646,7 @@ static async notificarCambioEstado(
       }
       await messaging.subscribeToTopic(tokens, topico);
     } catch (error) {
+      if (isDurableJobExecution()) throw error;
       console.error('Error suscribiendo a topico:', error);
       throw error;
     }
@@ -652,6 +663,7 @@ static async notificarCambioEstado(
       }
       await messaging.unsubscribeFromTopic(tokens, topico);
     } catch (error) {
+      if (isDurableJobExecution()) throw error;
       console.error('Error desuscribiendo de topico:', error);
       throw error;
     }
@@ -715,6 +727,7 @@ static async notificarContinuarMovimiento(
     });
 
   } catch (error) {
+      if (isDurableJobExecution()) throw error;
     console.error('Error en notificarContinuarMovimiento:', error);
     throw error;
   }

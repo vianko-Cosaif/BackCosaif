@@ -2,7 +2,7 @@
 // PDF CEO: Tráfico por Cliente
 
 import type { ReporteTraficoCliente } from './ceo-trafico-cliente-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename, svgBar, svgLine } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -178,8 +178,7 @@ function buildHtml(r: ReporteTraficoCliente) {
 }
 
 export async function exportarTraficoClientePDF(reporte: ReporteTraficoCliente): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.etiqueta || 'CEO_Trafico_Cliente';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

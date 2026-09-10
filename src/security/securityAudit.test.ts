@@ -30,6 +30,11 @@ async function main() {
   assert.equal(tampered.valid, false);
   if (!tampered.valid) assert.equal(tampered.reason, 'hash_mismatch');
 
+  await fs.writeFile(filePath, contents.trimEnd());
+  const incomplete = await verifySecurityAuditFile(filePath, key);
+  assert.equal(incomplete.valid, false);
+  if (!incomplete.valid) assert.equal(incomplete.reason, 'incomplete_record');
+
   await fs.rm(directory, { recursive: true, force: true });
   console.log('Cadena de auditoría de seguridad: OK');
 }

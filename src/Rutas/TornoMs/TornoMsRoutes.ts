@@ -1,3 +1,6 @@
+import { registerJob } from '../../jobs/durableJobs';
+import { prismaTorno } from '../../lib/servicePrisma';
+import { requireTornoScope, filterTornoResponse } from '../../auth/tornoScope';
 import { Router } from "express";
 import { authenticateAccess } from "../../auth/authenticateAccess";
 import type { AuthenticatedUser } from "../../types/auth";
@@ -15,7 +18,7 @@ const CLIENTE_ROLES = new Set(["CLIENTE", "CLIENTE_ADMIN", "CLIENTE_COOR", "ARRA
 const TORNERO_ROLES = new Set(["TORNO", "TORNERO"]);
 
 // Todas las rutas de torno pasan por auth del API principal.
-router.use(authenticateAccess);
+router.use(authenticateAccess, requireTornoScope);
 
 function isHistorialRondasRequest(method: string, rest: string) {
   return method === "GET" && rest.split("?")[0] === "/rondas-servicio/historial";
@@ -622,30 +625,6 @@ function collectLocalidadIdsFromHistorial(data: unknown, into = new Set<number>(
   return into;
 }
 
-async function asegurarOrdenRondasTornoSiAplica(
-  method: string,
-  rest: string,
-  query: Record<string, unknown>,
-  data?: unknown
-) {
-  if (!isHistorialRondasRequest(method, rest)) return;
-
-  const localidadIds = collectLocalidadIdsFromHistorial(data);
-  const localidadIdFromQuery = readPositiveNumber(firstQueryValue(query.localidadId));
-  if (localidadIdFromQuery) localidadIds.add(localidadIdFromQuery);
-  if (!localidadIds.size) return;
-
-  for (const localidadId of localidadIds) {
-    const result = await RondaModel.asegurarOrdenRondasLocalidad(localidadId);
-    if (result.reorganizado) {
-      console.info("Rondas recompuestas antes de consultar historial de torno", {
-        localidadId,
-        motivo: result.motivo,
-      });
-    }
-  }
-}
-
 async function enrichHistorialWithMovimientoContext(data: unknown): Promise<unknown> {
   if (
     data &&
@@ -779,6 +758,7 @@ router.get("/imagenes", async (req, res) => {
 
     const url = buildTornoMsUrl(`/imagenes?ruta=${encodeURIComponent(ruta)}`);
     const imgResp = await fetch(url, {
+    signal: AbortSignal.timeout(20_000),
       headers: { "x-service-token": serviceToken },
     });
 
@@ -800,8 +780,11 @@ router.get("/imagenes", async (req, res) => {
 // Proxy: /torno/... -> http://TORNO_MS_URL/api/...
 router.all("/*", async (req, res) => {
   try {
-    const base = req.baseUrl; // "/torno"
-    const rest = req.originalUrl.startsWith(base) ? req.originalUrl.slice(base.length) : req.originalUrl;
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(req.query)) {
+      for (const item of Array.isArray(value) ? value : [value]) if (item != null) query.append(key, String(item));
+    }
+    const rest = req.path + (query.size ? `?${query}` : '');
     const target = buildTornoMsPath(rest);
 
     const user = (req as any).user as AuthenticatedUser | undefined;
@@ -831,33 +814,10 @@ router.all("/*", async (req, res) => {
       },
     });
 
-    await asegurarOrdenRondasTornoSiAplica(
-      req.method,
-      rest,
-      req.query as Record<string, unknown>,
-      result.data
-    );
+    if (req.method === "GET") result.data = await filterTornoResponse(result.data, rest.split("?")[0], user!);
 
     if (isHistorialRondasRequest(req.method, rest)) {
       result.data = (await enrichHistorialWithMovimientoContext(result.data)) as typeof result.data;
-    }
-
-    if (result.status >= 200 && result.status < 300 && isStartTorneadoRequest(req.method, rest)) {
-      await concludeMovimientoForStartedTorneado(result.data, req.body);
-    }
-
-    if (result.status >= 200 && result.status < 300) {
-      try {
-        await publishTornoStatusEventIfNeeded(req.method, rest, result.data);
-        await notifyTornoServiceIfNeeded(req.method, rest, req.body, result.data, user);
-        await notifyTornoIncidentIfNeeded(req.method, rest, result.data);
-        await notifyCambioNavajaIfNeeded(req.method, rest, req.body, result.data, user);
-      } catch (error) {
-        console.warn("No se pudo publicar o notificar evento de torno", {
-          rest,
-          message: error instanceof Error ? error.message : String(error),
-        });
-      }
     }
 
     return res.status(result.status).send(result.data);
@@ -868,6 +828,27 @@ router.all("/*", async (req, res) => {
       details: e?.details ?? null,
     });
   }
+});
+
+registerJob('torno.event', async ({ table, row, previous, action }) => {
+  const id = Number(row.id);
+  if (table === 'RondaServicio') {
+    if (row.status === previous?.status) return;
+    const current = await prismaTorno.rondaServicio.findUnique({ where: { id }, include: { ruedaSolicitud: true, tornoG: true } });
+    if (!current) return;
+    const data = { ...current, ...row };
+    const rest = `/rondas-servicio/${id}/${row.status === 'EN_PROCESO' ? 'iniciar' : 'concluir'}`;
+    if (row.status === 'EN_PROCESO') await concludeMovimientoForStartedTorneado(data, {});
+    if (['EN_PROCESO', 'CONCLUIDO'].includes(row.status)) {
+      await publishTornoStatusEventIfNeeded('POST', rest, data);
+      await notifyTornoServiceIfNeeded('POST', rest, {}, data);
+    }
+    return;
+  }
+  if (table === 'Cambio') return notifyCambioNavajaIfNeeded(action === 'INSERT' ? 'POST' : 'PATCH', action === 'INSERT' ? '/cambios-navaja' : `/cambios-navaja/${id}`, row, row);
+  const child = table === 'IncidenteTornoHijo';
+  const rest = child ? '/incidentes-hijos' : '/incidentes';
+  await notifyTornoIncidentIfNeeded(action === 'INSERT' ? 'POST' : 'PATCH', action === 'INSERT' ? rest : `${rest}/${id}`, row);
 });
 
 export default router;

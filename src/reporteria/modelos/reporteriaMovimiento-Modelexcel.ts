@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/reporteriaMovimiento-Modelexcel.ts
 // Motor de datos para Excel (DIA/SEMANA/MES/BIMESTRE/SEMESTRE/ANUAL)
 // - Rango se calcula en TZ MX y se consulta en UTC con fin EXCLUSIVO.
@@ -14,7 +15,6 @@
 // Nota: este archivo NO genera el .xlsx; solo arma datos y agregados.
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 
 export type PeriodoReporte = 'DIA' | 'SEMANA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
 
@@ -26,18 +26,9 @@ export type ReportePeriodoFilters = {
 };
 
 // Prisma singleton
-declare global {
-  // eslint-disable-next-line no-var
-  var __PRISMA__: PrismaClient | undefined;
-}
 
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 /* =========================
    Tipos Excel-ready

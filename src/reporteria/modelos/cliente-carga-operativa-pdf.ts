@@ -2,7 +2,7 @@
 // PDF de carga operativa por empresa.
 
 import type { ReporteClienteCargaOperativa } from './cliente-carga-operativa-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename, svgBar, svgLine } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -495,8 +495,7 @@ function buildHtml(r: ReporteClienteCargaOperativa) {
 }
 
 export async function exportarClienteCargaOperativaPDF(reporte: ReporteClienteCargaOperativa): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const empresa = reporte.meta.empresaNombre ?? 'Empresa';
   const filename = `Reporte_Carga_${safeFilename(empresa)}_${safeFilename(reporte.meta.periodo)}_${safeFilename(reporte.meta.rangoTexto)}.pdf`;
 

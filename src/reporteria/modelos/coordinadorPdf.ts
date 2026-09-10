@@ -2,7 +2,7 @@
 // PDF COORDINADOR: volumen e incidentes sin tiempos ni roles
 
 import type { ReporteCoordinador } from './coordinador-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename, svgBar, svgLine } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -261,8 +261,7 @@ function buildHtml(r: ReporteCoordinador) {
 }
 
 export async function exportarCoordinadorPDF(reporte: ReporteCoordinador): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.etiqueta || 'COORDINADOR';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

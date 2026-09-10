@@ -2,7 +2,7 @@
 // PDF Empresa: Concentrado locomotoras + detalle movimientos
 
 import type { ReporteEmpresaLocomotoras } from './empresa-locomotoras-model';
-import { closeBrowser, getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -266,8 +266,7 @@ function buildUsuarioHtml(r: ReporteEmpresaLocomotoras) {
 }
 
 async function renderPdfOnce(html: string, filename: string): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
 
   try {
     page.setDefaultTimeout(30000);
@@ -287,7 +286,7 @@ async function renderPdf(html: string, filename: string): Promise<PdfFile> {
   } catch (error: any) {
     const msg = String(error?.message ?? '');
     if (!/connection closed|target closed|protocol error/i.test(msg)) throw error;
-    await closeBrowser().catch(() => undefined);
+
     return await renderPdfOnce(html, filename);
   }
 }

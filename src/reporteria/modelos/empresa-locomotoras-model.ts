@@ -1,8 +1,8 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/empresa-locomotoras-model.ts
 // Reporte Empresa: Concentrado de locomotoras (sin incidentes) por rango de fechas
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 
 export type EmpresaLocomotorasFilters = {
   empresaId: number;
@@ -64,7 +64,7 @@ export type ReporteEmpresaLocomotoras = {
   movimientosUsuarioCliente: MovimientoDetalle[];
 };
 
-const prisma = new PrismaClient();
+
 const MX_TZ = 'America/Mexico_City';
 const DEFAULT_USUARIO_CLIENTE = 'Jesus Rodriguez';
 

@@ -362,6 +362,15 @@ exports.Prisma.GestionCobranzaScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PaymentOperationScalarFieldEnum = {
+  key: 'key',
+  requestHash: 'requestHash',
+  actorId: 'actorId',
+  corteId: 'corteId',
+  response: 'response',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -505,7 +514,8 @@ exports.Prisma.ModelName = {
   CorteCobro: 'CorteCobro',
   CorteCobroDetalle: 'CorteCobroDetalle',
   PagoCobranza: 'PagoCobranza',
-  GestionCobranza: 'GestionCobranza'
+  GestionCobranza: 'GestionCobranza',
+  PaymentOperation: 'PaymentOperation'
 };
 
 /**

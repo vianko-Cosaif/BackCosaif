@@ -1,8 +1,9 @@
+import { prisma } from '../../lib/prisma';
 // src/models/ipUsuario.service.ts
-import { PrismaClient, DeviceType } from '@prisma/client';
+import { DeviceType } from '@prisma/client';
 import type { Request } from 'express';
 
-const prisma = new PrismaClient();
+
 
 /** Alta/actualización idempotente por PK compuesta */
 export async function registrarIpUsuario(params: {

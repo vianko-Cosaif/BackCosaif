@@ -80,6 +80,11 @@ export type IncidenteArrastreTorreon = $Result.DefaultSelection<Prisma.$Incident
  * 
  */
 export type IncidenteArrastreFoto = $Result.DefaultSelection<Prisma.$IncidenteArrastreFotoPayload>
+/**
+ * Model OperationalOutbox
+ * 
+ */
+export type OperationalOutbox = $Result.DefaultSelection<Prisma.$OperationalOutboxPayload>
 
 /**
  * Enums
@@ -519,6 +524,16 @@ export class PrismaClient<
     * ```
     */
   get incidenteArrastreFoto(): Prisma.IncidenteArrastreFotoDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.operationalOutbox`: Exposes CRUD operations for the **OperationalOutbox** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more OperationalOutboxes
+    * const operationalOutboxes = await prisma.operationalOutbox.findMany()
+    * ```
+    */
+  get operationalOutbox(): Prisma.OperationalOutboxDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -972,7 +987,8 @@ export namespace Prisma {
     ViaArrastreTorreon: 'ViaArrastreTorreon',
     SeccionArrastreTorreon: 'SeccionArrastreTorreon',
     IncidenteArrastreTorreon: 'IncidenteArrastreTorreon',
-    IncidenteArrastreFoto: 'IncidenteArrastreFoto'
+    IncidenteArrastreFoto: 'IncidenteArrastreFoto',
+    OperationalOutbox: 'OperationalOutbox'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -991,7 +1007,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "arrastreTorreonEdicion" | "viaArrastreTorreon" | "seccionArrastreTorreon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto"
+      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "arrastreTorreonEdicion" | "viaArrastreTorreon" | "seccionArrastreTorreon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto" | "operationalOutbox"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1957,6 +1973,80 @@ export namespace Prisma {
           }
         }
       }
+      OperationalOutbox: {
+        payload: Prisma.$OperationalOutboxPayload<ExtArgs>
+        fields: Prisma.OperationalOutboxFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.OperationalOutboxFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.OperationalOutboxFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>
+          }
+          findFirst: {
+            args: Prisma.OperationalOutboxFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.OperationalOutboxFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>
+          }
+          findMany: {
+            args: Prisma.OperationalOutboxFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>[]
+          }
+          create: {
+            args: Prisma.OperationalOutboxCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>
+          }
+          createMany: {
+            args: Prisma.OperationalOutboxCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.OperationalOutboxCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>[]
+          }
+          delete: {
+            args: Prisma.OperationalOutboxDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>
+          }
+          update: {
+            args: Prisma.OperationalOutboxUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>
+          }
+          deleteMany: {
+            args: Prisma.OperationalOutboxDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.OperationalOutboxUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.OperationalOutboxUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>[]
+          }
+          upsert: {
+            args: Prisma.OperationalOutboxUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OperationalOutboxPayload>
+          }
+          aggregate: {
+            args: Prisma.OperationalOutboxAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateOperationalOutbox>
+          }
+          groupBy: {
+            args: Prisma.OperationalOutboxGroupByArgs<ExtArgs>
+            result: $Utils.Optional<OperationalOutboxGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.OperationalOutboxCountArgs<ExtArgs>
+            result: $Utils.Optional<OperationalOutboxCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -2066,6 +2156,7 @@ export namespace Prisma {
     seccionArrastreTorreon?: SeccionArrastreTorreonOmit
     incidenteArrastreTorreon?: IncidenteArrastreTorreonOmit
     incidenteArrastreFoto?: IncidenteArrastreFotoOmit
+    operationalOutbox?: OperationalOutboxOmit
   }
 
   /* Types for Logging */
@@ -18621,6 +18712,1053 @@ export namespace Prisma {
 
 
   /**
+   * Model OperationalOutbox
+   */
+
+  export type AggregateOperationalOutbox = {
+    _count: OperationalOutboxCountAggregateOutputType | null
+    _avg: OperationalOutboxAvgAggregateOutputType | null
+    _sum: OperationalOutboxSumAggregateOutputType | null
+    _min: OperationalOutboxMinAggregateOutputType | null
+    _max: OperationalOutboxMaxAggregateOutputType | null
+  }
+
+  export type OperationalOutboxAvgAggregateOutputType = {
+    id: number | null
+  }
+
+  export type OperationalOutboxSumAggregateOutputType = {
+    id: bigint | null
+  }
+
+  export type OperationalOutboxMinAggregateOutputType = {
+    id: bigint | null
+    tableName: string | null
+    action: string | null
+    createdAt: Date | null
+    processedAt: Date | null
+  }
+
+  export type OperationalOutboxMaxAggregateOutputType = {
+    id: bigint | null
+    tableName: string | null
+    action: string | null
+    createdAt: Date | null
+    processedAt: Date | null
+  }
+
+  export type OperationalOutboxCountAggregateOutputType = {
+    id: number
+    tableName: number
+    action: number
+    payload: number
+    previous: number
+    createdAt: number
+    processedAt: number
+    _all: number
+  }
+
+
+  export type OperationalOutboxAvgAggregateInputType = {
+    id?: true
+  }
+
+  export type OperationalOutboxSumAggregateInputType = {
+    id?: true
+  }
+
+  export type OperationalOutboxMinAggregateInputType = {
+    id?: true
+    tableName?: true
+    action?: true
+    createdAt?: true
+    processedAt?: true
+  }
+
+  export type OperationalOutboxMaxAggregateInputType = {
+    id?: true
+    tableName?: true
+    action?: true
+    createdAt?: true
+    processedAt?: true
+  }
+
+  export type OperationalOutboxCountAggregateInputType = {
+    id?: true
+    tableName?: true
+    action?: true
+    payload?: true
+    previous?: true
+    createdAt?: true
+    processedAt?: true
+    _all?: true
+  }
+
+  export type OperationalOutboxAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OperationalOutbox to aggregate.
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OperationalOutboxes to fetch.
+     */
+    orderBy?: OperationalOutboxOrderByWithRelationInput | OperationalOutboxOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: OperationalOutboxWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OperationalOutboxes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OperationalOutboxes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned OperationalOutboxes
+    **/
+    _count?: true | OperationalOutboxCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: OperationalOutboxAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: OperationalOutboxSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: OperationalOutboxMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: OperationalOutboxMaxAggregateInputType
+  }
+
+  export type GetOperationalOutboxAggregateType<T extends OperationalOutboxAggregateArgs> = {
+        [P in keyof T & keyof AggregateOperationalOutbox]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateOperationalOutbox[P]>
+      : GetScalarType<T[P], AggregateOperationalOutbox[P]>
+  }
+
+
+
+
+  export type OperationalOutboxGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OperationalOutboxWhereInput
+    orderBy?: OperationalOutboxOrderByWithAggregationInput | OperationalOutboxOrderByWithAggregationInput[]
+    by: OperationalOutboxScalarFieldEnum[] | OperationalOutboxScalarFieldEnum
+    having?: OperationalOutboxScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: OperationalOutboxCountAggregateInputType | true
+    _avg?: OperationalOutboxAvgAggregateInputType
+    _sum?: OperationalOutboxSumAggregateInputType
+    _min?: OperationalOutboxMinAggregateInputType
+    _max?: OperationalOutboxMaxAggregateInputType
+  }
+
+  export type OperationalOutboxGroupByOutputType = {
+    id: bigint
+    tableName: string
+    action: string
+    payload: JsonValue
+    previous: JsonValue | null
+    createdAt: Date
+    processedAt: Date | null
+    _count: OperationalOutboxCountAggregateOutputType | null
+    _avg: OperationalOutboxAvgAggregateOutputType | null
+    _sum: OperationalOutboxSumAggregateOutputType | null
+    _min: OperationalOutboxMinAggregateOutputType | null
+    _max: OperationalOutboxMaxAggregateOutputType | null
+  }
+
+  type GetOperationalOutboxGroupByPayload<T extends OperationalOutboxGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<OperationalOutboxGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof OperationalOutboxGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], OperationalOutboxGroupByOutputType[P]>
+            : GetScalarType<T[P], OperationalOutboxGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type OperationalOutboxSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tableName?: boolean
+    action?: boolean
+    payload?: boolean
+    previous?: boolean
+    createdAt?: boolean
+    processedAt?: boolean
+  }, ExtArgs["result"]["operationalOutbox"]>
+
+  export type OperationalOutboxSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tableName?: boolean
+    action?: boolean
+    payload?: boolean
+    previous?: boolean
+    createdAt?: boolean
+    processedAt?: boolean
+  }, ExtArgs["result"]["operationalOutbox"]>
+
+  export type OperationalOutboxSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tableName?: boolean
+    action?: boolean
+    payload?: boolean
+    previous?: boolean
+    createdAt?: boolean
+    processedAt?: boolean
+  }, ExtArgs["result"]["operationalOutbox"]>
+
+  export type OperationalOutboxSelectScalar = {
+    id?: boolean
+    tableName?: boolean
+    action?: boolean
+    payload?: boolean
+    previous?: boolean
+    createdAt?: boolean
+    processedAt?: boolean
+  }
+
+  export type OperationalOutboxOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tableName" | "action" | "payload" | "previous" | "createdAt" | "processedAt", ExtArgs["result"]["operationalOutbox"]>
+
+  export type $OperationalOutboxPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "OperationalOutbox"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: bigint
+      tableName: string
+      action: string
+      payload: Prisma.JsonValue
+      previous: Prisma.JsonValue | null
+      createdAt: Date
+      processedAt: Date | null
+    }, ExtArgs["result"]["operationalOutbox"]>
+    composites: {}
+  }
+
+  type OperationalOutboxGetPayload<S extends boolean | null | undefined | OperationalOutboxDefaultArgs> = $Result.GetResult<Prisma.$OperationalOutboxPayload, S>
+
+  type OperationalOutboxCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<OperationalOutboxFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: OperationalOutboxCountAggregateInputType | true
+    }
+
+  export interface OperationalOutboxDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['OperationalOutbox'], meta: { name: 'OperationalOutbox' } }
+    /**
+     * Find zero or one OperationalOutbox that matches the filter.
+     * @param {OperationalOutboxFindUniqueArgs} args - Arguments to find a OperationalOutbox
+     * @example
+     * // Get one OperationalOutbox
+     * const operationalOutbox = await prisma.operationalOutbox.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends OperationalOutboxFindUniqueArgs>(args: SelectSubset<T, OperationalOutboxFindUniqueArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one OperationalOutbox that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {OperationalOutboxFindUniqueOrThrowArgs} args - Arguments to find a OperationalOutbox
+     * @example
+     * // Get one OperationalOutbox
+     * const operationalOutbox = await prisma.operationalOutbox.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends OperationalOutboxFindUniqueOrThrowArgs>(args: SelectSubset<T, OperationalOutboxFindUniqueOrThrowArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OperationalOutbox that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxFindFirstArgs} args - Arguments to find a OperationalOutbox
+     * @example
+     * // Get one OperationalOutbox
+     * const operationalOutbox = await prisma.operationalOutbox.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends OperationalOutboxFindFirstArgs>(args?: SelectSubset<T, OperationalOutboxFindFirstArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OperationalOutbox that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxFindFirstOrThrowArgs} args - Arguments to find a OperationalOutbox
+     * @example
+     * // Get one OperationalOutbox
+     * const operationalOutbox = await prisma.operationalOutbox.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends OperationalOutboxFindFirstOrThrowArgs>(args?: SelectSubset<T, OperationalOutboxFindFirstOrThrowArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more OperationalOutboxes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all OperationalOutboxes
+     * const operationalOutboxes = await prisma.operationalOutbox.findMany()
+     * 
+     * // Get first 10 OperationalOutboxes
+     * const operationalOutboxes = await prisma.operationalOutbox.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const operationalOutboxWithIdOnly = await prisma.operationalOutbox.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends OperationalOutboxFindManyArgs>(args?: SelectSubset<T, OperationalOutboxFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a OperationalOutbox.
+     * @param {OperationalOutboxCreateArgs} args - Arguments to create a OperationalOutbox.
+     * @example
+     * // Create one OperationalOutbox
+     * const OperationalOutbox = await prisma.operationalOutbox.create({
+     *   data: {
+     *     // ... data to create a OperationalOutbox
+     *   }
+     * })
+     * 
+     */
+    create<T extends OperationalOutboxCreateArgs>(args: SelectSubset<T, OperationalOutboxCreateArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many OperationalOutboxes.
+     * @param {OperationalOutboxCreateManyArgs} args - Arguments to create many OperationalOutboxes.
+     * @example
+     * // Create many OperationalOutboxes
+     * const operationalOutbox = await prisma.operationalOutbox.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends OperationalOutboxCreateManyArgs>(args?: SelectSubset<T, OperationalOutboxCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many OperationalOutboxes and returns the data saved in the database.
+     * @param {OperationalOutboxCreateManyAndReturnArgs} args - Arguments to create many OperationalOutboxes.
+     * @example
+     * // Create many OperationalOutboxes
+     * const operationalOutbox = await prisma.operationalOutbox.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many OperationalOutboxes and only return the `id`
+     * const operationalOutboxWithIdOnly = await prisma.operationalOutbox.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends OperationalOutboxCreateManyAndReturnArgs>(args?: SelectSubset<T, OperationalOutboxCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a OperationalOutbox.
+     * @param {OperationalOutboxDeleteArgs} args - Arguments to delete one OperationalOutbox.
+     * @example
+     * // Delete one OperationalOutbox
+     * const OperationalOutbox = await prisma.operationalOutbox.delete({
+     *   where: {
+     *     // ... filter to delete one OperationalOutbox
+     *   }
+     * })
+     * 
+     */
+    delete<T extends OperationalOutboxDeleteArgs>(args: SelectSubset<T, OperationalOutboxDeleteArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one OperationalOutbox.
+     * @param {OperationalOutboxUpdateArgs} args - Arguments to update one OperationalOutbox.
+     * @example
+     * // Update one OperationalOutbox
+     * const operationalOutbox = await prisma.operationalOutbox.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends OperationalOutboxUpdateArgs>(args: SelectSubset<T, OperationalOutboxUpdateArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more OperationalOutboxes.
+     * @param {OperationalOutboxDeleteManyArgs} args - Arguments to filter OperationalOutboxes to delete.
+     * @example
+     * // Delete a few OperationalOutboxes
+     * const { count } = await prisma.operationalOutbox.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends OperationalOutboxDeleteManyArgs>(args?: SelectSubset<T, OperationalOutboxDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OperationalOutboxes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many OperationalOutboxes
+     * const operationalOutbox = await prisma.operationalOutbox.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends OperationalOutboxUpdateManyArgs>(args: SelectSubset<T, OperationalOutboxUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OperationalOutboxes and returns the data updated in the database.
+     * @param {OperationalOutboxUpdateManyAndReturnArgs} args - Arguments to update many OperationalOutboxes.
+     * @example
+     * // Update many OperationalOutboxes
+     * const operationalOutbox = await prisma.operationalOutbox.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more OperationalOutboxes and only return the `id`
+     * const operationalOutboxWithIdOnly = await prisma.operationalOutbox.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends OperationalOutboxUpdateManyAndReturnArgs>(args: SelectSubset<T, OperationalOutboxUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one OperationalOutbox.
+     * @param {OperationalOutboxUpsertArgs} args - Arguments to update or create a OperationalOutbox.
+     * @example
+     * // Update or create a OperationalOutbox
+     * const operationalOutbox = await prisma.operationalOutbox.upsert({
+     *   create: {
+     *     // ... data to create a OperationalOutbox
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the OperationalOutbox we want to update
+     *   }
+     * })
+     */
+    upsert<T extends OperationalOutboxUpsertArgs>(args: SelectSubset<T, OperationalOutboxUpsertArgs<ExtArgs>>): Prisma__OperationalOutboxClient<$Result.GetResult<Prisma.$OperationalOutboxPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of OperationalOutboxes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxCountArgs} args - Arguments to filter OperationalOutboxes to count.
+     * @example
+     * // Count the number of OperationalOutboxes
+     * const count = await prisma.operationalOutbox.count({
+     *   where: {
+     *     // ... the filter for the OperationalOutboxes we want to count
+     *   }
+     * })
+    **/
+    count<T extends OperationalOutboxCountArgs>(
+      args?: Subset<T, OperationalOutboxCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], OperationalOutboxCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a OperationalOutbox.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends OperationalOutboxAggregateArgs>(args: Subset<T, OperationalOutboxAggregateArgs>): Prisma.PrismaPromise<GetOperationalOutboxAggregateType<T>>
+
+    /**
+     * Group by OperationalOutbox.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OperationalOutboxGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends OperationalOutboxGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: OperationalOutboxGroupByArgs['orderBy'] }
+        : { orderBy?: OperationalOutboxGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, OperationalOutboxGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetOperationalOutboxGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the OperationalOutbox model
+   */
+  readonly fields: OperationalOutboxFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for OperationalOutbox.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__OperationalOutboxClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the OperationalOutbox model
+   */
+  interface OperationalOutboxFieldRefs {
+    readonly id: FieldRef<"OperationalOutbox", 'BigInt'>
+    readonly tableName: FieldRef<"OperationalOutbox", 'String'>
+    readonly action: FieldRef<"OperationalOutbox", 'String'>
+    readonly payload: FieldRef<"OperationalOutbox", 'Json'>
+    readonly previous: FieldRef<"OperationalOutbox", 'Json'>
+    readonly createdAt: FieldRef<"OperationalOutbox", 'DateTime'>
+    readonly processedAt: FieldRef<"OperationalOutbox", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * OperationalOutbox findUnique
+   */
+  export type OperationalOutboxFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * Filter, which OperationalOutbox to fetch.
+     */
+    where: OperationalOutboxWhereUniqueInput
+  }
+
+  /**
+   * OperationalOutbox findUniqueOrThrow
+   */
+  export type OperationalOutboxFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * Filter, which OperationalOutbox to fetch.
+     */
+    where: OperationalOutboxWhereUniqueInput
+  }
+
+  /**
+   * OperationalOutbox findFirst
+   */
+  export type OperationalOutboxFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * Filter, which OperationalOutbox to fetch.
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OperationalOutboxes to fetch.
+     */
+    orderBy?: OperationalOutboxOrderByWithRelationInput | OperationalOutboxOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OperationalOutboxes.
+     */
+    cursor?: OperationalOutboxWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OperationalOutboxes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OperationalOutboxes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OperationalOutboxes.
+     */
+    distinct?: OperationalOutboxScalarFieldEnum | OperationalOutboxScalarFieldEnum[]
+  }
+
+  /**
+   * OperationalOutbox findFirstOrThrow
+   */
+  export type OperationalOutboxFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * Filter, which OperationalOutbox to fetch.
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OperationalOutboxes to fetch.
+     */
+    orderBy?: OperationalOutboxOrderByWithRelationInput | OperationalOutboxOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OperationalOutboxes.
+     */
+    cursor?: OperationalOutboxWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OperationalOutboxes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OperationalOutboxes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OperationalOutboxes.
+     */
+    distinct?: OperationalOutboxScalarFieldEnum | OperationalOutboxScalarFieldEnum[]
+  }
+
+  /**
+   * OperationalOutbox findMany
+   */
+  export type OperationalOutboxFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * Filter, which OperationalOutboxes to fetch.
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OperationalOutboxes to fetch.
+     */
+    orderBy?: OperationalOutboxOrderByWithRelationInput | OperationalOutboxOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing OperationalOutboxes.
+     */
+    cursor?: OperationalOutboxWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OperationalOutboxes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OperationalOutboxes.
+     */
+    skip?: number
+    distinct?: OperationalOutboxScalarFieldEnum | OperationalOutboxScalarFieldEnum[]
+  }
+
+  /**
+   * OperationalOutbox create
+   */
+  export type OperationalOutboxCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * The data needed to create a OperationalOutbox.
+     */
+    data: XOR<OperationalOutboxCreateInput, OperationalOutboxUncheckedCreateInput>
+  }
+
+  /**
+   * OperationalOutbox createMany
+   */
+  export type OperationalOutboxCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many OperationalOutboxes.
+     */
+    data: OperationalOutboxCreateManyInput | OperationalOutboxCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * OperationalOutbox createManyAndReturn
+   */
+  export type OperationalOutboxCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * The data used to create many OperationalOutboxes.
+     */
+    data: OperationalOutboxCreateManyInput | OperationalOutboxCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * OperationalOutbox update
+   */
+  export type OperationalOutboxUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * The data needed to update a OperationalOutbox.
+     */
+    data: XOR<OperationalOutboxUpdateInput, OperationalOutboxUncheckedUpdateInput>
+    /**
+     * Choose, which OperationalOutbox to update.
+     */
+    where: OperationalOutboxWhereUniqueInput
+  }
+
+  /**
+   * OperationalOutbox updateMany
+   */
+  export type OperationalOutboxUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update OperationalOutboxes.
+     */
+    data: XOR<OperationalOutboxUpdateManyMutationInput, OperationalOutboxUncheckedUpdateManyInput>
+    /**
+     * Filter which OperationalOutboxes to update
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * Limit how many OperationalOutboxes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * OperationalOutbox updateManyAndReturn
+   */
+  export type OperationalOutboxUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * The data used to update OperationalOutboxes.
+     */
+    data: XOR<OperationalOutboxUpdateManyMutationInput, OperationalOutboxUncheckedUpdateManyInput>
+    /**
+     * Filter which OperationalOutboxes to update
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * Limit how many OperationalOutboxes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * OperationalOutbox upsert
+   */
+  export type OperationalOutboxUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * The filter to search for the OperationalOutbox to update in case it exists.
+     */
+    where: OperationalOutboxWhereUniqueInput
+    /**
+     * In case the OperationalOutbox found by the `where` argument doesn't exist, create a new OperationalOutbox with this data.
+     */
+    create: XOR<OperationalOutboxCreateInput, OperationalOutboxUncheckedCreateInput>
+    /**
+     * In case the OperationalOutbox was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<OperationalOutboxUpdateInput, OperationalOutboxUncheckedUpdateInput>
+  }
+
+  /**
+   * OperationalOutbox delete
+   */
+  export type OperationalOutboxDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+    /**
+     * Filter which OperationalOutbox to delete.
+     */
+    where: OperationalOutboxWhereUniqueInput
+  }
+
+  /**
+   * OperationalOutbox deleteMany
+   */
+  export type OperationalOutboxDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OperationalOutboxes to delete
+     */
+    where?: OperationalOutboxWhereInput
+    /**
+     * Limit how many OperationalOutboxes to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * OperationalOutbox without action
+   */
+  export type OperationalOutboxDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OperationalOutbox
+     */
+    select?: OperationalOutboxSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OperationalOutbox
+     */
+    omit?: OperationalOutboxOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -18894,6 +20032,19 @@ export namespace Prisma {
   export type IncidenteArrastreFotoScalarFieldEnum = (typeof IncidenteArrastreFotoScalarFieldEnum)[keyof typeof IncidenteArrastreFotoScalarFieldEnum]
 
 
+  export const OperationalOutboxScalarFieldEnum: {
+    id: 'id',
+    tableName: 'tableName',
+    action: 'action',
+    payload: 'payload',
+    previous: 'previous',
+    createdAt: 'createdAt',
+    processedAt: 'processedAt'
+  };
+
+  export type OperationalOutboxScalarFieldEnum = (typeof OperationalOutboxScalarFieldEnum)[keyof typeof OperationalOutboxScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -18907,6 +20058,14 @@ export namespace Prisma {
   };
 
   export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
   export const QueryMode: {
@@ -19195,6 +20354,20 @@ export namespace Prisma {
    * Reference to a field of type 'EstadoIncidenteArrastreTorreon[]'
    */
   export type ListEnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoIncidenteArrastreTorreon[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -20576,6 +21749,70 @@ export namespace Prisma {
     tomadaAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreFoto"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreFoto"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"IncidenteArrastreFoto"> | Date | string
+  }
+
+  export type OperationalOutboxWhereInput = {
+    AND?: OperationalOutboxWhereInput | OperationalOutboxWhereInput[]
+    OR?: OperationalOutboxWhereInput[]
+    NOT?: OperationalOutboxWhereInput | OperationalOutboxWhereInput[]
+    id?: BigIntFilter<"OperationalOutbox"> | bigint | number
+    tableName?: StringFilter<"OperationalOutbox"> | string
+    action?: StringFilter<"OperationalOutbox"> | string
+    payload?: JsonFilter<"OperationalOutbox">
+    previous?: JsonNullableFilter<"OperationalOutbox">
+    createdAt?: DateTimeFilter<"OperationalOutbox"> | Date | string
+    processedAt?: DateTimeNullableFilter<"OperationalOutbox"> | Date | string | null
+  }
+
+  export type OperationalOutboxOrderByWithRelationInput = {
+    id?: SortOrder
+    tableName?: SortOrder
+    action?: SortOrder
+    payload?: SortOrder
+    previous?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    processedAt?: SortOrderInput | SortOrder
+  }
+
+  export type OperationalOutboxWhereUniqueInput = Prisma.AtLeast<{
+    id?: bigint | number
+    AND?: OperationalOutboxWhereInput | OperationalOutboxWhereInput[]
+    OR?: OperationalOutboxWhereInput[]
+    NOT?: OperationalOutboxWhereInput | OperationalOutboxWhereInput[]
+    tableName?: StringFilter<"OperationalOutbox"> | string
+    action?: StringFilter<"OperationalOutbox"> | string
+    payload?: JsonFilter<"OperationalOutbox">
+    previous?: JsonNullableFilter<"OperationalOutbox">
+    createdAt?: DateTimeFilter<"OperationalOutbox"> | Date | string
+    processedAt?: DateTimeNullableFilter<"OperationalOutbox"> | Date | string | null
+  }, "id">
+
+  export type OperationalOutboxOrderByWithAggregationInput = {
+    id?: SortOrder
+    tableName?: SortOrder
+    action?: SortOrder
+    payload?: SortOrder
+    previous?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    processedAt?: SortOrderInput | SortOrder
+    _count?: OperationalOutboxCountOrderByAggregateInput
+    _avg?: OperationalOutboxAvgOrderByAggregateInput
+    _max?: OperationalOutboxMaxOrderByAggregateInput
+    _min?: OperationalOutboxMinOrderByAggregateInput
+    _sum?: OperationalOutboxSumOrderByAggregateInput
+  }
+
+  export type OperationalOutboxScalarWhereWithAggregatesInput = {
+    AND?: OperationalOutboxScalarWhereWithAggregatesInput | OperationalOutboxScalarWhereWithAggregatesInput[]
+    OR?: OperationalOutboxScalarWhereWithAggregatesInput[]
+    NOT?: OperationalOutboxScalarWhereWithAggregatesInput | OperationalOutboxScalarWhereWithAggregatesInput[]
+    id?: BigIntWithAggregatesFilter<"OperationalOutbox"> | bigint | number
+    tableName?: StringWithAggregatesFilter<"OperationalOutbox"> | string
+    action?: StringWithAggregatesFilter<"OperationalOutbox"> | string
+    payload?: JsonWithAggregatesFilter<"OperationalOutbox">
+    previous?: JsonNullableWithAggregatesFilter<"OperationalOutbox">
+    createdAt?: DateTimeWithAggregatesFilter<"OperationalOutbox"> | Date | string
+    processedAt?: DateTimeNullableWithAggregatesFilter<"OperationalOutbox"> | Date | string | null
   }
 
   export type MovimientoTorreonFerroCreateInput = {
@@ -22125,6 +23362,76 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type OperationalOutboxCreateInput = {
+    id?: bigint | number
+    tableName: string
+    action: string
+    payload: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    processedAt?: Date | string | null
+  }
+
+  export type OperationalOutboxUncheckedCreateInput = {
+    id?: bigint | number
+    tableName: string
+    action: string
+    payload: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    processedAt?: Date | string | null
+  }
+
+  export type OperationalOutboxUpdateInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    tableName?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OperationalOutboxUncheckedUpdateInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    tableName?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OperationalOutboxCreateManyInput = {
+    id?: bigint | number
+    tableName: string
+    action: string
+    payload: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    processedAt?: Date | string | null
+  }
+
+  export type OperationalOutboxUpdateManyMutationInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    tableName?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OperationalOutboxUncheckedUpdateManyInput = {
+    id?: BigIntFieldUpdateOperationsInput | bigint | number
+    tableName?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    previous?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -23666,6 +24973,116 @@ export namespace Prisma {
     tomadaPorId?: SortOrder
   }
 
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type OperationalOutboxCountOrderByAggregateInput = {
+    id?: SortOrder
+    tableName?: SortOrder
+    action?: SortOrder
+    payload?: SortOrder
+    previous?: SortOrder
+    createdAt?: SortOrder
+    processedAt?: SortOrder
+  }
+
+  export type OperationalOutboxAvgOrderByAggregateInput = {
+    id?: SortOrder
+  }
+
+  export type OperationalOutboxMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tableName?: SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+    processedAt?: SortOrder
+  }
+
+  export type OperationalOutboxMinOrderByAggregateInput = {
+    id?: SortOrder
+    tableName?: SortOrder
+    action?: SortOrder
+    createdAt?: SortOrder
+    processedAt?: SortOrder
+  }
+
+  export type OperationalOutboxSumOrderByAggregateInput = {
+    id?: SortOrder
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
   export type RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput = {
     create?: XOR<RondaTorreonMovimientoCreateWithoutMovimientoInput, RondaTorreonMovimientoUncheckedCreateWithoutMovimientoInput> | RondaTorreonMovimientoCreateWithoutMovimientoInput[] | RondaTorreonMovimientoUncheckedCreateWithoutMovimientoInput[]
     connectOrCreate?: RondaTorreonMovimientoCreateOrConnectWithoutMovimientoInput | RondaTorreonMovimientoCreateOrConnectWithoutMovimientoInput[]
@@ -24378,6 +25795,14 @@ export namespace Prisma {
     update?: XOR<XOR<IncidenteArrastreTorreonUpdateToOneWithWhereWithoutFotosInput, IncidenteArrastreTorreonUpdateWithoutFotosInput>, IncidenteArrastreTorreonUncheckedUpdateWithoutFotosInput>
   }
 
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
   export type NestedIntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -24838,6 +26263,56 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel>
     _max?: NestedEnumEstadoIncidenteArrastreTorreonFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type RondaTorreonMovimientoCreateWithoutMovimientoInput = {

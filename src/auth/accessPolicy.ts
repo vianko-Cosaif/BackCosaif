@@ -1,6 +1,6 @@
 import { Rol } from '@prisma/client';
 
-export const AUTHORIZATION_POLICY_VERSION = 2;
+export const AUTHORIZATION_POLICY_VERSION = 3;
 
 export const PERMISSIONS = {
   SESSION_READ: 'session.read',
@@ -429,7 +429,7 @@ const ROLE_DEFINITIONS: Record<Rol, RoleDefinition> = {
     mobile: true,
     scope: 'COMPANY_LOCALITY',
     capabilities: clientCapabilities,
-    permissions: NATURAL_CLIENT,
+    permissions: [...NATURAL_CLIENT, PERMISSIONS.TORREON_READ, PERMISSIONS.TORREON_CREATE],
   },
   [Rol.CLIENTE_ADMIN]: {
     label: 'Cliente admin',
@@ -494,6 +494,8 @@ const ROLE_DEFINITIONS: Record<Rol, RoleDefinition> = {
     capabilities: unsupportedCapabilities('Maquinista'),
     permissions: [
       ...COMMON_READ,
+      PERMISSIONS.TORREON_READ,
+      PERMISSIONS.TORREON_OPERATE,
       PERMISSIONS.MOVEMENTS_READ,
       PERMISSIONS.MOVEMENTS_OPERATE,
       PERMISSIONS.ROUNDS_READ,

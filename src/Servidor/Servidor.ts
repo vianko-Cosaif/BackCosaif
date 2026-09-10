@@ -1,3 +1,13 @@
+import exportRoutes from '../reporteria/exports/exportRoutes';
+import { verifyOperationalSchema } from '../jobs/schemaCheck';
+import { startOperationalRetention } from '../jobs/retention';
+import { startTornoRecovery } from '../jobs/tornoRecovery';
+import { startRoundMaintenance } from '../jobs/roundMaintenance';
+import { startServiceOutbox } from '../jobs/serviceOutbox';
+import { startJobWorker } from '../jobs/durableJobs';
+import { IncidenteModel } from '../models/Incidente/IncidenteModel';
+import { authenticateAccess } from '../auth/authenticateAccess';
+import { concurrencyLimit } from '../auth/requestLimits';
 /**
  * Punto de arranque del servidor HTTP (API REST).
  *
@@ -39,7 +49,7 @@ import comercialMsRoutes from "../Rutas/ComercialMs/ComercialMsRoutes";
 import { bindRealtimeWebSocketServer } from "../realtime/realtimeHub";
 import { createGuardianAgent } from "../guardian/guardianAgent";
 import { prisma } from "../lib/prisma";
-import { securityAuditMiddleware } from "../security/securityAudit";
+import { initializeSecurityAudit, securityAuditMiddleware } from "../security/securityAudit";
 // Carga variables de entorno
 dotenv.config();
 
@@ -59,21 +69,10 @@ function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
  * Inicializa y arranca el servidor Express.
  * Debe llamarse solo una vez desde el entrypoint (p. ej. src/index.ts).
  */
-export function iniciarServidor(): void {
+export async function iniciarServidor(): Promise<void> {
   try {
     const app: Express = express();
     app.disable('x-powered-by');
-
-    // ---------------- Middlewares globales ----------------
-    app.use(securityHeaders);
-    app.use(traceLoginTraffic);
-
-    // CORS gradual: compat conserva clientes actuales; enforce usa lista explícita.
-    app.use(corsPolicy);
-
-    // Parseo de JSON para todo el API
-    app.use(express.json({ limit: '50mb' }));
-
     const guardianAgent = createGuardianAgent({
       service: "cosaif-api",
       databaseCheck: async () => {
@@ -87,10 +86,33 @@ export function iniciarServidor(): void {
       },
     });
     app.use(guardianAgent.middleware);
+
+
+    // ---------------- Middlewares globales ----------------
+    app.use(securityHeaders);
+    app.use(traceLoginTraffic);
+
+    // CORS gradual: compat conserva clientes actuales; enforce usa lista explícita.
+    app.use(corsPolicy);
+
+    // Parseo de JSON para todo el API
+    app.use(passport.initialize());
+    app.use((req, res, next) => {
+      if ((req.method === 'GET' && ['/', '/metrics'].includes(req.path)) || (req.method === 'POST' && req.path === '/usuarios/login')) return next();
+      return authenticateAccess(req, res, next);
+    });
+    const largeBody = express.json({ limit: '50mb' });
+    const normalBody = express.json({ limit: '1mb' });
+    const imageConcurrency = concurrencyLimit(2);
+    app.use((req, res, next) => {
+      if (/^\/(incidentes|torno|torreon)(\/|$)/.test(req.path) && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
+        return imageConcurrency(req, res, error => error ? next(error) : largeBody(req, res, next));
+      }
+      return normalBody(req, res, next);
+    });
+
     app.get("/metrics", loopbackMetricsOnly, guardianAgent.metrics);
 
-    // Inicializa estrategia JWT de Passport
-    app.use(passport.initialize());
     app.use(securityAuditMiddleware);
 
     // ---------------- Rutas base ----------------
@@ -99,6 +121,8 @@ export function iniciarServidor(): void {
     app.get("/", (_req: Request, res: Response) => {
       res.json({ ok: true, mensaje: "Hola mundo" });
     });
+
+    app.use("/reporteria", exportRoutes);
 
     // Módulos de negocio
     app.use("/usuarios", usuarioRoutes);
@@ -123,9 +147,19 @@ export function iniciarServidor(): void {
 
     // ---------------- Arranque del servidor ----------------
     const server = createServer(app);
+    server.requestTimeout = 60_000;
+    server.headersTimeout = 15_000;
     bindRealtimeWebSocketServer(server);
 
+    await initializeSecurityAudit();
+    await verifyOperationalSchema();
     server.listen(Number(PORT), HOST, () => {
+      IncidenteModel.ensureIncidentScheduler();
+      startRoundMaintenance();
+      startTornoRecovery();
+      startJobWorker();
+      startServiceOutbox();
+      startOperationalRetention();
       console.log(`Servidor corriendo en ${HOST}:${PORT}`);
       console.log('Autenticacion por sesion cargada con renovacion por rol');
       guardianAgent.start();

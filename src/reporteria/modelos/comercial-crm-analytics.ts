@@ -1,9 +1,9 @@
+import { relationCounts } from '../../lib/relationCounts';
 import { DateTime } from "luxon";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 
-const { PrismaClient: TorreonPrismaClient } = require("../../../ms_torreon/generated");
-const prismaTorreon = new TorreonPrismaClient();
+import { prismaTorreon } from '../../lib/servicePrisma';
 
 const DEFAULT_TZ = "America/Mexico_City";
 
@@ -274,15 +274,16 @@ export class CommercialCrmAnalyticsModel {
             fechaFin: true,
             empresa: { select: { nombre: true } },
             localidad: { select: { nombre: true } },
-            incidentes: { select: { id: true } },
-            tornos: { select: { incidentes: { select: { id: true } } } },
-            lavados: { select: { incidentes: { select: { id: true } } } },
+            tornos: { select: { id: true } },
+            lavados: { select: { id: true } },
           },
         });
 
     let torreonAvailable = true;
     let torreonNatural: any[] = [];
     let torreonArrastre: any[] = [];
+    let naturalCounts = new Map<number, number>();
+    let arrastreCounts = new Map<number, number>();
     try {
       [torreonNatural, torreonArrastre] = await Promise.all([
         filters.origin === "ARRASTRE"
@@ -308,8 +309,7 @@ export class CommercialCrmAnalyticsModel {
                 localidadNombreSnapshot: true,
                 viaOrigenNombreSnapshot: true,
                 viaDestinoNombreSnapshot: true,
-                incidentes: { select: { id: true } },
-              },
+                  },
             }),
         filters.origin === "NATURAL"
           ? Promise.resolve([])
@@ -331,16 +331,27 @@ export class CommercialCrmAnalyticsModel {
                 fechaInicio: true,
                 fechaFin: true,
                 vagones: { select: { id: true, viaOrigenNombre: true, viaDestinoNombre: true } },
-                incidentes: { select: { id: true } },
-              },
+                  },
             }),
+      ]);
+      [naturalCounts, arrastreCounts] = await Promise.all([
+        relationCounts(prismaTorreon.incidenteTorreonFerro, 'movimientoId', torreonNatural.map(row => row.id)),
+        relationCounts(prismaTorreon.incidenteArrastreTorreon, 'arrastreId', torreonArrastre.map(row => row.id)),
       ]);
     } catch (error) {
       torreonAvailable = false;
+      torreonNatural = [];
+      torreonArrastre = [];
+      naturalCounts.clear(); arrastreCounts.clear();
       console.warn("Analitica comercial: Torreon no disponible", error instanceof Error ? error.message : error);
     }
 
     const coreRows = await corePromise;
+    const [coreCounts, tornoCounts, lavadoCounts] = await Promise.all([
+      relationCounts(prisma.incidente, 'movimientoId', coreRows.map(row => row.id)),
+      relationCounts(prisma.incidenteTorno, 'tornoId', coreRows.flatMap(row => row.tornos.map(item => item.id))),
+      relationCounts(prisma.incidenteLavado, 'lavadoId', coreRows.flatMap(row => row.lavados.map(item => item.id))),
+    ]);
     const requesterIds = [...new Set([
       ...coreRows.map((row) => row.clienteId ?? row.creadoPorId),
       ...torreonNatural.map((row) => row.clienteId ?? row.creadoPorId),
@@ -351,9 +362,9 @@ export class CommercialCrmAnalyticsModel {
       : []).map((item) => [item.id, item.nombre]));
     const operations: CommercialOperation[] = [];
     for (const row of coreRows) {
-      const incidents = row.incidentes.length
-        + row.tornos.reduce((sum, item) => sum + item.incidentes.length, 0)
-        + row.lavados.reduce((sum, item) => sum + item.incidentes.length, 0);
+      const incidents = (coreCounts.get(row.id) ?? 0)
+        + row.tornos.reduce((sum, item) => sum + (tornoCounts.get(item.id) ?? 0), 0)
+        + row.lavados.reduce((sum, item) => sum + (lavadoCounts.get(item.id) ?? 0), 0);
       const date = operationDate(row.fechaSolicitud, row.fechaFin);
       operations.push({
         key: `COSAIF:NATURAL:${row.id}`,
@@ -409,7 +420,7 @@ export class CommercialCrmAnalyticsModel {
         startedAt: row.fechaInicio?.toISOString() ?? null,
         completedAt: row.fechaFin?.toISOString() ?? null,
         operationAt: date.toISOString(),
-        incidents: row.incidentes.length,
+        incidents: naturalCounts.get(row.id) ?? 0,
         reference: `Natural Torreon #${row.id}`,
       });
     }
@@ -441,7 +452,7 @@ export class CommercialCrmAnalyticsModel {
         startedAt: row.fechaInicio?.toISOString() ?? null,
         completedAt: row.fechaFin?.toISOString() ?? null,
         operationAt: date.toISOString(),
-        incidents: row.incidentes.length,
+        incidents: arrastreCounts.get(row.id) ?? 0,
         reference: `Arrastre #${row.id}`,
       });
     }

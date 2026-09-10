@@ -203,3 +203,10 @@ Verificación:
 npm run test:realtime
 npm run build
 ```
+
+
+## Actualización de seguridad y procesos
+
+Instalación, migraciones y cambios de API: [guía de actualización](docs/actualizacion-seguridad-20260907.md). Validación completa: `npm run prisma:generate:all`, `npm run typecheck` y `npm test`, con Node 24.
+
+Refactorización y rendimiento: [activación, contratos y mediciones](docs/rendimiento-refactor-20260908.md).

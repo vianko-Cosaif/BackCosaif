@@ -10,7 +10,7 @@ const router = Router();
 router.use(authenticateAccess);
 
 // Crear una nueva localidad
-router.post('/', requirePermission(PERMISSIONS.OPERATIONAL_CATALOGS_MANAGE), LocalidadController.crearLocalidad);
+router.post('/', requirePermission(PERMISSIONS.CATALOG_CONFIGURATION_MANAGE), LocalidadController.crearLocalidad);
 
 
 

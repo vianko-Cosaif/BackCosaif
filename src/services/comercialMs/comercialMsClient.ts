@@ -79,6 +79,7 @@ export async function proxyToComercialMs(
   const signed = signature({ method, path: signedPath, timestamp, nonce, bodyHash, actor: init.actor, secret });
 
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(20_000),
     method,
     headers: {
       "x-service-id": serviceId,

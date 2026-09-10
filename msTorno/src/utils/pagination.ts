@@ -39,7 +39,7 @@ export function getPagination(req: Request): Pagination {
 }
 
 export function paginationArgs(pagination: Pagination): Record<string, number> {
-  return pagination.enabled ? { skip: pagination.skip, take: pagination.take } : {};
+  return { skip: pagination.skip, take: pagination.take };
 }
 
 export function respondPaginated<T>(

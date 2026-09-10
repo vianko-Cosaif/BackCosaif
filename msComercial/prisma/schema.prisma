@@ -335,6 +335,7 @@ model PaqueteComercial {
 }
 
 model CorteCobro {
+  paymentOperations PaymentOperation[]
   id                 Int              @id @default(autoincrement())
   clienteComercialId Int
   contratoId         Int?
@@ -441,4 +442,16 @@ model GestionCobranza {
   @@index([clienteComercialId, estado, fechaContacto])
   @@index([corteId])
   @@index([fechaCompromiso, estado])
+}
+
+model PaymentOperation {
+  key String @id @db.VarChar(128)
+  requestHash String @map("request_hash") @db.Char(64)
+  actorId Int @map("actor_id")
+  corteId Int @map("corte_id")
+  response Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  corte CorteCobro @relation(fields: [corteId], references: [id], onDelete: Restrict)
+  @@index([corteId], map: "payment_operations_cut_idx")
+  @@map("payment_operations")
 }

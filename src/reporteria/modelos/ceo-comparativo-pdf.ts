@@ -2,7 +2,7 @@
 // PDF CEO: Ejecutivo Comparativo
 
 import type { ReporteComparativo } from './ceo-comparativo-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename, svgBar } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -158,8 +158,7 @@ function buildHtml(r: ReporteComparativo) {
 }
 
 export async function exportarComparativoPDF(reporte: ReporteComparativo): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.actual?.etiqueta || 'CEO_Comparativo';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

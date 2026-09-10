@@ -1,0 +1,40 @@
+name: Backend checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: security_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 55439:5432
+        options: >-
+          --health-cmd "pg_isready -U security_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+      AUDIT_ENABLED: 'false'
+      SECURITY_TEST_DB_ADMIN_URL: postgresql://security_test@127.0.0.1:55439/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run prisma:generate:all
+      - run: npm run typecheck
+      - run: npm test
+      - run: node tests/security-db-setup.cjs
+      - run: npm run test:integration
+      - run: npm run test:performance:integration
+      - run: npm audit --audit-level=moderate

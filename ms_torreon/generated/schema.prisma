@@ -454,3 +454,15 @@ model IncidenteArrastreFoto {
   @@index([tomadaPorId, tomadaAt])
   @@map("incidente_arrastre_foto")
 }
+
+model OperationalOutbox {
+  id          BigInt    @id @default(autoincrement())
+  tableName   String    @map("table_name")
+  action      String
+  payload     Json
+  previous    Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
+
+  @@map("operational_outbox")
+}

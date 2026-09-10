@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/reporteriaMovimiento-model.ts
 // Reportería Movimientos (DÍA / SEMANA / MES / BIMESTRE / SEMESTRE / ANUAL)
 // - Rango se calcula en TZ MX y se consulta en UTC con fin EXCLUSIVO.
@@ -5,7 +6,6 @@
 // - Sin torno/lavado (aún no entran al reporte).
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 
 export type PeriodoReporte = 'DIA' | 'SEMANA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
 
@@ -28,17 +28,8 @@ export type ReporteDiaFilters = ReportePeriodoFilters;
 /**
  * Prisma singleton (evita múltiples conexiones si hay hot-reload / nodemon).
  */
-declare global {
-  // eslint-disable-next-line no-var
-  var __PRISMA__: PrismaClient | undefined;
-}
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 /**
  * Incidente real: sale de Incidente por movimientoId.

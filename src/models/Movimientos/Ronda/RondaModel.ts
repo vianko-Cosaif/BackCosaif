@@ -1,13 +1,15 @@
+import { companySlotPlan, compactRoundPlan, duplicateRoundIds, firstFreeRound, persistRoundPlan } from './roundPlan';
+import { prisma } from '../../../lib/prisma';
 ﻿// src/models/RondaModel.ts
 import { movimientoError } from "../movimiento.logger";
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { Ronda } from '@prisma/client';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { sendMulticastCompat } from "../../../services/fcmCompat";
 import { tokensAudienciaOperacion } from "../../../services/fcmAudience";
 import { resolverAudienciaFcmMovimiento } from "../../../services/serviceFcmRouting";
 
-const prisma = new PrismaClient();
+
 type Tx = Prisma.TransactionClient;
 
 // ================== HOLD 10 MIN (INCIDENTE CERRADO/NO RESUELTO, SOLO 1 VEZ) ==================
@@ -330,33 +332,23 @@ export class RondaModel {
   private static async primeraRondaLibreParaEmpresa(
     tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
   ): Promise<number> {
-    let r = Math.max(1, desdeRonda);
-    for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
-      const c = await tx.ronda.count({ where: { localidadId, rondaNumero: r, concluido: false, empresaId } });
-      if (c === 0) return r;
-      r++;
-    }
-    return r;
+    const start = Math.max(1, desdeRonda);
+    const occupied = await tx.ronda.findMany({
+      where: { localidadId, empresaId, concluido: false, rondaNumero: { gte: start, lt: start + MAX_SCAN_ROUNDS } },
+      select: { rondaNumero: true }, distinct: ['rondaNumero'],
+    });
+    return firstFreeRound(occupied.map(row => row.rondaNumero), start, MAX_SCAN_ROUNDS);
   }
 
   private static async primeraRondaLibreParaEmpresaBaja(
     tx: Tx, localidadId: number, empresaId: number, desdeRonda: number
   ): Promise<number> {
-    let r = Math.max(1, desdeRonda);
-    for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
-      const c = await tx.ronda.count({
-        where: {
-          localidadId,
-          rondaNumero: r,
-          concluido: false,
-          empresaId,
-          movimiento: { prioridad: 'BAJA' },
-        },
-      });
-      if (c === 0) return r;
-      r++;
-    }
-    return r;
+    const start = Math.max(1, desdeRonda);
+    const occupied = await tx.ronda.findMany({
+      where: { localidadId, empresaId, concluido: false, rondaNumero: { gte: start, lt: start + MAX_SCAN_ROUNDS }, movimiento: { prioridad: 'BAJA' } },
+      select: { rondaNumero: true }, distinct: ['rondaNumero'],
+    });
+    return firstFreeRound(occupied.map(row => row.rondaNumero), start, MAX_SCAN_ROUNDS);
   }
 
   // Compacta Ã³rdenes internos de una ronda (1..N).
@@ -366,12 +358,7 @@ export class RondaModel {
       orderBy: { orden: 'asc' },
       select: { id: true, orden: true },
     });
-    for (let i = 0; i < filas.length; i++) {
-      const esperado = i + 1;
-      if (filas[i].orden !== esperado) {
-        await tx.ronda.update({ where: { id: filas[i].id }, data: { orden: esperado } });
-      }
-    }
+    await persistRoundPlan(tx, localidadId, filas.flatMap((row, index) => row.orden === index + 1 ? [] : [{ id: row.id, rondaNumero, orden: index + 1 }]));
   }
 
   // Ordena BAJAS dentro de una ronda:
@@ -418,14 +405,9 @@ export class RondaModel {
       orderBy: [{ movimientoId: 'asc' }, { rondaNumero: 'asc' }, { orden: 'asc' }]
     });
 
-    for (let i = 0; i < filas.length;) {
-      const movId = filas[i].movimientoId;
-      const group = filas.filter(f => f.movimientoId === movId);
-      if (group.length > 1) {
-        const drop = group.slice(1).map(g => g.id);
-        await tx.ronda.deleteMany({ where: { id: { in: drop } } });
-      }
-      i += group.length || 1;
+    const drop = duplicateRoundIds(filas);
+    for (let offset = 0; offset < drop.length; offset += 1000) {
+      await tx.ronda.deleteMany({ where: { localidadId, concluido: false, id: { in: drop.slice(offset, offset + 1000) } } });
     }
   }
 
@@ -446,51 +428,20 @@ export class RondaModel {
 
   // Borra solo rondas activas cuya carga ya terminÃ³ por completo.
   private static async eliminarRondasCompletadas(tx: Tx, localidadId: number) {
-    const grupos = await tx.ronda.findMany({
-      where: { localidadId, concluido: false },
-      select: { rondaNumero: true },
-      distinct: ['rondaNumero'],
-      orderBy: { rondaNumero: 'asc' },
+    const active = await tx.ronda.groupBy({
+      by: ['rondaNumero'],
+      where: { localidadId, concluido: false, movimiento: { finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } } },
     });
-
-    for (const g of grupos) {
-      const activos = await tx.ronda.count({
-        where: {
-          localidadId,
-          concluido: false,
-          rondaNumero: g.rondaNumero,
-          movimiento: {
-            finalizado: false,
-            estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] as any },
-          },
-        },
-      });
-      if (activos === 0) {
-        await tx.ronda.deleteMany({ where: { localidadId, concluido: false, rondaNumero: g.rondaNumero } });
-      }
-    }
+    await tx.ronda.deleteMany({ where: { localidadId, concluido: false, rondaNumero: { notIn: active.map(row => row.rondaNumero) } } });
   }
 
-  // Renumera solo rondas activas a 1..N y compacta Ã³rdenes.
   private static async renumerarRondas(tx: Tx, localidadId: number) {
-    const grupos = await tx.ronda.findMany({
+    const rows = await tx.ronda.findMany({
       where: { localidadId, concluido: false },
-      select: { rondaNumero: true },
-      distinct: ['rondaNumero'],
-      orderBy: { rondaNumero: 'asc' },
+      select: { id: true, rondaNumero: true, orden: true },
+      orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }, { id: 'asc' }],
     });
-
-    let idx = 1;
-    for (const g of grupos) {
-      if (g.rondaNumero !== idx) {
-        await tx.ronda.updateMany({
-          where: { localidadId, concluido: false, rondaNumero: g.rondaNumero },
-          data: { rondaNumero: idx },
-        });
-      }
-      await this.compactarOrdenesRonda(tx, localidadId, idx);
-      idx++;
-    }
+    await persistRoundPlan(tx, localidadId, compactRoundPlan(rows));
   }
 
   /** En BAJAS: mÃ¡x 1 por empresa por ronda. En ALTAS: sin lÃ­mite (cola FIFO en R1). */
@@ -501,35 +452,11 @@ export class RondaModel {
       orderBy: [{ rondaNumero: 'asc' }, { orden: 'asc' }],
     });
 
-    const bucket = new Map<string, { id: number; prioridad: 'ALTA' | 'BAJA'; fecha: number }[]>();
-    for (const f of filas) {
-      const key = `${f.rondaNumero}:${f.empresaId}`;
-      const arr = bucket.get(key) ?? [];
-      arr.push({
-        id: f.id,
-        prioridad: f.movimiento.prioridad as 'ALTA' | 'BAJA',
-        fecha: fechaOrdenBaja(f.movimiento),
-      });
-      bucket.set(key, arr);
-    }
-
-    for (const [key, rows] of bucket) {
-      const bajas = rows
-        .filter(r => r.prioridad !== 'ALTA')
-        .sort((a, b) => a.fecha - b.fecha);
-      if (bajas.length <= 1) continue;
-
-      const [rondaNumeroStr, empresaIdStr] = key.split(':');
-      const rondaActual = parseInt(rondaNumeroStr, 10);
-      const empresaId = parseInt(empresaIdStr, 10);
-
-      // Mantener el mÃ¡s viejo de esa empresa en esta ronda; mover el resto hacia abajo.
-      for (let i = 1; i < bajas.length; i++) {
-        const target = await this.primeraRondaLibreParaEmpresaBaja(tx, localidadId, empresaId, rondaActual + 1);
-        const tam = await this.tamanoDeRonda(tx, localidadId, target);
-        await tx.ronda.update({ where: { id: bajas[i].id }, data: { rondaNumero: target, orden: tam + 1 } });
-      }
-    }
+    const changes = companySlotPlan(filas.map(row => ({
+      id: row.id, empresaId: row.empresaId, rondaNumero: row.rondaNumero, orden: row.orden,
+      prioridad: row.movimiento.prioridad, fecha: fechaOrdenBaja(row.movimiento),
+    })), MAX_SCAN_ROUNDS);
+    await persistRoundPlan(tx, localidadId, changes);
   }
 
   // ALTAS: FIFO en R1 (respeta HOLD: las ALTAS en hold se mueven fuera de R1)
@@ -571,10 +498,8 @@ export class RondaModel {
 
     const resto = r1.filter(x => x.movimiento.prioridad !== 'ALTA' || _isOnHold(x.movimiento.id));
 
-    const nuevoOrden = [...altasOk.map(x => x.id), ...resto.map(x => x.id)];
-    for (let i = 0; i < nuevoOrden.length; i++) {
-      await tx.ronda.update({ where: { id: nuevoOrden[i] }, data: { orden: i + 1 } });
-    }
+    const ordered = [...altasOk, ...resto];
+    await persistRoundPlan(tx, localidadId, ordered.flatMap((row, i) => row.orden === i + 1 ? [] : [{ id: row.id, rondaNumero: 1, orden: i + 1 }]));
   }
 
   // BAJAS: normalizaciÃ³n estable por ronda (sin re-balancear entre rondas).
@@ -628,14 +553,7 @@ export class RondaModel {
     this.equilibrarBordeEntreRondas(rondasOrdenadas);
 
     for (const [rondaNumero, arr] of rondasOrdenadas) {
-      for (let i = 0; i < arr.length; i++) {
-        const row = arr[i];
-        const nuevoOrden = i + 1;
-        if (row.orden !== nuevoOrden) {
-          await tx.ronda.update({ where: { id: row.id }, data: { orden: nuevoOrden } });
-          row.orden = nuevoOrden;
-        }
-      }
+      await persistRoundPlan(tx, localidadId, arr.flatMap((row, i) => row.orden === i + 1 ? [] : [{ id: row.id, rondaNumero, orden: i + 1 }]));
 
       await this.compactarOrdenesRonda(tx, localidadId, rondaNumero);
     }
@@ -643,7 +561,20 @@ export class RondaModel {
 
 
   // ---------- RECOMPOSICIÃ“N GENERAL (CLARA POR RONDAS) ----------
-  public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma) {
+  public static async recomponerRondasLocalidad(localidadId: number, tx: Tx = prisma): Promise<void> {
+    if (tx === prisma) {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await prisma.$transaction(inner => this.recomponerRondasLocalidad(localidadId, inner), {
+            isolationLevel: 'Serializable', timeout: 30000,
+          });
+        } catch (error: any) {
+          // This callback only changes database state, so serialization retries are safe.
+          const conflict = error?.code === 'P2034' || ['40001', '40P01'].includes(error?.meta?.code);
+          if (!conflict || attempt >= 2) throw error;
+        }
+      }
+    }
     // 0) Limpiar duplicadas (no borrar concluidas aquÃ­)
     await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
 

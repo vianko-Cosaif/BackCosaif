@@ -1,3 +1,5 @@
+import { prisma } from '../lib/prisma';
+import type { Prisma } from '@prisma/client';
 // src/controllers/FmcController.ts
 import { Request, Response, RequestHandler } from 'express';
 import { FmcModel } from '../models/FMC/modelFMC';      // nuevo modelo en forma de clase
@@ -31,7 +33,7 @@ function readRequestedLocalidadId(body: unknown) {
 
 function resolveLocalidadId(body: unknown, user?: AuthenticatedUser) {
   const userLocalidadId = toPositiveInt(user?.localidad?.id);
-  if (!isAdminRole(user)) return userLocalidadId;
+  if (String(user?.rol).toUpperCase() !== 'ADMINISTRADOR') return userLocalidadId;
   return readRequestedLocalidadId(body) ?? userLocalidadId;
 }
 
@@ -44,6 +46,24 @@ function readRuntimeEnv(body: unknown) {
 function allowRuntimeRegistration(runtimeEnv: 'development' | 'production') {
   if (runtimeEnv === 'production') return true;
   return String(process.env.FCM_ALLOW_DEV_REGISTRATION ?? '').trim().toLowerCase() === 'true';
+}
+
+function tokenScope(user?: AuthenticatedUser): Prisma.FcmTokenWhereInput {
+  if (!user) return { id: -1 };
+  const role = String(user.rol).toUpperCase();
+  if (role === 'ADMINISTRADOR') return {};
+  if (role === 'COORDINADOR') return { usuario: { localidadId: user.localidad?.id ?? -1 } };
+  return { usuarioId: user.id };
+}
+
+const tokenMetadata = (rows: { token: string; [key: string]: unknown }[]) =>
+  rows.map(({ token, ...row }) => ({ ...row, token: `…${token.slice(-6)}` }));
+
+async function mayManageUser(user: AuthenticatedUser | undefined, usuarioId: number) {
+  if (!user) return false;
+  if (user.id === usuarioId || String(user.rol) === 'ADMINISTRADOR') return true;
+  if (String(user.rol) !== 'COORDINADOR' || !user.localidad?.id) return false;
+  return Boolean(await prisma.usuario.findFirst({ where: { id: usuarioId, localidadId: user.localidad.id }, select: { id: true } }));
 }
 
 /**
@@ -59,11 +79,11 @@ export class FmcController {
     }
 
     try {
-      const tokens = await FmcModel.obtenerTokens();
-      res.json(tokens);
+      const tokens = await FmcModel.obtenerTokens(tokenScope(user));
+      res.json(tokenMetadata(tokens));
     } catch (error) {
       fmcControllerLogger.error('Error al obtener tokens FCM', { error });
-      res.status(500).json({ error: 'Error al obtener tokens FCM', details: error });
+      res.status(500).json({ error: 'Error al obtener tokens FCM' });
     }
   };
 
@@ -77,17 +97,16 @@ export class FmcController {
       return;
     }
 
-    if (!isAdminRole(user) && Number(usuarioId) !== user?.id) {
-      res.status(403).json({ error: 'No autorizado' });
-      return;
-    }
-
     try {
-      const tokens = await FmcModel.obtenerTokensPorUsuario(Number(usuarioId));
-      res.json(tokens);
+      if (!await mayManageUser(user, Number(usuarioId))) {
+        res.status(403).json({ error: 'No autorizado' });
+        return;
+      }
+      const tokens = await FmcModel.obtenerTokensPorUsuario(Number(usuarioId), tokenScope(user));
+      res.json(tokenMetadata(tokens));
     } catch (error) {
       fmcControllerLogger.error(`Error al obtener tokens del usuario ${usuarioId}`, { error });
-      res.status(500).json({ error: 'Error al obtener tokens', details: error });
+      res.status(500).json({ error: 'Error al obtener tokens' });
     }
   };
 
@@ -98,7 +117,7 @@ export class FmcController {
     const localidadId = resolveLocalidadId(req.body, user);
     const runtimeEnv = readRuntimeEnv(req.body);
 
-    if (!user?.id || !token) {
+    if (!user?.id || !token || token.length > 500) {
       res.status(400).json({ error: 'Faltan usuario autenticado o token' });
       return;
     }
@@ -114,7 +133,7 @@ export class FmcController {
       res.status(201).json({ ok: true, localidadId, runtimeEnv });
     } catch (error) {
       fmcControllerLogger.error('Error al registrar token FCM', { error, usuarioId: user.id, localidadId, runtimeEnv });
-      res.status(500).json({ error: 'Error al registrar token', details: error });
+      res.status(500).json({ error: 'Error al registrar token' });
     }
   };
 
@@ -129,11 +148,11 @@ export class FmcController {
     }
 
     try {
-      const eliminados = await FmcModel.eliminarToken(token, isAdminRole(user) ? undefined : user?.id);
+      const eliminados = await FmcModel.eliminarTokenEnAlcance(token, tokenScope(user));
       res.json({ eliminados });
     } catch (error) {
-      fmcControllerLogger.error(`Error al eliminar token ${token}`, { error });
-      res.status(500).json({ error: 'Error al eliminar token', details: error });
+      fmcControllerLogger.error('Error al eliminar token FCM', { error });
+      res.status(500).json({ error: 'Error al eliminar token' });
     }
   };
 
@@ -147,17 +166,16 @@ export class FmcController {
       return;
     }
 
-    if (!isAdminRole(user) && Number(usuarioId) !== user?.id) {
-      res.status(403).json({ error: 'No autorizado' });
-      return;
-    }
-
     try {
-      const eliminados = await FmcModel.eliminarTokensPorUsuario(Number(usuarioId));
+      if (!await mayManageUser(user, Number(usuarioId))) {
+        res.status(403).json({ error: 'No autorizado' });
+        return;
+      }
+      const eliminados = await FmcModel.eliminarTokensPorUsuario(Number(usuarioId), tokenScope(user));
       res.json({ eliminados });
     } catch (error) {
       fmcControllerLogger.error(`Error al eliminar tokens del usuario ${usuarioId}`, { error });
-      res.status(500).json({ error: 'Error al eliminar tokens', details: error });
+      res.status(500).json({ error: 'Error al eliminar tokens' });
     }
   };
 }

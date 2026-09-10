@@ -489,6 +489,9 @@ router.all("/*", async (req, res) => {
       body = { ...req.body, empresaId: empresa.id, empresaNombre: empresa.nombre };
     }
 
+    if (req.method === 'POST' && /^\/cobranza\/cortes\/\d+\/pagos(?:\?|$)/.test(rest)) {
+      body = { ...(body as object), operacionId: req.body?.operacionId ?? req.header('x-idempotency-key') };
+    }
     const result = await proxyToComercialMs(rest, {
       method: req.method,
       body,

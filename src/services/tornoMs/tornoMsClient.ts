@@ -43,6 +43,7 @@ async function requestTornoMs<T extends Json>(
   };
 
   const resp = await fetch(url, {
+    signal: AbortSignal.timeout(20_000),
     method: init.method,
     headers,
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,

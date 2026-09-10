@@ -6,9 +6,14 @@ function isLocalHost(hostname) {
 }
 
 function loadCommercialEnvironment(options = {}) {
-  const root = path.resolve(__dirname, "..");
+  // El archivo se copia a msComercial/dist en produccion, por lo que __dirname
+  // no identifica de forma estable la raiz del backend.
+  const root = path.resolve(process.cwd());
   dotenv.config({ path: path.join(root, ".env"), override: false });
-  const loaded = dotenv.config({ path: path.join(__dirname, ".env.comercial"), override: true });
+  const loaded = dotenv.config({
+    path: path.join(root, "msComercial", ".env.comercial"),
+    override: true,
+  });
   if (loaded.error) throw loaded.error;
 
   const commercialRaw = process.env.COMERCIAL_DATABASE_URL;

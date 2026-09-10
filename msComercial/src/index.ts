@@ -2,4 +2,7 @@ const { loadCommercialEnvironment } = require("../configureDatabase.cjs");
 loadCommercialEnvironment();
 
 const { iniciarServidorComercial } = require("./Servidor");
-iniciarServidorComercial();
+void iniciarServidorComercial().catch(() => {
+  console.error("msComercial no pudo iniciar; verifica configuración, conexión y migraciones");
+  process.exitCode = 1;
+});

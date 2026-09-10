@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomUUID } from 'crypto';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import path from 'path';
 import type { RequestHandler } from 'express';
 import type { AuthenticatedUser } from '../types/auth';
@@ -77,12 +78,34 @@ export function verifyAuditRecords(records: SecurityAuditRecord[], key: string) 
 
 export async function verifySecurityAuditFile(filePath: string, key: string) {
   try {
-    const contents = await fs.readFile(filePath, 'utf8');
-    const records = contents
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => JSON.parse(line) as SecurityAuditRecord);
-    return verifyAuditRecords(records, key);
+    let previousHash = GENESIS_HASH;
+    let expectedSequence = 1;
+    let pending = '';
+    const check = (line: string) => {
+      if (!line) return;
+      const record = JSON.parse(line) as SecurityAuditRecord;
+      if (record.sequence !== expectedSequence) return { valid: false, sequence: record.sequence, reason: 'sequence_gap' } as const;
+      if (record.previousHash !== previousHash) return { valid: false, sequence: record.sequence, reason: 'previous_hash_mismatch' } as const;
+      const { hash, ...unsigned } = record;
+      if (computeAuditHash(unsigned, key) !== hash) return { valid: false, sequence: record.sequence, reason: 'hash_mismatch' } as const;
+      previousHash = hash;
+      expectedSequence++;
+    };
+    for await (const chunk of createReadStream(filePath, { encoding: 'utf8' })) {
+      pending += chunk;
+      let newline: number;
+      while ((newline = pending.indexOf('\n')) >= 0) {
+        if (newline > 262144) throw new Error('Audit record too large');
+        const error = check(pending.slice(0, newline));
+        if (error) return error;
+        pending = pending.slice(newline + 1);
+      }
+      if (pending.length > 262144) throw new Error('Audit record too large');
+    }
+    // append() always writes a complete newline-terminated record. A partial tail
+    // must block startup; appending to it would corrupt the next record.
+    if (pending) return { valid: false, sequence: expectedSequence, reason: 'incomplete_record' } as const;
+    return { valid: true, records: expectedSequence - 1, lastHash: previousHash, nextSequence: expectedSequence } as const;
   } catch (error: any) {
     if (error?.code === 'ENOENT') return verifyAuditRecords([], key);
     return { valid: false, sequence: 0, reason: 'unreadable_or_invalid_json' } as const;
@@ -94,6 +117,9 @@ export class SecurityAuditLog {
   private sequence = 0;
   private previousHash = GENESIS_HASH;
   private queue: Promise<void> = Promise.resolve();
+  private pending = 0;
+  private failed = false;
+  get available() { return !this.failed && this.pending < 1000; }
 
   constructor(
     private readonly filePath: string,
@@ -102,7 +128,7 @@ export class SecurityAuditLog {
     if (key.length < 32) throw new Error('AUDIT_HMAC_KEY debe tener al menos 32 caracteres');
   }
 
-  private async initialize() {
+  async initialize() {
     if (this.initialized) return;
     await fs.mkdir(path.dirname(this.filePath), { recursive: true });
     const verification = await verifySecurityAuditFile(this.filePath, this.key);
@@ -115,7 +141,10 @@ export class SecurityAuditLog {
   }
 
   append(event: SecurityAuditEvent): Promise<void> {
+    if (!this.available) return Promise.reject(new Error('Cola de auditoría saturada'));
+    this.pending++;
     const operation = this.queue.then(async () => {
+      if (this.failed) throw new Error('Escritor de auditoría detenido tras un fallo');
       await this.initialize();
       const unsigned: UnsignedSecurityAuditRecord = {
         auditVersion: AUDIT_VERSION,
@@ -138,7 +167,7 @@ export class SecurityAuditLog {
       this.sequence = record.sequence;
       this.previousHash = record.hash;
     });
-    this.queue = operation.catch(() => undefined);
+    this.queue = operation.catch(() => { this.failed = true; }).finally(() => { this.pending--; });
     return operation;
   }
 }
@@ -161,6 +190,10 @@ export function resolveSecurityAuditPath(
 }
 
 const configuredAuditPath = resolveSecurityAuditPath();
+if (process.env.NODE_ENV === 'production' && (!configuredAuditEnabled || configuredAuditKey.length < 32)) {
+  throw new Error('Producción requiere auditoría habilitada y AUDIT_HMAC_KEY independiente de al menos 32 caracteres');
+}
+
 
 if (configuredAuditEnabled && !configuredAuditKey) {
   logger.error('security:audit_disabled_missing_key', {
@@ -179,6 +212,9 @@ if (configuredAuditEnabled && configuredAuditKey) {
   }
 }
 
+let auditFailure = false;
+export async function initializeSecurityAudit() { await configuredAuditLog?.initialize(); }
+
 const fingerprint = (value: unknown) => createHash('sha256')
   .update(String(value ?? 'unknown'))
   .digest('hex')
@@ -196,6 +232,7 @@ const safeTargets = (params: Record<string, string>) => {
 
 export const securityAuditMiddleware: RequestHandler = (req, res, next) => {
   if (!configuredAuditLog || !MUTATING_METHODS.has(req.method.toUpperCase())) return next();
+  if (auditFailure || !configuredAuditLog.available) return res.status(503).json({ error: 'Auditoría no disponible; operación bloqueada' });
 
   res.once('finish', () => {
     const user = req.user as AuthenticatedUser | undefined;
@@ -212,7 +249,7 @@ export const securityAuditMiddleware: RequestHandler = (req, res, next) => {
       request: {
         method: req.method.toUpperCase(),
         path: req.originalUrl.split('?')[0],
-        requestId: String(req.headers['x-request-id'] ?? req.headers['x-req-id'] ?? '').trim() || undefined,
+        requestId: String(req.headers['x-request-id'] ?? req.headers['x-req-id'] ?? '').trim().slice(0, 128) || undefined,
         ipFingerprint: fingerprint(req.ip || req.socket.remoteAddress),
         userAgentFingerprint: req.headers['user-agent'] ? fingerprint(req.headers['user-agent']) : undefined,
         target: safeTargets(req.params),
@@ -230,6 +267,7 @@ export const securityAuditMiddleware: RequestHandler = (req, res, next) => {
     };
 
     void configuredAuditLog?.append(event).catch((error) => {
+      auditFailure = true;
       logger.error('security:audit_append_failed', {
         error: error instanceof Error ? error.message : String(error),
         eventId: event.eventId,

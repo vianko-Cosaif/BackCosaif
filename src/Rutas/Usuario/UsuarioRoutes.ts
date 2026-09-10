@@ -1,3 +1,6 @@
+import { concurrencyLimit, loginInputLimit } from '../../auth/requestLimits';
+import { revocarTokenPorJti, revocarTokensPorUsuario } from '../../middlewares/token.service';
+import type { AuthenticatedUser } from '../../types/auth';
 import { Router } from 'express';
 import { authenticateAccess } from '../../auth/authenticateAccess';
 import { UsuarioController } from './UsuarioController';
@@ -9,13 +12,26 @@ const router = Router();
 
  
 // Ruta pública para inicio de sesión
-router.post('/login', loginRateLimit, UsuarioController.login);
+router.post('/login', loginInputLimit, concurrencyLimit(8), loginRateLimit, UsuarioController.login);
 
 // Middleware de autenticación JWT aplicado a todas las rutas siguientes
 router.use(authenticateAccess);
 
 // Perfil de sesión y capacidades consumibles por web/móvil.
 router.get('/me', UsuarioController.me);
+router.post('/logout', async (req, res, next) => {
+  try {
+    const user = req.user as AuthenticatedUser;
+    await revocarTokenPorJti(user.auth.jti);
+    res.status(204).end();
+  } catch (error) { next(error); }
+});
+router.post('/logout-all', async (req, res, next) => {
+  try {
+    await revocarTokensPorUsuario((req.user as AuthenticatedUser).id);
+    res.status(204).end();
+  } catch (error) { next(error); }
+});
 
 // Obtener todos los usuarios
 router.get('/', requirePermission(PERMISSIONS.USERS_READ), UsuarioController.obtenerUsuarios);

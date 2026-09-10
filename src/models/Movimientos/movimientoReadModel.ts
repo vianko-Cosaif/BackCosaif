@@ -1,3 +1,4 @@
+import { publicUserSelect } from '../../auth/publicUser';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { parseMetaFromInstrucciones } from './movimiento.meta';
@@ -86,7 +87,7 @@ export class MovimientoReadModel {
 
   public static readonly MOVIMIENTO_LIST_INCLUDE = {
     empresa: true,
-    creadoPor: true,
+    creadoPor: { select: publicUserSelect },
     cliente: { select: { id: true, nombre: true, rol: true } },
     supervisor: { select: { id: true, nombre: true, rol: true } },
     coordinador: { select: { id: true, nombre: true, rol: true } },

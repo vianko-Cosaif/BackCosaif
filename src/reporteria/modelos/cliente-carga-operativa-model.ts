@@ -1,8 +1,8 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/cliente-carga-operativa-model.ts
 // Reporte de carga operativa por empresa: frecuencia, vias, dias, horas y locomotoras.
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 
 export type PeriodoCarga = 'DIA' | 'SEMANA' | 'QUINCENA' | 'MES' | 'BIMESTRE' | 'SEMESTRE' | 'ANUAL';
 
@@ -173,15 +173,9 @@ const DIAS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'];
 
 // Prisma singleton
 // eslint-disable-next-line no-var
-declare global { var __PRISMA__: PrismaClient | undefined; }
 
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 function initEstadoCounts(): EstadoCounts {
   return ESTADOS.reduce((acc, estado) => {

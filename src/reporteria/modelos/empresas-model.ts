@@ -1,10 +1,10 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/empresas-model.ts
 // Reporte de movimientos por empresa (rango por fechaSolicitud en TZ local)
 // - Recibe fechas en formato YYYY-MM-DD (TZ MX por default)
 // - Filtra por empresa(s) y localidad (opcional)
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 
 export type EmpresasReporteFilters = {
   fechaInicio: string; // YYYY-MM-DD (local)
@@ -69,15 +69,9 @@ export type EmpresasReporte = {
 
 // Prisma singleton
 // eslint-disable-next-line no-var
-declare global { var __PRISMA__: PrismaClient | undefined; }
 
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 function parseFechaLocal(fechaLocal: string, tz: string) {
   const dt = DateTime.fromISO(fechaLocal, { zone: tz });

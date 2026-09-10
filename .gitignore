@@ -24,3 +24,10 @@ logs/empresa-controller-errors.log
 /logs/incidentes
 /logs/incidentes
 logs/empresa-controller-errors.log
+
+# Private generated reports shared by API and report worker
+.private/
+ms_torreon/.env.torreon
+ms_torreon/.env.torreon
+msTorno/.env.example
+msComercial/.env.comercial

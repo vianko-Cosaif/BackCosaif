@@ -1,8 +1,9 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/ceo-base.ts
 // Base de datos para reportes CEO (JSON/PDF)
 
 import { DateTime } from 'luxon';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { AdminReporteFilters, PeriodoReporte } from './admin-model';
 
 const MX_TZ = 'America/Mexico_City';
@@ -496,13 +497,8 @@ export function computeKpis(detalles: CeoMovimientoDetalle[]): BaseKpis {
 
 // Prisma singleton
 // eslint-disable-next-line no-var
-declare global { var __PRISMA__: PrismaClient | undefined; }
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
+
 
 function buildWhereSql(filters: AdminReporteFilters, start: Date, end: Date) {
   const parts: Prisma.Sql[] = [

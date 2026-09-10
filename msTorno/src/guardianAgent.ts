@@ -1,4 +1,5 @@
 import { cpus } from "os";
+import { GuardianOutbox, guardianOutboxDirectory } from "./guardianOutbox";
 import { createHash, createHmac, randomBytes, randomUUID } from "crypto";
 import { monitorEventLoopDelay } from "perf_hooks";
 import type { RequestHandler } from "express";
@@ -79,7 +80,7 @@ export function createTornoGuardianAgent(options: AgentOptions) {
   };
   let agentSecret = "";
   let lastDatabaseOk: boolean | undefined;
-  const eventQueue: AgentEvent[] = [];
+  let outbox: GuardianOutbox<AgentEvent> | undefined;
   let activeRequests = 0;
   let intervalMaxConcurrency = 0;
   let requestsTotal = 0;
@@ -158,9 +159,9 @@ export function createTornoGuardianAgent(options: AgentOptions) {
   async function deliver(telemetry: Record<string, unknown>) {
     const endpoint = state.endpoint;
     if (!endpoint) return;
-    const pendingEvents = eventQueue.slice(0, 100);
-    const body = JSON.stringify({ telemetry, events: pendingEvents });
-    const requestId = randomUUID();
+    if (!outbox) return;
+    try {
+    const { body, requestId } = outbox.batch(telemetry);
     const timestamp = Date.now().toString();
     const bodySha256 = createHash("sha256").update(body).digest("hex");
     const canonical = [
@@ -175,7 +176,6 @@ export function createTornoGuardianAgent(options: AgentOptions) {
     const signature = createHmac("sha256", agentSecret)
       .update(canonical)
       .digest("base64url");
-    try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -189,7 +189,7 @@ export function createTornoGuardianAgent(options: AgentOptions) {
         signal: AbortSignal.timeout(7_000),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      eventQueue.splice(0, pendingEvents.length);
+      outbox.acknowledge(requestId, await response.json());
       if (!state.connected) {
         console.log(`[GuardianAgent:${service}] canal HTTP autenticado conectado`);
       }
@@ -226,8 +226,13 @@ export function createTornoGuardianAgent(options: AgentOptions) {
 
   function emitEvent(event: AgentEvent) {
     if (!agentSecret) return;
-    eventQueue.push(event);
-    if (eventQueue.length > 500) eventQueue.shift();
+    try { outbox?.enqueue(event); }
+    catch {
+      if (Date.now() - state.lastWarningAt >= 60_000) {
+        state.lastWarningAt = Date.now();
+        console.warn(`[GuardianAgent:${service}] no se pudo persistir un evento; revise espacio y permisos de outbox`);
+      }
+    }
   }
 
   function start() {
@@ -254,6 +259,12 @@ export function createTornoGuardianAgent(options: AgentOptions) {
       console.warn(`[GuardianAgent:${service}] deshabilitado: endpoint no permitido`);
       return;
     }
+    try { outbox = new GuardianOutbox<AgentEvent>(guardianOutboxDirectory(service)); }
+    catch {
+      console.warn(`[GuardianAgent:${service}] deshabilitado: outbox no disponible; revise propietario, espacio y permisos`);
+      return;
+    }
+    process.once("exit", () => { try { outbox?.close(); } catch { /* Preserve pending events. */ } });
     agentSecret = secret;
     state.endpoint = endpoint;
     void sample();

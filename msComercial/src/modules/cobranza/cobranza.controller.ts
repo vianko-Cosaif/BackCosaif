@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+import { cents } from '../../utils/money';
 import type { Request, Response } from "express";
 import { Prisma } from "../../../generated";
 import { prismaComercial } from "../../db/prisma";
@@ -192,9 +194,9 @@ function automaticDueDate(periodoFin: Date, diasCredito: unknown) {
 }
 
 function withBalance<T extends { total: unknown | null; periodoFin: Date; fechaVencimiento: Date | null; estado: string; pagos: Array<{ monto: unknown }>; cliente?: { diasCredito?: unknown } }>(corte: T) {
-  const pagado = corte.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
+  const pagado = corte.pagos.reduce((sum, pago) => sum + cents(pago.monto), 0) / 100;
   const total = money(corte.total);
-  const saldo = total == null ? null : Math.max(0, total - pagado);
+  const saldo = total == null ? null : Math.max(0, cents(total) - cents(pagado)) / 100;
   const dueDate = corte.fechaVencimiento ?? automaticDueDate(corte.periodoFin, corte.cliente?.diasCredito);
   const hasOpenBalance = saldo != null && saldo > 0 && corte.estado !== "CANCELADO";
   const today = startOfToday();
@@ -322,7 +324,10 @@ export async function createCorte(req: Request, res: Response) {
 export async function updateCorte(req: Request, res: Response) {
   const id = positiveId(req.params.id, "corteId");
   const input = corteUpdateSchema.parse(req.body);
-  const current = await prismaComercial.corteCobro.findUnique({ where: { id }, include: { pagos: true } });
+  const actor = commercialActor(req);
+  const data = await prismaComercial.$transaction(async (tx) => {
+  await tx.$queryRaw`SELECT id FROM "CorteCobro" WHERE id = ${id} FOR UPDATE`;
+  const current = await tx.corteCobro.findUnique({ where: { id }, include: { pagos: true } });
   if (!current) throw new CommercialDomainError("Corte de cobro no encontrado", 404);
   if (current.estado === "PAGADO" || current.estado === "CANCELADO") {
     throw new CommercialDomainError("Un corte pagado o cancelado ya no puede modificarse", 409);
@@ -336,9 +341,16 @@ export async function updateCorte(req: Request, res: Response) {
   if (fechaVencimiento && fechaVencimiento < fechaCorte) throw new CommercialDomainError("fechaVencimiento debe ser posterior a fechaCorte");
   const nextTotal = input.total === undefined ? money(current.total) : input.total;
   const nextInvoice = input.facturaFolio === undefined ? current.facturaFolio : input.facturaFolio;
-  const paid = current.pagos.reduce((sum, payment) => sum + Number(payment.monto), 0);
-  if (nextTotal != null && nextTotal + 0.005 < paid) {
+  const paid = current.pagos.reduce((sum, payment) => sum + cents(payment.monto), 0);
+  if (nextTotal != null && cents(nextTotal) < paid) {
     throw new CommercialDomainError("El total no puede ser menor que el monto ya cobrado", 409);
+  }
+  if (input.estado === 'PAGADO' && (nextTotal == null || cents(nextTotal) !== paid)) {
+    throw new CommercialDomainError('Un corte solo puede marcarse pagado cuando su saldo es cero', 409);
+  }
+  if (input.estado === 'CANCELADO' && paid > 0) throw new CommercialDomainError('No se puede cancelar un corte con pagos registrados', 409);
+  if (paid > 0 && input.total !== undefined && (nextTotal == null || cents(nextTotal) === paid)) {
+    throw new CommercialDomainError('Un cambio de total que liquida el saldo requiere conciliación del corte', 409);
   }
   if (input.estado && input.estado !== current.estado) {
     const allowedTransitions: Record<string, string[]> = {
@@ -356,9 +368,7 @@ export async function updateCorte(req: Request, res: Response) {
   if (input.estado && ["FACTURADO", "PARCIAL", "PAGADO"].includes(input.estado) && !nextInvoice) {
     throw new CommercialDomainError("Capture el folio de factura antes de marcar el corte como facturado", 409);
   }
-  const actor = commercialActor(req);
   const changes = cutChanges(current as unknown as Record<string, unknown>, input as unknown as Record<string, unknown>);
-  const data = await prismaComercial.$transaction(async (tx) => {
     const updated = await tx.corteCobro.update({
       where: { id },
       data: {
@@ -391,23 +401,32 @@ export async function updateCorte(req: Request, res: Response) {
 
 export async function addPago(req: Request, res: Response) {
   const corteId = positiveId(req.params.id, "corteId");
-  const input = pagoCreateSchema.parse(req.body);
+  const { operacionId, ...input } = pagoCreateSchema.parse(req.body);
+  const key = String(operacionId ?? req.header('x-idempotency-key') ?? '').trim();
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/.test(key)) throw new CommercialDomainError('Envía operacionId o X-Idempotency-Key estable para registrar el pago');
+  const requestHash = createHash('sha256').update(JSON.stringify({ corteId, input })).digest('hex');
   const actor = commercialActor(req);
   const data = await prismaComercial.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "CorteCobro" WHERE id = ${corteId} FOR UPDATE`;
+    const previous = await tx.$queryRaw<Array<{ request_hash: string; actor_id: number; response: any }>>`SELECT request_hash, actor_id, response FROM payment_operations WHERE key = ${key}`;
+    if (previous.length) {
+      if (previous[0].request_hash !== requestHash || previous[0].actor_id !== actor.id) throw new CommercialDomainError('La clave de pago ya pertenece a otra operación', 409);
+      return previous[0].response;
+    }
     const corte = await tx.corteCobro.findUnique({ where: { id: corteId }, include: { pagos: true } });
     if (!corte) throw new CommercialDomainError("Corte de cobro no encontrado", 404);
     if (corte.estado === "CANCELADO") throw new CommercialDomainError("No se puede registrar pago en un corte cancelado", 409);
-    const total = money(corte.total);
+    const total = corte.total == null ? null : cents(corte.total);
     if (total == null) throw new CommercialDomainError("Capture y apruebe el total antes de registrar un pago", 409);
     if (!["FACTURADO", "PARCIAL", "VENCIDO"].includes(corte.estado)) {
       throw new CommercialDomainError("El corte debe estar facturado antes de registrar un pago", 409);
     }
-    const previo = corte.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
-    if (previo + input.monto > total + 0.005) {
+    const previo = corte.pagos.reduce((sum, pago) => sum + cents(pago.monto), 0);
+    if (previo + cents(input.monto) > total) {
       throw new CommercialDomainError("El pago supera el saldo pendiente del corte", 409);
     }
     const payment = await tx.pagoCobranza.create({ data: { ...input, corteId, registradoPorId: actor.id } });
-    const pagado = previo + input.monto;
+    const pagado = previo + cents(input.monto);
     const estado = total != null && pagado >= total ? "PAGADO" : "PARCIAL";
     const updated = await tx.corteCobro.update({ where: { id: corteId }, data: { estado, updatedById: actor.id }, include: corteInclude });
     if (estado === "PAGADO") {
@@ -431,13 +450,15 @@ export async function addPago(req: Request, res: Response) {
           referencia: input.referencia || null,
           metodo: input.metodo || null,
         },
-        cobradoAcumulado: { anterior: previo, nuevo: pagado },
-        saldo: { anterior: Math.max(0, total - previo), nuevo: Math.max(0, total - pagado) },
+        cobradoAcumulado: { anterior: previo / 100, nuevo: pagado / 100 },
+        saldo: { anterior: Math.max(0, total - previo) / 100, nuevo: Math.max(0, total - pagado) / 100 },
       },
     });
-    return updated;
+    const response = withBalance(updated);
+    await tx.$executeRaw`INSERT INTO payment_operations (key, request_hash, actor_id, corte_id, response) VALUES (${key}, ${requestHash}, ${actor.id}, ${corteId}, ${JSON.stringify(response)}::jsonb)`;
+    return response;
   });
-  return res.status(201).json(withBalance(data));
+  return res.status(201).json(data);
 }
 
 export async function cobranzaSummary(req: Request, res: Response) {
@@ -460,14 +481,14 @@ export async function cobranzaSummary(req: Request, res: Response) {
   let sinMonto = 0;
   for (const corte of cortes) {
     const total = money(corte.total);
-    const pagado = corte.pagos.reduce((sum, pago) => sum + Number(pago.monto), 0);
+    const pagado = corte.pagos.reduce((sum, pago) => sum + cents(pago.monto), 0) / 100;
     cobrado += pagado;
     if (total == null) {
       sinMonto += 1;
       continue;
     }
     facturado += total;
-    const saldo = Math.max(0, total - pagado);
+    const saldo = Math.max(0, cents(total) - cents(pagado)) / 100;
     porCobrar += saldo;
     const dueDate = corte.fechaVencimiento ?? automaticDueDate(corte.periodoFin, corte.cliente.diasCredito);
     if (dueDate.getTime() < startOfToday()) vencido += saldo;

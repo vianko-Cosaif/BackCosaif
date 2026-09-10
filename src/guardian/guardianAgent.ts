@@ -1,4 +1,6 @@
+import { beginRequestCost, performanceRegistry } from '../performance/metrics';
 import { cpus } from "os";
+import { GuardianOutbox, guardianOutboxDirectory } from "./guardianOutbox";
 import { createHash, createHmac, randomBytes, randomUUID } from "crypto";
 import { monitorEventLoopDelay } from "perf_hooks";
 import type { RequestHandler } from "express";
@@ -94,7 +96,7 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
     connected: false,
     lastWarningAt: 0,
   };
-  const eventQueue: AgentEvent[] = [];
+  let outbox: GuardianOutbox<AgentEvent> | undefined;
   let agentSecret = "";
   let lastDatabaseOk: boolean | undefined;
   let activeRequests = 0;
@@ -121,24 +123,32 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
     activeRequestGauge.set(activeRequests);
     intervalMaxConcurrency = Math.max(intervalMaxConcurrency, activeRequests);
     requestsTotal += 1;
-    response.once("finish", () => {
+    const cost = beginRequestCost();
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
       activeRequests = Math.max(0, activeRequests - 1);
       activeRequestGauge.set(activeRequests);
-      if (response.statusCode >= 500) http5xxTotal += 1;
+      const statusCode = response.writableFinished ? response.statusCode : 499;
+      if (statusCode >= 500) http5xxTotal += 1;
       const durationMs = Number((performance.now() - started).toFixed(2));
       const labels = {
         method: request.method.toUpperCase(),
-        route: normalizedRoute(request.path),
-        status_code: String(response.statusCode),
+        route: request.route?.path ? `${request.baseUrl}${request.route.path}` : "unmatched",
+        status_code: String(statusCode),
       };
+      cost.finish(labels.method, labels.route);
       requestCounter.inc(labels);
       requestDuration.observe(labels, durationMs / 1_000);
       durations.push(durationMs);
       if (durations.length > 2_000) durations.splice(0, durations.length - 2_000);
-      const event = httpEvent(request, response.statusCode, durationMs, correlationId);
+      const event = httpEvent(request, statusCode, durationMs, correlationId);
       if (event) emitEvent(event);
-    });
-    next();
+    };
+    response.once("finish", finish);
+    response.once("close", finish);
+    cost.run(next);
   };
 
   async function sample() {
@@ -209,9 +219,9 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
   async function deliver(telemetry: Record<string, unknown>) {
     const endpoint = state.endpoint;
     if (!endpoint) return;
-    const pendingEvents = eventQueue.slice(0, 100);
-    const body = JSON.stringify({ telemetry, events: pendingEvents });
-    const requestId = randomUUID();
+    if (!outbox) return;
+    try {
+    const { body, requestId } = outbox.batch(telemetry);
     const timestamp = Date.now().toString();
     const bodySha256 = createHash("sha256").update(body).digest("hex");
     const canonical = [
@@ -226,7 +236,6 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
     const signature = createHmac("sha256", agentSecret)
       .update(canonical)
       .digest("base64url");
-    try {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -242,7 +251,7 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      eventQueue.splice(0, pendingEvents.length);
+      outbox.acknowledge(requestId, await response.json());
       if (!state.connected) {
         console.log(`[GuardianAgent:${options.service}] canal HTTP autenticado conectado`);
       }
@@ -287,8 +296,13 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
 
   function emitEvent(event: AgentEvent) {
     if (!agentSecret) return;
-    eventQueue.push(event);
-    if (eventQueue.length > 500) eventQueue.shift();
+    try { outbox?.enqueue(event); }
+    catch {
+      if (Date.now() - state.lastWarningAt >= 60_000) {
+        state.lastWarningAt = Date.now();
+        console.warn(`[GuardianAgent:${options.service}] no se pudo persistir un evento; revise espacio y permisos de outbox`);
+      }
+    }
   }
 
   function httpEvent(
@@ -370,6 +384,12 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
       console.warn(`[GuardianAgent:${options.service}] deshabilitado: endpoint no permitido`);
       return;
     }
+    try { outbox = new GuardianOutbox<AgentEvent>(guardianOutboxDirectory(options.service)); }
+    catch {
+      console.warn(`[GuardianAgent:${options.service}] deshabilitado: outbox no disponible; revise propietario, espacio y permisos`);
+      return;
+    }
+    process.once("exit", () => { try { outbox?.close(); } catch { /* Preserve pending events. */ } });
     agentSecret = secret;
     state.endpoint = endpoint;
     const seconds = Math.max(
@@ -387,7 +407,7 @@ export function createGuardianAgent(options: GuardianAgentOptions) {
   const metrics: RequestHandler = async (_request, response, next) => {
     try {
       response.setHeader("content-type", registry.contentType);
-      response.status(200).send(await registry.metrics());
+      response.status(200).send(await registry.metrics() + "\n" + await performanceRegistry.metrics());
     } catch (error) {
       next(error);
     }

@@ -22,7 +22,18 @@ export function createComercialApp(
 ): Express {
   const app = express();
   app.use(cors());
-  app.use(express.json({
+  let activeRequests = 0;
+    app.disable('x-powered-by');
+    app.use((_req, res, next) => {
+      if (activeRequests >= 4) return res.status(429).json({ error: 'Servicio ocupado; reintenta' });
+      activeRequests++;
+      let released = false;
+      const release = () => { if (!released) { released = true; activeRequests--; } };
+      res.once('finish', release); res.once('close', release);
+      res.setTimeout(60_000, () => res.destroy());
+      next();
+    });
+    app.use(express.json({
     limit: "5mb",
     verify: (req: CommercialRequest, _res, buffer) => {
       req.rawBody = Buffer.from(buffer);
@@ -57,12 +68,13 @@ export function createComercialApp(
   return app;
 }
 
-export function iniciarServidorComercial(): void {
+export async function iniciarServidorComercial(): Promise<void> {
   const port = Number(process.env.COMERCIAL_PORT || 3004);
   const host = process.env.COMERCIAL_HOST || "127.0.0.1";
   if (!process.env.COMERCIAL_DATABASE_URL) throw new Error("COMERCIAL_DATABASE_URL no configurada");
   if (!process.env.COMERCIAL_SERVICE_SECRET) throw new Error("COMERCIAL_SERVICE_SECRET no configurado");
 
+  await prismaComercial.$queryRaw`SELECT key FROM payment_operations LIMIT 0`;
   const guardianAgent = createComercialGuardianAgent({
     databaseCheck: async () => {
       await prismaComercial.$queryRaw`SELECT 1`;

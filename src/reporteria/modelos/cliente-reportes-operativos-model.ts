@@ -1,8 +1,8 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/cliente-reportes-operativos-model.ts
 // Suite de reportes operativos por empresa para cliente.
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 import { normalizarPeriodoCarga, type PeriodoCarga } from './cliente-carga-operativa-model';
 
 export type ClienteReportFilters = {
@@ -223,15 +223,9 @@ const ESTADOS: Array<keyof EstadoCounts> = [
 
 // Prisma singleton
 // eslint-disable-next-line no-var
-declare global { var __PRISMA__: PrismaClient | undefined; }
 
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 function initEstadoCounts(): EstadoCounts {
   return ESTADOS.reduce((acc, estado) => {

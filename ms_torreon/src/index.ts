@@ -1,7 +1,9 @@
 import path from "path";
 import dotenv from "dotenv";
 
-const envPath = path.resolve(__dirname, "..", ".env.torreon");
+// PM2 ejecuta el build desde la raiz del backend. Resolver desde cwd evita
+// buscar el archivo dentro de ms_torreon/dist despues de compilar.
+const envPath = path.resolve(process.cwd(), "ms_torreon", ".env.torreon");
 const envResult = dotenv.config({ path: envPath, override: true });
 
 if (envResult.error) {

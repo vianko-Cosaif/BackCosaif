@@ -1,8 +1,8 @@
+import { prisma } from '../lib/prisma';
 // src/cron/revokeEvery2h.ts
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+
 let running = false;
 
 cron.schedule(

@@ -1,10 +1,10 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/locomotoras-model.ts
 // Reporte por locomotoras (rango por fechaInicio en TZ local)
 // - Filtra movimientos por locomotiveNumber y fechaInicio (UTC)
 // - Recibe fechas en formato YYYY-MM-DD (TZ MX por default)
 
 import { DateTime } from 'luxon';
-import { PrismaClient } from '@prisma/client';
 
 export type LocomotorasReporteFilters = {
   fechaInicio: string; // YYYY-MM-DD (local)
@@ -63,15 +63,9 @@ export type LocomotorasReporte = {
 
 // Prisma singleton
 // eslint-disable-next-line no-var
-declare global { var __PRISMA__: PrismaClient | undefined; }
 
-const prisma: PrismaClient =
-  global.__PRISMA__ ??
-  new PrismaClient({
-    log: process.env.PRISMA_LOG === '1' ? ['error', 'warn'] : undefined,
-  });
 
-if (process.env.NODE_ENV !== 'production') global.__PRISMA__ = prisma;
+
 
 function parseFechaLocal(fechaLocal: string, tz: string) {
   const dt = DateTime.fromISO(fechaLocal, { zone: tz });

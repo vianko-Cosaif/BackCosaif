@@ -73,6 +73,11 @@ export type PagoCobranza = $Result.DefaultSelection<Prisma.$PagoCobranzaPayload>
  * 
  */
 export type GestionCobranza = $Result.DefaultSelection<Prisma.$GestionCobranzaPayload>
+/**
+ * Model PaymentOperation
+ * 
+ */
+export type PaymentOperation = $Result.DefaultSelection<Prisma.$PaymentOperationPayload>
 
 /**
  * Enums
@@ -502,6 +507,16 @@ export class PrismaClient<
     * ```
     */
   get gestionCobranza(): Prisma.GestionCobranzaDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.paymentOperation`: Exposes CRUD operations for the **PaymentOperation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PaymentOperations
+    * const paymentOperations = await prisma.paymentOperation.findMany()
+    * ```
+    */
+  get paymentOperation(): Prisma.PaymentOperationDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -954,7 +969,8 @@ export namespace Prisma {
     CorteCobro: 'CorteCobro',
     CorteCobroDetalle: 'CorteCobroDetalle',
     PagoCobranza: 'PagoCobranza',
-    GestionCobranza: 'GestionCobranza'
+    GestionCobranza: 'GestionCobranza',
+    PaymentOperation: 'PaymentOperation'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -973,7 +989,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "clienteComercial" | "contactoCliente" | "contratoComercial" | "tarifaCliente" | "planComercial" | "planComercialDetalle" | "eventoOperativoComercial" | "paqueteComercial" | "corteCobro" | "corteCobroDetalle" | "pagoCobranza" | "gestionCobranza"
+      modelProps: "clienteComercial" | "contactoCliente" | "contratoComercial" | "tarifaCliente" | "planComercial" | "planComercialDetalle" | "eventoOperativoComercial" | "paqueteComercial" | "corteCobro" | "corteCobroDetalle" | "pagoCobranza" | "gestionCobranza" | "paymentOperation"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1865,6 +1881,80 @@ export namespace Prisma {
           }
         }
       }
+      PaymentOperation: {
+        payload: Prisma.$PaymentOperationPayload<ExtArgs>
+        fields: Prisma.PaymentOperationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PaymentOperationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PaymentOperationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>
+          }
+          findFirst: {
+            args: Prisma.PaymentOperationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PaymentOperationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>
+          }
+          findMany: {
+            args: Prisma.PaymentOperationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>[]
+          }
+          create: {
+            args: Prisma.PaymentOperationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>
+          }
+          createMany: {
+            args: Prisma.PaymentOperationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PaymentOperationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>[]
+          }
+          delete: {
+            args: Prisma.PaymentOperationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>
+          }
+          update: {
+            args: Prisma.PaymentOperationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>
+          }
+          deleteMany: {
+            args: Prisma.PaymentOperationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PaymentOperationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PaymentOperationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>[]
+          }
+          upsert: {
+            args: Prisma.PaymentOperationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentOperationPayload>
+          }
+          aggregate: {
+            args: Prisma.PaymentOperationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePaymentOperation>
+          }
+          groupBy: {
+            args: Prisma.PaymentOperationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PaymentOperationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PaymentOperationCountArgs<ExtArgs>
+            result: $Utils.Optional<PaymentOperationCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1973,6 +2063,7 @@ export namespace Prisma {
     corteCobroDetalle?: CorteCobroDetalleOmit
     pagoCobranza?: PagoCobranzaOmit
     gestionCobranza?: GestionCobranzaOmit
+    paymentOperation?: PaymentOperationOmit
   }
 
   /* Types for Logging */
@@ -2267,12 +2358,14 @@ export namespace Prisma {
    */
 
   export type CorteCobroCountOutputType = {
+    paymentOperations: number
     detalles: number
     pagos: number
     gestiones: number
   }
 
   export type CorteCobroCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    paymentOperations?: boolean | CorteCobroCountOutputTypeCountPaymentOperationsArgs
     detalles?: boolean | CorteCobroCountOutputTypeCountDetallesArgs
     pagos?: boolean | CorteCobroCountOutputTypeCountPagosArgs
     gestiones?: boolean | CorteCobroCountOutputTypeCountGestionesArgs
@@ -2287,6 +2380,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the CorteCobroCountOutputType
      */
     select?: CorteCobroCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * CorteCobroCountOutputType without action
+   */
+  export type CorteCobroCountOutputTypeCountPaymentOperationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentOperationWhereInput
   }
 
   /**
@@ -13336,6 +13436,7 @@ export namespace Prisma {
     updatedById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    paymentOperations?: boolean | CorteCobro$paymentOperationsArgs<ExtArgs>
     cliente?: boolean | ClienteComercialDefaultArgs<ExtArgs>
     contrato?: boolean | CorteCobro$contratoArgs<ExtArgs>
     detalles?: boolean | CorteCobro$detallesArgs<ExtArgs>
@@ -13431,6 +13532,7 @@ export namespace Prisma {
 
   export type CorteCobroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clienteComercialId" | "contratoId" | "folio" | "periodoInicio" | "periodoFin" | "fechaCorte" | "fechaVencimiento" | "estado" | "subtotal" | "iva" | "total" | "moneda" | "facturaFolio" | "facturaUuid" | "facturaPdfUrl" | "facturaXmlUrl" | "notas" | "aprobadoPorId" | "aprobadoAt" | "createdById" | "updatedById" | "createdAt" | "updatedAt", ExtArgs["result"]["corteCobro"]>
   export type CorteCobroInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    paymentOperations?: boolean | CorteCobro$paymentOperationsArgs<ExtArgs>
     cliente?: boolean | ClienteComercialDefaultArgs<ExtArgs>
     contrato?: boolean | CorteCobro$contratoArgs<ExtArgs>
     detalles?: boolean | CorteCobro$detallesArgs<ExtArgs>
@@ -13450,6 +13552,7 @@ export namespace Prisma {
   export type $CorteCobroPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "CorteCobro"
     objects: {
+      paymentOperations: Prisma.$PaymentOperationPayload<ExtArgs>[]
       cliente: Prisma.$ClienteComercialPayload<ExtArgs>
       contrato: Prisma.$ContratoComercialPayload<ExtArgs> | null
       detalles: Prisma.$CorteCobroDetallePayload<ExtArgs>[]
@@ -13875,6 +13978,7 @@ export namespace Prisma {
    */
   export interface Prisma__CorteCobroClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    paymentOperations<T extends CorteCobro$paymentOperationsArgs<ExtArgs> = {}>(args?: Subset<T, CorteCobro$paymentOperationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     cliente<T extends ClienteComercialDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ClienteComercialDefaultArgs<ExtArgs>>): Prisma__ClienteComercialClient<$Result.GetResult<Prisma.$ClienteComercialPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     contrato<T extends CorteCobro$contratoArgs<ExtArgs> = {}>(args?: Subset<T, CorteCobro$contratoArgs<ExtArgs>>): Prisma__ContratoComercialClient<$Result.GetResult<Prisma.$ContratoComercialPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     detalles<T extends CorteCobro$detallesArgs<ExtArgs> = {}>(args?: Subset<T, CorteCobro$detallesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CorteCobroDetallePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -14326,6 +14430,30 @@ export namespace Prisma {
      * Limit how many CorteCobros to delete.
      */
     limit?: number
+  }
+
+  /**
+   * CorteCobro.paymentOperations
+   */
+  export type CorteCobro$paymentOperationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    where?: PaymentOperationWhereInput
+    orderBy?: PaymentOperationOrderByWithRelationInput | PaymentOperationOrderByWithRelationInput[]
+    cursor?: PaymentOperationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PaymentOperationScalarFieldEnum | PaymentOperationScalarFieldEnum[]
   }
 
   /**
@@ -18179,6 +18307,1111 @@ export namespace Prisma {
 
 
   /**
+   * Model PaymentOperation
+   */
+
+  export type AggregatePaymentOperation = {
+    _count: PaymentOperationCountAggregateOutputType | null
+    _avg: PaymentOperationAvgAggregateOutputType | null
+    _sum: PaymentOperationSumAggregateOutputType | null
+    _min: PaymentOperationMinAggregateOutputType | null
+    _max: PaymentOperationMaxAggregateOutputType | null
+  }
+
+  export type PaymentOperationAvgAggregateOutputType = {
+    actorId: number | null
+    corteId: number | null
+  }
+
+  export type PaymentOperationSumAggregateOutputType = {
+    actorId: number | null
+    corteId: number | null
+  }
+
+  export type PaymentOperationMinAggregateOutputType = {
+    key: string | null
+    requestHash: string | null
+    actorId: number | null
+    corteId: number | null
+    createdAt: Date | null
+  }
+
+  export type PaymentOperationMaxAggregateOutputType = {
+    key: string | null
+    requestHash: string | null
+    actorId: number | null
+    corteId: number | null
+    createdAt: Date | null
+  }
+
+  export type PaymentOperationCountAggregateOutputType = {
+    key: number
+    requestHash: number
+    actorId: number
+    corteId: number
+    response: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PaymentOperationAvgAggregateInputType = {
+    actorId?: true
+    corteId?: true
+  }
+
+  export type PaymentOperationSumAggregateInputType = {
+    actorId?: true
+    corteId?: true
+  }
+
+  export type PaymentOperationMinAggregateInputType = {
+    key?: true
+    requestHash?: true
+    actorId?: true
+    corteId?: true
+    createdAt?: true
+  }
+
+  export type PaymentOperationMaxAggregateInputType = {
+    key?: true
+    requestHash?: true
+    actorId?: true
+    corteId?: true
+    createdAt?: true
+  }
+
+  export type PaymentOperationCountAggregateInputType = {
+    key?: true
+    requestHash?: true
+    actorId?: true
+    corteId?: true
+    response?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PaymentOperationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentOperation to aggregate.
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentOperations to fetch.
+     */
+    orderBy?: PaymentOperationOrderByWithRelationInput | PaymentOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PaymentOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PaymentOperations
+    **/
+    _count?: true | PaymentOperationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PaymentOperationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PaymentOperationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PaymentOperationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PaymentOperationMaxAggregateInputType
+  }
+
+  export type GetPaymentOperationAggregateType<T extends PaymentOperationAggregateArgs> = {
+        [P in keyof T & keyof AggregatePaymentOperation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePaymentOperation[P]>
+      : GetScalarType<T[P], AggregatePaymentOperation[P]>
+  }
+
+
+
+
+  export type PaymentOperationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentOperationWhereInput
+    orderBy?: PaymentOperationOrderByWithAggregationInput | PaymentOperationOrderByWithAggregationInput[]
+    by: PaymentOperationScalarFieldEnum[] | PaymentOperationScalarFieldEnum
+    having?: PaymentOperationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PaymentOperationCountAggregateInputType | true
+    _avg?: PaymentOperationAvgAggregateInputType
+    _sum?: PaymentOperationSumAggregateInputType
+    _min?: PaymentOperationMinAggregateInputType
+    _max?: PaymentOperationMaxAggregateInputType
+  }
+
+  export type PaymentOperationGroupByOutputType = {
+    key: string
+    requestHash: string
+    actorId: number
+    corteId: number
+    response: JsonValue
+    createdAt: Date
+    _count: PaymentOperationCountAggregateOutputType | null
+    _avg: PaymentOperationAvgAggregateOutputType | null
+    _sum: PaymentOperationSumAggregateOutputType | null
+    _min: PaymentOperationMinAggregateOutputType | null
+    _max: PaymentOperationMaxAggregateOutputType | null
+  }
+
+  type GetPaymentOperationGroupByPayload<T extends PaymentOperationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PaymentOperationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PaymentOperationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PaymentOperationGroupByOutputType[P]>
+            : GetScalarType<T[P], PaymentOperationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PaymentOperationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    key?: boolean
+    requestHash?: boolean
+    actorId?: boolean
+    corteId?: boolean
+    response?: boolean
+    createdAt?: boolean
+    corte?: boolean | CorteCobroDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentOperation"]>
+
+  export type PaymentOperationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    key?: boolean
+    requestHash?: boolean
+    actorId?: boolean
+    corteId?: boolean
+    response?: boolean
+    createdAt?: boolean
+    corte?: boolean | CorteCobroDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentOperation"]>
+
+  export type PaymentOperationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    key?: boolean
+    requestHash?: boolean
+    actorId?: boolean
+    corteId?: boolean
+    response?: boolean
+    createdAt?: boolean
+    corte?: boolean | CorteCobroDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentOperation"]>
+
+  export type PaymentOperationSelectScalar = {
+    key?: boolean
+    requestHash?: boolean
+    actorId?: boolean
+    corteId?: boolean
+    response?: boolean
+    createdAt?: boolean
+  }
+
+  export type PaymentOperationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"key" | "requestHash" | "actorId" | "corteId" | "response" | "createdAt", ExtArgs["result"]["paymentOperation"]>
+  export type PaymentOperationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    corte?: boolean | CorteCobroDefaultArgs<ExtArgs>
+  }
+  export type PaymentOperationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    corte?: boolean | CorteCobroDefaultArgs<ExtArgs>
+  }
+  export type PaymentOperationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    corte?: boolean | CorteCobroDefaultArgs<ExtArgs>
+  }
+
+  export type $PaymentOperationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PaymentOperation"
+    objects: {
+      corte: Prisma.$CorteCobroPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      key: string
+      requestHash: string
+      actorId: number
+      corteId: number
+      response: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["paymentOperation"]>
+    composites: {}
+  }
+
+  type PaymentOperationGetPayload<S extends boolean | null | undefined | PaymentOperationDefaultArgs> = $Result.GetResult<Prisma.$PaymentOperationPayload, S>
+
+  type PaymentOperationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PaymentOperationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PaymentOperationCountAggregateInputType | true
+    }
+
+  export interface PaymentOperationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PaymentOperation'], meta: { name: 'PaymentOperation' } }
+    /**
+     * Find zero or one PaymentOperation that matches the filter.
+     * @param {PaymentOperationFindUniqueArgs} args - Arguments to find a PaymentOperation
+     * @example
+     * // Get one PaymentOperation
+     * const paymentOperation = await prisma.paymentOperation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PaymentOperationFindUniqueArgs>(args: SelectSubset<T, PaymentOperationFindUniqueArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PaymentOperation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PaymentOperationFindUniqueOrThrowArgs} args - Arguments to find a PaymentOperation
+     * @example
+     * // Get one PaymentOperation
+     * const paymentOperation = await prisma.paymentOperation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PaymentOperationFindUniqueOrThrowArgs>(args: SelectSubset<T, PaymentOperationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentOperation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationFindFirstArgs} args - Arguments to find a PaymentOperation
+     * @example
+     * // Get one PaymentOperation
+     * const paymentOperation = await prisma.paymentOperation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PaymentOperationFindFirstArgs>(args?: SelectSubset<T, PaymentOperationFindFirstArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentOperation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationFindFirstOrThrowArgs} args - Arguments to find a PaymentOperation
+     * @example
+     * // Get one PaymentOperation
+     * const paymentOperation = await prisma.paymentOperation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PaymentOperationFindFirstOrThrowArgs>(args?: SelectSubset<T, PaymentOperationFindFirstOrThrowArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PaymentOperations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PaymentOperations
+     * const paymentOperations = await prisma.paymentOperation.findMany()
+     * 
+     * // Get first 10 PaymentOperations
+     * const paymentOperations = await prisma.paymentOperation.findMany({ take: 10 })
+     * 
+     * // Only select the `key`
+     * const paymentOperationWithKeyOnly = await prisma.paymentOperation.findMany({ select: { key: true } })
+     * 
+     */
+    findMany<T extends PaymentOperationFindManyArgs>(args?: SelectSubset<T, PaymentOperationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PaymentOperation.
+     * @param {PaymentOperationCreateArgs} args - Arguments to create a PaymentOperation.
+     * @example
+     * // Create one PaymentOperation
+     * const PaymentOperation = await prisma.paymentOperation.create({
+     *   data: {
+     *     // ... data to create a PaymentOperation
+     *   }
+     * })
+     * 
+     */
+    create<T extends PaymentOperationCreateArgs>(args: SelectSubset<T, PaymentOperationCreateArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PaymentOperations.
+     * @param {PaymentOperationCreateManyArgs} args - Arguments to create many PaymentOperations.
+     * @example
+     * // Create many PaymentOperations
+     * const paymentOperation = await prisma.paymentOperation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PaymentOperationCreateManyArgs>(args?: SelectSubset<T, PaymentOperationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PaymentOperations and returns the data saved in the database.
+     * @param {PaymentOperationCreateManyAndReturnArgs} args - Arguments to create many PaymentOperations.
+     * @example
+     * // Create many PaymentOperations
+     * const paymentOperation = await prisma.paymentOperation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PaymentOperations and only return the `key`
+     * const paymentOperationWithKeyOnly = await prisma.paymentOperation.createManyAndReturn({
+     *   select: { key: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PaymentOperationCreateManyAndReturnArgs>(args?: SelectSubset<T, PaymentOperationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PaymentOperation.
+     * @param {PaymentOperationDeleteArgs} args - Arguments to delete one PaymentOperation.
+     * @example
+     * // Delete one PaymentOperation
+     * const PaymentOperation = await prisma.paymentOperation.delete({
+     *   where: {
+     *     // ... filter to delete one PaymentOperation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PaymentOperationDeleteArgs>(args: SelectSubset<T, PaymentOperationDeleteArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PaymentOperation.
+     * @param {PaymentOperationUpdateArgs} args - Arguments to update one PaymentOperation.
+     * @example
+     * // Update one PaymentOperation
+     * const paymentOperation = await prisma.paymentOperation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PaymentOperationUpdateArgs>(args: SelectSubset<T, PaymentOperationUpdateArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PaymentOperations.
+     * @param {PaymentOperationDeleteManyArgs} args - Arguments to filter PaymentOperations to delete.
+     * @example
+     * // Delete a few PaymentOperations
+     * const { count } = await prisma.paymentOperation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PaymentOperationDeleteManyArgs>(args?: SelectSubset<T, PaymentOperationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PaymentOperations
+     * const paymentOperation = await prisma.paymentOperation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PaymentOperationUpdateManyArgs>(args: SelectSubset<T, PaymentOperationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentOperations and returns the data updated in the database.
+     * @param {PaymentOperationUpdateManyAndReturnArgs} args - Arguments to update many PaymentOperations.
+     * @example
+     * // Update many PaymentOperations
+     * const paymentOperation = await prisma.paymentOperation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PaymentOperations and only return the `key`
+     * const paymentOperationWithKeyOnly = await prisma.paymentOperation.updateManyAndReturn({
+     *   select: { key: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PaymentOperationUpdateManyAndReturnArgs>(args: SelectSubset<T, PaymentOperationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PaymentOperation.
+     * @param {PaymentOperationUpsertArgs} args - Arguments to update or create a PaymentOperation.
+     * @example
+     * // Update or create a PaymentOperation
+     * const paymentOperation = await prisma.paymentOperation.upsert({
+     *   create: {
+     *     // ... data to create a PaymentOperation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PaymentOperation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PaymentOperationUpsertArgs>(args: SelectSubset<T, PaymentOperationUpsertArgs<ExtArgs>>): Prisma__PaymentOperationClient<$Result.GetResult<Prisma.$PaymentOperationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PaymentOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationCountArgs} args - Arguments to filter PaymentOperations to count.
+     * @example
+     * // Count the number of PaymentOperations
+     * const count = await prisma.paymentOperation.count({
+     *   where: {
+     *     // ... the filter for the PaymentOperations we want to count
+     *   }
+     * })
+    **/
+    count<T extends PaymentOperationCountArgs>(
+      args?: Subset<T, PaymentOperationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PaymentOperationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PaymentOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PaymentOperationAggregateArgs>(args: Subset<T, PaymentOperationAggregateArgs>): Prisma.PrismaPromise<GetPaymentOperationAggregateType<T>>
+
+    /**
+     * Group by PaymentOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentOperationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PaymentOperationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PaymentOperationGroupByArgs['orderBy'] }
+        : { orderBy?: PaymentOperationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PaymentOperationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPaymentOperationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PaymentOperation model
+   */
+  readonly fields: PaymentOperationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PaymentOperation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PaymentOperationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    corte<T extends CorteCobroDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CorteCobroDefaultArgs<ExtArgs>>): Prisma__CorteCobroClient<$Result.GetResult<Prisma.$CorteCobroPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PaymentOperation model
+   */
+  interface PaymentOperationFieldRefs {
+    readonly key: FieldRef<"PaymentOperation", 'String'>
+    readonly requestHash: FieldRef<"PaymentOperation", 'String'>
+    readonly actorId: FieldRef<"PaymentOperation", 'Int'>
+    readonly corteId: FieldRef<"PaymentOperation", 'Int'>
+    readonly response: FieldRef<"PaymentOperation", 'Json'>
+    readonly createdAt: FieldRef<"PaymentOperation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PaymentOperation findUnique
+   */
+  export type PaymentOperationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentOperation to fetch.
+     */
+    where: PaymentOperationWhereUniqueInput
+  }
+
+  /**
+   * PaymentOperation findUniqueOrThrow
+   */
+  export type PaymentOperationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentOperation to fetch.
+     */
+    where: PaymentOperationWhereUniqueInput
+  }
+
+  /**
+   * PaymentOperation findFirst
+   */
+  export type PaymentOperationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentOperation to fetch.
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentOperations to fetch.
+     */
+    orderBy?: PaymentOperationOrderByWithRelationInput | PaymentOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentOperations.
+     */
+    cursor?: PaymentOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentOperations.
+     */
+    distinct?: PaymentOperationScalarFieldEnum | PaymentOperationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentOperation findFirstOrThrow
+   */
+  export type PaymentOperationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentOperation to fetch.
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentOperations to fetch.
+     */
+    orderBy?: PaymentOperationOrderByWithRelationInput | PaymentOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentOperations.
+     */
+    cursor?: PaymentOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentOperations.
+     */
+    distinct?: PaymentOperationScalarFieldEnum | PaymentOperationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentOperation findMany
+   */
+  export type PaymentOperationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentOperations to fetch.
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentOperations to fetch.
+     */
+    orderBy?: PaymentOperationOrderByWithRelationInput | PaymentOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PaymentOperations.
+     */
+    cursor?: PaymentOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentOperations.
+     */
+    skip?: number
+    distinct?: PaymentOperationScalarFieldEnum | PaymentOperationScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentOperation create
+   */
+  export type PaymentOperationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PaymentOperation.
+     */
+    data: XOR<PaymentOperationCreateInput, PaymentOperationUncheckedCreateInput>
+  }
+
+  /**
+   * PaymentOperation createMany
+   */
+  export type PaymentOperationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PaymentOperations.
+     */
+    data: PaymentOperationCreateManyInput | PaymentOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentOperation createManyAndReturn
+   */
+  export type PaymentOperationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * The data used to create many PaymentOperations.
+     */
+    data: PaymentOperationCreateManyInput | PaymentOperationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PaymentOperation update
+   */
+  export type PaymentOperationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PaymentOperation.
+     */
+    data: XOR<PaymentOperationUpdateInput, PaymentOperationUncheckedUpdateInput>
+    /**
+     * Choose, which PaymentOperation to update.
+     */
+    where: PaymentOperationWhereUniqueInput
+  }
+
+  /**
+   * PaymentOperation updateMany
+   */
+  export type PaymentOperationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PaymentOperations.
+     */
+    data: XOR<PaymentOperationUpdateManyMutationInput, PaymentOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentOperations to update
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * Limit how many PaymentOperations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentOperation updateManyAndReturn
+   */
+  export type PaymentOperationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * The data used to update PaymentOperations.
+     */
+    data: XOR<PaymentOperationUpdateManyMutationInput, PaymentOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentOperations to update
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * Limit how many PaymentOperations to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PaymentOperation upsert
+   */
+  export type PaymentOperationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PaymentOperation to update in case it exists.
+     */
+    where: PaymentOperationWhereUniqueInput
+    /**
+     * In case the PaymentOperation found by the `where` argument doesn't exist, create a new PaymentOperation with this data.
+     */
+    create: XOR<PaymentOperationCreateInput, PaymentOperationUncheckedCreateInput>
+    /**
+     * In case the PaymentOperation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PaymentOperationUpdateInput, PaymentOperationUncheckedUpdateInput>
+  }
+
+  /**
+   * PaymentOperation delete
+   */
+  export type PaymentOperationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+    /**
+     * Filter which PaymentOperation to delete.
+     */
+    where: PaymentOperationWhereUniqueInput
+  }
+
+  /**
+   * PaymentOperation deleteMany
+   */
+  export type PaymentOperationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentOperations to delete
+     */
+    where?: PaymentOperationWhereInput
+    /**
+     * Limit how many PaymentOperations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentOperation without action
+   */
+  export type PaymentOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentOperation
+     */
+    select?: PaymentOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentOperation
+     */
+    omit?: PaymentOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentOperationInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -18467,6 +19700,18 @@ export namespace Prisma {
   };
 
   export type GestionCobranzaScalarFieldEnum = (typeof GestionCobranzaScalarFieldEnum)[keyof typeof GestionCobranzaScalarFieldEnum]
+
+
+  export const PaymentOperationScalarFieldEnum: {
+    key: 'key',
+    requestHash: 'requestHash',
+    actorId: 'actorId',
+    corteId: 'corteId',
+    response: 'response',
+    createdAt: 'createdAt'
+  };
+
+  export type PaymentOperationScalarFieldEnum = (typeof PaymentOperationScalarFieldEnum)[keyof typeof PaymentOperationScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -19819,6 +21064,7 @@ export namespace Prisma {
     updatedById?: IntFilter<"CorteCobro"> | number
     createdAt?: DateTimeFilter<"CorteCobro"> | Date | string
     updatedAt?: DateTimeFilter<"CorteCobro"> | Date | string
+    paymentOperations?: PaymentOperationListRelationFilter
     cliente?: XOR<ClienteComercialScalarRelationFilter, ClienteComercialWhereInput>
     contrato?: XOR<ContratoComercialNullableScalarRelationFilter, ContratoComercialWhereInput> | null
     detalles?: CorteCobroDetalleListRelationFilter
@@ -19851,6 +21097,7 @@ export namespace Prisma {
     updatedById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    paymentOperations?: PaymentOperationOrderByRelationAggregateInput
     cliente?: ClienteComercialOrderByWithRelationInput
     contrato?: ContratoComercialOrderByWithRelationInput
     detalles?: CorteCobroDetalleOrderByRelationAggregateInput
@@ -19886,6 +21133,7 @@ export namespace Prisma {
     updatedById?: IntFilter<"CorteCobro"> | number
     createdAt?: DateTimeFilter<"CorteCobro"> | Date | string
     updatedAt?: DateTimeFilter<"CorteCobro"> | Date | string
+    paymentOperations?: PaymentOperationListRelationFilter
     cliente?: XOR<ClienteComercialScalarRelationFilter, ClienteComercialWhereInput>
     contrato?: XOR<ContratoComercialNullableScalarRelationFilter, ContratoComercialWhereInput> | null
     detalles?: CorteCobroDetalleListRelationFilter
@@ -20273,6 +21521,68 @@ export namespace Prisma {
     updatedById?: IntWithAggregatesFilter<"GestionCobranza"> | number
     createdAt?: DateTimeWithAggregatesFilter<"GestionCobranza"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GestionCobranza"> | Date | string
+  }
+
+  export type PaymentOperationWhereInput = {
+    AND?: PaymentOperationWhereInput | PaymentOperationWhereInput[]
+    OR?: PaymentOperationWhereInput[]
+    NOT?: PaymentOperationWhereInput | PaymentOperationWhereInput[]
+    key?: StringFilter<"PaymentOperation"> | string
+    requestHash?: StringFilter<"PaymentOperation"> | string
+    actorId?: IntFilter<"PaymentOperation"> | number
+    corteId?: IntFilter<"PaymentOperation"> | number
+    response?: JsonFilter<"PaymentOperation">
+    createdAt?: DateTimeFilter<"PaymentOperation"> | Date | string
+    corte?: XOR<CorteCobroScalarRelationFilter, CorteCobroWhereInput>
+  }
+
+  export type PaymentOperationOrderByWithRelationInput = {
+    key?: SortOrder
+    requestHash?: SortOrder
+    actorId?: SortOrder
+    corteId?: SortOrder
+    response?: SortOrder
+    createdAt?: SortOrder
+    corte?: CorteCobroOrderByWithRelationInput
+  }
+
+  export type PaymentOperationWhereUniqueInput = Prisma.AtLeast<{
+    key?: string
+    AND?: PaymentOperationWhereInput | PaymentOperationWhereInput[]
+    OR?: PaymentOperationWhereInput[]
+    NOT?: PaymentOperationWhereInput | PaymentOperationWhereInput[]
+    requestHash?: StringFilter<"PaymentOperation"> | string
+    actorId?: IntFilter<"PaymentOperation"> | number
+    corteId?: IntFilter<"PaymentOperation"> | number
+    response?: JsonFilter<"PaymentOperation">
+    createdAt?: DateTimeFilter<"PaymentOperation"> | Date | string
+    corte?: XOR<CorteCobroScalarRelationFilter, CorteCobroWhereInput>
+  }, "key">
+
+  export type PaymentOperationOrderByWithAggregationInput = {
+    key?: SortOrder
+    requestHash?: SortOrder
+    actorId?: SortOrder
+    corteId?: SortOrder
+    response?: SortOrder
+    createdAt?: SortOrder
+    _count?: PaymentOperationCountOrderByAggregateInput
+    _avg?: PaymentOperationAvgOrderByAggregateInput
+    _max?: PaymentOperationMaxOrderByAggregateInput
+    _min?: PaymentOperationMinOrderByAggregateInput
+    _sum?: PaymentOperationSumOrderByAggregateInput
+  }
+
+  export type PaymentOperationScalarWhereWithAggregatesInput = {
+    AND?: PaymentOperationScalarWhereWithAggregatesInput | PaymentOperationScalarWhereWithAggregatesInput[]
+    OR?: PaymentOperationScalarWhereWithAggregatesInput[]
+    NOT?: PaymentOperationScalarWhereWithAggregatesInput | PaymentOperationScalarWhereWithAggregatesInput[]
+    key?: StringWithAggregatesFilter<"PaymentOperation"> | string
+    requestHash?: StringWithAggregatesFilter<"PaymentOperation"> | string
+    actorId?: IntWithAggregatesFilter<"PaymentOperation"> | number
+    corteId?: IntWithAggregatesFilter<"PaymentOperation"> | number
+    response?: JsonWithAggregatesFilter<"PaymentOperation">
+    createdAt?: DateTimeWithAggregatesFilter<"PaymentOperation"> | Date | string
   }
 
   export type ClienteComercialCreateInput = {
@@ -21448,6 +22758,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationCreateNestedManyWithoutCorteInput
     cliente: ClienteComercialCreateNestedOneWithoutCortesInput
     contrato?: ContratoComercialCreateNestedOneWithoutCortesInput
     detalles?: CorteCobroDetalleCreateNestedManyWithoutCorteInput
@@ -21480,6 +22791,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationUncheckedCreateNestedManyWithoutCorteInput
     detalles?: CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaUncheckedCreateNestedManyWithoutCorteInput
     gestiones?: GestionCobranzaUncheckedCreateNestedManyWithoutCorteInput
@@ -21507,6 +22819,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUpdateManyWithoutCorteNestedInput
     cliente?: ClienteComercialUpdateOneRequiredWithoutCortesNestedInput
     contrato?: ContratoComercialUpdateOneWithoutCortesNestedInput
     detalles?: CorteCobroDetalleUpdateManyWithoutCorteNestedInput
@@ -21539,6 +22852,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput
     detalles?: CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUncheckedUpdateManyWithoutCorteNestedInput
     gestiones?: GestionCobranzaUncheckedUpdateManyWithoutCorteNestedInput
@@ -21978,6 +23292,68 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentOperationCreateInput = {
+    key: string
+    requestHash: string
+    actorId: number
+    response: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    corte: CorteCobroCreateNestedOneWithoutPaymentOperationsInput
+  }
+
+  export type PaymentOperationUncheckedCreateInput = {
+    key: string
+    requestHash: string
+    actorId: number
+    corteId: number
+    response: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PaymentOperationUpdateInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    corte?: CorteCobroUpdateOneRequiredWithoutPaymentOperationsNestedInput
+  }
+
+  export type PaymentOperationUncheckedUpdateInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    corteId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentOperationCreateManyInput = {
+    key: string
+    requestHash: string
+    actorId: number
+    corteId: number
+    response: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PaymentOperationUpdateManyMutationInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentOperationUncheckedUpdateManyInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    corteId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -23251,6 +24627,12 @@ export namespace Prisma {
     not?: NestedUuidNullableFilter<$PrismaModel> | string | null
   }
 
+  export type PaymentOperationListRelationFilter = {
+    every?: PaymentOperationWhereInput
+    some?: PaymentOperationWhereInput
+    none?: PaymentOperationWhereInput
+  }
+
   export type CorteCobroDetalleListRelationFilter = {
     every?: CorteCobroDetalleWhereInput
     some?: CorteCobroDetalleWhereInput
@@ -23261,6 +24643,10 @@ export namespace Prisma {
     every?: PagoCobranzaWhereInput
     some?: PagoCobranzaWhereInput
     none?: PagoCobranzaWhereInput
+  }
+
+  export type PaymentOperationOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type CorteCobroDetalleOrderByRelationAggregateInput = {
@@ -23729,6 +25115,41 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumEstadoGestionCobranzaFilter<$PrismaModel>
     _max?: NestedEnumEstadoGestionCobranzaFilter<$PrismaModel>
+  }
+
+  export type PaymentOperationCountOrderByAggregateInput = {
+    key?: SortOrder
+    requestHash?: SortOrder
+    actorId?: SortOrder
+    corteId?: SortOrder
+    response?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PaymentOperationAvgOrderByAggregateInput = {
+    actorId?: SortOrder
+    corteId?: SortOrder
+  }
+
+  export type PaymentOperationMaxOrderByAggregateInput = {
+    key?: SortOrder
+    requestHash?: SortOrder
+    actorId?: SortOrder
+    corteId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PaymentOperationMinOrderByAggregateInput = {
+    key?: SortOrder
+    requestHash?: SortOrder
+    actorId?: SortOrder
+    corteId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PaymentOperationSumOrderByAggregateInput = {
+    actorId?: SortOrder
+    corteId?: SortOrder
   }
 
   export type ContactoClienteCreateNestedManyWithoutClienteInput = {
@@ -24588,6 +26009,13 @@ export namespace Prisma {
     update?: XOR<XOR<TarifaClienteUpdateToOneWithWhereWithoutPaquetesExcedenteInput, TarifaClienteUpdateWithoutPaquetesExcedenteInput>, TarifaClienteUncheckedUpdateWithoutPaquetesExcedenteInput>
   }
 
+  export type PaymentOperationCreateNestedManyWithoutCorteInput = {
+    create?: XOR<PaymentOperationCreateWithoutCorteInput, PaymentOperationUncheckedCreateWithoutCorteInput> | PaymentOperationCreateWithoutCorteInput[] | PaymentOperationUncheckedCreateWithoutCorteInput[]
+    connectOrCreate?: PaymentOperationCreateOrConnectWithoutCorteInput | PaymentOperationCreateOrConnectWithoutCorteInput[]
+    createMany?: PaymentOperationCreateManyCorteInputEnvelope
+    connect?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+  }
+
   export type ClienteComercialCreateNestedOneWithoutCortesInput = {
     create?: XOR<ClienteComercialCreateWithoutCortesInput, ClienteComercialUncheckedCreateWithoutCortesInput>
     connectOrCreate?: ClienteComercialCreateOrConnectWithoutCortesInput
@@ -24621,6 +26049,13 @@ export namespace Prisma {
     connect?: GestionCobranzaWhereUniqueInput | GestionCobranzaWhereUniqueInput[]
   }
 
+  export type PaymentOperationUncheckedCreateNestedManyWithoutCorteInput = {
+    create?: XOR<PaymentOperationCreateWithoutCorteInput, PaymentOperationUncheckedCreateWithoutCorteInput> | PaymentOperationCreateWithoutCorteInput[] | PaymentOperationUncheckedCreateWithoutCorteInput[]
+    connectOrCreate?: PaymentOperationCreateOrConnectWithoutCorteInput | PaymentOperationCreateOrConnectWithoutCorteInput[]
+    createMany?: PaymentOperationCreateManyCorteInputEnvelope
+    connect?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+  }
+
   export type CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput = {
     create?: XOR<CorteCobroDetalleCreateWithoutCorteInput, CorteCobroDetalleUncheckedCreateWithoutCorteInput> | CorteCobroDetalleCreateWithoutCorteInput[] | CorteCobroDetalleUncheckedCreateWithoutCorteInput[]
     connectOrCreate?: CorteCobroDetalleCreateOrConnectWithoutCorteInput | CorteCobroDetalleCreateOrConnectWithoutCorteInput[]
@@ -24644,6 +26079,20 @@ export namespace Prisma {
 
   export type EnumEstadoCorteCobroFieldUpdateOperationsInput = {
     set?: $Enums.EstadoCorteCobro
+  }
+
+  export type PaymentOperationUpdateManyWithoutCorteNestedInput = {
+    create?: XOR<PaymentOperationCreateWithoutCorteInput, PaymentOperationUncheckedCreateWithoutCorteInput> | PaymentOperationCreateWithoutCorteInput[] | PaymentOperationUncheckedCreateWithoutCorteInput[]
+    connectOrCreate?: PaymentOperationCreateOrConnectWithoutCorteInput | PaymentOperationCreateOrConnectWithoutCorteInput[]
+    upsert?: PaymentOperationUpsertWithWhereUniqueWithoutCorteInput | PaymentOperationUpsertWithWhereUniqueWithoutCorteInput[]
+    createMany?: PaymentOperationCreateManyCorteInputEnvelope
+    set?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    disconnect?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    delete?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    connect?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    update?: PaymentOperationUpdateWithWhereUniqueWithoutCorteInput | PaymentOperationUpdateWithWhereUniqueWithoutCorteInput[]
+    updateMany?: PaymentOperationUpdateManyWithWhereWithoutCorteInput | PaymentOperationUpdateManyWithWhereWithoutCorteInput[]
+    deleteMany?: PaymentOperationScalarWhereInput | PaymentOperationScalarWhereInput[]
   }
 
   export type ClienteComercialUpdateOneRequiredWithoutCortesNestedInput = {
@@ -24704,6 +26153,20 @@ export namespace Prisma {
     update?: GestionCobranzaUpdateWithWhereUniqueWithoutCorteInput | GestionCobranzaUpdateWithWhereUniqueWithoutCorteInput[]
     updateMany?: GestionCobranzaUpdateManyWithWhereWithoutCorteInput | GestionCobranzaUpdateManyWithWhereWithoutCorteInput[]
     deleteMany?: GestionCobranzaScalarWhereInput | GestionCobranzaScalarWhereInput[]
+  }
+
+  export type PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput = {
+    create?: XOR<PaymentOperationCreateWithoutCorteInput, PaymentOperationUncheckedCreateWithoutCorteInput> | PaymentOperationCreateWithoutCorteInput[] | PaymentOperationUncheckedCreateWithoutCorteInput[]
+    connectOrCreate?: PaymentOperationCreateOrConnectWithoutCorteInput | PaymentOperationCreateOrConnectWithoutCorteInput[]
+    upsert?: PaymentOperationUpsertWithWhereUniqueWithoutCorteInput | PaymentOperationUpsertWithWhereUniqueWithoutCorteInput[]
+    createMany?: PaymentOperationCreateManyCorteInputEnvelope
+    set?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    disconnect?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    delete?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    connect?: PaymentOperationWhereUniqueInput | PaymentOperationWhereUniqueInput[]
+    update?: PaymentOperationUpdateWithWhereUniqueWithoutCorteInput | PaymentOperationUpdateWithWhereUniqueWithoutCorteInput[]
+    updateMany?: PaymentOperationUpdateManyWithWhereWithoutCorteInput | PaymentOperationUpdateManyWithWhereWithoutCorteInput[]
+    deleteMany?: PaymentOperationScalarWhereInput | PaymentOperationScalarWhereInput[]
   }
 
   export type CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput = {
@@ -24816,6 +26279,20 @@ export namespace Prisma {
     delete?: CorteCobroWhereInput | boolean
     connect?: CorteCobroWhereUniqueInput
     update?: XOR<XOR<CorteCobroUpdateToOneWithWhereWithoutGestionesInput, CorteCobroUpdateWithoutGestionesInput>, CorteCobroUncheckedUpdateWithoutGestionesInput>
+  }
+
+  export type CorteCobroCreateNestedOneWithoutPaymentOperationsInput = {
+    create?: XOR<CorteCobroCreateWithoutPaymentOperationsInput, CorteCobroUncheckedCreateWithoutPaymentOperationsInput>
+    connectOrCreate?: CorteCobroCreateOrConnectWithoutPaymentOperationsInput
+    connect?: CorteCobroWhereUniqueInput
+  }
+
+  export type CorteCobroUpdateOneRequiredWithoutPaymentOperationsNestedInput = {
+    create?: XOR<CorteCobroCreateWithoutPaymentOperationsInput, CorteCobroUncheckedCreateWithoutPaymentOperationsInput>
+    connectOrCreate?: CorteCobroCreateOrConnectWithoutPaymentOperationsInput
+    upsert?: CorteCobroUpsertWithoutPaymentOperationsInput
+    connect?: CorteCobroWhereUniqueInput
+    update?: XOR<XOR<CorteCobroUpdateToOneWithWhereWithoutPaymentOperationsInput, CorteCobroUpdateWithoutPaymentOperationsInput>, CorteCobroUncheckedUpdateWithoutPaymentOperationsInput>
   }
 
   export type NestedIntFilter<$PrismaModel = never> = {
@@ -25700,6 +27177,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationCreateNestedManyWithoutCorteInput
     contrato?: ContratoComercialCreateNestedOneWithoutCortesInput
     detalles?: CorteCobroDetalleCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaCreateNestedManyWithoutCorteInput
@@ -25730,6 +27208,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationUncheckedCreateNestedManyWithoutCorteInput
     detalles?: CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaUncheckedCreateNestedManyWithoutCorteInput
     gestiones?: GestionCobranzaUncheckedCreateNestedManyWithoutCorteInput
@@ -26426,6 +27905,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationCreateNestedManyWithoutCorteInput
     cliente: ClienteComercialCreateNestedOneWithoutCortesInput
     detalles?: CorteCobroDetalleCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaCreateNestedManyWithoutCorteInput
@@ -26456,6 +27936,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationUncheckedCreateNestedManyWithoutCorteInput
     detalles?: CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaUncheckedCreateNestedManyWithoutCorteInput
     gestiones?: GestionCobranzaUncheckedCreateNestedManyWithoutCorteInput
@@ -27806,6 +29287,32 @@ export namespace Prisma {
     detallesPlan?: PlanComercialDetalleUncheckedUpdateManyWithoutTarifaNestedInput
   }
 
+  export type PaymentOperationCreateWithoutCorteInput = {
+    key: string
+    requestHash: string
+    actorId: number
+    response: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PaymentOperationUncheckedCreateWithoutCorteInput = {
+    key: string
+    requestHash: string
+    actorId: number
+    response: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PaymentOperationCreateOrConnectWithoutCorteInput = {
+    where: PaymentOperationWhereUniqueInput
+    create: XOR<PaymentOperationCreateWithoutCorteInput, PaymentOperationUncheckedCreateWithoutCorteInput>
+  }
+
+  export type PaymentOperationCreateManyCorteInputEnvelope = {
+    data: PaymentOperationCreateManyCorteInput | PaymentOperationCreateManyCorteInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ClienteComercialCreateWithoutCortesInput = {
     empresaId: number
     empresaNombre: string
@@ -28037,6 +29544,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type PaymentOperationUpsertWithWhereUniqueWithoutCorteInput = {
+    where: PaymentOperationWhereUniqueInput
+    update: XOR<PaymentOperationUpdateWithoutCorteInput, PaymentOperationUncheckedUpdateWithoutCorteInput>
+    create: XOR<PaymentOperationCreateWithoutCorteInput, PaymentOperationUncheckedCreateWithoutCorteInput>
+  }
+
+  export type PaymentOperationUpdateWithWhereUniqueWithoutCorteInput = {
+    where: PaymentOperationWhereUniqueInput
+    data: XOR<PaymentOperationUpdateWithoutCorteInput, PaymentOperationUncheckedUpdateWithoutCorteInput>
+  }
+
+  export type PaymentOperationUpdateManyWithWhereWithoutCorteInput = {
+    where: PaymentOperationScalarWhereInput
+    data: XOR<PaymentOperationUpdateManyMutationInput, PaymentOperationUncheckedUpdateManyWithoutCorteInput>
+  }
+
+  export type PaymentOperationScalarWhereInput = {
+    AND?: PaymentOperationScalarWhereInput | PaymentOperationScalarWhereInput[]
+    OR?: PaymentOperationScalarWhereInput[]
+    NOT?: PaymentOperationScalarWhereInput | PaymentOperationScalarWhereInput[]
+    key?: StringFilter<"PaymentOperation"> | string
+    requestHash?: StringFilter<"PaymentOperation"> | string
+    actorId?: IntFilter<"PaymentOperation"> | number
+    corteId?: IntFilter<"PaymentOperation"> | number
+    response?: JsonFilter<"PaymentOperation">
+    createdAt?: DateTimeFilter<"PaymentOperation"> | Date | string
+  }
+
   export type ClienteComercialUpsertWithoutCortesInput = {
     update: XOR<ClienteComercialUpdateWithoutCortesInput, ClienteComercialUncheckedUpdateWithoutCortesInput>
     create: XOR<ClienteComercialCreateWithoutCortesInput, ClienteComercialUncheckedCreateWithoutCortesInput>
@@ -28265,6 +29800,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationCreateNestedManyWithoutCorteInput
     cliente: ClienteComercialCreateNestedOneWithoutCortesInput
     contrato?: ContratoComercialCreateNestedOneWithoutCortesInput
     pagos?: PagoCobranzaCreateNestedManyWithoutCorteInput
@@ -28296,6 +29832,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationUncheckedCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaUncheckedCreateNestedManyWithoutCorteInput
     gestiones?: GestionCobranzaUncheckedCreateNestedManyWithoutCorteInput
   }
@@ -28338,6 +29875,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUpdateManyWithoutCorteNestedInput
     cliente?: ClienteComercialUpdateOneRequiredWithoutCortesNestedInput
     contrato?: ContratoComercialUpdateOneWithoutCortesNestedInput
     pagos?: PagoCobranzaUpdateManyWithoutCorteNestedInput
@@ -28369,6 +29907,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUncheckedUpdateManyWithoutCorteNestedInput
     gestiones?: GestionCobranzaUncheckedUpdateManyWithoutCorteNestedInput
   }
@@ -28395,6 +29934,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationCreateNestedManyWithoutCorteInput
     cliente: ClienteComercialCreateNestedOneWithoutCortesInput
     contrato?: ContratoComercialCreateNestedOneWithoutCortesInput
     detalles?: CorteCobroDetalleCreateNestedManyWithoutCorteInput
@@ -28426,6 +29966,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationUncheckedCreateNestedManyWithoutCorteInput
     detalles?: CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput
     gestiones?: GestionCobranzaUncheckedCreateNestedManyWithoutCorteInput
   }
@@ -28468,6 +30009,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUpdateManyWithoutCorteNestedInput
     cliente?: ClienteComercialUpdateOneRequiredWithoutCortesNestedInput
     contrato?: ContratoComercialUpdateOneWithoutCortesNestedInput
     detalles?: CorteCobroDetalleUpdateManyWithoutCorteNestedInput
@@ -28499,6 +30041,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput
     detalles?: CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput
     gestiones?: GestionCobranzaUncheckedUpdateManyWithoutCorteNestedInput
   }
@@ -28579,6 +30122,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationCreateNestedManyWithoutCorteInput
     cliente: ClienteComercialCreateNestedOneWithoutCortesInput
     contrato?: ContratoComercialCreateNestedOneWithoutCortesInput
     detalles?: CorteCobroDetalleCreateNestedManyWithoutCorteInput
@@ -28610,6 +30154,7 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    paymentOperations?: PaymentOperationUncheckedCreateNestedManyWithoutCorteInput
     detalles?: CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput
     pagos?: PagoCobranzaUncheckedCreateNestedManyWithoutCorteInput
   }
@@ -28712,6 +30257,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUpdateManyWithoutCorteNestedInput
     cliente?: ClienteComercialUpdateOneRequiredWithoutCortesNestedInput
     contrato?: ContratoComercialUpdateOneWithoutCortesNestedInput
     detalles?: CorteCobroDetalleUpdateManyWithoutCorteNestedInput
@@ -28743,8 +30289,143 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput
     detalles?: CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUncheckedUpdateManyWithoutCorteNestedInput
+  }
+
+  export type CorteCobroCreateWithoutPaymentOperationsInput = {
+    folio: string
+    periodoInicio: Date | string
+    periodoFin: Date | string
+    fechaCorte: Date | string
+    fechaVencimiento?: Date | string | null
+    estado?: $Enums.EstadoCorteCobro
+    subtotal?: Decimal | DecimalJsLike | number | string | null
+    iva?: Decimal | DecimalJsLike | number | string | null
+    total?: Decimal | DecimalJsLike | number | string | null
+    moneda?: string
+    facturaFolio?: string | null
+    facturaUuid?: string | null
+    facturaPdfUrl?: string | null
+    facturaXmlUrl?: string | null
+    notas?: string | null
+    aprobadoPorId?: number | null
+    aprobadoAt?: Date | string | null
+    createdById: number
+    updatedById: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    cliente: ClienteComercialCreateNestedOneWithoutCortesInput
+    contrato?: ContratoComercialCreateNestedOneWithoutCortesInput
+    detalles?: CorteCobroDetalleCreateNestedManyWithoutCorteInput
+    pagos?: PagoCobranzaCreateNestedManyWithoutCorteInput
+    gestiones?: GestionCobranzaCreateNestedManyWithoutCorteInput
+  }
+
+  export type CorteCobroUncheckedCreateWithoutPaymentOperationsInput = {
+    id?: number
+    clienteComercialId: number
+    contratoId?: number | null
+    folio: string
+    periodoInicio: Date | string
+    periodoFin: Date | string
+    fechaCorte: Date | string
+    fechaVencimiento?: Date | string | null
+    estado?: $Enums.EstadoCorteCobro
+    subtotal?: Decimal | DecimalJsLike | number | string | null
+    iva?: Decimal | DecimalJsLike | number | string | null
+    total?: Decimal | DecimalJsLike | number | string | null
+    moneda?: string
+    facturaFolio?: string | null
+    facturaUuid?: string | null
+    facturaPdfUrl?: string | null
+    facturaXmlUrl?: string | null
+    notas?: string | null
+    aprobadoPorId?: number | null
+    aprobadoAt?: Date | string | null
+    createdById: number
+    updatedById: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    detalles?: CorteCobroDetalleUncheckedCreateNestedManyWithoutCorteInput
+    pagos?: PagoCobranzaUncheckedCreateNestedManyWithoutCorteInput
+    gestiones?: GestionCobranzaUncheckedCreateNestedManyWithoutCorteInput
+  }
+
+  export type CorteCobroCreateOrConnectWithoutPaymentOperationsInput = {
+    where: CorteCobroWhereUniqueInput
+    create: XOR<CorteCobroCreateWithoutPaymentOperationsInput, CorteCobroUncheckedCreateWithoutPaymentOperationsInput>
+  }
+
+  export type CorteCobroUpsertWithoutPaymentOperationsInput = {
+    update: XOR<CorteCobroUpdateWithoutPaymentOperationsInput, CorteCobroUncheckedUpdateWithoutPaymentOperationsInput>
+    create: XOR<CorteCobroCreateWithoutPaymentOperationsInput, CorteCobroUncheckedCreateWithoutPaymentOperationsInput>
+    where?: CorteCobroWhereInput
+  }
+
+  export type CorteCobroUpdateToOneWithWhereWithoutPaymentOperationsInput = {
+    where?: CorteCobroWhereInput
+    data: XOR<CorteCobroUpdateWithoutPaymentOperationsInput, CorteCobroUncheckedUpdateWithoutPaymentOperationsInput>
+  }
+
+  export type CorteCobroUpdateWithoutPaymentOperationsInput = {
+    folio?: StringFieldUpdateOperationsInput | string
+    periodoInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodoFin?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaCorte?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoCorteCobroFieldUpdateOperationsInput | $Enums.EstadoCorteCobro
+    subtotal?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    iva?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    moneda?: StringFieldUpdateOperationsInput | string
+    facturaFolio?: NullableStringFieldUpdateOperationsInput | string | null
+    facturaUuid?: NullableStringFieldUpdateOperationsInput | string | null
+    facturaPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facturaXmlUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    aprobadoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    aprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdById?: IntFieldUpdateOperationsInput | number
+    updatedById?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cliente?: ClienteComercialUpdateOneRequiredWithoutCortesNestedInput
+    contrato?: ContratoComercialUpdateOneWithoutCortesNestedInput
+    detalles?: CorteCobroDetalleUpdateManyWithoutCorteNestedInput
+    pagos?: PagoCobranzaUpdateManyWithoutCorteNestedInput
+    gestiones?: GestionCobranzaUpdateManyWithoutCorteNestedInput
+  }
+
+  export type CorteCobroUncheckedUpdateWithoutPaymentOperationsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    clienteComercialId?: IntFieldUpdateOperationsInput | number
+    contratoId?: NullableIntFieldUpdateOperationsInput | number | null
+    folio?: StringFieldUpdateOperationsInput | string
+    periodoInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    periodoFin?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaCorte?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoCorteCobroFieldUpdateOperationsInput | $Enums.EstadoCorteCobro
+    subtotal?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    iva?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    moneda?: StringFieldUpdateOperationsInput | string
+    facturaFolio?: NullableStringFieldUpdateOperationsInput | string | null
+    facturaUuid?: NullableStringFieldUpdateOperationsInput | string | null
+    facturaPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facturaXmlUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    aprobadoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    aprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdById?: IntFieldUpdateOperationsInput | number
+    updatedById?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    detalles?: CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput
+    pagos?: PagoCobranzaUncheckedUpdateManyWithoutCorteNestedInput
+    gestiones?: GestionCobranzaUncheckedUpdateManyWithoutCorteNestedInput
   }
 
   export type ContactoClienteCreateManyClienteInput = {
@@ -29224,6 +30905,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUpdateManyWithoutCorteNestedInput
     contrato?: ContratoComercialUpdateOneWithoutCortesNestedInput
     detalles?: CorteCobroDetalleUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUpdateManyWithoutCorteNestedInput
@@ -29254,6 +30936,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput
     detalles?: CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUncheckedUpdateManyWithoutCorteNestedInput
     gestiones?: GestionCobranzaUncheckedUpdateManyWithoutCorteNestedInput
@@ -29651,6 +31334,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUpdateManyWithoutCorteNestedInput
     cliente?: ClienteComercialUpdateOneRequiredWithoutCortesNestedInput
     detalles?: CorteCobroDetalleUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUpdateManyWithoutCorteNestedInput
@@ -29681,6 +31365,7 @@ export namespace Prisma {
     updatedById?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentOperations?: PaymentOperationUncheckedUpdateManyWithoutCorteNestedInput
     detalles?: CorteCobroDetalleUncheckedUpdateManyWithoutCorteNestedInput
     pagos?: PagoCobranzaUncheckedUpdateManyWithoutCorteNestedInput
     gestiones?: GestionCobranzaUncheckedUpdateManyWithoutCorteNestedInput
@@ -29969,6 +31654,14 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PaymentOperationCreateManyCorteInput = {
+    key: string
+    requestHash: string
+    actorId: number
+    response: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
   export type CorteCobroDetalleCreateManyCorteInput = {
     id?: number
     fuente: $Enums.OrigenOperacionComercial
@@ -30017,6 +31710,30 @@ export namespace Prisma {
     updatedById: number
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type PaymentOperationUpdateWithoutCorteInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentOperationUncheckedUpdateWithoutCorteInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentOperationUncheckedUpdateManyWithoutCorteInput = {
+    key?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    actorId?: IntFieldUpdateOperationsInput | number
+    response?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CorteCobroDetalleUpdateWithoutCorteInput = {

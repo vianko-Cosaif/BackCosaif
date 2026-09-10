@@ -9,44 +9,14 @@ type StoredOperation = {
   key: string;
   user_id: number;
   request_hash: string;
-  state: 'PROCESSING' | 'COMPLETED';
+  state: 'PROCESSING' | 'COMPLETED' | 'REVIEW';
   response_status: number | null;
   response_body: string | null;
   response_content_type: string | null;
   created_at: Date;
 };
 
-let tableReady: Promise<void> | null = null;
-
-const ensureIdempotencyTable = () => {
-  if (!tableReady) {
-    tableReady = (async () => {
-      await prisma.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "offline_idempotency" (
-          "key" VARCHAR(128) PRIMARY KEY,
-          "user_id" INTEGER NOT NULL,
-          "request_hash" CHAR(64) NOT NULL,
-          "state" VARCHAR(16) NOT NULL,
-          "response_status" INTEGER,
-          "response_body" TEXT,
-          "response_content_type" TEXT,
-          "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          "expires_at" TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
-        )
-      `);
-      await prisma.$executeRawUnsafe(`
-        CREATE INDEX IF NOT EXISTS "offline_idempotency_expires_idx"
-          ON "offline_idempotency" ("expires_at")
-      `);
-    })().catch(error => {
-      tableReady = null;
-      throw error;
-    });
-  }
-  return tableReady;
-};
-
+// Schema changes are applied by the versioned migration, never by a request.
 export const normalizeIdempotencyKey = (value: unknown) => {
   const key = String(value ?? '').trim();
   return /^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/.test(key) ? key : null;
@@ -57,11 +27,13 @@ export const fingerprintIdempotentRequest = (input: {
   method: string;
   path: string;
   body?: unknown;
+  authorization?: unknown;
 }) => createHash('sha256').update(JSON.stringify({
   userId: input.userId,
   method: input.method.toUpperCase(),
   path: input.path,
   body: input.body ?? null,
+  authorization: input.authorization,
 })).digest('hex');
 
 const serializeResponseBody = (body: unknown) => {
@@ -101,21 +73,6 @@ const tryClaimOperation = async (input: {
   return rows.length > 0;
 };
 
-const tryRecoverStaleClaim = async (key: string, requestHash: string) => {
-  const rows = await prisma.$queryRawUnsafe<Array<{ key: string }>>(
-    `UPDATE "offline_idempotency"
-       SET "created_at" = NOW(), "updated_at" = NOW()
-     WHERE "key" = $1
-       AND "request_hash" = $2
-       AND "state" = 'PROCESSING'
-       AND "created_at" < NOW() - INTERVAL '5 minutes'
-     RETURNING "key"`,
-    key,
-    requestHash
-  );
-  return rows.length > 0;
-};
-
 export const idempotentMutation: RequestHandler = async (req, res, next) => {
   const rawKey = req.header('x-idempotency-key');
   if (!rawKey) return next();
@@ -136,14 +93,10 @@ export const idempotentMutation: RequestHandler = async (req, res, next) => {
     method: req.method,
     path: req.originalUrl,
     body: req.body && Object.keys(req.body).length ? req.body : undefined,
+    authorization: { profile: req.authorization, version: (req.user as AuthenticatedUser).auth?.v ?? 0 },
   });
 
   try {
-    await ensureIdempotencyTable();
-    void prisma.$executeRawUnsafe(
-      `DELETE FROM "offline_idempotency" WHERE "expires_at" < NOW()`
-    ).catch(() => undefined);
-
     let claimed = await tryClaimOperation({ key, userId, requestHash });
     if (!claimed) {
       const stored = await findStoredOperation(key);
@@ -155,13 +108,20 @@ export const idempotentMutation: RequestHandler = async (req, res, next) => {
           code: 'IDEMPOTENCY_KEY_REUSED',
         });
       } else if (stored.state === 'COMPLETED' && stored.response_status) {
+        if (stored.response_status === 409 && stored.response_body == null) {
+          return res.status(409).json({ code: 'IDEMPOTENCY_RESULT_EXPIRED', error: 'Operación registrada; consulta el recurso antes de crear otra operación' });
+        }
         res.setHeader('x-idempotent-replay', 'true');
         if (stored.response_content_type) {
           res.setHeader('content-type', stored.response_content_type);
         }
         return res.status(stored.response_status).send(stored.response_body ?? undefined);
       } else {
-        claimed = await tryRecoverStaleClaim(key, requestHash);
+        // A worker may have committed the business operation before losing its response.
+        // Elapsed time is not evidence that repeating a write is safe.
+        if (stored.state === 'REVIEW' || Date.now() - new Date(stored.created_at).getTime() >= 5 * 60_000) {
+          return res.status(409).json({ error: 'Resultado pendiente de conciliación; no repitas la operación con otra clave', code: 'IDEMPOTENCY_REVIEW_REQUIRED' });
+        }
       }
     }
 
@@ -173,44 +133,35 @@ export const idempotentMutation: RequestHandler = async (req, res, next) => {
       });
     }
 
-    let responseBody: string | null = null;
     const originalSend = res.send.bind(res);
+    let sending = false;
     (res as any).send = (body: unknown) => {
-      responseBody = serializeResponseBody(body);
-      return originalSend(body);
-    };
-
-    res.once('finish', () => {
+      if (sending) return res;
+      sending = true;
       const status = res.statusCode;
-      if (status >= 500) {
-        void prisma.$executeRawUnsafe(
-          `DELETE FROM "offline_idempotency" WHERE "key" = $1 AND "state" = 'PROCESSING'`,
-          key
-        ).catch(() => undefined);
-        return;
-      }
-
       const contentType = String(res.getHeader('content-type') ?? 'application/json; charset=utf-8');
+      const serialized = serializeResponseBody(body);
+      const responseBody = serialized && Buffer.byteLength(serialized) > 1024 * 1024
+        ? JSON.stringify({ code: 'IDEMPOTENCY_RESULT_TOO_LARGE', error: 'Operación registrada; consulta el recurso' }) : serialized;
+      const state = status >= 500 ? 'REVIEW' : 'COMPLETED';
+      // Persist the response BEFORE acknowledging it to the client. An ambiguous
+      // crash stays PROCESSING/REVIEW and is never retried automatically.
       void prisma.$executeRawUnsafe(
-        `UPDATE "offline_idempotency"
-           SET "state" = 'COMPLETED',
-               "response_status" = $2,
-               "response_body" = $3,
-               "response_content_type" = $4,
-               "updated_at" = NOW()
-         WHERE "key" = $1`,
-        key,
-        status,
-        responseBody,
-        contentType
-      ).catch(error => {
-        logger.error('idempotency:store_response:error', {
-          key,
-          userId,
-          message: error?.message ?? String(error),
-        });
+        `UPDATE "offline_idempotency" SET "state" = $2, "response_status" = $3,
+         "response_body" = $4, "response_content_type" = $5, "updated_at" = NOW()
+         WHERE "key" = $1`, key, state, status, responseBody, contentType,
+      ).then(() => {
+        // Express send(object) calls json(), which calls send() again.
+        res.send = originalSend;
+        originalSend(body);
+      }).catch(error => {
+        logger.error('idempotency:store_response:error', { key, userId, message: error?.message });
+        res.send = originalSend;
+        res.status(503).type('json');
+        originalSend(JSON.stringify({ error: 'No se pudo confirmar el resultado; conserva la misma clave', code: 'IDEMPOTENCY_REVIEW_REQUIRED' }));
       });
-    });
+      return res;
+    };
 
     return next();
   } catch (error: any) {

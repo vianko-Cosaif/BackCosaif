@@ -93,6 +93,7 @@ export async function requestTorreonMs<T extends Json>(
   });
 
   const response = await fetch(url, {
+    signal: AbortSignal.timeout(20_000),
     method,
     headers: {
       "x-service-id": serviceId,

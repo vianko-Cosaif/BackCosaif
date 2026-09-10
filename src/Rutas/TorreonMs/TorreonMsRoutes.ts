@@ -1,3 +1,5 @@
+import { registerJob } from '../../jobs/durableJobs';
+import { requireTorreonScope } from '../../auth/torreonScope';
 import { Router } from "express";
 import { authenticateAccess } from "../../auth/authenticateAccess";
 import { idempotentMutation } from "../../middlewares/idempotentMutation";
@@ -8,13 +10,12 @@ import { publishRealtimeEvent, type RealtimeEventType } from "../../realtime/rea
 import { prisma } from "../../lib/prisma";
 import { resolverAudienciaFcmTorreon } from "../../services/torreonFcmRouting";
 
-const { PrismaClient: TorreonPrismaClient } = require("../../../ms_torreon/generated");
-const prismaTorreon = new TorreonPrismaClient();
+import { prismaTorreon } from '../../lib/servicePrisma';
 
 const router = Router();
 
-const ADMIN_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR"]);
-const LOCAL_OPERATION_ROLES = new Set(["SUPERVISOR", "MAQUINISTA", "MAQUINISTA_ARRASTRE"]);
+const ADMIN_ROLES = new Set(["ADMINISTRADOR"]);
+const LOCAL_OPERATION_ROLES = new Set(["COORDINADOR", "SUPERVISOR", "MAQUINISTA", "MAQUINISTA_ARRASTRE"]);
 const CLIENT_COMPANY_ROLES = new Set(["CLIENTE_ADMIN", "CLIENTE_COOR"]);
 const CLIENT_LOCAL_ROLES = new Set(["CLIENTE", "ARRASTRE_TORREON"]);
 const ALLOWED_ROLES = new Set([
@@ -24,7 +25,7 @@ const ALLOWED_ROLES = new Set([
   ...CLIENT_LOCAL_ROLES,
 ]);
 
-router.use(authenticateAccess);
+router.use(authenticateAccess, requireTorreonScope);
 router.use(idempotentMutation);
 
 function userRole(user?: AuthenticatedUser) {
@@ -355,21 +356,20 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
 
   if (verb === "POST" && /^\/movimientos\/\d+\/iniciar$/.test(path)) {
     const responsables = await resolverResponsablesMovimientoAlIniciar(path, user);
-    const isMaquinistaNatural = userRole(user) === "MAQUINISTA";
     return {
       ...source,
-      iniciadoPorId: isMaquinistaNatural ? userId : source.iniciadoPorId ?? userId,
-      operadorId: isMaquinistaNatural ? userId : source.operadorId ?? userId,
+      iniciadoPorId: userId,
+      operadorId: userId,
       ...(responsables ?? {}),
     };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/movimientos\/\d+\/finalizar$/.test(path)) {
-    return { ...source, finalizadoPorId: source.finalizadoPorId ?? userId };
+    return { ...source, finalizadoPorId: userId };
   }
 
   if (verb === "POST" && /^\/movimientos\/\d+\/fotos$/.test(path)) {
-    return { ...source, tomadaPorId: source.tomadaPorId ?? userId };
+    return { ...source, tomadaPorId: userId };
   }
 
   if (verb === "POST" && /^\/movimientos\/\d+\/(?:detener|incidentes)$/.test(path)) {
@@ -379,40 +379,39 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/movimientos\/\d+\/reanudar$/.test(path)) {
     return {
       ...source,
-      operadorId: source.operadorId ?? userId,
-      resueltoPorId: source.resueltoPorId ?? userId,
+      operadorId: userId,
+      resueltoPorId: userId,
     };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/(?:resolver|cerrar)$/.test(path)) {
-    return { ...source, resueltoPorId: source.resueltoPorId ?? userId };
+    return { ...source, resueltoPorId: userId };
   }
 
   if (verb === "POST" && /^\/arrastres\/\d+\/iniciar$/.test(path)) {
     return {
       ...source,
-      iniciadoPorId: source.iniciadoPorId ?? userId,
-      operadorId: source.operadorId ?? userId,
+      iniciadoPorId: userId,
+      operadorId: userId,
     };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/vagones\/\d+\/iniciar$/.test(path)) {
     const responsables = await resolverResponsablesArrastreAlIniciar(path, user);
-    const isMaquinistaArrastre = userRole(user) === "MAQUINISTA_ARRASTRE";
     return {
       ...source,
-      iniciadoPorId: isMaquinistaArrastre ? userId : source.iniciadoPorId ?? userId,
-      operadorId: isMaquinistaArrastre ? userId : source.operadorId ?? userId,
+      iniciadoPorId: userId,
+      operadorId: userId,
       ...(responsables ?? {}),
     };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/finalizar$/.test(path)) {
-    return { ...source, finalizadoPorId: source.finalizadoPorId ?? userId };
+    return { ...source, finalizadoPorId: userId };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/cancelar$/.test(path)) {
-    return { ...source, canceladoPorId: source.canceladoPorId ?? userId };
+    return { ...source, canceladoPorId: userId };
   }
 
   if (verb === "POST" && /^\/arrastres\/\d+\/incidentes$/.test(path)) {
@@ -420,11 +419,11 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/incidentes\/\d+\/resolver$/.test(path)) {
-    return { ...source, resueltoPorId: source.resueltoPorId ?? userId };
+    return { ...source, resueltoPorId: userId };
   }
 
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/reanudar$/.test(path)) {
-    return { ...source, operadorId: source.operadorId ?? userId };
+    return { ...source, operadorId: userId };
   }
 
   return body;
@@ -453,16 +452,16 @@ function applyListScope(rest: string, user?: AuthenticatedUser, generalLocalityQ
     params.set("localidadId", String(localidadId));
   }
 
-  if (!generalLocalityQueue && CLIENT_COMPANY_ROLES.has(role) && empresaId && !params.has("empresaId")) {
+  if (!generalLocalityQueue && CLIENT_COMPANY_ROLES.has(role) && empresaId) {
     params.set("empresaId", String(empresaId));
   }
 
   if (!generalLocalityQueue && CLIENT_LOCAL_ROLES.has(role)) {
-    if (empresaId && !params.has("empresaId")) params.set("empresaId", String(empresaId));
-    if (localidadId && !params.has("localidadId")) params.set("localidadId", String(localidadId));
+    if (empresaId) params.set("empresaId", String(empresaId));
+    if (localidadId) params.set("localidadId", String(localidadId));
   }
 
-  if (LOCAL_OPERATION_ROLES.has(role) && localidadId && !params.has("localidadId")) {
+  if (LOCAL_OPERATION_ROLES.has(role) && localidadId) {
     params.set("localidadId", String(localidadId));
   }
 
@@ -501,13 +500,13 @@ function isItemVisibleForUser(item: any, user?: AuthenticatedUser, generalLocali
     return Boolean(localidadId) && itemLocalidadId === localidadId;
   }
 
-  if (CLIENT_COMPANY_ROLES.has(role)) return !empresaId || itemEmpresaId === empresaId;
+  if (CLIENT_COMPANY_ROLES.has(role)) return Boolean(empresaId) && itemEmpresaId === empresaId;
   if (CLIENT_LOCAL_ROLES.has(role)) {
-    const empresaOk = !empresaId || itemEmpresaId === empresaId;
-    const localidadOk = !localidadId || itemLocalidadId === localidadId;
+    const empresaOk = Boolean(empresaId) && itemEmpresaId === empresaId;
+    const localidadOk = Boolean(localidadId) && itemLocalidadId === localidadId;
     return empresaOk && localidadOk;
   }
-  if (LOCAL_OPERATION_ROLES.has(role)) return !localidadId || itemLocalidadId === localidadId;
+  if (LOCAL_OPERATION_ROLES.has(role)) return Boolean(localidadId) && itemLocalidadId === localidadId;
 
   return false;
 }
@@ -1060,7 +1059,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
   return null;
 }
 
-function dispatchTorreonSideEffects(method: string, rest: string, data: unknown, user?: AuthenticatedUser, requestBody?: any) {
+async function dispatchTorreonSideEffects(method: string, rest: string, data: unknown, user?: AuthenticatedUser, requestBody?: any) {
   const operation = inferTorreonOperation(method, rest, data);
   if (!operation) return;
 
@@ -1102,8 +1101,7 @@ function dispatchTorreonSideEffects(method: string, rest: string, data: unknown,
 
   const fcmRouting = resolverAudienciaFcmTorreon(operation.fcmTipo);
 
-  setImmediate(() => {
-    void NotificadorFCM.notificarOperacionTorreon({
+    await NotificadorFCM.notificarOperacionTorreon({
       tipo: operation.fcmTipo,
       titulo: operation.title,
       mensaje: operation.body,
@@ -1131,7 +1129,6 @@ function dispatchTorreonSideEffects(method: string, rest: string, data: unknown,
         locomotiveNumber,
       },
     });
-  });
 }
 
 router.all("/*", async (req, res) => {
@@ -1242,7 +1239,7 @@ router.all("/*", async (req, res) => {
       return res.status(result.status).send(await enrichTorreonResponsables(completed));
     }
 
-    dispatchTorreonSideEffects(req.method, scopedRest, result.data, user, proxiedBody);
+    // Notifications and reconciliation are consumed from the transactional service outbox.
     return res.status(result.status).send(await enrichTorreonResponsables(result.data));
   } catch (error: any) {
     const status = Number(error?.status) || 502;
@@ -1251,6 +1248,56 @@ router.all("/*", async (req, res) => {
       details: error?.details ?? null,
     });
   }
+});
+
+registerJob('torreon.event', async ({ table, row, previous, action }) => {
+  const id = Number(row.id);
+  const state = row.estado;
+  const stateChanged = state !== previous?.estado;
+  let data: any;
+  let rest: string;
+  let method = 'PATCH';
+  if (table === 'ronda_torreon_movimiento') {
+    if (action === 'INSERT' || (row.orden === previous?.orden && row.orden_manual === previous?.orden_manual)) return;
+    const round = await prismaTorreon.rondaTorreonMovimiento.findUnique({ where: { id }, include: { movimiento: true } });
+    if (!round) return;
+    data = round.movimiento;
+    rest = '/rondas/movimientos/orden';
+  } else if (table === 'movimiento_torreon_ferro') {
+    if (action !== 'INSERT' && (!stateChanged || !['EN_PROCESO', 'CONCLUIDO'].includes(state))) return;
+    data = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id } });
+    if (!data) return;
+    data = { ...data, estado: state };
+    method = action === 'INSERT' || state === 'EN_PROCESO' ? 'POST' : 'PATCH';
+    rest = action === 'INSERT' ? '/movimientos' : `/movimientos/${id}/${state === 'EN_PROCESO' ? (previous?.estado === 'DETENIDO' ? 'reanudar' : 'iniciar') : 'finalizar'}`;
+  } else if (table === 'arrastre_torreon') {
+    data = await prismaTorreon.arrastreTorreon.findUnique({ where: { id }, include: { vagones: true } });
+    if (!data) return;
+    data = { ...data, estado: state };
+    method = action === 'INSERT' ? 'POST' : 'PATCH';
+    rest = action === 'INSERT' ? '/arrastres' : `/arrastres/${id}/${state === 'EN_PROCESO' ? (previous?.estado === 'DETENIDO' ? 'reanudar' : 'iniciar') : state === 'CONCLUIDO' ? 'finalizar' : 'cancelar'}`;
+    if (action !== 'INSERT') {
+      if (!stateChanged) rest = row.orden_solicitud !== previous?.orden_solicitud ? '/arrastres/orden-solicitudes' : `/arrastres/${id}`;
+      else if (!['EN_PROCESO', 'CONCLUIDO', 'CANCELADO'].includes(state)) return;
+    }
+  } else if (table === 'arrastre_torreon_vagon') {
+    if (action === 'INSERT') return;
+    const vagon = await prismaTorreon.arrastreTorreonVagon.findUnique({ where: { id }, include: { arrastre: { include: { vagones: true } } } });
+    if (!vagon) return;
+    data = { ...vagon, estado: state, vagon: { ...vagon, estado: state } };
+    if (stateChanged && !['EN_PROCESO', 'CONCLUIDO'].includes(state)) return;
+    rest = stateChanged ? `/arrastres/${vagon.arrastreId}/vagones/${id}/${state === 'EN_PROCESO' ? 'iniciar' : 'finalizar'}`
+      : row.orden !== previous?.orden ? `/arrastres/${vagon.arrastreId}/vagones/orden` : `/arrastres/${vagon.arrastreId}/vagones/${id}`;
+  } else {
+    if (action !== 'INSERT' && !stateChanged) return;
+    const arrastre = table === 'incidente_arrastre_torreon';
+    data = await prismaTorreon[arrastre ? 'incidenteArrastreTorreon' : 'incidenteTorreonFerro'].findUnique({ where: { id }, include: arrastre ? { arrastre: true } : { movimiento: true } });
+    if (!data) return;
+    data = { ...data, estado: state, incidenteId: id };
+    method = action === 'INSERT' ? 'POST' : 'PATCH';
+    rest = action === 'INSERT' ? (arrastre ? `/arrastres/${data.arrastreId}/incidentes` : `/movimientos/${data.movimientoId}/incidentes`) : (arrastre && state === 'RESUELTO' ? `/arrastres/${data.arrastreId}/incidentes/${id}/resolver` : `/incidentes/${id}/${state === 'RESUELTO' ? 'resolver' : 'cerrar'}`);
+  }
+  await dispatchTorreonSideEffects(method, rest, data);
 });
 
 export default router;

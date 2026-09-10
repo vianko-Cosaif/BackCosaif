@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma';
 /**
  * empresaModel.ts
  *
@@ -14,10 +15,9 @@
  * - empresaError: logger dedicado a errores del modelo Empresa.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { empresaError } from './empresa.logger';
 
-const prisma = new PrismaClient();
+
 
 /**
  * Clase EmpresaModel

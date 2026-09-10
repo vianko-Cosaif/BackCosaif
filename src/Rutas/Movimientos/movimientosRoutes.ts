@@ -1,3 +1,4 @@
+import { listCompact } from './movementQueryController';
 /**
  * @file movimientos.routes.ts
  * @description
@@ -52,6 +53,7 @@ const router = Router();
  */
 router.use(authenticateAccess);
 router.use(idempotentMutation);
+router.get('/listado', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, listCompact);
 router.get(
   '/servicios/pendientes',
   requireAnyPermission(PERMISSIONS.MOVEMENTS_READ, PERMISSIONS.TORNO_READ),

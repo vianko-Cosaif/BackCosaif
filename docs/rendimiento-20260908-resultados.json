@@ -1,0 +1,141 @@
+{
+  "recordedAt": "2026-09-08T15:44:08.606Z",
+  "node": "v24.19.0",
+  "fixtureMovements": 60000,
+  "samples": 15,
+  "notes": "Local PostgreSQL 16, warm caches, sequential requests; not production throughput.",
+  "list": {
+    "legacy": {
+      "p50Ms": 1.819,
+      "p95Ms": 2.21,
+      "sqlStatements": 7,
+      "jsonBytes": 65914
+    },
+    "compact": {
+      "p50Ms": 1.298,
+      "p95Ms": 1.567,
+      "sqlStatements": 5,
+      "jsonBytes": 11989
+    }
+  },
+  "deepPage": {
+    "offset": {
+      "p50Ms": 2.604,
+      "p95Ms": 2.879,
+      "sqlStatements": 7,
+      "jsonBytes": 65894
+    },
+    "cursor": {
+      "p50Ms": 1.653,
+      "p95Ms": 1.954,
+      "sqlStatements": 5,
+      "jsonBytes": 11989
+    }
+  },
+  "roundCompaction": {
+    "rows": 1000,
+    "legacy": {
+      "p50Ms": 146.813,
+      "p95Ms": 179.063,
+      "sqlStatements": 1001,
+      "jsonBytes": null
+    },
+    "batched": {
+      "p50Ms": 7.573,
+      "p95Ms": 8.475,
+      "sqlStatements": 5,
+      "jsonBytes": null
+    }
+  },
+  "summary": {
+    "rowsInNode": {
+      "p50Ms": 1.695,
+      "p95Ms": 1.997,
+      "sqlStatements": 1,
+      "jsonBytes": 19
+    },
+    "databaseAggregate": {
+      "p50Ms": 0.658,
+      "p95Ms": 1.253,
+      "sqlStatements": 1,
+      "jsonBytes": 41
+    }
+  },
+  "indexProbe": {
+    "fixtureMovements": 60000,
+    "samples": 7,
+    "method": "Separate EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) probe, warm caches, before and after indexes",
+    "results": {
+      "global": {
+        "beforeMedianMs": 5.59,
+        "afterMedianMs": 0.006,
+        "beforeNodes": [
+          "Limit",
+          "Gather Merge",
+          "Sort",
+          "Seq Scan"
+        ],
+        "afterNodes": [
+          "Limit",
+          "Index Only Scan: Movimiento_createdAt_id_idx"
+        ],
+        "kept": true
+      },
+      "company": {
+        "beforeMedianMs": 1.488,
+        "afterMedianMs": 0.014,
+        "beforeNodes": [
+          "Limit",
+          "Sort",
+          "Bitmap Heap Scan",
+          "Bitmap Index Scan: Movimiento_empresaId_estado_idx"
+        ],
+        "afterNodes": [
+          "Limit",
+          "Index Scan: Movimiento_createdAt_id_idx"
+        ],
+        "kept": true
+      },
+      "locality": {
+        "beforeMedianMs": 2.004,
+        "afterMedianMs": 0.01,
+        "beforeNodes": [
+          "Limit",
+          "Sort",
+          "Bitmap Heap Scan",
+          "Bitmap Index Scan: Movimiento_localidadId_estado_idx"
+        ],
+        "afterNodes": [
+          "Limit",
+          "Index Scan: Movimiento_createdAt_id_idx"
+        ],
+        "kept": true
+      },
+      "round": {
+        "beforeMedianMs": 0.094,
+        "afterMedianMs": 0.092,
+        "beforeNodes": [
+          "Index Scan: Ronda_rondaNumero_orden_idx"
+        ],
+        "afterNodes": [
+          "Index Scan: Ronda_rondaNumero_orden_idx"
+        ],
+        "kept": false
+      }
+    }
+  },
+  "roundCharacterizationBaselineSha256": "8a957562da8fd90592314efae55c614208a818ec109880e01c950b31f7b0450d",
+  "validation": {
+    "typesProjects": 4,
+    "generalSuites": 14,
+    "postgres": "16, upgrade from HEAD schema + security and performance migrations, each applied twice",
+    "integration": [
+      "security/payment/outbox/idempotency",
+      "cursor/scope/aggregates/CSV/XLSX/expiry/retries",
+      "commercial incident counts in five relations",
+      "round legacy characterization and concurrency",
+      "standalone worker, metrics and SIGTERM",
+      "sandboxed Chrome PDF: 1847432 bytes"
+    ]
+  }
+}

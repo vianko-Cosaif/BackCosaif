@@ -27,6 +27,17 @@ export function iniciarServidorTorreon(): void {
 
     const app: Express = express();
 
+    let activeRequests = 0;
+    app.disable('x-powered-by');
+    app.use((_req, res, next) => {
+      if (activeRequests >= 4) return res.status(429).json({ error: 'Servicio ocupado; reintenta' });
+      activeRequests++;
+      let released = false;
+      const release = () => { if (!released) { released = true; activeRequests--; } };
+      res.once('finish', release); res.once('close', release);
+      res.setTimeout(60_000, () => res.destroy());
+      next();
+    });
     app.use(express.json({
       limit: "50mb",
       verify: (req: RequestWithRawBody, _res, buf) => {

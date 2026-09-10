@@ -1,3 +1,4 @@
+import { cents } from '../../utils/money';
 import { z } from "zod";
 
 export const corteDetalleSchema = z.object({
@@ -9,8 +10,8 @@ export const corteDetalleSchema = z.object({
   referencia: z.string().trim().max(200).optional().nullable(),
   fechaServicio: z.coerce.date(),
   cantidad: z.coerce.number().positive().default(1),
-  importeUnitario: z.coerce.number().min(0).optional().nullable(),
-  subtotal: z.coerce.number().min(0).optional().nullable(),
+  importeUnitario: z.coerce.number().min(0).refine(value => { try { cents(value); return true; } catch { return false; } }, 'Importe inválido; usa como máximo dos decimales').optional().nullable(),
+  subtotal: z.coerce.number().min(0).refine(value => { try { cents(value); return true; } catch { return false; } }, 'Importe inválido; usa como máximo dos decimales').optional().nullable(),
   estadoCobro: z.enum(["PENDIENTE_VALIDACION", "COBRABLE", "NO_COBRABLE", "EN_ACLARACION", "APROBADO", "FACTURADO", "PAGADO", "VENCIDO"]).default("PENDIENTE_VALIDACION"),
   motivoNoCobro: z.string().trim().max(1000).optional().nullable(),
   evidencia: z.unknown().optional().nullable(),
@@ -25,9 +26,9 @@ const corteBase = z.object({
   fechaCorte: z.coerce.date(),
   fechaVencimiento: z.coerce.date().optional().nullable(),
   estado: z.enum(["BORRADOR", "EN_REVISION", "APROBADO", "FACTURADO", "PARCIAL", "PAGADO", "VENCIDO", "CANCELADO"]).default("BORRADOR"),
-  subtotal: z.coerce.number().min(0).optional().nullable(),
-  iva: z.coerce.number().min(0).optional().nullable(),
-  total: z.coerce.number().min(0).optional().nullable(),
+  subtotal: z.coerce.number().min(0).refine(value => { try { cents(value); return true; } catch { return false; } }, 'Importe inválido; usa como máximo dos decimales').optional().nullable(),
+  iva: z.coerce.number().min(0).refine(value => { try { cents(value); return true; } catch { return false; } }, 'Importe inválido; usa como máximo dos decimales').optional().nullable(),
+  total: z.coerce.number().min(0).refine(value => { try { cents(value); return true; } catch { return false; } }, 'Importe inválido; usa como máximo dos decimales').optional().nullable(),
   moneda: z.string().trim().toUpperCase().length(3).default("MXN"),
   facturaFolio: z.string().trim().max(100).optional().nullable(),
   facturaUuid: z.string().uuid().optional().nullable(),
@@ -58,7 +59,8 @@ export const corteListSchema = z.object({
 });
 
 export const pagoCreateSchema = z.object({
-  monto: z.coerce.number().positive(),
+  operacionId: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/).optional(),
+  monto: z.coerce.number().positive().refine(value => { try { cents(value); return true; } catch { return false; } }, 'Importe inválido; usa como máximo dos decimales'),
   fechaPago: z.coerce.date(),
   referencia: z.string().trim().max(160).optional().nullable(),
   metodo: z.string().trim().max(100).optional().nullable(),

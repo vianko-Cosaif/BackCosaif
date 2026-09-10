@@ -1,3 +1,4 @@
+import { passwordHashOptions, validatePasswordSize } from '../../auth/passwordPolicy';
 // src/models/Usuario/usuarioModel.ts
 import { Prisma, Rol } from '@prisma/client';
 import argon2 from 'argon2';
@@ -155,7 +156,7 @@ export class UsuarioModel {
         log.warn('usuarioModel:create:bad_input', { reqId: ctx.reqId, nombre, email, rol, empresaId, localidadId });
         throw new Error('Datos incompletos');
       }
-      if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
+      validatePasswordSize(contrasena);
       if (!Object.values(Rol).includes(rol)) throw new Error('Rol no válido');
 
       const tRefs = process.hrtime.bigint();
@@ -169,7 +170,7 @@ export class UsuarioModel {
       const refsMs = this.dt(tRefs);
 
       const tHash = process.hrtime.bigint();
-      const contrasenaHasheada = await argon2.hash(contrasena, { timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id });
+      const contrasenaHasheada = await argon2.hash(contrasena, passwordHashOptions);
       const hashMs = this.dt(tHash);
 
       const tIns = process.hrtime.bigint();
@@ -239,6 +240,11 @@ export class UsuarioModel {
         return { autenticado: false, desactivado: true, id: usuario.id };
       }
 
+      if (argon2.needsRehash(usuario.contrasena, passwordHashOptions)) {
+        const rehash = await argon2.hash(contrasena, passwordHashOptions);
+        // Do not overwrite a password changed concurrently.
+        await prisma.usuario.updateMany({ where: { id: usuario.id, contrasena: usuario.contrasena }, data: { contrasena: rehash } });
+      }
       log.info('usuarioModel:login:ok', {
         reqId: ctx.reqId, userId: usuario.id, rol: usuario.rol, findMs, verMs, totalMs: this.dt(t0),
       });
@@ -321,9 +327,9 @@ export class UsuarioModel {
       let hashMs = 0;
       const contrasena = String(input.contrasena ?? '').trim();
       if (contrasena) {
-        if (contrasena.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres');
+        validatePasswordSize(contrasena);
         const tHash = process.hrtime.bigint();
-        dataToUpdate.contrasena = await argon2.hash(contrasena, { timeCost: 4, memoryCost: 4096, parallelism: 2, type: argon2.argon2id });
+        dataToUpdate.contrasena = await argon2.hash(contrasena, passwordHashOptions);
         hashMs = this.dt(tHash);
         invalidarSesiones = true;
       }

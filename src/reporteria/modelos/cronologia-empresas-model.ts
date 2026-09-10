@@ -1,8 +1,9 @@
+import { prisma } from '../../lib/prisma';
 // reporteria/modelos/cronologia-empresas-model.ts
 // Reporte: Cronologia por empresa con "siguiente movimiento" global
 
 import type { AdminReporteFilters, PeriodoReporte } from './admin-model';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { DateTime } from 'luxon';
 import { rangoPeriodoUTC } from './ceo-base';
 
@@ -95,7 +96,7 @@ export type ReporteCronologiaEmpresas = {
   empresas: EmpresaCronologia[];
 };
 
-const prisma = new PrismaClient();
+
 const MX_TZ = 'America/Mexico_City';
 
 function fmtMX(d: Date | null, tz: string) {

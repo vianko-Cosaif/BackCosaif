@@ -5,10 +5,10 @@
   "main": "index.ts",
   "scripts": {
     "dev": "ts-node-dev --files index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node tests/run-tests.cjs",
+    "test:guardian": "node scripts/sync-guardian.cjs --check && node --test tests/guardian-outbox.cjs",
     "cypress:open": "cypress open",
     "build": "tsc && node scripts/copy-config-json.cjs",
-    "preinstall": "npx npm-force-resolutions",
     "dev:torno": "ts-node-dev --project msTorno/tsconfig.json msTorno/src/index.ts",
     "build:torno": "tsc -p msTorno/tsconfig.json",
     "prisma:torno:push": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema msTorno/prisma/schema.prisma",
@@ -16,7 +16,7 @@
     "predev:comercial": "npm run prisma:comercial:generate",
     "dev:comercial": "ts-node-dev --project msComercial/tsconfig.json msComercial/src/index.ts",
     "prebuild:comercial": "npm run prisma:comercial:generate",
-    "build:comercial": "tsc -p msComercial/tsconfig.json",
+    "build:comercial": "tsc -p msComercial/tsconfig.json && cp msComercial/configureDatabase.cjs msComercial/dist/configureDatabase.cjs",
     "pretest:comercial": "npm run prisma:comercial:generate",
     "test:comercial": "ts-node --project msComercial/tsconfig.json msComercial/src/comercial.rules.test.ts",
     "test:comercial:excel": "ts-node src/reporteria/modelos/comercial-crm-excel.test.ts",
@@ -35,12 +35,18 @@
     "prisma:torreon:generate": "DOTENV_CONFIG_PATH=ms_torreon/.env.torreon node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema ms_torreon/prisma/schema.prisma",
     "check:torreon:normalize-arrastre-ids": "node scripts/normalize-torreon-arrastre-catalog-ids.cjs",
     "migrate:torreon:normalize-arrastre-ids": "node scripts/normalize-torreon-arrastre-catalog-ids.cjs --apply",
-    "seed:torreon:cosaif": "node scripts/seed-torreon-cosaif.cjs"
-  },
-  "resolutions": {
-    "braces": "3.0.3",
-    "micromatch": "5.0.7",
-    "readdirp": "3.6.0"
+    "seed:torreon:cosaif": "node scripts/seed-torreon-cosaif.cjs",
+    "test:security": "node tests/security-regressions.cjs",
+    "test:integration": "node tests/security-integration.cjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p msTorno/tsconfig.json && tsc --noEmit -p ms_torreon/tsconfig.json && tsc --noEmit -p msComercial/tsconfig.json",
+    "prisma:generate:all": "prisma generate --schema prisma/schema.prisma && prisma generate --schema msTorno/prisma/schema.prisma && prisma generate --schema ms_torreon/prisma/schema.prisma && prisma generate --schema msComercial/prisma/schema.prisma",
+    "migrate:security": "node scripts/security-migrate.cjs",
+    "worker:reports": "node dist/workers/reports.js",
+    "dev:worker:reports": "ts-node --files src/workers/reports.ts",
+    "migrate:performance": "node scripts/security-migrate.cjs --version=performance-20260908 --target=main",
+    "test:performance": "node tests/performance-regressions.cjs",
+    "test:performance:integration": "node tests/performance-integration.cjs && node tests/round-integration.cjs && node tests/report-worker-smoke.cjs",
+    "benchmark:performance": "node tests/performance-benchmark.cjs"
   },
   "overrides": {
     "exceljs": {
@@ -57,14 +63,18 @@
     },
     "teeny-request": {
       "uuid": "11.1.1"
-    }
+    },
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "qs": "6.16.0"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^6.8.2",
+    "@prisma/client": "6.19.3",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/passport": "^1.0.17",
     "@types/passport-jwt": "^4.0.1",
@@ -103,22 +113,24 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^22.13.13",
     "@types/sharp": "^0.31.1",
-    "npm-force-resolutions": "^0.0.10",
-    "prisma": "^6.8.2",
+    "prisma": "6.19.3",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.2"
   },
   "allowScripts": {
-    "@prisma/client@6.19.1": true,
     "@prisma/engines@6.19.3": true,
     "argon2@0.41.1": true,
     "fsevents@2.3.3": true,
     "prisma@6.19.3": true,
-    "puppeteer@24.34.0": true,
     "farmhash@3.3.1": true,
     "@firebase/util@1.15.2": true,
     "@firebase/util@1.10.1": true,
     "protobufjs@7.6.5": true,
-    "sharp@0.35.3": true
+    "sharp@0.35.3": true,
+    "@prisma/client@6.19.3": true,
+    "puppeteer@25.8.0": true
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

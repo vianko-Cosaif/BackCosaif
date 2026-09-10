@@ -1,9 +1,10 @@
+import { prisma } from '../../lib/prisma';
 // src/models/Via/viaModel.ts
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { viaError } from './via.logger';
 import { SeccionViaModel, NotFoundError, ConflictError } from './Secciones/SeccionViasModel';
 
-const prisma = new PrismaClient();
+
 
 // Error especializado para adjuntar info del bloqueador
 export class ViaOcupadaPorOtroError extends ConflictError {

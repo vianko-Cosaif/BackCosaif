@@ -52,11 +52,7 @@ passport.use(
       }
 
       // 3. validar contra tabla Token (usa el nombre correcto del service)
-      const esValido = await tokenService.esSesionVigenteDeUsuario(
-        jwtPayload.jti,
-        userIdRaw,
-        { usuarioId: userIdRaw },
-      );
+      const esValido = await tokenService.obtenerSesionVigente(jwtPayload.jti, userIdRaw);
       if (!esValido) {
         logger.info('Token revocado o vencido', { jti: jwtPayload.jti, userId: userIdRaw });
         return done(null, false, { message: 'Token revocado o vencido' });
@@ -100,6 +96,7 @@ passport.use(
         localidad: user.localidad,
         auth: {
           jti: jwtPayload.jti,
+          expiresAt: esValido.expiresAt.toISOString(),
           iat: jwtPayload.iat,
           exp: jwtPayload.exp,
           v: tokenVersion,
