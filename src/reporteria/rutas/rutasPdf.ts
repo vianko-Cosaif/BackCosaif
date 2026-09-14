@@ -2,6 +2,7 @@
 // Centraliza PDFs bajo /reporteria (si lo montas con app.use('/reporteria', rutasPdf))
 
 import { Router } from 'express';
+import { operationReportRouter } from '../operacion/routes';
 import { authenticateAccess } from '../../auth/authenticateAccess';
 import { MovimientoPdfController } from '../controller/movimeintoPdf';
 import { AdminReporteriaController } from '../controller/adminController';
@@ -21,6 +22,7 @@ import { enforceQueryScope, requirePermission } from '../../auth/authorize';
 const router = Router();
 
 router.use(authenticateAccess);
+router.use('/admin/operacion', operationReportRouter);
 
 /**
  * Montaje:

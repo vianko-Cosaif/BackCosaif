@@ -35,3 +35,8 @@ logs/login-access.log
 ms_torreon/.env.torreon
 msComercial/.env.comercial
 msTorno/.env.example
+logs/auth-errors.log
+logs/auth-errors.log
+logs/empresa-controller-errors.log
+/logs
+*.log
