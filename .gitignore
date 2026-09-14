@@ -31,3 +31,7 @@ ms_torreon/.env.torreon
 ms_torreon/.env.torreon
 msTorno/.env.example
 msComercial/.env.comercial
+logs/login-access.log
+ms_torreon/.env.torreon
+msComercial/.env.comercial
+msTorno/.env.example
