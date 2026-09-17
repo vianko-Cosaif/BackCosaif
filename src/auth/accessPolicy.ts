@@ -257,9 +257,6 @@ const clientAdminCapabilities: FrontendCapabilities = {
   ...clientCapabilities,
   label: 'Cliente admin',
   canViewCompanyWide: true,
-  canViewTorreonArrastres: true,
-  canCreateTorreonArrastres: true,
-  navModules: ['dashboard', 'movimientos', 'torreon_arrastres', 'torno', 'incidentes'],
 };
 
 const arrastreCapabilities: FrontendCapabilities = {

@@ -1,3 +1,4 @@
+import { canClientUseTorreonPath, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
 import { registerJob } from '../../jobs/durableJobs';
 import { requireTorreonScope } from '../../auth/torreonScope';
 import { Router } from "express";
@@ -251,23 +252,6 @@ function normalizeProxyPath(rest: string) {
   return withLeadingSlash.length > 1 ? withLeadingSlash.replace(/\/+$/, "") : withLeadingSlash;
 }
 
-function isAllowedClientMutation(method: string, rest: string) {
-  const verb = method.toUpperCase();
-  const path = normalizeProxyPath(rest);
-  if (verb === "GET") return true;
-  if (verb === "POST" && path === "/arrastres") return true;
-  if (verb === "PATCH" && /^\/arrastres\/\d+$/.test(path)) return true;
-  if (verb === "PATCH" && path === "/arrastres/orden-solicitudes") return true;
-  if (verb === "PATCH" && /^\/arrastres\/\d+\/cancelar$/.test(path)) return true;
-  if (verb === "PATCH" && /^\/arrastres\/\d+\/vagones\/orden$/.test(path)) return true;
-  if (verb === "PATCH" && /^\/arrastres\/\d+\/vagones\/\d+$/.test(path)) return true;
-  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/arrastres\/\d+\/incidentes\/\d+\/resolver$/.test(path)) return true;
-  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/resolver$/.test(path)) return true;
-  if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/cerrar$/.test(path)) return true;
-  if (verb === "PATCH" && path === "/rondas/movimientos/orden") return true;
-  return false;
-}
-
 function isAllowedMaquinistaArrastreMutation(method: string, rest: string) {
   const verb = method.toUpperCase();
   const path = normalizeProxyPath(rest);
@@ -343,7 +327,7 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
     const payload = {
       ...source,
       creadoPorId: userId,
-      clienteId: source.clienteId ?? (CLIENT_COMPANY_ROLES.has(userRole(user)) || CLIENT_LOCAL_ROLES.has(userRole(user)) ? userId : undefined),
+      clienteId: isReadonlyClient(user) ? userId : source.clienteId,
       ...(empresaId ? { empresaId: source.empresaId ?? empresaId } : {}),
       ...(localidadId ? { localidadId: source.localidadId ?? localidadId } : {}),
     };
@@ -1143,11 +1127,21 @@ router.all("/*", async (req, res) => {
   const originalRest = req.originalUrl.startsWith(base)
     ? req.originalUrl.slice(base.length)
     : req.originalUrl;
+  if (!canClientUseTorreonPath(role, req.method, originalRest || "/")) {
+    const natural = torreonClientKind(role) === "NATURAL";
+    return res.status(403).json({
+      error: "Acción fuera del perfil de cliente",
+      message: natural
+        ? "Tu perfil permite solicitar movimientos naturales de tu empresa y resolver sus incidentes; no permite arrastres ni iniciar o finalizar operaciones."
+        : "Tu perfil permite solicitar y gestionar arrastres de tu empresa antes de iniciar y resolver sus incidentes; no permite movimientos naturales ni iniciar o finalizar vagones.",
+    });
+  }
+  const domainRest = scopeTorreonClientPath(role, originalRest || "/");
   const generalLocalityQueue = req.method.toUpperCase() === "GET"
-    && isGeneralLocalityQueueList(originalRest || "/", user);
+    && isGeneralLocalityQueueList(domainRest, user);
   const scopedRest = req.method.toUpperCase() === "GET"
-    ? applyListScope(originalRest || "/", user, generalLocalityQueue)
-    : originalRest || "/";
+    ? applyListScope(domainRest, user, generalLocalityQueue)
+    : domainRest;
 
   if (
     req.method.toUpperCase() === "GET" &&
@@ -1165,13 +1159,6 @@ router.all("/*", async (req, res) => {
     return res.status(403).json({
       error: "No autorizado para configurar el patio de arrastre",
       message: "Solo un administrador puede crear o modificar vías de arrastre.",
-    });
-  }
-
-  if (isReadonlyClient(user) && !isAllowedClientMutation(req.method, scopedRest)) {
-    return res.status(403).json({
-      error: "No autorizado para operar arrastre",
-      message: "El cliente puede consultar, crear, cancelar y editar solicitudes o vagones antes de que inicien, además de resolver incidentes propios; no puede iniciar ni finalizar vagones.",
     });
   }
 
