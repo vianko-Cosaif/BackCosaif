@@ -16,7 +16,7 @@ const targets = {
 };
 if (!targets[target]) throw new Error('Usa --target=main|torno|torreon|comercial');
 const version = process.argv.find(a => a.startsWith('--version='))?.slice(10) || 'security-20260907';
-if (!['security-20260907', 'performance-20260908'].includes(version) || (version === 'performance-20260908' && target !== 'main')) throw new Error('Versión o destino de migración no permitido');
+if (!['security-20260907', 'performance-20260908', 'roles-20260917', 'notifications-20260917'].includes(version) || (version !== 'security-20260907' && target !== 'main')) throw new Error('Versión o destino de migración no permitido');
 const sql = fs.readFileSync(path.join(root, 'migrations', version, `${target}.sql`), 'utf8');
 const checksum = crypto.createHash('sha256').update(sql).digest('hex');
 if (!process.argv.includes('--apply') && !process.argv.includes('--check')) {

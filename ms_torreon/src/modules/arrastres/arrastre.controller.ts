@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { ok } from "../../utils/http";
 import { ArrastreModel } from "./arrastre.model";
+import { arrastrePageQuery } from "./arrastre.query";
 import {
   cancelarArrastreSchema,
   createArrastreSchema,
@@ -37,6 +38,10 @@ const optionalBoolean = (value: unknown) => {
 
 export class ArrastreController {
   static async listar(req: Request, res: Response) {
+    if (req.query.pagination === "1") {
+      const query = arrastrePageQuery.parse(req.query);
+      return res.json(await ArrastreModel.listarPagina(query));
+    }
     const data = await ArrastreModel.listar({
       localidadId: optionalNumber(req.query.localidadId),
       empresaId: optionalNumber(req.query.empresaId),

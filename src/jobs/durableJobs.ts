@@ -8,8 +8,9 @@ import type { Prisma } from '@prisma/client';
 
 type Job = { key: string; kind: string; payload: any; attempts: number; available_at: Date };
 type Handler = (payload: any, key: string) => Promise<unknown>;
-const executionContext = new AsyncLocalStorage<boolean>();
-export const isDurableJobExecution = () => executionContext.getStore() === true;
+const executionContext = new AsyncLocalStorage<string>();
+export const getDurableJobKey = () => executionContext.getStore();
+export const isDurableJobExecution = () => getDurableJobKey() !== undefined;
 const handlers = new Map<string, Handler>();
 export const registerJob = (kind: string, handler: Handler) => handlers.set(kind, handler);
 export async function enqueueJob(key: string, kind: string, payload: unknown, db: Prisma.TransactionClient = prisma) {
@@ -39,7 +40,7 @@ export async function runJobsOnce() {
       const started = performance.now();
       let outcome: 'ok' | 'retry' = 'ok';
       try {
-        await executionContext.run(true, () => handlers.get(job.kind)!(job.payload, job.key));
+        await executionContext.run(job.key, () => handlers.get(job.kind)!(job.payload, job.key));
         await prisma.$executeRaw`UPDATE durable_jobs SET completed_at = NOW(), locked_until = NULL, last_error = NULL WHERE key = ${job.key} AND lock_token = ${token}::uuid`;
       } catch (error: any) {
         outcome = 'retry';

@@ -1,4 +1,7 @@
-﻿import { messaging } from '../config/firebase';
+import { messaging } from '../config/firebase';
+import { createHash, randomUUID } from 'crypto';
+import { getDurableJobKey } from '../jobs/durableJobs';
+import { claimFcmDelivery } from './fcmDelivery';
 
 type MulticastMessageCompat = {
   tokens: string[];
@@ -24,8 +27,13 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
       .filter(([, value]) => value !== undefined && value !== null)
       .map(([key, value]) => [key, String(value)])
   );
+  const jobKey = getDurableJobKey();
+  const eventId = jobKey
+    ? createHash('sha256').update(JSON.stringify([jobKey, data.tipo, data.audience, data.movimientoId, data.incidenteId, data.arrastreId, data.servicio])).digest('hex')
+    : data.eventId || randomUUID();
+  data.eventId = eventId;
   const link = data.url || data.click_action || '/';
-  const tag = data.tag || data.eventId || data.movimientoId || data.incidenteId || data.tipo || 'cosaif';
+  const tag = eventId;
   const sendPayload = {
     ...payload,
     data,
@@ -68,29 +76,37 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
       notification: {
         icon: String(notification.icon ?? data.icon ?? '/icons/cosaif-192.png'),
         badge: String(data.badge ?? '/icons/cosaif-192.png'),
-        tag: String(tag),
-        renotify: true,
-        requireInteraction: true,
         silent: false,
         ...((payload.webpush as any)?.notification ?? {}),
+        tag,
+        renotify: false,
+        requireInteraction: false,
       },
     },
   };
 
+  const deliveries = new Map<string, Promise<SendResponseCompat>>();
   const responses: SendResponseCompat[] = await Promise.all(
-    tokens.map(async (token) => {
-      try {
-        const messageId = await messaging.send({ ...sendPayload, token } as any);
-        return { success: true, messageId };
-      } catch (error: any) {
-        return {
-          success: false,
-          error: {
-            code: error?.code ?? error?.errorInfo?.code ?? 'messaging/unknown-error',
-            message: error?.message,
-          },
-        };
-      }
+    tokens.map((token) => {
+      const existing = deliveries.get(token);
+      if (existing) return existing;
+      const delivery = (async (): Promise<SendResponseCompat> => {
+        try {
+          if (jobKey && !(await claimFcmDelivery(eventId, token))) return { success: true };
+          const messageId = await messaging.send({ ...sendPayload, token } as any);
+          return { success: true, messageId };
+        } catch (error: any) {
+          return {
+            success: false,
+            error: {
+              code: error?.code ?? error?.errorInfo?.code ?? 'messaging/unknown-error',
+              message: error?.message,
+            },
+          };
+        }
+      })();
+      deliveries.set(token, delivery);
+      return delivery;
     })
   );
 

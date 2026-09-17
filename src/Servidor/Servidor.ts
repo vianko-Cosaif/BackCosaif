@@ -55,7 +55,7 @@ dotenv.config();
 
 // Puerto de escucha
 const PORT = process.env.PORT;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST ;
 
 function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
   const address = req.socket.remoteAddress || "";

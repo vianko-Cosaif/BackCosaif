@@ -45,20 +45,11 @@ type OperacionTorreonFCM = {
   tag?: string;
 };
 
-type OperacionServicioFCM = {
-  tipo: string;
+type OperacionServicioFCM = OperacionTorreonFCM & {
   servicio: 'TORNO' | 'LAVADO';
-  titulo: string;
-  mensaje: string;
-  empresaId?: number | null;
-  localidadId?: number | null;
   movimientoId?: number | null;
-  usuarioIds?: Array<number | null | undefined>;
   roles: Rol[];
   audience: string;
-  data?: Record<string, unknown>;
-  url?: string;
-  tag?: string;
 };
 
 const INVALID_FCM_CODES = new Set([
@@ -480,115 +471,66 @@ static async notificarCambioEstado(
   }
 
   static async notificarOperacionTorreon(params: OperacionTorreonFCM): Promise<void> {
-    try {
-      const { tokens, roleCounts } = await tokensAudienciaOperacion({
-        empresaId: params.empresaId,
-        localidadId: params.localidadId,
-        usuarioIds: params.usuarioIds,
-        roles: params.roles,
-      });
-
-      if (!tokens.length) {
-        console.warn('FCM Torreon: sin tokens', {
-          tipo: params.tipo,
-          empresaId: params.empresaId,
-          localidadId: params.localidadId,
-          roles: params.roles,
-          roleCounts,
-        });
-        return;
-      }
-
-      const data = stringifyFcmData({
-        ...(params.data ?? {}),
-        tipo: params.tipo,
-        source: 'torreon',
-        url: params.url ?? '/cliente/torreon',
-        tag: params.tag ?? `torreon:${params.tipo}:${Date.now()}`,
-        timestamp: new Date().toISOString(),
-      });
-
-      const response = await sendMulticastCompat({
-        notification: {
-          title: params.titulo,
-          body: params.mensaje,
-        },
-        data,
-        android: {
-          priority: 'high',
-          notification: {
-            channelId: 'cosaif_operacion',
-            sound: 'default',
-            priority: 'high',
-            defaultSound: true,
-            defaultVibrateTimings: true,
-            visibility: 'public',
-          },
-        },
-        apns: {
-          headers: { 'apns-priority': '10' },
-          payload: {
-            aps: {
-              sound: 'default',
-              contentAvailable: true,
-            },
-          },
-        },
-        tokens,
-      } as any);
-
-      await deleteInvalidFcmTokens(tokens, response.responses);
-      if (isDurableJobExecution() && response.responses.some(item => !item.success && !INVALID_FCM_CODES.has(item.error?.code ?? ''))) throw new Error('FCM transitorio; se reintentará la entrega');
-    } catch (error) {
-      if (isDurableJobExecution()) throw error;
-      console.error('Error notificarOperacionTorreon:', error);
-    }
+    return this.notificarOperacion(params, {
+      source: 'torreon',
+      url: '/cliente/torreon',
+      tagPrefix: 'torreon',
+      android: { channelId: 'cosaif_operacion', sound: 'default', visibility: 'public' },
+      logName: 'Torreon',
+      errorName: 'notificarOperacionTorreon',
+    });
   }
 
   static async notificarOperacionServicio(params: OperacionServicioFCM): Promise<void> {
+    return this.notificarOperacion(params, {
+      source: params.servicio.toLowerCase(),
+      url: '/movimientos',
+      tagPrefix: `servicio:${params.servicio}`,
+      data: {
+        servicio: params.servicio, audience: params.audience,
+        empresaId: params.empresaId, localidadId: params.localidadId, movimientoId: params.movimientoId,
+      },
+      logContext: { servicio: params.servicio },
+      logName: 'servicio',
+      errorName: 'notificarOperacionServicio',
+    });
+  }
+
+  private static async notificarOperacion(params: OperacionTorreonFCM, config: {
+    source: string;
+    url: string;
+    tagPrefix: string;
+    android?: Record<string, string>;
+    data?: Record<string, unknown>;
+    logContext?: Record<string, unknown>;
+    logName: string;
+    errorName: string;
+  }): Promise<void> {
     try {
       const { tokens, roleCounts } = await tokensAudienciaOperacion({
-        empresaId: params.empresaId,
-        localidadId: params.localidadId,
-        usuarioIds: params.usuarioIds,
-        roles: params.roles,
+        empresaId: params.empresaId, localidadId: params.localidadId,
+        usuarioIds: params.usuarioIds, roles: params.roles,
       });
-
       if (!tokens.length) {
-        console.warn('FCM servicio: sin tokens', {
-          tipo: params.tipo,
-          servicio: params.servicio,
-          empresaId: params.empresaId,
-          localidadId: params.localidadId,
-          roles: params.roles,
-          roleCounts,
+        console.warn(`FCM ${config.logName}: sin tokens`, {
+          tipo: params.tipo, ...config.logContext,
+          empresaId: params.empresaId, localidadId: params.localidadId, roles: params.roles, roleCounts,
         });
         return;
       }
-
       const data = stringifyFcmData({
-        ...(params.data ?? {}),
-        tipo: params.tipo,
-        servicio: params.servicio,
-        source: params.servicio.toLowerCase(),
-        audience: params.audience,
-        empresaId: params.empresaId,
-        localidadId: params.localidadId,
-        movimientoId: params.movimientoId,
-        url: params.url ?? '/movimientos',
-        tag: params.tag ?? `servicio:${params.servicio}:${params.tipo}:${Date.now()}`,
+        ...params.data, tipo: params.tipo, ...config.data, source: config.source,
+        url: params.url ?? config.url,
+        tag: params.tag ?? `${config.tagPrefix}:${params.tipo}:${Date.now()}`,
         timestamp: new Date().toISOString(),
       });
-
       const response = await sendMulticastCompat({
         notification: { title: params.titulo, body: params.mensaje },
         data,
         android: {
           priority: 'high',
           notification: {
-            priority: 'high',
-            defaultSound: true,
-            defaultVibrateTimings: true,
+            priority: 'high', defaultSound: true, defaultVibrateTimings: true, ...config.android,
           },
         },
         apns: {
@@ -596,13 +538,14 @@ static async notificarCambioEstado(
           payload: { aps: { sound: 'default', contentAvailable: true } },
         },
         tokens,
-      } as any);
-
+      });
       await deleteInvalidFcmTokens(tokens, response.responses);
-      if (isDurableJobExecution() && response.responses.some(item => !item.success && !INVALID_FCM_CODES.has(item.error?.code ?? ''))) throw new Error('FCM transitorio; se reintentará la entrega');
+      if (isDurableJobExecution() && response.responses.some(item => !item.success && !INVALID_FCM_CODES.has(item.error?.code ?? ''))) {
+        throw new Error('FCM transitorio; se reintentará la entrega');
+      }
     } catch (error) {
       if (isDurableJobExecution()) throw error;
-      console.error('Error notificarOperacionServicio:', error);
+      console.error(`Error ${config.errorName}:`, error);
     }
   }
 

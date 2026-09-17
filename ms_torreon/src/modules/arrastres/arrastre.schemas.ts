@@ -244,9 +244,12 @@ export const reordenarVagonesArrastreSchema = z.object({
 export const reordenarSolicitudesArrastreSchema = z.object({
   arrastreIds: z.array(idSchema).min(1).max(100),
   empresaId: idSchema.optional(),
+  direction: z.enum(["up", "down", "front"]).optional(),
 }).refine((data) => new Set(data.arrastreIds).size === data.arrastreIds.length, {
   message: "No repitas solicitudes",
   path: ["arrastreIds"],
+}).refine((data) => !data.direction || data.arrastreIds.length === 1, {
+  message: "El desplazamiento requiere una sola solicitud", path: ["arrastreIds"],
 });
 
 export const crearIncidenteArrastreSchema = withCapturas.extend({

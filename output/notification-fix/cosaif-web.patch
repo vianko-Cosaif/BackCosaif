@@ -1,0 +1,82 @@
+--- a/src/app/firebase-messaging-sw.js/route.ts
++++ b/src/app/firebase-messaging-sw.js/route.ts
+@@ -49,6 +49,8 @@
+   const messaging = firebase.messaging();
+ 
+   messaging.onBackgroundMessage((payload) => {
++    // Firebase ya muestra automáticamente los mensajes con notification.
++    if (payload.notification) return;
+     const notification = payload.notification || {};
+     const data = payload.data || {};
+     const title = notification.title || data.title || "Nueva notificacion";
+@@ -63,8 +65,8 @@
+       badge: data.badge || "/icons/cosaif-192.png",
+       data: { ...data, url, runtimeEnv: notificationRuntime.runtimeEnv, appEnv: notificationRuntime.appEnv },
+       tag: notificationRuntime.runtimeEnv + ":" + tag,
+-      renotify: true,
+-      requireInteraction: true,
++      renotify: false,
++      requireInteraction: false,
+       silent: false,
+     });
+   });
+--- a/src/components/layout/FirebaseNotificationPrompt.tsx
++++ b/src/components/layout/FirebaseNotificationPrompt.tsx
+@@ -3,6 +3,7 @@
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+ import { usePathname } from "next/navigation";
+ import { Bell, Loader2 } from "lucide-react";
++import { claimNotification } from "@/lib/notificationDelivery";
+ import { assertSameOriginUrl, getNotificationRuntimePolicy } from "@/lib/notificationRuntime";
+ 
+ type PromptState =
+@@ -156,20 +157,23 @@
+       void (async () => {
+         const { listenFirebaseForegroundMessages } = await import("@/lib/firebase");
+         if (!mounted) return;
+-        const nextUnsubscribe = await listenFirebaseForegroundMessages((payload) => {
++        const nextUnsubscribe = await listenFirebaseForegroundMessages(async (payload) => {
+           if (!mounted || browserPermission() !== "granted") return;
++          const eventId = payload.data?.eventId || payload.messageId;
++          if (eventId && !(await claimNotification(eventId))) return;
++          if (!mounted) return;
+           const title = payload.notification?.title || payload.data?.title || "Nueva notificación";
+           const body = payload.notification?.body || payload.data?.body || "";
+           const url = assertSameOriginUrl(payload.data?.url || "/", "/");
+-          const tag = payload.data?.tag || payload.data?.eventId || payload.data?.movimientoId || payload.data?.incidenteId || payload.data?.tipo || title;
++          const tag = payload.data?.eventId || payload.data?.tag || payload.data?.movimientoId || payload.data?.incidenteId || payload.data?.tipo || title;
+           const options: NotificationOptions & Record<string, unknown> = {
+             body,
+             icon: payload.notification?.icon || "/icons/cosaif-192.png",
+             badge: "/icons/cosaif-192.png",
+             tag,
+-            renotify: true,
+-            requireInteraction: true,
+-            silent: false,
++            renotify: false,
++            requireInteraction: false,
++            silent: true,
+             data: { ...payload.data, url },
+           };
+           void import("@/lib/notificationSound")
+--- /dev/null
++++ b/src/lib/notificationDelivery.ts
+@@ -0,0 +1,18 @@
++// IndexedDB serializa la reserva entre pestañas y la conserva tras recargar.
++// Sólo se guardan identificadores de eventos, nunca tokens ni contenido.
++export async function claimNotification(eventId: string): Promise<boolean> {
++  if (typeof indexedDB === "undefined") return false;
++  return new Promise((resolve) => {
++    const open = indexedDB.open("cosaif-notification-delivery", 1);
++    open.onupgradeneeded = () => open.result.createObjectStore("events");
++    open.onerror = () => resolve(false);
++    open.onblocked = () => resolve(false);
++    open.onsuccess = () => {
++      const db = open.result;
++      const tx = db.transaction("events", "readwrite");
++      tx.objectStore("events").add(Date.now(), eventId);
++      tx.oncomplete = () => { db.close(); resolve(true); };
++      tx.onabort = () => { db.close(); resolve(false); };
++    };
++  });
++}

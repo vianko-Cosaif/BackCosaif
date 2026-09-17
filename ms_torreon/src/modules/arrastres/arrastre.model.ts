@@ -27,6 +27,7 @@ import {
   resolverIncidenteArrastreSchema,
 } from "./arrastre.schemas";
 import { z } from "zod";
+import { arrastrePageWhere, type ArrastrePageQuery } from "./arrastre.query";
 
 type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
@@ -362,6 +363,36 @@ async function createIncidenteFotos(
 }
 
 export class ArrastreModel {
+  static async listarPagina(query: ArrastrePageQuery) {
+    const where = arrastrePageWhere(query);
+    const countsQuery = prismaTorreon.arrastreTorreon.groupBy({ by: ["estado"], orderBy: { estado: "asc" }, where, _count: { _all: true } });
+    const [rows, counts, pendingWagons, openIncidents, priorityIncident] = await prismaTorreon.$transaction([
+      prismaTorreon.arrastreTorreon.findMany({
+        where,
+        include: {
+          vagones: { orderBy: { orden: "asc" } },
+          // A list needs incident text and a photo count, not duplicated wagon/photo records.
+          incidentes: { include: { _count: { select: { fotos: true } } }, orderBy: { createdAt: "desc" } },
+        },
+        orderBy: query.vista === "historial"
+          ? [{ fechaFin: "desc" }, { fechaSolicitud: "desc" }, { id: "desc" }]
+          : [{ ordenSolicitud: "asc" }, { fechaSolicitud: "asc" }, { id: "asc" }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      countsQuery,
+      prismaTorreon.arrastreTorreonVagon.count({ where: { arrastre: where, estado: { in: ["PENDIENTE", "EN_PROCESO", "BLOQUEADO"] } } }),
+      prismaTorreon.incidenteArrastreTorreon.count({ where: { arrastre: where, estado: "ABIERTO" } }),
+      prismaTorreon.incidenteArrastreTorreon.findFirst({ where: { estado: "ABIERTO", arrastre: { localidadId: query.localidadId, estado: { in: ESTADOS_ARRASTRE_ACTIVO }, ...(query.priorityEmpresaId || query.empresaId ? { empresaId: query.priorityEmpresaId ?? query.empresaId } : {}) } }, select: { id: true } }),
+    ], { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+    const statusCounts = Object.fromEntries(counts.map((row) => [row.estado, row._count._all]));
+    const total = counts.reduce((sum, row) => sum + row._count._all, 0);
+    return {
+      data: rows.map((row) => ({ ...decorarArrastreDetalle(row), folioLabel: `#${row.id}` })),
+      meta: { page: query.page, pageSize: query.pageSize, total, totalPages: Math.max(1, Math.ceil(total / query.pageSize)), statusCounts, pendingWagons, openIncidents, canPrioritize: Boolean(priorityIncident) },
+    };
+  }
+
   static async listar(query: ArrastreListQuery) {
     const vista = String(query.vista || "").toUpperCase();
     const isHistoryVista = ["HISTORIAL", "COMPLETADOS", "CERRADOS", "PASADOS"].includes(vista);
@@ -476,6 +507,8 @@ export class ArrastreModel {
 
     let bloqueados = 0;
     let liberados = 0;
+    const blockIds: number[] = [];
+    const releaseIds: number[] = [];
 
     for (const vagon of vagones) {
       const bloqueado = incidentesAbiertos.some((incidente) =>
@@ -484,21 +517,28 @@ export class ArrastreModel {
 
       if (bloqueado) {
         if (vagon.estado === EstadoVagonArrastreTorreon.PENDIENTE) {
-          await tx.arrastreTorreonVagon.update({
-            where: { id: vagon.id },
-            data: { estado: EstadoVagonArrastreTorreon.BLOQUEADO },
-          });
+          blockIds.push(vagon.id);
         }
         bloqueados += 1;
         continue;
       }
 
       if (vagon.estado === EstadoVagonArrastreTorreon.BLOQUEADO) {
-        await tx.arrastreTorreonVagon.update({
-          where: { id: vagon.id },
-          data: { estado: EstadoVagonArrastreTorreon.PENDIENTE },
-        });
+        releaseIds.push(vagon.id);
         liberados += 1;
+      }
+    }
+
+    // Bound each update and preserve the expected state if another operation changed it.
+    for (const [ids, previous, next] of [
+      [blockIds, EstadoVagonArrastreTorreon.PENDIENTE, EstadoVagonArrastreTorreon.BLOQUEADO],
+      [releaseIds, EstadoVagonArrastreTorreon.BLOQUEADO, EstadoVagonArrastreTorreon.PENDIENTE],
+    ] as const) {
+      for (let offset = 0; offset < ids.length; offset += 500) {
+        await tx.arrastreTorreonVagon.updateMany({
+          where: { id: { in: ids.slice(offset, offset + 500) }, estado: previous },
+          data: { estado: next },
+        });
       }
     }
 
@@ -797,7 +837,7 @@ export class ArrastreModel {
       }
 
       const solicitudes = await tx.arrastreTorreon.findMany({
-        where: { localidadId: targetLocalidadId },
+        where: { localidadId: targetLocalidadId, estado: { in: ESTADOS_ARRASTRE_ACTIVO } },
         include: { vagones: { orderBy: { orden: "asc" } } },
         orderBy: [
           { ordenSolicitud: "asc" },
@@ -815,22 +855,47 @@ export class ArrastreModel {
 
       const editable = solicitudes.filter(isScopedEditable);
       const editableIds = new Set(editable.map((arrastre) => arrastre.id));
-      const incluyeTodas = input.arrastreIds.length === editable.length
-        && input.arrastreIds.every((arrastreId) => editableIds.has(arrastreId));
+      let orderedIds = input.arrastreIds;
+      if (input.direction) {
+        const index = editable.findIndex((row) => row.id === input.arrastreIds[0]);
+        if (index < 0) throw new DomainError(409, "La solicitud ya no se puede reordenar");
+        if (input.direction === "front") {
+          const incident = await tx.incidenteArrastreTorreon.findFirst({
+            where: { estado: "ABIERTO", arrastre: { localidadId: targetLocalidadId, estado: { in: ESTADOS_ARRASTRE_ACTIVO }, ...(input.empresaId ? { empresaId: input.empresaId } : {}) } },
+            select: { id: true },
+          });
+          if (!incident) throw new DomainError(409, "Solo se puede priorizar cuando existe un incidente abierto en la cola");
+          if (!editable[index].vagones.some((row) => row.estado === "PENDIENTE")) throw new DomainError(409, "La solicitud no tiene vagones pendientes disponibles");
+        }
+        orderedIds = editable.map((row) => row.id);
+        const next = input.direction === "front" ? 0 : input.direction === "up" ? index - 1 : index + 1;
+        if (next < 0 || next >= orderedIds.length || next === index) return targetLocalidadId;
+        if (input.direction !== "front") {
+          // Swap only this company's two slots; other companies and closed orders stay intact.
+          const current = editable[index], neighbor = editable[next];
+          await tx.arrastreTorreon.update({ where: { id: neighbor.id }, data: { ordenSolicitud: current.ordenSolicitud } });
+          await tx.arrastreTorreon.update({ where: { id: current.id }, data: { ordenSolicitud: neighbor.ordenSolicitud } });
+          return targetLocalidadId;
+        }
+        if (input.direction === "front") orderedIds.unshift(...orderedIds.splice(index, 1));
+        else [orderedIds[index], orderedIds[next]] = [orderedIds[next], orderedIds[index]];
+      }
+      const incluyeTodas = orderedIds.length === editable.length
+        && orderedIds.every((arrastreId) => editableIds.has(arrastreId));
 
       if (!incluyeTodas) {
         throw new DomainError(400, "El orden debe incluir todas las solicitudes editables del alcance actual");
       }
 
       const byId = new Map(solicitudes.map((arrastre) => [arrastre.id, arrastre]));
-      const reorderedEditable = input.arrastreIds.map((arrastreId) => byId.get(arrastreId)!);
+      const reorderedEditable = orderedIds.map((arrastreId) => byId.get(arrastreId)!);
       let editableCursor = 0;
       const finalOrder = solicitudes.map((arrastre) => (
         editableIds.has(arrastre.id) ? reorderedEditable[editableCursor++] : arrastre
       ));
 
       await tx.arrastreTorreon.updateMany({
-        where: { localidadId: targetLocalidadId },
+        where: { localidadId: targetLocalidadId, estado: { in: ESTADOS_ARRASTRE_ACTIVO } },
         data: { ordenSolicitud: { increment: ORDER_SHIFT } },
       });
 
@@ -844,9 +909,14 @@ export class ArrastreModel {
       );
 
       return targetLocalidadId;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }).catch((error: unknown) => {
+      if (error && typeof error === "object" && "code" in error && error.code === "P2034") {
+        throw new DomainError(409, "La cola cambió durante la operación. Actualiza e inténtalo de nuevo");
+      }
+      throw error;
     });
 
-    return this.listar({ localidadId });
+    return input.direction ? getArrastreDetalle(input.arrastreIds[0]) : this.listar({ localidadId });
   }
 
   static async iniciar(id: number, input: z.infer<typeof iniciarArrastreSchema>) {
