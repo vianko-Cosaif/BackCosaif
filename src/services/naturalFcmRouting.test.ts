@@ -22,7 +22,7 @@ assert.ok(incidente?.roles.includes(Rol.CLIENTE_ADMIN));
 assert.ok(incidente?.roles.includes(Rol.CLIENTE_COOR));
 assert.ok(incidente?.roles.includes(Rol.COORDINADOR));
 assert.ok(incidente?.roles.includes(Rol.SUPERVISOR));
-assert.ok(!incidente?.roles.includes(Rol.MAQUINISTA));
+assert.ok(incidente?.roles.includes(Rol.MAQUINISTA));
 
 for (const tipo of [
   'incidente_resuelto_cliente',

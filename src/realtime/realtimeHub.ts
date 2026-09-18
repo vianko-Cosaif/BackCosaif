@@ -1,3 +1,4 @@
+import { logicalNotificationId } from '../services/logicalNotificationId';
 import { realtimeNotificationRoles } from '../services/realtimeNotificationPolicy';
 import { canReceivePatioStart, isPatioStart, patioStartNotice } from '../services/patioNotificationPolicy';
 import { MAX_SESSION_AGE_MS } from '../auth/sessionPolicy';
@@ -481,7 +482,7 @@ function normalizedRealtimeEvent(event: RealtimeMovementPayload): RealtimeMoveme
   return {
     ...normalizedEvent,
     eventId:
-      normalizedEvent.eventId ??
+      logicalNotificationId(normalizedEvent) ?? normalizedEvent.eventId ??
       `${normalizedEvent.type}:${normalizedEvent.movimientoId ?? normalizedEvent.arrastreId ?? 'x'}:${normalizedEvent.vagonId ?? 'x'}:${normalizedEvent.incidenteId ?? 'x'}:${normalizedEvent.estado ?? 'x'}:${Date.now()}`,
     occurredAt: event.occurredAt ?? new Date().toISOString(),
   };

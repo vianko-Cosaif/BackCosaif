@@ -48,6 +48,17 @@ const message = { tokens: ['ok', 'uncertain', 'ok'], notification: { title: 'Mov
   await send({ ...message, tokens: ['ok'] });
   await send({ ...message, tokens: ['ok'] });
   assert.notEqual(sent[6].data.eventId, sent[7].data.eventId);
+  const beforeCreation = sent.length;
+  const created = { tokens: ['ok'], data: { tipo: 'nuevo_movimiento', movimientoId: '15', localidadId: '1', source: 'cosaif' } };
+  await Promise.all([send(created), send(created)]);
+  await send({ ...created, data: { ...created.data, eventId: 'different-transport-id' } });
+  assert.equal(sent.length, beforeCreation + 1, 'Direct creation is reserved once without an outbox job');
+  assert.equal(sent.at(-1).android.notification.tag, sent.at(-1).data.eventId);
+  assert.equal(sent.at(-1).notification.title, 'Nueva solicitud de movimiento');
+  const logical = load('src/services/logicalNotificationId.ts').logicalNotificationId;
+  assert.equal(sent.at(-1).data.eventId, logical({ type: 'movimiento.creado', movimientoId: 15, localidadId: 1 }));
+  assert.notEqual(logical({ type: 'movimiento.creado', movimientoId: 15, localidadId: 1 }), logical({ type: 'movimiento.creado', movimientoId: 15, localidadId: 2 }));
+  assert.equal(logical({ type: 'torreon.movimiento.estado', movimientoId: 15, localidadId: 2, estado: 'EN_PROCESO', accion: 'reanudado' }), null);
   jobKey = 'reminder-test';
   const expiry = new Date(Date.now() + 120000).toISOString();
   await send({ tokens: ['ok'], data: { tipo: 'movimiento_pendiente_recordatorio', source: 'cosaif', eventId: 'reminder-hour-1', expiresAt: expiry } });

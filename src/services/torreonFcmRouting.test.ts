@@ -12,7 +12,7 @@ assert.equal(editado?.audience, 'MAQUINISTA_ARRASTRE');
 const concluido = resolverAudienciaFcmTorreon('arrastre_concluido');
 assert.equal(concluido?.audience, 'CLIENTE_ARRASTRE');
 assert.ok(concluido?.roles.includes(Rol.ARRASTRE_TORREON));
-assert.ok(!concluido?.roles.includes(Rol.MAQUINISTA_ARRASTRE));
+assert.ok(concluido?.roles.includes(Rol.MAQUINISTA_ARRASTRE));
 
 const incidente = resolverAudienciaFcmTorreon('arrastre_incidente');
 assert.equal(incidente?.audience, 'CLIENTE_CONTROL_ARRASTRE');
@@ -46,7 +46,7 @@ console.log('Torreon FCM routing tests passed');
 
 assert.deepEqual(resuelto?.roles, creado?.roles);
 assert.deepEqual(naturalResuelto?.roles, naturalCreado?.roles);
-assert.deepEqual(incidente?.roles, [Rol.ARRASTRE_TORREON, Rol.COORDINADOR, Rol.SUPERVISOR]);
-assert.deepEqual(naturalIncidente?.roles, [Rol.CLIENTE, Rol.CLIENTE_ADMIN, Rol.CLIENTE_COOR, Rol.COORDINADOR, Rol.SUPERVISOR]);
+assert.deepEqual(incidente?.roles, [Rol.ARRASTRE_TORREON, Rol.COORDINADOR, Rol.SUPERVISOR, Rol.MAQUINISTA_ARRASTRE]);
+assert.deepEqual(naturalIncidente?.roles, [Rol.CLIENTE, Rol.CLIENTE_ADMIN, Rol.CLIENTE_COOR, Rol.COORDINADOR, Rol.SUPERVISOR, Rol.MAQUINISTA]);
 assert.deepEqual(resolverAudienciaFcmTorreon('arrastre_pendiente_recordatorio')?.roles, creado?.roles);
 assert.deepEqual(resolverAudienciaFcmTorreon('movimiento_pendiente_recordatorio')?.roles, naturalCreado?.roles);

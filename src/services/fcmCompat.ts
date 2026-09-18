@@ -1,3 +1,4 @@
+import { logicalNotificationId } from './logicalNotificationId';
 import { isPatioStart, patioStartNotice } from './patioNotificationPolicy';
 import { resolverAudienciaFcmNatural } from './naturalFcmRouting';
 import { resolverAudienciaFcmTorreon } from './torreonFcmRouting';
@@ -43,8 +44,15 @@ export async function sendMulticastCompat(message: MulticastMessageCompat): Prom
       : (service ? resolverAudienciaFcmServicio(data.tipo, service) : null) ?? resolverAudienciaFcmNatural(data.tipo);
     data.recipientRoles = (routing?.roles ?? []).join(',');
   }
+  if (['nuevo_movimiento', 'torreon_movimiento_creado'].includes(data.tipo)) {
+    const title = 'Nueva solicitud de movimiento';
+    const body = [data.locomotiveNumber || data.locomotora ? `Locomotora ${data.locomotiveNumber || data.locomotora}` : '',
+      `Movimiento #${data.movimientoId}`, data.localidadNombre || (data.localidadId ? `Patio ${data.localidadId}` : '')].filter(Boolean).join(' · ');
+    notification = { title, body }; data.title = title; data.body = body;
+  }
   const jobKey = getDurableJobKey();
-  const eventId = data.eventId || (jobKey
+  const logicalId = logicalNotificationId(data);
+  const eventId = logicalId || data.eventId || (jobKey
     ? createHash('sha256').update(JSON.stringify([jobKey, data.tipo, data.audience, data.movimientoId, data.incidenteId, data.arrastreId, data.servicio])).digest('hex')
     : randomUUID());
   data.eventId = eventId;
@@ -66,6 +74,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat): Prom
         sound: 'default',
         defaultSound: true,
         ...(payload.android as any)?.notification,
+        tag,
       },
     },
     apns: {
@@ -115,7 +124,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat): Prom
       if (existing) return existing;
       const delivery = (async (): Promise<SendResponseCompat> => {
         try {
-          if (jobKey && !(await claimFcmDelivery(eventId, token))) return { success: true };
+          if ((jobKey || logicalId || dataInput.eventId) && !(await claimFcmDelivery(eventId, token))) return { success: true };
           const messageId = await messaging.send({ ...sendPayload, token } as any);
           return { success: true, messageId };
         } catch (error: any) {

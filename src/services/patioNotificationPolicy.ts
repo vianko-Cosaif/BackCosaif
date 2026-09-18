@@ -1,10 +1,10 @@
 /** Only the start of a natural movement is public to clients of the same patio. */
 export const PATIO_CLIENT_ROLES = ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'];
 
-export function isPatioStart(event: { tipo?: unknown; type?: unknown; estado?: unknown; estadoAnterior?: unknown }) {
+export function isPatioStart(event: { tipo?: unknown; type?: unknown; estado?: unknown; estadoAnterior?: unknown; accion?: unknown }) {
   if (['movimiento_iniciado', 'torreon_movimiento_iniciado'].includes(String(event.tipo))) return true;
   return ['movimiento.estado', 'torreon.movimiento.estado'].includes(String(event.type))
-    && event.estado === 'EN_PROCESO' && event.estadoAnterior !== 'DETENIDO';
+    && !String(event.accion ?? '').includes('reanud') && event.estado === 'EN_PROCESO' && event.estadoAnterior !== 'DETENIDO';
 }
 
 export function patioStartNotice(event: Record<string, any>) {

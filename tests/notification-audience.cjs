@@ -25,6 +25,17 @@ const { tokensAudienciaOperacion, uniqueTokensFromUsers } = load('src/services/f
   const { realtimeNotificationRoles } = load('src/services/realtimeNotificationPolicy.ts');
   for (const state of ['RESUELTO', 'CERRADO']) assert.deepEqual(Array.from(realtimeNotificationRoles({ type: 'incidente.estado', estado: state })).sort(), ['COORDINADOR', 'MAQUINISTA', 'SUPERVISOR']);
   assert.equal(realtimeNotificationRoles({ type: 'ronda.reordenada' }).length, 0);
-  assert.equal(realtimeNotificationRoles({ type: 'movimiento.incidente' }).includes('MAQUINISTA'), false);
+  assert.equal(realtimeNotificationRoles({ type: 'movimiento.incidente' }).includes('MAQUINISTA'), true);
+  assert.deepEqual(Array.from((await tokensAudienciaOperacion({ ...params, tipo: 'movimiento_iniciado' })).tokens).sort(), ['correct', 'legacy-yard', 'other-company', 'selected-yard']);
+  assert.equal((await tokensAudienciaOperacion({ ...params, tipo: 'nuevo_incidente' })).tokens.includes('other-company'), false);
+  const { canReceivePatioStart, patioStartNotice } = load('src/services/patioNotificationPolicy.ts');
+  const started = { type: 'movimiento.estado', estado: 'EN_PROCESO', localidadId: 10, movimientoId: 1, snapshot: { private: true }, descripcion: 'private detail' };
+  assert.equal(canReceivePatioStart('CLIENTE', 10, started), true);
+  assert.equal(canReceivePatioStart('CLIENTE', 20, started), false);
+  assert.equal(canReceivePatioStart('ARRASTRE_TORREON', 10, started), false);
+  assert.equal(canReceivePatioStart('CLIENTE', 10, { ...started, estadoAnterior: 'DETENIDO' }), false);
+  assert.equal(canReceivePatioStart('CLIENTE', 10, { ...started, type: 'torreon.arrastre.estado' }), false);
+  assert.equal(patioStartNotice(started).snapshot, undefined);
+  assert.equal(patioStartNotice(started).descripcion, undefined);
   console.log('PASS notification audiences: roles, same company, same yard, stale tokens and forced user IDs');
 })().catch(error => { console.error(error); process.exitCode = 1; });
