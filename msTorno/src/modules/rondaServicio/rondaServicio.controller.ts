@@ -43,6 +43,10 @@ function pickMedidas(source: Record<string, unknown> | null | undefined) {
   return { wheelCount, ...result };
 }
 
+function resolveRuedasFinal(ronda: Record<string, any>) {
+  return ronda.ruedasFinal ?? ronda.ruedaSolicitud?.ruedasFinal ?? ronda.tornoG?.ruedasFinal ?? null;
+}
+
 function hasMeasureValue(value: unknown) {
   if (value == null) return false;
   return !EMPTY_MEASURE_VALUES.has(String(value).trim().toUpperCase());
@@ -163,9 +167,9 @@ export async function listRondasServicio(req: Request, res: Response) {
       where: where as never,
       orderBy: { id: "desc" },
       include: {
-        ruedaSolicitud: true,
+        ruedaSolicitud: { include: { ruedasFinal: true } },
         ruedasFinal: true,
-        tornoG: { include: { detalleRuedas: true } },
+        tornoG: { include: { detalleRuedas: true, ruedasFinal: true } },
       },
       ...paginationArgs(pagination),
     }),
@@ -209,9 +213,9 @@ export async function historialRondasServicio(req: Request, res: Response) {
       where: where as never,
       orderBy: orderOptions,
       include: {
-        ruedaSolicitud: true,
+        ruedaSolicitud: { include: { ruedasFinal: true } },
         ruedasFinal: true,
-        tornoG: { include: { detalleRuedas: true } },
+        tornoG: { include: { detalleRuedas: true, ruedasFinal: true } },
         incidentes: { include: { hijos: true } },
       },
       ...paginationArgs(pagination),
@@ -245,7 +249,7 @@ export async function historialRondasServicio(req: Request, res: Response) {
       creadoEn: ronda.createdAt,
       actualizadoEn: ronda.updatedAt,
       medidasSolicitadas: pickMedidas(ronda.ruedaSolicitud as Record<string, unknown> | null),
-      medidasFinales: pickMedidas(ronda.ruedasFinal as Record<string, unknown> | null),
+      medidasFinales: pickMedidas(resolveRuedasFinal(ronda) as Record<string, unknown> | null),
       torno: ronda.tornoG
         ? {
             id: ronda.tornoG.id,
@@ -271,9 +275,9 @@ export async function getRondaServicio(req: Request, res: Response) {
   const data = await prismaTorno.rondaServicio.findUnique({
     where: { id },
     include: {
-      ruedaSolicitud: true,
+      ruedaSolicitud: { include: { ruedasFinal: true } },
       ruedasFinal: true,
-      tornoG: { include: { detalleRuedas: true } },
+      tornoG: { include: { detalleRuedas: true, ruedasFinal: true } },
       incidentes: { include: { hijos: true } },
     },
   });

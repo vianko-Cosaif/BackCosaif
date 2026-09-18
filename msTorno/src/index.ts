@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 // Carga variables del microservicio Torno
 // PM2 ejecuta el build desde la raiz del backend. Resolver desde cwd evita
 // buscar el archivo dentro de msTorno/dist despues de compilar.
+const dbEnvPath = path.resolve(process.cwd(), "msTorno", ".env");
+dotenv.config({ path: dbEnvPath, override: false });
+
 const envPath = path.resolve(process.cwd(), "msTorno", ".env.torno");
 const envResult = dotenv.config({ path: envPath, override: true });
 if (envResult.error) {

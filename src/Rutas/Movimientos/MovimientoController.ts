@@ -110,6 +110,15 @@ function bodyIntentaCambiarEstadoMovimiento(body: unknown) {
   );
 }
 
+function parseBooleanFlag(value: unknown): boolean {
+  if (value === true || value === 1) return true;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'si' || normalized === 'sí';
+  }
+  return false;
+}
+
 /** ------------------------------------------------------------------------
  * Helpers META
  * Guardamos intención en `instrucciones` con tags para que OTRO servicio
@@ -384,6 +393,10 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       }
       const tieneOrigen = raw.viaOrigenId !== undefined && raw.viaOrigenId !== null;
       const tieneDestino = raw.viaDestinoId !== undefined && raw.viaDestinoId !== null;
+      const solicitaTorno = parseBooleanFlag(raw?.torno);
+      const solicitaLavado = parseBooleanFlag(raw?.lavado);
+      raw.torno = solicitaTorno;
+      raw.lavado = solicitaLavado;
       if (!tieneOrigen && !tieneDestino) {
         return res.status(400).json({ message: 'Debe enviar viaOrigenId o viaDestinoId (al menos uno).' });
       }
@@ -427,14 +440,13 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       delete (data as any).medidasTorno;
       delete (data as any).tornoMedidas;
 
-      // Regla de negocio: solo registrar medidas en msTorno cuando es "VIA -> SERVICIO TORNO"
-      const esViaParaServicioTorno = raw?.torno === true && tieneOrigen && !tieneDestino;
+      const esViaParaServicioTorno = solicitaTorno && tieneOrigen;
       let medidasTorno: ReturnType<typeof normalizeMedidasRuedaInput> | null = null;
       if (esViaParaServicioTorno) {
         const parsed = medidasTornoSchema.safeParse(medidasTornoRaw);
         if (!parsed.success) {
           return res.status(400).json({
-            message: 'Faltan/invalidas medidasTorno para servicio TORNO (via -> torno)',
+            message: 'Faltan/invalidas medidasTorno para servicio TORNO',
             details: parsed.error.flatten(),
           });
         }
@@ -476,7 +488,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
 
       if (wantsTornoSchedule) {
         if (!esViaParaServicioTorno) {
-          return res.status(400).json({ message: 'Solo se pueden agendar movimientos tipo TORNO de via -> torno.' });
+          return res.status(400).json({ message: 'Solo se pueden agendar movimientos tipo TORNO con via de origen.' });
         }
         const fechaProgramada = new Date(fechaProgramadaRaw);
         if (Number.isNaN(fechaProgramada.getTime())) {

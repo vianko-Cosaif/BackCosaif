@@ -1,6 +1,6 @@
 import { companySlotPlan, compactRoundPlan, duplicateRoundIds, firstFreeRound, persistRoundPlan } from './roundPlan';
 import { prisma } from '../../../lib/prisma';
-﻿// src/models/RondaModel.ts
+// src/models/RondaModel.ts
 import { movimientoError } from "../movimiento.logger";
 import { Prisma } from '@prisma/client';
 import type { Ronda } from '@prisma/client';
@@ -587,10 +587,10 @@ export class RondaModel {
     // 2) Renumerar rondas existentes (1..N) y compactar Ã³rdenes activos
     await this.renumerarRondas(tx, localidadId);
 
-    // 3) ALTAS â†’ R1 (FIFO), respetando HOLD
+    // 3) ALTAS -> R1 (FIFO), respetando HOLD
     await this.ordenarAltasR1_FIFO(tx, localidadId);
 
-    // 4) BAJAS â†’ normalizaciÃ³n por ronda (sin re-balancear entre rondas)
+    // 4) BAJAS -> normalizaciÃ³n por ronda (sin re-balancear entre rondas)
     await this.reequilibrarBajasRobinHood(tx, localidadId);
 
     // 5) Si quedaron rondas vacÃ­as tras reordenar, limpiar y renumerar de nuevo
@@ -686,8 +686,8 @@ export class RondaModel {
 
   // ---------- GENERACIÃ“N / INSERCIÃ“N ----------
   /**
-   * ALTAS â†’ R1 (opcionalmente fijar posiciÃ³n).
-   * BAJAS â†’ 1 por empresa por ronda; inicia en R2 si hay ALTAS sin hold, si no desde R1.
+   * ALTAS -> R1 (opcionalmente fijar posiciÃ³n).
+   * BAJAS -> 1 por empresa por ronda; inicia en R2 si hay ALTAS sin hold, si no desde R1.
    */
   static async insertarRondaSolvente(data: {
     movimientoId: number;
@@ -738,7 +738,7 @@ export class RondaModel {
   ) {
     const { localidadId, empresaId, movimientoId } = params;
 
-    // 1) Â¿Hay ALTAS sin hold? â†’ Bajas arrancan desde R2, si no desde R1.
+    // 1) Â¿Hay ALTAS sin hold? -> Bajas arrancan desde R2, si no desde R1.
     const altas = await tx.ronda.findMany({
       where: { localidadId, concluido: false, movimiento: { prioridad: 'ALTA' } },
       select: { movimiento: { select: { id: true } } },
@@ -746,7 +746,7 @@ export class RondaModel {
     const hayAltasSinHold = altas.some(a => !_isOnHold(a.movimiento.id));
     const startRound = hayAltasSinHold ? 2 : 1;
 
-    // 2) Ver si ESTA empresa ya tiene bajas â€œen colaâ€ (cualquier ronda)
+    // 2) Ver si ESTA empresa ya tiene bajas "en cola" (cualquier ronda)
     const aggEmpresa = await tx.ronda.aggregate({
       where: {
         localidadId,
@@ -762,12 +762,12 @@ export class RondaModel {
 
     if (aggEmpresa._max.rondaNumero != null) {
       // Ya tiene cadena de Bajas:
-      // - Si tiene algo en R2/R3/etc â†’ la nueva va DESPUÃ‰S de la mÃ¡s lejana.
+      // - Si tiene algo en R2/R3/etc -> la nueva va DESPUÃ‰S de la mÃ¡s lejana.
       // - Nunca subimos por encima de startRound (por si hay ALTAS y startRound=2).
       const maxEmpresa = aggEmpresa._max.rondaNumero!;
       rondaDestino = Math.max(maxEmpresa + 1, startRound);
     } else {
-      // Primera BAJA de esta empresa â†’ buscar la primera ronda >= startRound
+      // Primera BAJA de esta empresa -> buscar la primera ronda >= startRound
       // sin BAJA de esta empresa.
       let r = startRound;
       for (let guard = 0; guard < MAX_SCAN_ROUNDS; guard++) {
@@ -903,7 +903,7 @@ export class RondaModel {
           where: { localidadId, rondaNumero: targetRonda, concluido: false },
         });
         if (existe > 0) return existe + 1; // al final
-        // no existe â†’ crear nÃºmero de ronda al vuelo
+        // no existe -> crear nÃºmero de ronda al vuelo
         const max = await tx.ronda.aggregate({
           where: { localidadId, concluido: false },
           _max: { rondaNumero: true },
@@ -943,7 +943,7 @@ export class RondaModel {
       }
 
       // ========== CASO: hay mÃ¡s empresas en bajas y esta empresa tiene exactamente 2 movimientos ==========
-      // m1 en R1, m2 en R2 â†’ m1â†’R2 antes de m2, m2â†’R3 (nueva si no existe)
+      // m1 en R1, m2 en R2 -> m1->R2 antes de m2, m2->R3 (nueva si no existe)
       if (chain.length === 2) {
         // mover el ÃšLTIMO primero
         for (let i = chain.length - 1; i >= 0; i--) {
@@ -952,7 +952,7 @@ export class RondaModel {
           const next = chain[i + 1];
 
           if (next && next.rondaNumero === targetRonda) {
-            // hay â€œsiguienteâ€ de la misma empresa en la ronda destino â†’ insertamos antes
+            // hay "siguiente" de la misma empresa en la ronda destino -> insertamos antes
             await tx.ronda.updateMany({
               where: { localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: next.orden } },
               data: { orden: { increment: 1 } },
@@ -963,7 +963,7 @@ export class RondaModel {
             if (tam > 0) {
               await this.moverRonda(tx, row as any, targetRonda, tam + 1);
             } else {
-              // no existe la ronda â†’ crearla al vuelo y ponerlo en 1
+              // no existe la ronda -> crearla al vuelo y ponerlo en 1
               const max = await tx.ronda.aggregate({
                 where: { localidadId, concluido: false },
                 _max: { rondaNumero: true },
@@ -986,7 +986,7 @@ export class RondaModel {
         const next = chain[i + 1];
 
         if (next && next.rondaNumero === targetRonda) {
-          // hay â€œsiguienteâ€ de la misma empresa ya en la ronda destino â†’ insertar antes que Ã©l
+          // hay "siguiente" de la misma empresa ya en la ronda destino -> insertar antes que Ã©l
           await tx.ronda.updateMany({
             where: { localidadId, rondaNumero: targetRonda, concluido: false, orden: { gte: next.orden } },
             data: { orden: { increment: 1 } },
@@ -998,7 +998,7 @@ export class RondaModel {
           if (tam > 0) {
             await this.moverRonda(tx, row as any, targetRonda, tam + 1);
           } else {
-            // no existe esa ronda â†’ la creamos al vuelo y metemos en primer lugar
+            // no existe esa ronda -> la creamos al vuelo y metemos en primer lugar
             const max = await tx.ronda.aggregate({
               where: { localidadId, concluido: false },
               _max: { rondaNumero: true },
@@ -1129,17 +1129,17 @@ export class RondaModel {
         if (m.estado === 'DETENIDO' && m.incidenteGlobal) return false;
 
         if (m.estado === 'EN_PROCESO') {
-          // EN_PROCESO sin operador â†’ se considera recuperable
+          // EN_PROCESO sin operador -> se considera recuperable
           if (!m.operadorId) return true;
 
-          // EN_PROCESO con el mismo operador â†’ se lo puede regresar
+          // EN_PROCESO con el mismo operador -> se lo puede regresar
           if (usuarioId && m.operadorId === usuarioId) return true;
 
-          // EN_PROCESO con otro operador distinto y vigente â†’ no
+          // EN_PROCESO con otro operador distinto y vigente -> no
           return false;
         }
 
-        // si no estÃ¡ en proceso â†’ libre
+        // si no estÃ¡ en proceso -> libre
         return true;
       });
 
@@ -1159,7 +1159,7 @@ export class RondaModel {
         };
       }
 
-      // 3. Si en R1 no hay nada â€œlibre para mÃ­â€, buscar en todo lo demÃ¡s
+      // 3. Si en R1 no hay nada "libre para mÃ­", buscar en todo lo demÃ¡s
       const resto = await tx.ronda.findMany({
         where: { localidadId, concluido: false },
         include: {
@@ -1186,13 +1186,13 @@ export class RondaModel {
         if (m.estado === 'DETENIDO' && m.incidenteGlobal) return false;
 
         if (m.estado === 'EN_PROCESO') {
-          // EN_PROCESO sin operador â†’ se considera recuperable
+          // EN_PROCESO sin operador -> se considera recuperable
           if (!m.operadorId) return true;
 
-          // EN_PROCESO con el mismo operador â†’ sÃ­
+          // EN_PROCESO con el mismo operador -> sÃ­
           if (usuarioId && m.operadorId === usuarioId) return true;
 
-          // EN_PROCESO de otro operador â†’ no
+          // EN_PROCESO de otro operador -> no
           return false;
         }
 
@@ -1311,7 +1311,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
       // Deben aparecer si estÃ¡n: SOLICITADO, DETENIDO o EN_PROCESO
       if (esServicio) {
         if (!['EN_PROCESO', 'SOLICITADO', 'DETENIDO'].includes(mov.estado)) {
-          // cancelado, concluido, etc â†’ se ignora
+          // cancelado, concluido, etc -> se ignora
           continue;
         }
 
@@ -1328,7 +1328,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
       }
 
       // ===== NO SERVICIO =====
-      // - Si estÃ¡ EN_PROCESO y NO es reasignable todavÃ­a â†’ se salta
+      // - Si estÃ¡ EN_PROCESO y NO es reasignable todavÃ­a -> se salta
       if (mov.estado === 'EN_PROCESO' && !esReasignable) {
         continue;
       }

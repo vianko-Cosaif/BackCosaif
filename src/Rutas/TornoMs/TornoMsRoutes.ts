@@ -601,6 +601,52 @@ function firstQueryValue(value: unknown) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function readProxyPagination(searchParams: URLSearchParams) {
+  const page = Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10) || 1);
+  const requestedPageSize = Number.parseInt(searchParams.get("pageSize") || "25", 10) || 25;
+  const pageSize = Math.min(Math.max(1, requestedPageSize), 100);
+  return { page, pageSize };
+}
+
+function buildRest(path: string, searchParams: URLSearchParams) {
+  return path + (searchParams.size ? `?${searchParams}` : "");
+}
+
+function rowsFromPayload(data: unknown): any[] {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+  const source = data as Record<string, any>;
+  if (Array.isArray(source.data)) return source.data;
+  if (Array.isArray(source.items)) return source.items;
+  if (Array.isArray(source.rows)) return source.rows;
+  return [];
+}
+
+function paginatePayload(data: unknown, page: number, pageSize: number) {
+  const rows = rowsFromPayload(data);
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const pageRows = rows.slice(start, start + pageSize);
+  const payload = data && typeof data === "object" && !Array.isArray(data)
+    ? data as Record<string, unknown>
+    : {};
+
+  return {
+    ...payload,
+    data: pageRows,
+    meta: {
+      page: safePage,
+      pageSize,
+      total,
+      totalPages,
+      hasNextPage: safePage < totalPages,
+      hasPrevPage: safePage > 1,
+    },
+  };
+}
+
 function collectLocalidadIdsFromHistorial(data: unknown, into = new Set<number>()) {
   if (Array.isArray(data)) {
     for (const item of data) collectLocalidadIdsFromHistorial(item, into);
@@ -785,7 +831,17 @@ router.all("/*", async (req, res) => {
       for (const item of Array.isArray(value) ? value : [value]) if (item != null) query.append(key, String(item));
     }
     const rest = req.path + (query.size ? `?${query}` : '');
-    const target = buildTornoMsPath(rest);
+    const shouldPageHistorialLocally =
+      isHistorialRondasRequest(req.method, rest) &&
+      (query.has("empresaId") || query.has("localidadId"));
+    const pagination = shouldPageHistorialLocally ? readProxyPagination(query) : null;
+    const upstreamQuery = new URLSearchParams(query);
+    if (shouldPageHistorialLocally) {
+      upstreamQuery.delete("page");
+      upstreamQuery.delete("pageSize");
+    }
+    const upstreamRest = buildRest(req.path, upstreamQuery);
+    const target = buildTornoMsPath(upstreamRest);
 
     const user = (req as any).user as AuthenticatedUser | undefined;
     if (isCliente(user) && isTornoStateMutationRequest(req.method, rest, req.body)) {
@@ -818,6 +874,9 @@ router.all("/*", async (req, res) => {
 
     if (isHistorialRondasRequest(req.method, rest)) {
       result.data = (await enrichHistorialWithMovimientoContext(result.data)) as typeof result.data;
+      if (pagination) {
+        result.data = paginatePayload(result.data, pagination.page, pagination.pageSize);
+      }
     }
 
     return res.status(result.status).send(result.data);

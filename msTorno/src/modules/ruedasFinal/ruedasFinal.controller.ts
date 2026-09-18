@@ -58,6 +58,13 @@ export async function createRuedasFinal(req: Request, res: Response) {
     create: input,
     update: input,
   });
+  await prismaTorno.rondaServicio.updateMany({
+    where: {
+      ruedaSolicitudId: input.ruedaSolicitudId,
+      OR: [{ ruedasFinalId: null }, { ruedasFinalId: { not: data.id } }],
+    },
+    data: { ruedasFinalId: data.id },
+  });
   return ok(res, data);
 }
 

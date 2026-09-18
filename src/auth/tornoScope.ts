@@ -40,6 +40,16 @@ async function rowsWithScope(model: string, ids: number[]) {
   const byId = new Map(movements.map(row => [row.id, row]));
   return rows.map((row: any) => ({ row, scope: byId.get(idsFromRow(row).movimientoId!) ?? idsFromRow(row) }));
 }
+
+function rowIdForScope(model: string, row: any) {
+  const raw =
+    row?.id ??
+    (model === 'rondaServicio' ? row?.rondaServicioId ?? row?.servicioId : null) ??
+    (model === 'ruedaSolicitud' ? row?.ruedaSolicitudId : null) ??
+    (model === 'tornoG' ? row?.tornoGId ?? row?.torno?.id : null);
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
 export function tornoResource(path: string) {
   const match = path.match(/^\/(torno\/agendados|[^/]+)(?:\/(\d+))?/);
   return { kind: match?.[1] ?? '', id: match?.[2] ? Number(match[2]) : null };
@@ -67,9 +77,12 @@ export async function filterTornoResponse(data: any, path: string, user: Authent
   }
   const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : Array.isArray(data?.items) ? data.items : null;
   if (!rows) return data; // Detail and all references are authorized before forwarding.
-  const ids = rows.map((r: any) => Number(r.id)).filter(Number.isSafeInteger);
+  const ids = rows.map((r: any) => rowIdForScope(model, r)).filter((id: number | null): id is number => id != null);
   const allowed = new Set((await rowsWithScope(model, ids)).filter((r: any) => scopeAllows(user, r.scope)).map((r: any) => r.row.id));
-  const filtered = rows.filter((r: any) => allowed.has(r.id));
+  const filtered = rows.filter((r: any) => {
+    const id = rowIdForScope(model, r);
+    return id != null && allowed.has(id);
+  });
   return Array.isArray(data) ? filtered : { ...data, [Array.isArray(data.items) ? 'items' : 'data']: filtered, ...(data.meta ? { meta: { page: data.meta.page, pageSize: data.meta.pageSize, hasNextPage: data.meta.hasNextPage } } : {}) };
 }
 
