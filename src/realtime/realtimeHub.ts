@@ -59,6 +59,7 @@ export type RealtimeEventType =
 export type RealtimeMovementPayload = RealtimeScope & {
   type: RealtimeEventType;
   eventId?: string;
+  notificationId?: string;
   recipientRoles?: string[];
   notificationTitle?: string;
   notificationBody?: string;
@@ -481,8 +482,9 @@ function normalizedRealtimeEvent(event: RealtimeMovementPayload): RealtimeMoveme
   };
   return {
     ...normalizedEvent,
+    notificationId: logicalNotificationId(normalizedEvent) ?? undefined,
     eventId:
-      logicalNotificationId(normalizedEvent) ?? normalizedEvent.eventId ??
+      normalizedEvent.eventId ??
       `${normalizedEvent.type}:${normalizedEvent.movimientoId ?? normalizedEvent.arrastreId ?? 'x'}:${normalizedEvent.vagonId ?? 'x'}:${normalizedEvent.incidenteId ?? 'x'}:${normalizedEvent.estado ?? 'x'}:${Date.now()}`,
     occurredAt: event.occurredAt ?? new Date().toISOString(),
   };

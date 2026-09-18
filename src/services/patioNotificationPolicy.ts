@@ -10,7 +10,7 @@ export function isPatioStart(event: { tipo?: unknown; type?: unknown; estado?: u
 export function patioStartNotice(event: Record<string, any>) {
   const locomotive = event.locomotiveNumber ?? event.locomotora;
   return {
-    type: event.type, tipo: event.tipo, eventId: event.eventId,
+    type: event.type, tipo: event.tipo, eventId: event.eventId, notificationId: event.notificationId,
     source: event.source, movimientoId: event.movimientoId, empresaId: event.empresaId,
     localidadId: event.localidadId, occurredAt: event.occurredAt,
     estado: 'EN_PROCESO', notificationOnly: true, notificationScope: 'patio',
