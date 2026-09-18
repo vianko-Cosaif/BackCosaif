@@ -33,7 +33,7 @@ function readRequestedLocalidadId(body: unknown) {
 
 function resolveLocalidadId(body: unknown, user?: AuthenticatedUser) {
   const userLocalidadId = toPositiveInt(user?.localidad?.id);
-  if (String(user?.rol).toUpperCase() !== 'ADMINISTRADOR') return userLocalidadId;
+  if (!['ADMINISTRADOR', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(String(user?.rol).toUpperCase())) return userLocalidadId;
   return readRequestedLocalidadId(body) ?? userLocalidadId;
 }
 

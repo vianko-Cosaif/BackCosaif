@@ -30,8 +30,12 @@ async function main() {
   await dispatch({ table: 'incidente_arrastre_torreon', action: 'UPDATE', row: { id: 74, estado: 'RESUELTO' }, previous: { estado: 'ABIERTO' } });
   assert.equal(notifications.at(-1).tipo, 'arrastre_incidente_resuelto');
   assert.equal(events.at(-1).incidenteId, 74);
+  assert.deepEqual(Array.from(notifications.at(-1).roles).sort(), ['COORDINADOR', 'MAQUINISTA_ARRASTRE', 'SUPERVISOR']);
+  assert.deepEqual(Array.from(events.at(-1).recipientRoles), Array.from(notifications.at(-1).roles));
   await dispatch({ table: 'incidente_torreon_ferro', action: 'INSERT', row: { id: 75, estado: 'ABIERTO' } });
   assert.equal(events.at(-1).incidenteId, 75);
+  assert.deepEqual(Array.from(notifications.at(-1).roles).sort(), ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR', 'COORDINADOR', 'SUPERVISOR']);
+  assert.deepEqual(Array.from(events.at(-1).recipientRoles), Array.from(notifications.at(-1).roles));
   const count = notifications.length;
   await dispatch({ table: 'arrastre_torreon', action: 'UPDATE', row: { id: 72, estado: 'EN_PROCESO', orden_solicitud: 2 }, previous: { estado: 'EN_PROCESO', orden_solicitud: 1 } });
   assert.equal(events.at(-1).accion, 'orden_solicitudes'); assert.equal(notifications.length, count);

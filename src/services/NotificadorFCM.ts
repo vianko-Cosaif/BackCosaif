@@ -141,6 +141,7 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
         viaOrigen: String(mov.viaOrigen?.nombre ?? ''),
         viaDestino: String(mov.viaDestino?.nombre ?? ''),
         locomotora: String(mov.locomotiveNumber),
+        recipientRoles: (routing?.roles ?? []).join(','),
         audience: String(routing?.audience ?? ''),
         servicio: String(contexto.servicio ?? ''),
         source: contexto.source,
@@ -224,7 +225,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
     // Mensaje limpio y con truncado correcto
     const empresa   = mov.empresa?.nombre   ?? 'Sin Empresa';
     const localidad = mov.localidad?.nombre ?? 'Sin Localidad';
-    const corta     = inc.descripcion.length > 50 ? inc.descripcion.slice(0, 50) + 'â€¦' : inc.descripcion;
+    const corta     = inc.descripcion.length > 50 ? inc.descripcion.slice(0, 50) + '…' : inc.descripcion;
     const iso       = new Date().toISOString();
     const legible   = new Date().toLocaleString('es-MX', {
       year:'numeric', month:'2-digit', day:'2-digit',
@@ -235,8 +236,8 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
 
     const resp = await sendMulticastCompat({
       notification: {
-        title: 'ðŸš¨ Incidente reportado',
-        body : `ID #${inc.id} â€¢ Loco ${mov.locomotiveNumber} â€¢ ${empresa}: ${corta}`
+        title: '🚨 Incidente reportado',
+        body : `ID #${inc.id} · Loco ${mov.locomotiveNumber} · ${empresa}: ${corta}`
       },
       data: {
         pantalla    : 'Incidente',
@@ -251,6 +252,7 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
         descripcion : inc.descripcion,
         estado      : inc.estado,
         fecha       : legible,
+        recipientRoles: (routing?.roles ?? []).join(','),
         audience    : String(routing?.audience ?? ''),
         servicio    : String(contexto.servicio ?? ''),
         source      : contexto.source,
@@ -347,7 +349,7 @@ static async notificarCambioEstado(
     const resp = await sendMulticastCompat({
       notification: {
         title: titulo,
-        body: `ID #${incidente.id} â€¢ Loco ${mov.locomotiveNumber} â€¢ ${mov.empresa?.nombre ?? 'Sin Empresa'}`,
+        body: `ID #${incidente.id} · Loco ${mov.locomotiveNumber} · ${mov.empresa?.nombre ?? 'Sin Empresa'}`,
       },
       data: {
         pantalla:     'Incidente',
@@ -360,6 +362,7 @@ static async notificarCambioEstado(
         localidad:    String(mov.localidad?.nombre ?? ''),
         estadoAnterior,
         estadoNuevo:  incidente.estado,
+        recipientRoles: (routing?.roles ?? []).join(','),
         audience:     String(routing?.audience ?? ''),
         servicio:     String(contexto.servicio ?? ''),
         source:       contexto.source,
@@ -470,6 +473,14 @@ static async notificarCambioEstado(
     }
   }
 
+  static async notificarRecordatorioPendiente(params: OperacionTorreonFCM, source: 'cosaif' | 'torreon') {
+    return this.notificarOperacion(params, {
+      source, url: '/movimientos', tagPrefix: 'pendiente',
+      android: { channelId: 'cosaif_operacion', sound: 'default' },
+      logName: 'recordatorio pendiente', errorName: 'notificarRecordatorioPendiente',
+    });
+  }
+
   static async notificarOperacionTorreon(params: OperacionTorreonFCM): Promise<void> {
     return this.notificarOperacion(params, {
       source: 'torreon',
@@ -509,7 +520,7 @@ static async notificarCambioEstado(
     try {
       const { tokens, roleCounts } = await tokensAudienciaOperacion({
         empresaId: params.empresaId, localidadId: params.localidadId,
-        usuarioIds: params.usuarioIds, roles: params.roles,
+        usuarioIds: params.usuarioIds, roles: params.roles, tipo: params.tipo,
       });
       if (!tokens.length) {
         console.warn(`FCM ${config.logName}: sin tokens`, {
@@ -520,6 +531,8 @@ static async notificarCambioEstado(
       }
       const data = stringifyFcmData({
         ...params.data, tipo: params.tipo, ...config.data, source: config.source,
+        empresaId: params.empresaId, localidadId: params.localidadId,
+        recipientRoles: (params.roles ?? []).join(','),
         url: params.url ?? config.url,
         tag: params.tag ?? `${config.tagPrefix}:${params.tipo}:${Date.now()}`,
         timestamp: new Date().toISOString(),
@@ -659,6 +672,7 @@ static async notificarContinuarMovimiento(
         locomotora: String(loco),
         tipo: 'incidente_continuado',
         localidadId: String(movimiento.localidadId),
+        recipientRoles: (routing?.roles ?? []).join(','),
         audience: String(routing?.audience ?? ''),
         servicio: String(contexto.servicio ?? ''),
         source: contexto.source,
@@ -703,7 +717,7 @@ static async notificarIncidenteOmitido(
   await sendMulticastCompat({
     notification: {
       title: 'Incidente pospuesto por cliente',
-      body : `Incidente #${incidente.id} â€” Locomotora ${mov.locomotiveNumber}`
+      body : `Incidente #${incidente.id} — Locomotora ${mov.locomotiveNumber}`
     },
     data: {
       pantalla    : 'Incidente',
@@ -715,6 +729,7 @@ static async notificarIncidenteOmitido(
       localidad   : mov.localidad?.nombre ?? 'Localidad',
       tipo        : 'incidente_omitido',
       comentario,
+      recipientRoles: (routing?.roles ?? []).join(','),
       audience    : String(routing?.audience ?? ''),
       servicio    : String(contexto.servicio ?? ''),
       source      : contexto.source,
@@ -786,6 +801,7 @@ static async notificarIncidenteTornoPorMovimiento(params: {
       locomotora: String(locomotora ?? ''),
       tipoFalla,
       estado: status,
+      recipientRoles: (routing?.roles ?? []).join(','),
       audience: String(routing?.audience ?? ''),
       source: 'torno',
       url: '/torno/incidentes',
@@ -824,7 +840,7 @@ static async notificarCancelacionMovimiento(
   await sendMulticastCompat({
     notification: {
       title: 'Movimiento cancelado',
-      body : `Locomotora ${movimiento.locomotiveNumber} â€” ${motivoExtra || 'Por reincidencia de incidentes'}`
+      body : `Locomotora ${movimiento.locomotiveNumber} — ${motivoExtra || 'Por reincidencia de incidentes'}`
     },
     data: {
       pantalla    : 'Movimiento',
@@ -834,6 +850,7 @@ static async notificarCancelacionMovimiento(
       localidad   : movimiento.localidad?.nombre ?? 'Localidad',
       localidadId : String(movimiento.localidadId),
       tipo        : 'movimiento_cancelado_incidentes',
+      recipientRoles: (routing?.roles ?? []).join(','),
       audience    : String(routing?.audience ?? ''),
       servicio    : String(contexto.servicio ?? ''),
       source      : contexto.source,

@@ -31,7 +31,8 @@ for (const tipo of [
   'incidente_timeout',
 ]) {
   const routing = resolverAudienciaFcmNatural(tipo);
-  assert.equal(routing?.audience, 'MAQUINISTA_NATURAL');
+  assert.equal(routing?.audience, 'OPERACION_LOCAL_NATURAL');
+  assert.deepEqual(routing?.roles, [Rol.MAQUINISTA, Rol.COORDINADOR, Rol.SUPERVISOR]);
   assert.equal(routing?.url, '/incidentes');
 }
 
@@ -43,3 +44,5 @@ assert.ok(canceladoAutomatico?.roles.includes(Rol.CLIENTE));
 assert.equal(resolverAudienciaFcmNatural('arrastre_creado'), null);
 
 console.log('Natural FCM routing tests passed');
+
+assert.deepEqual(resolverAudienciaFcmNatural('movimiento_pendiente_recordatorio')?.roles, creado?.roles);

@@ -1,3 +1,4 @@
+import { startPendingMovementReminders } from '../jobs/pendingMovementReminders';
 import exportRoutes from '../reporteria/exports/exportRoutes';
 import { verifyOperationalSchema } from '../jobs/schemaCheck';
 import { startOperationalRetention } from '../jobs/retention';
@@ -157,6 +158,7 @@ export async function iniciarServidor(): Promise<void> {
       IncidenteModel.ensureIncidentScheduler();
       startRoundMaintenance();
       startTornoRecovery();
+      startPendingMovementReminders();
       startJobWorker();
       startServiceOutbox();
       startOperationalRetention();

@@ -1,3 +1,7 @@
+import { isPatioStart, patioStartNotice } from './patioNotificationPolicy';
+import { resolverAudienciaFcmNatural } from './naturalFcmRouting';
+import { resolverAudienciaFcmTorreon } from './torreonFcmRouting';
+import { resolverAudienciaFcmServicio, type TipoServicioFcm } from './serviceFcmRouting';
 import { messaging } from '../config/firebase';
 import { createHash, randomUUID } from 'crypto';
 import { getDurableJobKey } from '../jobs/durableJobs';
@@ -14,9 +18,9 @@ type SendResponseCompat = {
   error?: { code: string; message?: string };
 };
 
-export async function sendMulticastCompat(message: MulticastMessageCompat) {
+export async function sendMulticastCompat(message: MulticastMessageCompat): Promise<{ successCount: number; failureCount: number; responses: SendResponseCompat[] }> {
   const { tokens, ...payload } = message;
-  const notification = (payload.notification ?? {}) as { title?: unknown; body?: unknown; icon?: unknown };
+  let notification = (payload.notification ?? {}) as { title?: unknown; body?: unknown; icon?: unknown };
   const dataInput = (payload.data ?? {}) as Record<string, unknown>;
   const data = Object.fromEntries(
     Object.entries({
@@ -27,20 +31,38 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
       .filter(([, value]) => value !== undefined && value !== null)
       .map(([key, value]) => [key, String(value)])
   );
+  if (isPatioStart(data)) {
+    data.notificationScope = 'patio';
+    const notice = patioStartNotice(data);
+    notification = { title: notice.notificationTitle, body: notice.notificationBody };
+    data.title = notice.notificationTitle; data.body = notice.notificationBody;
+  }
+  if (!data.recipientRoles) {
+    const service = ['TORNO', 'LAVADO', 'TORNO_LAVADO'].includes(data.servicio) ? data.servicio as TipoServicioFcm : null;
+    const routing = data.source === 'torreon' ? resolverAudienciaFcmTorreon(data.tipo)
+      : (service ? resolverAudienciaFcmServicio(data.tipo, service) : null) ?? resolverAudienciaFcmNatural(data.tipo);
+    data.recipientRoles = (routing?.roles ?? []).join(',');
+  }
   const jobKey = getDurableJobKey();
-  const eventId = jobKey
+  const eventId = data.eventId || (jobKey
     ? createHash('sha256').update(JSON.stringify([jobKey, data.tipo, data.audience, data.movimientoId, data.incidenteId, data.arrastreId, data.servicio])).digest('hex')
-    : data.eventId || randomUUID();
+    : randomUUID());
   data.eventId = eventId;
+  const expiry = data.expiresAt ? Date.parse(data.expiresAt) : NaN;
+  const ttl = Number.isFinite(expiry) ? Math.max(0, Math.floor((expiry - Date.now()) / 1000)) : 86400;
+  if (Number.isFinite(expiry) && ttl <= 0) return { successCount: tokens.length, failureCount: 0, responses: tokens.map(() => ({ success: true })) };
   const link = data.url || data.click_action || '/';
   const tag = eventId;
   const sendPayload = {
     ...payload,
+    notification,
     data,
     android: {
       ...((payload.android as any) ?? {}),
       priority: 'high',
+      ttl: ttl * 1000,
       notification: {
+        channelId: 'cosaif_operacion',
         sound: 'default',
         defaultSound: true,
         ...(payload.android as any)?.notification,
@@ -49,6 +71,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
     apns: {
       headers: {
         'apns-priority': '10',
+        'apns-expiration': String(Math.floor(Date.now() / 1000) + ttl),
         ...((payload.apns as any)?.headers ?? {}),
       },
       payload: {
@@ -65,7 +88,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
       headers: {
         // Conserva el push hasta 24 h si el dispositivo está temporalmente
         // sin conexión y solicita entrega inmediata al volver a conectarse.
-        TTL: '86400',
+        TTL: String(ttl),
         Urgency: 'high',
         ...((payload.webpush as any)?.headers ?? {}),
       },

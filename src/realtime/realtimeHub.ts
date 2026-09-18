@@ -1,3 +1,5 @@
+import { realtimeNotificationRoles } from '../services/realtimeNotificationPolicy';
+import { canReceivePatioStart, isPatioStart, patioStartNotice } from '../services/patioNotificationPolicy';
 import { MAX_SESSION_AGE_MS } from '../auth/sessionPolicy';
 import { corsMode, corsAllowedOrigins, isCorsOriginAllowed } from '../auth/corsPolicy';
 import type { Request, Response } from 'express';
@@ -34,6 +36,9 @@ type RealtimeAudience =
   | { mode: 'none' };
 
 export type RealtimeEventType =
+  | 'movimiento.recordatorio'
+  | 'torreon.movimiento.recordatorio'
+  | 'torreon.arrastre.recordatorio'
   | 'movimiento.creado'
   | 'movimiento.estado'
   | 'movimiento.incidente'
@@ -53,6 +58,11 @@ export type RealtimeEventType =
 export type RealtimeMovementPayload = RealtimeScope & {
   type: RealtimeEventType;
   eventId?: string;
+  recipientRoles?: string[];
+  notificationTitle?: string;
+  notificationBody?: string;
+  notificationOnly?: boolean;
+  notificationScope?: 'patio';
   source?: 'cosaif' | 'torreon' | string;
   entity?: 'movimiento' | 'arrastre' | 'vagon' | 'incidente' | string;
   entityId?: number | string | null;
@@ -462,6 +472,8 @@ export function attachRealtimeClient(req: Request, res: Response, user: Authenti
 function normalizedRealtimeEvent(event: RealtimeMovementPayload): RealtimeMovementPayload {
   const normalizedEvent: RealtimeMovementPayload = {
     ...event,
+    recipientRoles: realtimeNotificationRoles(event),
+    ...(isPatioStart(event) ? { notificationScope: 'patio' as const } : {}),
     source: event.source ?? (String(event.type).startsWith('torreon.') ? 'torreon' : 'cosaif'),
     entity: event.entity ?? inferredEventEntity(event),
     entityId: event.entityId ?? inferredEventEntityId(event),
@@ -488,7 +500,15 @@ async function deliverRealtimeEvent(eventPayload: RealtimeMovementPayload) {
   const ws = wsFrame(0x1, JSON.stringify(eventPayload));
 
   for (const client of clients.values()) {
-    if (client.expiresAt > Date.now() && isAuthorizedForEvent(client, eventPayload)) {
+    if (client.expiresAt <= Date.now()) continue;
+    const yard = client.audience.mode === 'empresaLocalidad' ? client.audience.localidadId : null;
+    if (!isAuthorizedForEvent(client, eventPayload) && canReceivePatioStart(client.role, yard, eventPayload)) {
+      const notice = patioStartNotice(eventPayload);
+      if (safeWrite(client, client.transport === 'websocket' ? wsFrame(0x1, JSON.stringify(notice)) : sseFrame(eventPayload.type, notice))) realtimeCounters.delivered += 1;
+      continue;
+    }
+    if (client.expiresAt > Date.now() && isAuthorizedForEvent(client, eventPayload)
+      && (!eventPayload.notificationOnly || eventPayload.recipientRoles?.includes(client.role))) {
       if (safeWrite(client, client.transport === 'websocket' ? ws : sse)) {
         realtimeCounters.delivered += 1;
       }

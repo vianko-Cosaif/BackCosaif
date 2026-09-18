@@ -19,6 +19,11 @@ const CONTROL_LOCAL_ROLES: Rol[] = [Rol.COORDINADOR, Rol.SUPERVISOR];
 
 const PARA_OPERACION_LOCAL = new Set([
   'nuevo_movimiento',
+  'movimiento_pendiente_recordatorio',
+  'incidente_resuelto_cliente',
+  'incidente_continuado',
+  'incidente_cerrado_manual',
+  'incidente_timeout',
 ]);
 
 const PARA_CLIENTE_Y_CONTROL = new Set([
@@ -29,10 +34,6 @@ const PARA_MAQUINISTA = new Set([
   'movimiento_editado',
   'cambio_prioridad',
   'movimiento_cancelado',
-  'incidente_resuelto_cliente',
-  'incidente_continuado',
-  'incidente_cerrado_manual',
-  'incidente_timeout',
   'incidente_omitido',
   'incidente_actualizado',
 ]);
@@ -54,14 +55,14 @@ export function resolverAudienciaFcmNatural(tipo: string): NaturalFcmRouting | n
     return {
       audience: 'OPERACION_LOCAL_NATURAL',
       roles: [...MAQUINISTA_ROLES, ...CONTROL_LOCAL_ROLES],
-      url: '/movimientos',
+      url: tipo.startsWith('incidente_') ? '/incidentes' : '/movimientos',
     };
   }
 
   if (PARA_CLIENTE_Y_CONTROL.has(tipo)) {
     return {
       audience: 'CLIENTE_CONTROL_NATURAL',
-      roles: [...CLIENTE_ROLES, ...CONTROL_LOCAL_ROLES],
+      roles: [...CLIENTE_ROLES, ...CONTROL_LOCAL_ROLES, ...MAQUINISTA_ROLES],
       url: '/incidentes',
     };
   }
@@ -77,7 +78,7 @@ export function resolverAudienciaFcmNatural(tipo: string): NaturalFcmRouting | n
   if (PARA_CLIENTE.has(tipo)) {
     return {
       audience: 'CLIENTE_NATURAL',
-      roles: CLIENTE_ROLES,
+      roles: [...CLIENTE_ROLES, ...MAQUINISTA_ROLES],
       url: tipo === 'nuevo_incidente' ? '/incidentes' : '/movimientos',
     };
   }

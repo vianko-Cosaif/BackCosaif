@@ -48,5 +48,16 @@ const message = { tokens: ['ok', 'uncertain', 'ok'], notification: { title: 'Mov
   await send({ ...message, tokens: ['ok'] });
   await send({ ...message, tokens: ['ok'] });
   assert.notEqual(sent[6].data.eventId, sent[7].data.eventId);
+  jobKey = 'reminder-test';
+  const expiry = new Date(Date.now() + 120000).toISOString();
+  await send({ tokens: ['ok'], data: { tipo: 'movimiento_pendiente_recordatorio', source: 'cosaif', eventId: 'reminder-hour-1', expiresAt: expiry } });
+  const reminder = sent.at(-1);
+  assert.equal(reminder.data.eventId, 'reminder-hour-1', 'Realtime and push use the same logical ID');
+  assert.ok(Number(reminder.webpush.headers.TTL) <= 120);
+  assert.ok(reminder.android.ttl <= 120000);
+  assert.match(reminder.data.recipientRoles, /COORDINADOR/);
+  const beforeExpired = sent.length;
+  await send({ tokens: ['ok'], data: { expiresAt: new Date(Date.now() - 1000).toISOString() } });
+  assert.equal(sent.length, beforeExpired, 'Expired reminders are never sent');
   console.log('PASS FCM: duplicados, reintentos, reinicio, concurrencia, fallo de reserva y eventos independientes');
 })().catch(error => { console.error(error); process.exitCode = 1; });

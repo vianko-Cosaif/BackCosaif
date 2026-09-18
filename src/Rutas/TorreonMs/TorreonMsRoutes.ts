@@ -1012,7 +1012,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
   if (/^\/incidentes\/\d+\/resolver$/.test(path)) {
     return {
       realtimeType: "torreon.incidente.estado",
-      fcmTipo: "incidente_resuelto_cliente",
+      fcmTipo: arrastreId ? "arrastre_incidente_resuelto" : "incidente_resuelto_cliente",
       title: "Incidente Torreon resuelto",
       body: incidenteId ? `Incidente #${incidenteId}` : "Incidente resuelto",
       url: "/incidentes?source=torreon",
@@ -1026,7 +1026,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
     const entityLabel = arrastreId ? `Arrastre #${arrastreId}` : movimientoId ? `Movimiento #${movimientoId}` : "Movimiento Torreon";
     return {
       realtimeType: "torreon.incidente.estado",
-      fcmTipo: "incidente_cerrado_manual",
+      fcmTipo: arrastreId ? "arrastre_incidente_cerrado" : "incidente_cerrado_manual",
       title: arrastreId ? "Arrastre Torreon cancelado" : "Movimiento Torreon cancelado",
       body: incidenteId
         ? `${entityLabel} · incidente #${incidenteId} cerrado`
@@ -1063,7 +1063,11 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
     movimientoId,
   });
 
+  const fcmRouting = resolverAudienciaFcmTorreon(operation.fcmTipo);
   publishRealtimeEvent({
+    recipientRoles: operation.sendFcm ? (fcmRouting?.roles ?? []) : [],
+    notificationTitle: operation.title,
+    notificationBody: operation.body,
     type: operation.realtimeType,
     source: "torreon",
     ...realtimeEntity,
@@ -1081,9 +1085,7 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
     snapshot: compactRealtimeSnapshot(entity) as Record<string, unknown> | null,
   });
 
-  if (!operation.sendFcm) return;
-
-  const fcmRouting = resolverAudienciaFcmTorreon(operation.fcmTipo);
+  if (!operation.sendFcm || !fcmRouting) return;
 
     await NotificadorFCM.notificarOperacionTorreon({
       tipo: operation.fcmTipo,

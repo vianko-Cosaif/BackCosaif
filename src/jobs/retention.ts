@@ -8,7 +8,7 @@ export async function pruneOperationalPayloads() {
     SELECT key FROM durable_jobs WHERE completed_at < NOW() - INTERVAL '7 days'
     AND payload <> '{}'::jsonb ORDER BY completed_at LIMIT 1000 FOR UPDATE SKIP LOCKED)`;
   await prisma.$executeRaw`DELETE FROM durable_jobs WHERE key IN (
-    SELECT key FROM durable_jobs WHERE kind = 'round.maintain' AND completed_at < NOW() - INTERVAL '30 days'
+    SELECT key FROM durable_jobs WHERE kind IN ('round.maintain', 'movement.pending-reminder') AND completed_at < NOW() - INTERVAL '30 days'
     ORDER BY completed_at LIMIT 1000 FOR UPDATE SKIP LOCKED)`;
   await prisma.$executeRaw`UPDATE offline_idempotency SET response_body = NULL, response_status = 409, updated_at = NOW()
     WHERE key IN (SELECT key FROM offline_idempotency WHERE state = 'COMPLETED' AND expires_at < NOW()

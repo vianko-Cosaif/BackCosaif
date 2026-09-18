@@ -203,6 +203,7 @@ export async function notificarMovimientoIniciado(movId: number) {
       movimiento.creadoPorId,
     ],
     roles: routing?.roles,
+    tipo: 'movimiento_iniciado',
   });
 
   if (!tokens.length) {

@@ -210,3 +210,15 @@ npm run build
 Instalación, migraciones y cambios de API: [guía de actualización](docs/actualizacion-seguridad-20260907.md). Validación completa: `npm run prisma:generate:all`, `npm run typecheck` y `npm test`, con Node 24.
 
 Refactorización y rendimiento: [activación, contratos y mediciones](docs/rendimiento-refactor-20260908.md).
+
+## Credencial de Firebase
+
+Guarda el JSON de la cuenta de servicio fuera del código, por ejemplo en `.private/firebase/cosaifapp-service-account.json`, y configura su ruta en `.env`:
+
+```env
+GOOGLE_APPLICATION_CREDENTIALS=.private/firebase/cosaifapp-service-account.json
+```
+
+Las rutas relativas se resuelven desde el directorio donde se inicia el backend. `.private/` y `.env` están excluidos de Git. No pegues la clave privada en archivos versionados. Reinicia el proceso si cambias la credencial mientras está ejecutándose.
+
+Si no se define esta variable, se mantiene la carga del JSON anterior de `src/config` (o `dist/config` al ejecutar la compilación) por compatibilidad. La configuración local usa la ruta privada explícita.
