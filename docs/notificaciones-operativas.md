@@ -26,7 +26,7 @@ Los clientes de movimientos naturales no reciben incidentes de arrastres: sus pe
 
 Se cuenta desde `fechaSolicitud`, usando tiempo absoluto. Aplica a SOLICITADO, ESPERA y MODIFICADO en el backend principal; SOLICITADO/ASIGNADO en movimientos de Torreón; SOLICITADO en arrastres. Exige `fechaInicio` y `fechaFin` vacías y que no esté finalizado. AGENDADO todavía no es una solicitud activa y queda excluido.
 
-Se crea un trabajo por origen, entidad, ID, fecha de solicitud y hora cumplida. La clave única de `durable_jobs` evita que instancias simultáneas o reinicios dupliquen esa hora. La reserva de `fcm_deliveries` evita repetir la entrega por dispositivo. Si el sistema estuvo apagado, se agenda únicamente la hora actual; no se recupera una acumulación de avisos antiguos.
+Se crea un trabajo por origen, entidad, ID, fecha de solicitud y hora cumplida. La clave única de `durable_jobs` evita que instancias simultáneas o reinicios dupliquen esa hora. La reserva persistente por evento y dispositivo evita repetir la entrega. Si el sistema estuvo apagado, se agenda únicamente la hora actual; no se recupera una acumulación de avisos antiguos.
 
 Antes de enviar se vuelve a consultar la operación. Si comenzó, terminó, se canceló, cambió la fecha de solicitud o venció la hora del trabajo, se descarta. Los recordatorios llevan la misma identidad en realtime y FCM y caducan al siguiente umbral horario en Android, APNs y Web Push. Como cualquier push ya entregado al dispositivo, un aviso mostrado no se puede retirar por el solo hecho de iniciar después el movimiento.
 
@@ -43,6 +43,6 @@ En móvil se crean los canales `default` y `cosaif_operacion`, se usa `eventId` 
 - Móvil: pruebas unitarias `notificationAudience` y `notificationDelivery`; `tsc --noEmit`.
 - Estas pruebas usan transportes simulados y no envían notificaciones a usuarios.
 
-La base local ya contiene `durable_jobs` y `fcm_deliveries`. No se requieren nuevas tablas. Para otros ambientes se necesitan las migraciones operativas existentes, incluida `migrations/notifications-20260917/main.sql`, y las credenciales Firebase configuradas. La verificación de arranque comprueba también la tabla de entregas.
+Las notificaciones no requieren una migración adicional: usan la tabla operativa existente `durable_jobs`, con reservas de tipo `fcm.delivery` creadas como completadas. Guardan únicamente una clave calculada a partir del evento y el hash del token; no contienen mensajes ni tokens. Las instalaciones que ya tienen `fcm_deliveries` siguen usando sus reservas anteriores para evitar reenvíos. El arranque no exige esa tabla opcional. Se requieren las credenciales Firebase configuradas.
 
 Los cambios se prepararon localmente; no se desplegaron ni se arrancaron workers contra tokens reales. La entrega física requiere ejecutar las versiones actualizadas del backend, web y app y hacer una prueba en dispositivos. Sigue pendiente la configuración de iOS identificada en el diagnóstico anterior: el plist local apunta a otro proyecto Firebase y falta configurar APNs en el proyecto usado por este backend.

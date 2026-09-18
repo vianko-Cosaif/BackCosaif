@@ -1,6 +1,11 @@
 # Un aviso por evento y destinatario
 
-Aplicar antes de desplegar el backend:
+Migración histórica opcional. El backend ya no la necesita para arrancar ni para
+deduplicar: si la tabla no existe, utiliza reservas completadas en `durable_jobs`.
+No aplicar esta migración como requisito del despliegue actual.
+
+Los siguientes comandos se conservan como referencia para instalaciones que
+eligieron la tabla dedicada:
 
 ```sh
 node scripts/security-migrate.cjs --target=main --version=notifications-20260917 --apply
