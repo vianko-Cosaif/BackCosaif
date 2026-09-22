@@ -1085,6 +1085,16 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
     snapshot: compactRealtimeSnapshot(entity) as Record<string, unknown> | null,
   });
 
+  const affectsArrastreQueue =
+    operation.realtimeType.startsWith("torreon.arrastre.") ||
+    (operation.realtimeType === "torreon.incidente.estado" && Number(arrastreId) > 0);
+  if (affectsArrastreQueue && localidadId) {
+    publishRealtimeEvent({
+      type: "realtime.arrastre.refresh",
+      localidadId,
+    });
+  }
+
   if (!operation.sendFcm || !fcmRouting) return;
 
     await NotificadorFCM.notificarOperacionTorreon({

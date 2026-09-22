@@ -54,7 +54,8 @@ export type RealtimeEventType =
   | 'torreon.arrastre.estado'
   | 'torreon.arrastre.vagon'
   | 'torreon.arrastre.incidente'
-  | 'torreon.arrastre.orden';
+  | 'torreon.arrastre.orden'
+  | 'realtime.arrastre.refresh';
 
 export type RealtimeMovementPayload = RealtimeScope & {
   type: RealtimeEventType;
@@ -403,9 +404,19 @@ function consumeRealtimeTicket(ticket: string | null): { user: AuthenticatedUser
   return { user: meta.user, audience: meta.audience };
 }
 
-function isAuthorizedForEvent(client: RealtimeClient, event: RealtimeScope): boolean {
+function isAuthorizedForEvent(client: RealtimeClient, event: RealtimeScope & { type?: RealtimeEventType }): boolean {
   if (client.audience.mode === 'all') return true;
   if (client.audience.mode === 'none') return false;
+  if (event.type === 'realtime.arrastre.refresh') {
+    if (client.audience.mode === 'empresaLocalidad') {
+      return Number(event.localidadId) === client.audience.localidadId;
+    }
+    if (client.audience.mode === 'localidad') {
+      return Number(event.localidadId) === client.audience.id;
+    }
+    return false;
+  }
+
 
   if (client.audience.mode === 'empresa') {
     return Number(event.empresaId) === client.audience.id;
