@@ -26,6 +26,7 @@ import {
 } from '../../auth/resourceScope';
 import { idempotentMutation } from '../../middlewares/idempotentMutation';
 import { MovimientoController } from './MovimientoController'; // <-- asegura que coincide con el nombre real del archivo
+import { requireTornoModuleEnabled } from '../../config/tornoFeature';
 
 const router = Router();
 
@@ -156,24 +157,28 @@ router.patch(
 );
 router.get(
   '/torno/agendados/activable',
+  requireTornoModuleEnabled,
   requirePermission(PERMISSIONS.TORNO_READ),
   enforceQueryScope,
   MovimientoController.buscarTornoAgendadoActivable,
 );
 router.get(
   '/torno/agendados',
+  requireTornoModuleEnabled,
   requirePermission(PERMISSIONS.TORNO_READ),
   enforceQueryScope,
   MovimientoController.listarTornoAgendadosPendientes,
 );
 router.post(
   '/torno/agendados/:id/activar',
+  requireTornoModuleEnabled,
   requirePermission(PERMISSIONS.TORNO_OPERATE),
   requireMovementScope(),
   MovimientoController.activarTornoAgendadoDirecto,
 );
 router.delete(
   '/torno/agendados/vencidos',
+  requireTornoModuleEnabled,
   requirePermission(PERMISSIONS.MOVEMENTS_DELETE),
   MovimientoController.limpiarTornoAgendadosVencidos,
 );

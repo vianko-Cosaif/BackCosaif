@@ -45,6 +45,7 @@ import {
   normalizeMedidasRuedaInput,
   upsertRuedaSolicitudPorMovimiento,
 } from '../../services/tornoMs/tornoMsClient';
+import { isTornoModuleEnabled } from '../../config/tornoFeature';
 
 const CANCELAR_TORNEADO_ROLES = new Set(['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR']);
 const CLIENTE_ROLES = new Set(['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR', 'ARRASTRE_TORREON']);
@@ -372,7 +373,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
     try {
       const raw = { ...req.body };
       const authenticatedUserId = Number((req as any).user?.id || 0);
-      await cleanupExpiredTornoSchedules();
+      if (isTornoModuleEnabled()) await cleanupExpiredTornoSchedules();
       const wantsTornoSchedule = raw.agendado === true || raw.agendado === 'true';
       const ignoreScheduledMatch = raw.ignorarAgendado === true || raw.ignorarAgendado === 'true';
       let activarAgendadoId = raw.activarAgendadoId != null ? Number(raw.activarAgendadoId) : null;
@@ -395,6 +396,15 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const tieneDestino = raw.viaDestinoId !== undefined && raw.viaDestinoId !== null;
       const solicitaTorno = parseBooleanFlag(raw?.torno);
       const solicitaLavado = parseBooleanFlag(raw?.lavado);
+      const usaFlujoTorno =
+        raw.medidasTorno != null ||
+        raw.tornoMedidas != null ||
+        raw.agendado === true ||
+        raw.activarAgendadoId != null ||
+        raw.recuperarTornoCanceladoId != null;
+      if (usaFlujoTorno && !isTornoModuleEnabled()) {
+        return res.status(403).json({ message: 'Modulo de torno desactivado.' });
+      }
       raw.torno = solicitaTorno;
       raw.lavado = solicitaLavado;
       if (!tieneOrigen && !tieneDestino) {
@@ -1105,6 +1115,12 @@ static listarServiciosPendientesFIFO: RequestHandler = async (req, res) => {
       if (!actorId) return res.status(401).json({ error: 'No autenticado' });
 
       const rawBody = { ...(req.body ?? {}) } as Record<string, unknown>;
+      const intentaTorno =
+        rawBody.medidasTorno != null ||
+        rawBody.tornoMedidas != null;
+      if (intentaTorno && !isTornoModuleEnabled()) {
+        return res.status(403).json({ message: 'Modulo de torno desactivado.' });
+      }
       if (esCliente(req) && bodyIntentaCambiarEstadoMovimiento(rawBody)) {
         return res.status(403).json({ error: 'CLIENTE no puede modificar estados del movimiento' });
       }

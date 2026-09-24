@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { prismaTorno, prismaTorreon } from '../lib/servicePrisma';
 import { logger } from '../utils/logger';
+import { isTornoModuleEnabled } from '../config/tornoFeature';
 
 // Keep operation keys as tombstones so pruning payloads cannot enable a replay.
 export async function pruneOperationalPayloads() {
@@ -13,10 +14,19 @@ export async function pruneOperationalPayloads() {
   await prisma.$executeRaw`UPDATE offline_idempotency SET response_body = NULL, response_status = 409, updated_at = NOW()
     WHERE key IN (SELECT key FROM offline_idempotency WHERE state = 'COMPLETED' AND expires_at < NOW()
     AND response_body IS NOT NULL ORDER BY expires_at LIMIT 1000 FOR UPDATE SKIP LOCKED)`;
-  for (const db of [prismaTorno, prismaTorreon]) {
-    await db.$executeRawUnsafe(`DELETE FROM operational_outbox WHERE id IN (
-      SELECT id FROM operational_outbox WHERE processed_at < NOW() - INTERVAL '30 days'
-      ORDER BY processed_at LIMIT 1000 FOR UPDATE SKIP LOCKED)`);
+  for (const [service, db] of [['torno', prismaTorno], ['torreon', prismaTorreon]] as const) {
+    if (service === 'torno' && !isTornoModuleEnabled()) continue;
+    try {
+      await db.$executeRawUnsafe(`DELETE FROM operational_outbox WHERE id IN (
+        SELECT id FROM operational_outbox WHERE processed_at < NOW() - INTERVAL '30 days'
+        ORDER BY processed_at LIMIT 1000 FOR UPDATE SKIP LOCKED)`);
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'production') throw error;
+      logger.warn('jobs:retention_service_skipped', {
+        service,
+        message: error?.meta?.message || error?.message || 'No se pudo depurar operational_outbox',
+      });
+    }
   }
 }
 

@@ -2,9 +2,11 @@ import { prisma } from '../lib/prisma';
 import { prismaTorno } from '../lib/servicePrisma';
 import { enqueueJob, registerJob } from './durableJobs';
 import { logger } from '../utils/logger';
+import { isTornoModuleEnabled } from '../config/tornoFeature';
 
 const RECOVERY_WINDOW_MS = 5 * 60 * 60_000;
 export async function scanTornoRecoveries() {
+  if (!isTornoModuleEnabled()) return;
   let cursor = 0;
   while (true) {
     const candidates = await prisma.movimiento.findMany({
@@ -17,6 +19,7 @@ export async function scanTornoRecoveries() {
   }
 }
 export function startTornoRecovery() {
+  if (!isTornoModuleEnabled()) return;
   registerJob('torno.recovery', async ({ movimientoId }) => {
     const movement = await prisma.movimiento.findUnique({ where: { id: movimientoId } });
     if (!movement?.torno || movement.estado !== 'CANCELADO' || !movement.fechaFin) return;

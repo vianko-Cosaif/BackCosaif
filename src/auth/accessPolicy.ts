@@ -1,4 +1,5 @@
 import { Rol } from '@prisma/client';
+import { isTornoModuleEnabled } from '../config/tornoFeature';
 
 export const AUTHORIZATION_POLICY_VERSION = 3;
 
@@ -581,6 +582,13 @@ export function buildAuthorizationProfile(principal: AuthorizationPrincipal): Au
   }
 
   const definition = ROLE_DEFINITIONS[role];
+  const tornoEnabled = isTornoModuleEnabled();
+  const permissions = [...new Set(definition.permissions)].filter((permission) =>
+    tornoEnabled ? true : !String(permission).startsWith('torno.'),
+  );
+  const navModules = definition.capabilities.navModules.filter((moduleId) =>
+    tornoEnabled ? true : moduleId !== 'torno',
+  );
   return {
     policyVersion: AUTHORIZATION_POLICY_VERSION,
     role,
@@ -594,10 +602,11 @@ export function buildAuthorizationProfile(principal: AuthorizationPrincipal): Au
       empresaId,
       localidadId,
     },
-    permissions: [...new Set(definition.permissions)],
+    permissions,
     capabilities: {
       ...definition.capabilities,
-      navModules: [...definition.capabilities.navModules],
+      canViewTorno: tornoEnabled && definition.capabilities.canViewTorno,
+      navModules,
     },
   };
 }

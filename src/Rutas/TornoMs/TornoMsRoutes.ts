@@ -11,6 +11,7 @@ import { RondaModel } from "../../models/Movimientos/Ronda/RondaModel";
 import { NotificadorFCM } from "../../services/NotificadorFCM";
 import { publishRealtimeEvent } from "../../realtime/realtimeHub";
 import { resolverAudienciaFcmServicio } from "../../services/serviceFcmRouting";
+import { requireTornoModuleEnabled } from "../../config/tornoFeature";
 
 const router = Router();
 const CANCELAR_TORNEADO_ROLES = new Set(["ADMINISTRADOR", "COORDINADOR", "SUPERVISOR"]);
@@ -18,7 +19,7 @@ const CLIENTE_ROLES = new Set(["CLIENTE", "CLIENTE_ADMIN", "CLIENTE_COOR", "ARRA
 const TORNERO_ROLES = new Set(["TORNO", "TORNERO"]);
 
 // Todas las rutas de torno pasan por auth del API principal.
-router.use(authenticateAccess, requireTornoScope);
+router.use(authenticateAccess, requireTornoModuleEnabled, requireTornoScope);
 
 function isHistorialRondasRequest(method: string, rest: string) {
   return method === "GET" && rest.split("?")[0] === "/rondas-servicio/historial";
