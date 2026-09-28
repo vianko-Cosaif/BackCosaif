@@ -373,7 +373,9 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
     try {
       const raw = { ...req.body };
       const authenticatedUserId = Number((req as any).user?.id || 0);
-      if (isTornoModuleEnabled()) await cleanupExpiredTornoSchedules();
+      // Usa la misma configuración de Torno durante toda esta solicitud.
+      const tornoModuleEnabled = isTornoModuleEnabled();
+      if (tornoModuleEnabled) await cleanupExpiredTornoSchedules();
       const wantsTornoSchedule = raw.agendado === true || raw.agendado === 'true';
       const ignoreScheduledMatch = raw.ignorarAgendado === true || raw.ignorarAgendado === 'true';
       let activarAgendadoId = raw.activarAgendadoId != null ? Number(raw.activarAgendadoId) : null;
@@ -402,7 +404,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
         raw.agendado === true ||
         raw.activarAgendadoId != null ||
         raw.recuperarTornoCanceladoId != null;
-      if (usaFlujoTorno && !isTornoModuleEnabled()) {
+      // Rechaza medidas y agenda si el módulo está apagado; permite la solicitud simple.
+      if (usaFlujoTorno && !tornoModuleEnabled) {
         return res.status(403).json({ message: 'Modulo de torno desactivado.' });
       }
       raw.torno = solicitaTorno;
@@ -450,7 +453,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       delete (data as any).medidasTorno;
       delete (data as any).tornoMedidas;
 
-      const esViaParaServicioTorno = solicitaTorno && tieneOrigen;
+      // Con el modulo apagado, "torno" solo clasifica el movimiento: no requiere medidas ni msTorno.
+      const esViaParaServicioTorno = tornoModuleEnabled && solicitaTorno && tieneOrigen;
       let medidasTorno: ReturnType<typeof normalizeMedidasRuedaInput> | null = null;
       if (esViaParaServicioTorno) {
         const parsed = medidasTornoSchema.safeParse(medidasTornoRaw);
