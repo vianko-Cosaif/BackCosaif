@@ -3,23 +3,16 @@ import { isPatioStart, patioStartNotice } from './patioNotificationPolicy';
 import { resolverAudienciaFcmNatural } from './naturalFcmRouting';
 import { resolverAudienciaFcmTorreon } from './torreonFcmRouting';
 import { resolverAudienciaFcmServicio, type TipoServicioFcm } from './serviceFcmRouting';
-import { messaging } from '../config/firebase';
 import { createHash, randomUUID } from 'crypto';
 import { getDurableJobKey } from '../jobs/durableJobs';
-import { claimFcmDelivery } from './fcmDelivery';
+import { sendFcmRecipients, summarizeFcmResults, requestFcmRetry, type FcmResponse } from './fcmSender';
 
 type MulticastMessageCompat = {
   tokens: string[];
   [key: string]: unknown;
 };
 
-type SendResponseCompat = {
-  success: boolean;
-  messageId?: string;
-  error?: { code: string; message?: string };
-};
-
-export async function sendMulticastCompat(message: MulticastMessageCompat): Promise<{ successCount: number; failureCount: number; responses: SendResponseCompat[] }> {
+export async function sendMulticastCompat(message: MulticastMessageCompat) {
   const { tokens, ...payload } = message;
   let notification = (payload.notification ?? {}) as { title?: unknown; body?: unknown; icon?: unknown };
   const dataInput = (payload.data ?? {}) as Record<string, unknown>;
@@ -58,7 +51,9 @@ export async function sendMulticastCompat(message: MulticastMessageCompat): Prom
   data.eventId = eventId;
   const expiry = data.expiresAt ? Date.parse(data.expiresAt) : NaN;
   const ttl = Number.isFinite(expiry) ? Math.max(0, Math.floor((expiry - Date.now()) / 1000)) : 86400;
-  if (Number.isFinite(expiry) && ttl <= 0) return { successCount: tokens.length, failureCount: 0, responses: tokens.map(() => ({ success: true })) };
+  if (Number.isFinite(expiry) && ttl <= 0) {
+    return logResults(data, tokens.length, tokens.map((): FcmResponse => ({ success: false, status: 'expired' })));
+  }
   const link = data.url || data.click_action || '/';
   const tag = eventId;
   const sendPayload = {
@@ -117,51 +112,25 @@ export async function sendMulticastCompat(message: MulticastMessageCompat): Prom
     },
   };
 
-  const deliveries = new Map<string, Promise<SendResponseCompat>>();
-  const responses: SendResponseCompat[] = await Promise.all(
-    tokens.map((token) => {
-      const existing = deliveries.get(token);
-      if (existing) return existing;
-      const delivery = (async (): Promise<SendResponseCompat> => {
-        try {
-          if ((jobKey || logicalId || dataInput.eventId) && !(await claimFcmDelivery(eventId, token))) return { success: true };
-          const messageId = await messaging.send({ ...sendPayload, token } as any);
-          return { success: true, messageId };
-        } catch (error: any) {
-          return {
-            success: false,
-            error: {
-              code: error?.code ?? error?.errorInfo?.code ?? 'messaging/unknown-error',
-              message: error?.message,
-            },
-          };
-        }
-      })();
-      deliveries.set(token, delivery);
-      return delivery;
-    })
-  );
-
-  const failureDetails = responses
-    .map((response, index) =>
-      !response.success
-        ? { index, code: response.error?.code, message: response.error?.message }
-        : null
-    )
-    .filter(Boolean);
-
-  console.info('FCM send result', {
-    tipo: data.tipo ?? null,
-    tokens: tokens.length,
-    successCount: responses.filter((response) => response.success).length,
-    failureCount: responses.filter((response) => !response.success).length,
-    failures: failureDetails,
-  });
-
-  return {
-    responses,
-    successCount: responses.filter((response) => response.success).length,
-    failureCount: responses.filter((response) => !response.success).length,
-  };
+  const responses = await sendFcmRecipients(tokens, sendPayload as any, eventId,
+    Boolean(jobKey || logicalId || dataInput.eventId));
+  const result = logResults(data, tokens.length, responses);
+  // El worker conserva el trabajo pendiente. Al ejecutarlo otra vez, los
+  // destinatarios ya aceptados siguen protegidos por sus reservas persistentes.
+  if (jobKey && result.retryableCount > 0) await requestFcmRetry(tokens, responses);
+  return result;
 }
 
+function logResults(data: Record<string, string>, tokens: number, responses: FcmResponse[]) {
+  const result = summarizeFcmResults(responses);
+  const { responses: _responses, ...counts } = result;
+  console.info('FCM send result', {
+    tipo: data.tipo ?? null,
+    eventId: data.eventId,
+    localidadId: data.localidadId ?? null,
+    tokens,
+    ...counts,
+    failures: responses.flatMap((r, index) => r.error ? [{ index, status: r.status, code: r.error.code }] : []),
+  });
+  return result;
+}

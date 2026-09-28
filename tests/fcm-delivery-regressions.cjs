@@ -33,6 +33,10 @@ const { sendMulticastCompat: send } = load('src/services/fcmCompat.ts');
 const message = { tokens: ['ok', 'uncertain', 'ok'], notification: { title: 'Movimiento iniciado' }, data: { tipo: 'iniciado', movimientoId: 1 } };
   const first = await send(message);
   assert.equal(sent.length, 2, 'Un token repetido se envía una sola vez');
+  assert.equal(first.successCount, 1);
+  assert.equal(first.failureCount, 1);
+  assert.equal(first.skippedCount, 1);
+  assert.equal(first.uncertainCount, 1);
   assert.equal(first.responses.length, 3, 'Se conserva la correspondencia con los tokens del llamador');
   await send({ ...message, data: { ...message.data, timestamp: 'changed' } });
   assert.equal(sent.length, 2, 'Reintentar no reenvía entregas aceptadas ni inciertas');
@@ -46,7 +50,10 @@ const message = { tokens: ['ok', 'uncertain', 'ok'], notification: { title: 'Mov
     })('src/services/fcmDelivery.ts').claimFcmDelivery },
     'src/config/firebase': { messaging: { send: async () => { throw new Error('Duplicate after restart'); } } },
   })('src/services/fcmCompat.ts');
-  assert.equal((await restarted.sendMulticastCompat(message)).failureCount, 0);
+  const afterRestart = await restarted.sendMulticastCompat(message);
+  assert.equal(afterRestart.failureCount, 0);
+  assert.equal(afterRestart.successCount, 0);
+  assert.equal(afterRestart.skippedCount, 3);
   jobKey = 'torreon:outbox:2';
   await Promise.all([send(message), send(message)]);
   assert.equal(sent.length, 4, 'Un evento distinto se notifica, una vez incluso con concurrencia');
@@ -54,7 +61,7 @@ const message = { tokens: ['ok', 'uncertain', 'ok'], notification: { title: 'Mov
   assert.equal(sent[0].webpush.notification.renotify, false);
   assert.equal(sent[0].webpush.notification.requireInteraction, false);
   jobKey = 'torreon:outbox:3'; dbUnavailable = true;
-  assert.equal((await send(message)).failureCount, 3);
+  await assert.rejects(() => send(message), error => error.name === 'FcmRetryError' && error.retryAfterSeconds >= 60);
   assert.equal(sent.length, 4, 'Si falla la reserva no se envía sin deduplicar');
   dbUnavailable = false;
   await send(message);
@@ -83,7 +90,10 @@ const message = { tokens: ['ok', 'uncertain', 'ok'], notification: { title: 'Mov
   assert.ok(reminder.android.ttl <= 120000);
   assert.match(reminder.data.recipientRoles, /COORDINADOR/);
   const beforeExpired = sent.length;
-  await send({ tokens: ['ok'], data: { expiresAt: new Date(Date.now() - 1000).toISOString() } });
+  const expired = await send({ tokens: ['ok'], data: { expiresAt: new Date(Date.now() - 1000).toISOString() } });
+  assert.equal(expired.successCount, 0);
+  assert.equal(expired.expiredCount, 1);
+  assert.equal(expired.failureCount, 0);
   assert.equal(sent.length, beforeExpired, 'Expired reminders are never sent');
   console.log(`PASS FCM (${dedicatedTable ? 'tabla anterior' : 'sin migración'}): duplicados, reintentos, reinicio, concurrencia, fallo de reserva y eventos independientes`);
 }

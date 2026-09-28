@@ -42,3 +42,4 @@ logs/empresa-controller-errors.log
 *.log
 /logs
 logs/empresa-controller-errors.log
+logs/login-access.log

@@ -3,6 +3,11 @@ import { prisma } from '../lib/prisma';
 
 let dedicatedTable: Promise<boolean> | undefined;
 
+function receiptKey(eventId: string, recipient: string): string {
+  return 'fcm:delivery:v1:' + createHash('sha256')
+    .update(JSON.stringify([eventId, recipient])).digest('hex');
+}
+
 function hasDedicatedTable(): Promise<boolean> {
   if (!dedicatedTable) {
     // Compatibilidad con instalaciones anteriores, sin exigir tablas nuevas.
@@ -27,11 +32,24 @@ export async function claimFcmDelivery(eventId: string, token: string): Promise<
 
   // Reutiliza la tabla operativa existente. La reserva nace completada para
   // que ningún worker la ejecute; solo guarda una clave, sin token ni mensaje.
-  const key = 'fcm:delivery:v1:' + createHash('sha256')
-    .update(JSON.stringify([eventId, recipient])).digest('hex');
+  const key = receiptKey(eventId, recipient);
   const inserted = await prisma.$executeRaw`
     INSERT INTO durable_jobs (key, kind, payload, completed_at)
     VALUES (${key}, 'fcm.delivery', '{}'::jsonb, NOW())
     ON CONFLICT (key) DO NOTHING`;
   return inserted === 1;
+}
+
+// Solo el emisor que obtuvo la reserva puede liberarla, después de un
+// rechazo confirmado. Nunca liberar por timeout ni por una respuesta incierta.
+export async function releaseRejectedFcmDelivery(eventId: string, token: string): Promise<void> {
+  const recipient = createHash('sha256').update(token).digest('hex');
+  if (await hasDedicatedTable()) {
+    await prisma.$executeRaw`DELETE FROM fcm_deliveries
+      WHERE event_id = ${eventId} AND recipient_hash = ${recipient}`;
+    return;
+  }
+  const key = receiptKey(eventId, recipient);
+  await prisma.$executeRaw`DELETE FROM durable_jobs
+    WHERE key = ${key} AND kind = 'fcm.delivery' AND completed_at IS NOT NULL`;
 }

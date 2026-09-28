@@ -1,4 +1,5 @@
 import '../../config/firebase';
+import { isDurableJobExecution } from '../../jobs/durableJobs';
 import { prisma } from '../../lib/prisma';
 import { movimientoError } from './movimiento.logger';
 import { sendMulticastCompat } from '../../services/fcmCompat';
@@ -59,11 +60,10 @@ async function enviarMulticastMovimiento(
 
       const details = response.responses
         .map((result, tokenIndex) =>
-          !result.success
+          result.error
             ? {
                 tokenIndex,
                 code: result.error?.code,
-                message: result.error?.message,
               }
             : null
         )
@@ -74,6 +74,8 @@ async function enviarMulticastMovimiento(
         lote: `${index + 1}/${batches.length}`,
         enviados: response.successCount,
         fallidos: response.failureCount,
+        omitidos: response.skippedCount,
+        vencidos: response.expiredCount,
         tokensInvalidos: invalidTokens.length,
         errores: details,
       });
@@ -82,10 +84,13 @@ async function enviarMulticastMovimiento(
         lote: `${index + 1}/${batches.length}`,
         enviados: response.successCount,
         fallidos: response.failureCount,
+        omitidos: response.skippedCount,
+        vencidos: response.expiredCount,
         tokensInvalidos: invalidTokens.length,
         errores: details,
       });
     } catch (error: any) {
+      if (isDurableJobExecution()) throw error;
       movimientoError.error('FCM movimiento error', {
         ...logCtx,
         lote: `${index + 1}/${batches.length}`,

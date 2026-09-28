@@ -44,7 +44,9 @@ export async function runJobsOnce() {
         await prisma.$executeRaw`UPDATE durable_jobs SET completed_at = NOW(), locked_until = NULL, last_error = NULL WHERE key = ${job.key} AND lock_token = ${token}::uuid`;
       } catch (error: any) {
         outcome = 'retry';
-        const delay = Math.min(3600, 2 ** Math.min(job.attempts, 12));
+        const requestedDelay = Number(error?.retryAfterSeconds);
+        const delay = Math.max(Math.min(3600, 2 ** Math.min(job.attempts, 12)),
+          Number.isFinite(requestedDelay) && requestedDelay > 0 ? Math.ceil(requestedDelay) : 0);
         await prisma.$executeRaw`UPDATE durable_jobs SET available_at = NOW() + ${delay} * INTERVAL '1 second', locked_until = NULL, last_error = ${String(error?.message ?? error).slice(0, 1000)} WHERE key = ${job.key} AND lock_token = ${token}::uuid`;
         logger.error('jobs:retry', { key: job.key, attempts: job.attempts, delay, message: error?.message });
       } finally { clearInterval(heartbeat); recordJobCost(job.kind, started, outcome); }

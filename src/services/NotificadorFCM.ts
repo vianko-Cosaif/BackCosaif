@@ -160,6 +160,8 @@ static async notificarNuevoMovimiento(movimiento: { id?: number } | number): Pro
       tokens: tokens.length,
       enviados: resp.successCount,
       fallidos: resp.failureCount,
+      omitidos: resp.skippedCount,
+      vencidos: resp.expiredCount,
     });
 
     const invalid = new Set([
@@ -272,6 +274,8 @@ static async notificarNuevoIncidente(inc: Incidente): Promise<void> {
       tokens: tokens.length,
       enviados: resp.successCount,
       fallidos: resp.failureCount,
+      omitidos: resp.skippedCount,
+      vencidos: resp.expiredCount,
     });
 
     // 6) Limpieza de tokens inválidos
@@ -553,9 +557,8 @@ static async notificarCambioEstado(
         tokens,
       });
       await deleteInvalidFcmTokens(tokens, response.responses);
-      if (isDurableJobExecution() && response.responses.some(item => !item.success && !INVALID_FCM_CODES.has(item.error?.code ?? ''))) {
-        throw new Error('FCM transitorio; se reintentará la entrega');
-      }
+      // El transporte clasifica los fallos y solicita reintentos al worker.
+      // Los omitidos y los resultados inciertos no deben reenviarse aquí.
     } catch (error) {
       if (isDurableJobExecution()) throw error;
       console.error(`Error ${config.errorName}:`, error);

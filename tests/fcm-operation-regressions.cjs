@@ -21,6 +21,7 @@ async function observe(method, params, scenario = {}, sources = {}) {
     } },
     'src/services/fcmCompat': { sendMulticastCompat: async payload => {
       calls.sent.push(payload);
+      if (scenario.sendError) throw new Error('FCM: hay destinatarios pendientes de reintento');
       return { responses: [{ success: true }, scenario.failure ? { success: false, error: { code: scenario.failure } } : { success: true }] };
     } },
   }, {
@@ -53,7 +54,8 @@ async function main() {
     const invalid = await observe(method, params, { durable: true, failure: 'messaging/registration-token-not-registered' });
     assert.deepEqual(invalid.deleted, [{ where: { token: { in: ['second'] } } }]);
     assert.equal(invalid.thrown, null);
-    assert.match((await observe(method, params, { durable: true, failure: 'messaging/internal-error' })).thrown, /transitorio/);
+    assert.equal((await observe(method, params, { durable: true, failure: 'messaging/internal-error' })).thrown, null, 'El notificador no reclasifica errores inciertos');
+    assert.match((await observe(method, params, { durable: true, sendError: true })).thrown, /pendientes de reintento/);
     assert.equal((await observe(method, params, { failure: 'messaging/internal-error' })).thrown, null);
     assert.equal((await observe(method, params, { durable: true, audienceError: true })).thrown, 'audience failure');
   }
