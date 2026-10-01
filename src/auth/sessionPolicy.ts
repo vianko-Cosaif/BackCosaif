@@ -9,6 +9,10 @@ const EXTENDED_SESSION_ROLES = new Set<Rol>([
   Rol.COORDINADOR,
   Rol.SUPERVISOR,
   Rol.CLIENTE,
+  Rol.CLIENTE_ADMIN,
+  Rol.CLIENTE_COOR,
+  Rol.ARRASTRE_TORREON,
+  Rol.COMERCIAL,
 ]);
 
 const normalizeRol = (rol?: string | null): Rol | null => {
@@ -24,3 +28,8 @@ export const shouldSlideSessionByRole = (rol?: string | null): boolean => {
 export const getAccessTtlForRole = (rol?: string | null): StringValue => (
   shouldSlideSessionByRole(rol) ? EXTENDED_ACCESS_TTL : DEFAULT_ACCESS_TTL
 );
+
+// Sliding idle expiry cannot extend a session beyond seven days from issuance.
+export const MAX_SESSION_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+export const SESSION_RENEW_INTERVAL_MS = 5 * 60 * 1000;
+export const absoluteSessionExpiry = (issuedAt: Date) => new Date(issuedAt.getTime() + MAX_SESSION_AGE_MS);

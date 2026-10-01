@@ -1,3 +1,4 @@
+import { absoluteSessionExpiry, MAX_SESSION_AGE_MS, SESSION_RENEW_INTERVAL_MS } from '../auth/sessionPolicy';
 // src/middlewares/token.service.ts
 // Sesiones por JWT (ACCESS) con control por jti. No se guarda el JWT.
 
@@ -363,6 +364,16 @@ export async function esTokenVigente(jti: string, ctx?: Ctx): Promise<boolean> {
   }
 }
 
+export async function obtenerSesionVigente(jti: string, usuarioId: number) {
+  const session = await prisma.token.findUnique({ where: { jti } });
+  if (!session || session.usuarioId !== usuarioId || session.tipo !== TokenTipo.ACCESS || session.revokedAt
+    || session.expiresAt.getTime() <= Date.now() || absoluteSessionExpiry(session.issuedAt).getTime() <= Date.now()) return null;
+  return session;
+}
+export async function esSesionVigenteDeUsuario(jti: string, usuarioId: number, _ctx?: Ctx): Promise<boolean> {
+  return Boolean(await obtenerSesionVigente(jti, usuarioId));
+}
+
 export async function getTokenOwner(jti: string, ctx?: Ctx): Promise<number | null> {
   const t0 = now();
   const t = await prisma.token.findUnique({ where: { jti }, select: { usuarioId: true } });
@@ -371,29 +382,20 @@ export async function getTokenOwner(jti: string, ctx?: Ctx): Promise<number | nu
 }
 
 export async function extenderSesionPorJti(jti: string, ttl: StringValue = JWT_TTL, ctx?: Ctx): Promise<Date> {
-  const t0 = now();
-  const ttlMs = typeof ttl === 'string' ? ms(ttl) : Number(ttl);
-  const expiresAt = new Date(Date.now() + ttlMs);
-
-  try {
-    const updated = await prisma.token.update({
-      where: { jti },
-      data: {
-        expiresAt,
-        revokedAt: null,
-        reason: null,
-      },
-      select: { expiresAt: true },
-    });
-
-    tokenLogger.info('token:extend:ok', withCtx({ jti, expiresAt: updated.expiresAt.toISOString(), ms: dt(t0) }, ctx));
-    return updated.expiresAt;
-  } catch (error: any) {
-    tokenLogger.error('token:extend:error', withCtx({
-      jti, code: error?.code ?? null, message: error?.message ?? null, ms: dt(t0),
-    }, ctx));
-    throw new Error('No se pudo extender la sesión');
+  const session = await prisma.token.findUnique({ where: { jti } });
+  const now = Date.now();
+  if (!session || (ctx?.usuarioId && session.usuarioId !== ctx.usuarioId) || session.revokedAt
+    || session.tipo !== TokenTipo.ACCESS || session.expiresAt.getTime() <= now || absoluteSessionExpiry(session.issuedAt).getTime() <= now) {
+    throw new Error('La sesión ya no está vigente');
   }
+  const expiresAt = new Date(Math.min(now + ms(ttl), absoluteSessionExpiry(session.issuedAt).getTime()));
+  if (expiresAt.getTime() - session.expiresAt.getTime() < SESSION_RENEW_INTERVAL_MS) return session.expiresAt;
+  const updated = await prisma.token.updateMany({
+    where: { jti, usuarioId: session.usuarioId, revokedAt: null, expiresAt: { gt: new Date(now) }, issuedAt: { gt: new Date(now - MAX_SESSION_AGE_MS) } },
+    data: { expiresAt },
+  });
+  if (!updated.count) throw new Error('La sesión ya no está vigente');
+  return expiresAt;
 }
 
 /* -------------------------------------------------------------------------- */

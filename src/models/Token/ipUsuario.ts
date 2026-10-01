@@ -1,7 +1,9 @@
+import { prisma } from '../../lib/prisma';
 // src/models/ipUsuario.service.ts
-import { PrismaClient, DeviceType } from '@prisma/client';
+import { DeviceType } from '@prisma/client';
+import type { Request } from 'express';
 
-const prisma = new PrismaClient();
+
 
 /** Alta/actualización idempotente por PK compuesta */
 export async function registrarIpUsuario(params: {
@@ -47,8 +49,9 @@ export async function eliminarIpUsuario(
 }
 
 /** Extrae IP del request detrás de proxy */
-export function extraerIp(req: any): string | null {
-  const xf = req?.headers?.['x-forwarded-for'] as string | undefined;
-  const ip = xf?.split(',')[0]?.trim() || req?.ip || req?.connection?.remoteAddress || null;
+export function extraerIp(req: Request): string | undefined {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const headerIp = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+  const ip = headerIp?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress;
   return ip;
 }

@@ -1,7 +1,7 @@
+import { newPdfPage } from './pdf-browser';
 // reporteria/modelos/empresas-pdf.ts
 // PDF por empresa (movimientos en rango)
 
-import * as puppeteer from 'puppeteer';
 import type { EmpresasReporte } from './empresas-model';
 
 export type PdfFile = {
@@ -10,37 +10,8 @@ export type PdfFile = {
   buffer: Buffer;
 };
 
-let browserSingleton: puppeteer.Browser | null = null;
+export { closeBrowser as closeEmpresasBrowser } from './pdf-browser';
 
-async function getBrowser() {
-  if (browserSingleton) return browserSingleton;
-
-  const executablePath =
-    process.env.PUPPETEER_EXECUTABLE_PATH ||
-    process.env.CHROME_BIN ||
-    undefined;
-
-  browserSingleton = await puppeteer.launch({
-    headless: 'new' as any,
-    executablePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--font-render-hinting=none',
-    ],
-  });
-
-  return browserSingleton;
-}
-
-export async function closeEmpresasBrowser() {
-  if (browserSingleton) {
-    await browserSingleton.close();
-    browserSingleton = null;
-  }
-}
 
 function escapeHtml(v: any) {
   const s = String(v ?? '');
@@ -941,8 +912,7 @@ function buildHtml(reporte: EmpresasReporte) {
 }
 
 export async function exportarReporteEmpresasPDF(reporte: EmpresasReporte): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
 
   await page.setContent(buildHtml(reporte), { waitUntil: 'domcontentloaded' });
 

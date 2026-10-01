@@ -15,7 +15,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Asegúrate que la carpeta logs exista
-const logDir = path.join(process.cwd(), 'logs');
+const logDir = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir);
 }

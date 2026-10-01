@@ -1,3 +1,4 @@
+import { prisma } from '../../lib/prisma';
 // actualizacion.service.ts
 //
 // Servicio de acceso a datos para la entidad Actualizacion.
@@ -24,7 +25,7 @@ import {
   EstadoActualizacion,
 } from '@prisma/client';
 
-const prisma = new PrismaClient();
+
 
 export class ActualizacionModel {
   /**

@@ -81,7 +81,7 @@ export class LocalidadController {
    * Obtiene una localidad en particular a partir de su ID.
    */
   static obtenerLocalidadPorId: RequestHandler = async (req: Request, res: Response): Promise<void> => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id), 10);
 
     if (isNaN(id)) {
       fail(res, 400, 'ID inválido. Debe ser un número válido.');

@@ -3,16 +3,43 @@ import { prisma } from '../../lib/prisma';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
 import { RondaModel } from './Ronda/RondaModel';
 import { movimientoError } from './movimiento.logger';
-import { notificarCambioPrioridad, notificarMovimientoFinalizado, notificarMovimientoIniciado } from './movimiento.notifications';
 import {
-  EDITABLE_KEYS,
-  ESTADOS_EDITABLES,
-  MOVIMIENTO_RESPONSE_INCLUDE,
-  diff,
-  EditableMovimientoInput,
-  getMaquinistaId,
-  pickEditable,
-} from './movimiento.shared';
+  notificarCambioPrioridad,
+  notificarMovimientoCancelado,
+  notificarMovimientoDetenido,
+  notificarMovimientoEditado,
+  notificarMovimientoEliminado,
+  notificarMovimientoFinalizado,
+  notificarMovimientoIniciado,
+  notificarMovimientoReanudado,
+} from './movimiento.notifications';
+import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
+import { publishMovimientoCreadoEvent, publishMovimientoEstadoEvent, publishRondaReordenadaEvent } from '../../realtime/realtimeHub';
+
+function stripTornoAgendadoMeta(instrucciones?: string | null) {
+  const clean = String(instrucciones ?? '')
+    .replace(/\s*\[TORNO_AGENDADO:[^\]]+\]\s*/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  return clean || null;
+}
+
+async function notificarMovimientoBestEffort(
+  evento: string,
+  movimientoId: number,
+  enviar: () => Promise<unknown>
+) {
+  try {
+    await enviar();
+  } catch (error: any) {
+    movimientoError.error('Error enviando FCM de movimiento', {
+      evento,
+      movimientoId,
+      errName: error?.name,
+      errMsg: error?.message,
+    });
+  }
+}
 
 export class MovimientoWriteService {
   private static async assertMovimientoNoBloqueadoPorIncidente(id: number) {
@@ -85,7 +112,7 @@ export class MovimientoWriteService {
           updatedAt: fechaActual,
           ...(razon && { instrucciones: razon }),
         },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, ronda: true },
       });
 
       movimientoError.info('Movimiento detenido', {
@@ -95,7 +122,14 @@ export class MovimientoWriteService {
         localidad: movimientoDetenido.localidad?.nombre,
       });
 
-      await RondaModel.siguienteInteligente(movimientoDetenido.localidadId);
+      try {
+        await notificarMovimientoBestEffort('movimiento_detenido', movimientoDetenido.id, () =>
+          notificarMovimientoDetenido(movimientoDetenido.id, razon)
+        );
+        await RondaModel.siguienteInteligente(movimientoDetenido.localidadId);
+      } finally {
+        publishMovimientoEstadoEvent(movimientoDetenido);
+      }
       return movimientoDetenido;
     } catch (error: any) {
       movimientoError.error('Error al detener movimiento', {
@@ -126,7 +160,7 @@ export class MovimientoWriteService {
             instrucciones: `CANCELADO: ${razonCancelacion}`,
             incidenteGlobal: false,
           },
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
 
         if (original.ronda) {
@@ -146,7 +180,11 @@ export class MovimientoWriteService {
         return cancelado;
       });
 
+      await notificarMovimientoBestEffort('movimiento_cancelado', movimientoCancelado.id, () =>
+        notificarMovimientoCancelado(movimientoCancelado.id, razonCancelacion)
+      );
       await RondaModel.siguienteInteligente(movimientoCancelado.localidadId);
+      publishMovimientoEstadoEvent(movimientoCancelado);
       return movimientoCancelado;
     } catch (error: any) {
       movimientoError.error('Error al cancelar movimiento', {
@@ -165,7 +203,7 @@ export class MovimientoWriteService {
 
     const actual = await prisma.movimiento.findUnique({
       where: { id },
-      include: MOVIMIENTO_RESPONSE_INCLUDE,
+      include: { localidad: true, viaOrigen: true, viaDestino: true, empresa: true, ronda: true },
     });
     if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
     if (actual.finalizado || !ESTADOS_EDITABLES.has(actual.estado as any)) {
@@ -190,9 +228,9 @@ export class MovimientoWriteService {
 
     const actualizado = await prisma.$transaction(async (tx) => {
       const updated = await tx.movimiento.update({
-        where: { id },
+        where: { id, estado: actual.estado, updatedAt: actual.updatedAt, finalizado: false },
         data: { ...updateData, updatedAt: new Date() },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
       });
 
       try {
@@ -228,6 +266,10 @@ export class MovimientoWriteService {
       cambios: Object.keys(cambios),
       localidadId,
     });
+
+    await notificarMovimientoBestEffort('movimiento_editado', actualizado.id, () =>
+      notificarMovimientoEditado(actualizado.id, Object.keys(cambios))
+    );
 
     return actualizado;
   }
@@ -269,7 +311,7 @@ export class MovimientoWriteService {
           ...(maquinistaId && { operadorId: maquinistaId }),
           ...responsablesActivos,
         },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, ronda: true },
       });
 
       movimientoError.info('Movimiento reactivado', {
@@ -279,8 +321,14 @@ export class MovimientoWriteService {
         localidad: movimientoActual.localidad?.nombre,
       });
 
-      await notificarMovimientoIniciado(movimientoReactivado.id);
+      await notificarMovimientoBestEffort('movimiento_reanudado', movimientoReactivado.id, () =>
+        notificarMovimientoReanudado(movimientoReactivado.id)
+      );
       await RondaModel.siguienteInteligente(movimientoReactivado.localidadId);
+      publishMovimientoEstadoEvent({
+        ...movimientoReactivado,
+        estadoAnterior: movimientoActual.estado,
+      });
       return movimientoReactivado;
     } catch (error: any) {
       movimientoError.error('Error al reactivar movimiento', {
@@ -295,7 +343,7 @@ export class MovimientoWriteService {
   static async cambiarEstadoMovimiento(
     id: number,
     nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean } = {}
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; forzar?: boolean; fechaInicio?: Date; fechaFin?: Date; notificar?: boolean } = {}
   ) {
     try {
       const { razon, forzar = false } = opciones;
@@ -303,9 +351,43 @@ export class MovimientoWriteService {
 
       const movimientoActual = await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, ronda: true },
       });
       if (!movimientoActual) throw new Error(`No se encontró movimiento con id ${id}`);
+
+      if (movimientoActual.torno === true && movimientoActual.estado === 'CONCLUIDO' && nuevoEstado === 'EN_PROCESO') {
+        movimientoError.info('Movimiento de torno ya concluido; se omite reapertura', {
+          movimientoId: id,
+          estadoActual: movimientoActual.estado,
+          estadoSolicitado: nuevoEstado,
+          empresa: movimientoActual.empresa?.nombre,
+          localidad: movimientoActual.localidad?.nombre,
+        });
+        return movimientoActual;
+      }
+
+      if (String(movimientoActual.estado) === nuevoEstado) {
+        const data: any = { updatedAt: new Date() };
+        if (nuevoEstado === 'EN_PROCESO' && maquinistaId) {
+          data.operadorId = maquinistaId;
+        }
+
+        const movimientoIdempotente = await prisma.movimiento.update({
+          where: { id },
+          data,
+          include: { ronda: true },
+        });
+
+        movimientoError.info('Estado de movimiento sin cambios', {
+          movimientoId: id,
+          estadoActual: movimientoActual.estado,
+          maquinistaId: maquinistaId ?? 'No especificado',
+          empresa: movimientoActual.empresa?.nombre,
+          localidad: movimientoActual.localidad?.nombre,
+        });
+
+        return movimientoIdempotente;
+      }
 
       const responsablesActivos =
         nuevoEstado === 'EN_PROCESO'
@@ -317,10 +399,16 @@ export class MovimientoWriteService {
       }
 
       if (!forzar) {
+        const cierreAutomaticoTorno =
+          movimientoActual.torno === true &&
+          nuevoEstado === 'CONCLUIDO' &&
+          ['SOLICITADO', 'ESPERA', 'MODIFICADO'].includes(String(movimientoActual.estado));
         const transiciones: Record<string, string[]> = {
-          SOLICITADO: ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
+          SOLICITADO: cierreAutomaticoTorno ? ['EN_PROCESO', 'DETENIDO', 'CANCELADO', 'CONCLUIDO'] : ['EN_PROCESO', 'DETENIDO', 'CANCELADO'],
           EN_PROCESO: ['DETENIDO', 'CONCLUIDO', 'CANCELADO'],
           DETENIDO: ['EN_PROCESO', 'CANCELADO', 'CONCLUIDO'],
+          ESPERA: cierreAutomaticoTorno ? ['CONCLUIDO', 'CANCELADO'] : ['CANCELADO'],
+          MODIFICADO: cierreAutomaticoTorno ? ['CONCLUIDO', 'CANCELADO'] : ['CANCELADO'],
           CONCLUIDO: [],
           CANCELADO: [],
         };
@@ -333,10 +421,12 @@ export class MovimientoWriteService {
       const movimientoActualizado = await prisma.$transaction(async (tx) => {
         const ahora = new Date();
         const data: any = { estado: nuevoEstado, updatedAt: ahora };
+        const fechaInicio = opciones.fechaInicio ?? ahora;
+        const fechaFin = opciones.fechaFin ?? ahora;
 
         if (nuevoEstado === 'EN_PROCESO') {
           Object.assign(data, {
-            fechaInicio: ahora,
+            fechaInicio,
             fechaPausa: null,
             incidenteGlobal: false,
             ...(maquinistaId && { operadorId: maquinistaId }),
@@ -347,7 +437,12 @@ export class MovimientoWriteService {
           Object.assign(data, { fechaPausa: ahora, ...(razon && { instrucciones: razon }) });
         }
         if (nuevoEstado === 'CONCLUIDO') {
-          Object.assign(data, { fechaFin: ahora, finalizado: true, incidenteGlobal: false });
+          Object.assign(data, {
+            fechaInicio: movimientoActual.fechaInicio ?? opciones.fechaInicio ?? undefined,
+            fechaFin,
+            finalizado: true,
+            incidenteGlobal: false,
+          });
         }
         if (nuevoEstado === 'CANCELADO') {
           Object.assign(data, {
@@ -361,7 +456,7 @@ export class MovimientoWriteService {
         const updated = await tx.movimiento.update({
           where: { id },
           data,
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
 
         if (movimientoActual.ronda && (nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO')) {
@@ -382,18 +477,32 @@ export class MovimientoWriteService {
         localidad: movimientoActual.localidad?.nombre,
       });
 
-      try {
-        if (nuevoEstado === 'EN_PROCESO') await notificarMovimientoIniciado(id);
-        else if (nuevoEstado === 'CONCLUIDO') await notificarMovimientoFinalizado(id);
-      } catch (error: any) {
-        movimientoError.error('Error notificando cambio de estado', {
-          movimientoId: id,
-          nuevoEstado,
-          errName: error?.name,
-          errMsg: error?.message,
-        });
+      if (opciones.notificar !== false) {
+        try {
+          if (nuevoEstado === 'EN_PROCESO') {
+            if (movimientoActual.estado === 'DETENIDO') await notificarMovimientoReanudado(id);
+            else await notificarMovimientoIniciado(id);
+          } else if (nuevoEstado === 'DETENIDO') {
+            await notificarMovimientoDetenido(id, razon);
+          } else if (nuevoEstado === 'CONCLUIDO') {
+            await notificarMovimientoFinalizado(id);
+          } else if (nuevoEstado === 'CANCELADO') {
+            await notificarMovimientoCancelado(id, razon);
+          }
+        } catch (error: any) {
+          movimientoError.error('Error notificando cambio de estado', {
+            movimientoId: id,
+            nuevoEstado,
+            errName: error?.name,
+            errMsg: error?.message,
+          });
+        }
       }
 
+      publishMovimientoEstadoEvent({
+        ...movimientoActualizado,
+        estadoAnterior: movimientoActual.estado,
+      });
       await RondaModel.siguienteInteligente(movimientoActual.localidadId);
       return movimientoActualizado;
     } catch (error: any) {
@@ -453,12 +562,28 @@ export class MovimientoWriteService {
 
       const movimiento = await prisma.movimiento.create({ data: movData });
 
+      if (String(movimiento.estado) === 'AGENDADO') {
+        movimientoError.info('Movimiento de torno agendado creado sin ronda', {
+          movimientoId: movimiento.id,
+          localidadId: movimiento.localidadId,
+          fechaSolicitud: movimiento.fechaSolicitud,
+        });
+
+        return await prisma.movimiento.findUnique({
+          where: { id: movimiento.id },
+          include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+        });
+      }
+
       await RondaModel.generarRondaParaMovimiento({
         movimientoId: movimiento.id,
         empresaId: movimiento.empresaId,
         localidadId: movimiento.localidadId,
         prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
       });
+
+      // Realtime no depende de Firebase: la web se actualiza aunque FCM falle.
+      publishMovimientoCreadoEvent(movimiento);
 
       try {
         await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
@@ -473,7 +598,7 @@ export class MovimientoWriteService {
 
       return await prisma.movimiento.findUnique({
         where: { id: movimiento.id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
       });
     } catch (error: any) {
       movimientoError.error('Error al crear movimiento', {
@@ -484,10 +609,66 @@ export class MovimientoWriteService {
     }
   }
 
+  static async activarMovimientoTornoAgendado(id: number) {
+    try {
+      const actual = await prisma.movimiento.findUnique({
+        where: { id },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+      if (!actual) throw new Error(`No se encontro movimiento con id ${id}`);
+      if (String(actual.estado) !== 'AGENDADO' || actual.torno !== true || actual.finalizado) {
+        throw new Error('El movimiento no es una solicitud de torno agendada disponible');
+      }
+
+      const movimiento = await prisma.movimiento.update({
+        where: { id },
+        data: {
+          estado: 'SOLICITADO',
+          fechaSolicitud: new Date(),
+          instrucciones: stripTornoAgendadoMeta(actual.instrucciones),
+          updatedAt: new Date(),
+        },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+
+      await RondaModel.generarRondaParaMovimiento({
+        movimientoId: movimiento.id,
+        empresaId: movimiento.empresaId,
+        localidadId: movimiento.localidadId,
+        prioridad: (movimiento.prioridad as 'ALTA' | 'BAJA') ?? 'BAJA',
+      });
+
+      // Realtime no depende de Firebase: la web se actualiza aunque FCM falle.
+      publishMovimientoCreadoEvent(movimiento);
+
+      try {
+        await NotificadorFCM.notificarNuevoMovimiento(movimiento.id);
+      } catch (error: any) {
+        movimientoError.error('Error notificando movimiento agendado activado', {
+          movId: movimiento.id,
+          err: error?.message,
+        });
+      }
+
+      await RondaModel.siguienteInteligente(movimiento.localidadId);
+
+      return await prisma.movimiento.findUnique({
+        where: { id: movimiento.id },
+        include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
+      });
+    } catch (error: any) {
+      movimientoError.error('Error al activar movimiento de torno agendado', {
+        id,
+        errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
+      });
+      throw new Error(error?.message || 'Error al activar movimiento de torno agendado');
+    }
+  }
+
   static async actualizarEstadoServicio(
     id: number,
-    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO',
-    opciones: { maquinistaId?: number; operadorId?: number; razon?: string } = {}
+    nuevoEstado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO',
+    opciones: { maquinistaId?: number; operadorId?: number; razon?: string; fechaInicio?: Date; fechaFin?: Date; notificar?: boolean } = {}
   ) {
     try {
       const movimiento = await prisma.movimiento.findUnique({
@@ -502,6 +683,9 @@ export class MovimientoWriteService {
       return await this.cambiarEstadoMovimiento(id, nuevoEstado, {
         maquinistaId: getMaquinistaId(opciones),
         razon: opciones.razon,
+        fechaInicio: opciones.fechaInicio,
+        fechaFin: opciones.fechaFin,
+        notificar: opciones.notificar,
         forzar: false,
       });
     } catch (error: any) {
@@ -569,7 +753,7 @@ export class MovimientoWriteService {
         const movUpd = await tx.movimiento.update({
           where: { id },
           data: updateData,
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { empresa: true, localidad: true, viaDestino: true },
         });
 
         const requiereReorg =
@@ -606,6 +790,9 @@ export class MovimientoWriteService {
       }
 
       await RondaModel.siguienteInteligente(movUpd.localidadId);
+      await notificarMovimientoBestEffort('movimiento_editado', movUpd.id, () =>
+        notificarMovimientoEditado(movUpd.id, Object.keys(data))
+      );
       return movUpd;
     } catch (error: any) {
       movimientoError.error('Error al editar movimiento', {
@@ -631,7 +818,7 @@ export class MovimientoWriteService {
 
       return await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { empresa: true, localidad: true, viaDestino: true, ronda: true },
       });
     } catch (error: any) {
       movimientoError.error('Error al solicitar y encolar servicio al frente de R1', {
@@ -645,7 +832,10 @@ export class MovimientoWriteService {
   static async eliminarMovimiento(id: number) {
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const movimiento = await tx.movimiento.findUnique({ where: { id }, include: { ronda: true } });
+        const movimiento = await tx.movimiento.findUnique({
+          where: { id },
+          include: { ronda: true, empresa: { select: { nombre: true } } },
+        });
         if (!movimiento) throw new Error(`Movimiento ${id} no encontrado`);
 
         if (movimiento.ronda) {
@@ -653,11 +843,31 @@ export class MovimientoWriteService {
           await RondaModel.recomponerRondasLocalidad(movimiento.localidadId, tx);
         }
 
-        return await tx.movimiento.delete({ where: { id } });
+        const eliminado = await tx.movimiento.delete({ where: { id } });
+        return {
+          eliminado,
+          notificacion: {
+            id: movimiento.id,
+            empresaId: movimiento.empresaId,
+            localidadId: movimiento.localidadId,
+            locomotiveNumber: movimiento.locomotiveNumber,
+            operadorId: movimiento.operadorId,
+            clienteId: movimiento.clienteId,
+            supervisorId: movimiento.supervisorId,
+            coordinadorId: movimiento.coordinadorId,
+            creadoPorId: movimiento.creadoPorId,
+            empresaNombre: movimiento.empresa?.nombre,
+            torno: movimiento.torno,
+            lavado: movimiento.lavado,
+          },
+        };
       });
 
-      await RondaModel.siguienteInteligente(result.localidadId);
-      return result;
+      await notificarMovimientoBestEffort('movimiento_eliminado', result.eliminado.id, () =>
+        notificarMovimientoEliminado(result.notificacion)
+      );
+      await RondaModel.siguienteInteligente(result.eliminado.localidadId);
+      return result.eliminado;
     } catch (error: any) {
       movimientoError.error('Error al eliminar movimiento', {
         id,
@@ -671,7 +881,7 @@ export class MovimientoWriteService {
     try {
       const movimiento = await prisma.movimiento.findUnique({
         where: { id },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: { ronda: true, empresa: true, localidad: true },
       });
       if (!movimiento) throw new Error(`No se encontró movimiento con id ${id}`);
       if (movimiento.prioridad === prioridad) return movimiento;
@@ -679,7 +889,6 @@ export class MovimientoWriteService {
       const movimientoActualizado = await prisma.movimiento.update({
         where: { id },
         data: { prioridad },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
       if (movimiento.estado === 'SOLICITADO' && prioridad === 'ALTA') {
@@ -699,8 +908,23 @@ export class MovimientoWriteService {
         });
       }
 
-      await notificarCambioPrioridad(id, prioridad);
+      await notificarMovimientoBestEffort('cambio_prioridad', id, () =>
+        notificarCambioPrioridad(id, prioridad)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimientoActualizado);
+      if (movimiento.estado === 'SOLICITADO') {
+        publishRondaReordenadaEvent({
+          id: movimiento.ronda?.id ?? null,
+          movimientoId: movimientoActualizado.id,
+          empresaId: movimientoActualizado.empresaId,
+          localidadId: movimientoActualizado.localidadId,
+          clienteId: movimientoActualizado.clienteId,
+          rondaIds: movimiento.ronda?.id ? [movimiento.ronda.id] : [],
+          movimientoIds: [movimientoActualizado.id],
+          reason: 'prioridad',
+        });
+      }
 
       return movimientoActualizado;
     } catch (error: any) {
@@ -718,9 +942,29 @@ export class MovimientoWriteService {
       const fechaActual = new Date();
       const actual = await prisma.movimiento.findUnique({
         where: { id },
-        select: { id: true, empresaId: true, localidadId: true },
+        select: {
+          id: true,
+          empresaId: true,
+          localidadId: true,
+          estado: true,
+          operadorId: true,
+          fechaInicio: true,
+        },
       });
       if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
+      if (actual.estado === 'EN_PROCESO' && actual.operadorId === maquinistaId) {
+        return prisma.movimiento.findUniqueOrThrow({ where: { id } });
+      }
+      if (actual.estado === 'EN_PROCESO' && actual.operadorId !== maquinistaId) {
+        const conflict = new Error('El movimiento ya está en proceso por otro maquinista');
+        (conflict as any).status = 409;
+        throw conflict;
+      }
+      if (actual.estado === 'CONCLUIDO' || actual.estado === 'CANCELADO') {
+        const conflict = new Error(`Movimiento no puede iniciar en estado ${actual.estado}`);
+        (conflict as any).status = 409;
+        throw conflict;
+      }
 
       await this.assertMovimientoNoBloqueadoPorIncidente(id);
 
@@ -735,11 +979,13 @@ export class MovimientoWriteService {
           updatedAt: fechaActual,
           ...responsablesActivos,
         },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
-      await notificarMovimientoIniciado(movimiento.id);
+      await notificarMovimientoBestEffort('movimiento_iniciado', movimiento.id, () =>
+        notificarMovimientoIniciado(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al iniciar movimiento', {
@@ -747,6 +993,7 @@ export class MovimientoWriteService {
         maquinistaId,
         errName: error?.name, errMsg: error?.message, errStack: error?.stack, prismaCode: error?.code, prismaMeta: error?.meta,
       });
+      if (error?.status) throw error;
       throw new Error('Error al iniciar movimiento');
     }
   }
@@ -757,10 +1004,16 @@ export class MovimientoWriteService {
       const movimiento = await prisma.movimiento.update({
         where: { id },
         data: { estado: 'DETENIDO', fechaPausa: fechaActual, updatedAt: fechaActual },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
-      await RondaModel.siguienteInteligente(movimiento.localidadId);
+      try {
+        await notificarMovimientoBestEffort('movimiento_detenido', movimiento.id, () =>
+          notificarMovimientoDetenido(movimiento.id)
+        );
+        await RondaModel.siguienteInteligente(movimiento.localidadId);
+      } finally {
+        publishMovimientoEstadoEvent(movimiento);
+      }
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al pausar movimiento', {
@@ -787,11 +1040,13 @@ export class MovimientoWriteService {
       const movimiento = await prisma.movimiento.update({
         where: { id },
         data: { estado: 'EN_PROCESO', fechaInicio: fechaActual, updatedAt: fechaActual, ...responsablesActivos },
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
       });
 
-      await notificarMovimientoIniciado(movimiento.id);
+      await notificarMovimientoBestEffort('movimiento_reanudado', movimiento.id, () =>
+        notificarMovimientoReanudado(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al reanudar movimiento', {
@@ -807,7 +1062,7 @@ export class MovimientoWriteService {
       const movimiento = await prisma.$transaction(async (tx) => {
         const actual = await tx.movimiento.findUnique({
           where: { id },
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
         if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
         if (actual.finalizado) return actual;
@@ -815,7 +1070,7 @@ export class MovimientoWriteService {
         const result = await tx.movimiento.update({
           where: { id },
           data: { estado: 'CONCLUIDO', finalizado: true, fechaFin: new Date(), updatedAt: new Date() },
-          include: MOVIMIENTO_RESPONSE_INCLUDE,
+          include: { ronda: true },
         });
 
         if (result.ronda) {
@@ -826,8 +1081,11 @@ export class MovimientoWriteService {
         return result;
       });
 
-      await notificarMovimientoFinalizado(movimiento.id);
+      await notificarMovimientoBestEffort('movimiento_concluido', movimiento.id, () =>
+        notificarMovimientoFinalizado(movimiento.id)
+      );
       await RondaModel.siguienteInteligente(movimiento.localidadId);
+      publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al finalizar movimiento', {

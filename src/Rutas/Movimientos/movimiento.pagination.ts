@@ -16,15 +16,17 @@ export const readMovimientoPagination = (
 
   if (rawPage === undefined && rawPageSize === undefined) return {};
 
-  if (rawPage !== undefined && (!/^\d+$/.test(rawPage) || Number(rawPage) < 1)) {
+  if (rawPage !== undefined && (!/^\d+$/.test(rawPage) || !Number.isSafeInteger(Number(rawPage)) || Number(rawPage) < 1)) {
     return { error: 'page debe ser un entero positivo' };
   }
-  if (rawPageSize !== undefined && (!/^\d+$/.test(rawPageSize) || Number(rawPageSize) < 1)) {
+  if (rawPageSize !== undefined && (!/^\d+$/.test(rawPageSize) || !Number.isSafeInteger(Number(rawPageSize)) || Number(rawPageSize) < 1)) {
     return { error: 'pageSize debe ser un entero positivo' };
   }
 
   const page = rawPage ? Number(rawPage) : 1;
   const requestedPageSize = rawPageSize ? Number(rawPageSize) : DEFAULT_PAGE_SIZE;
+
+  if (!Number.isSafeInteger((page - 1) * Math.min(MAX_PAGE_SIZE, requestedPageSize))) return { error: 'Paginación fuera de rango' };
 
   return {
     pagination: {

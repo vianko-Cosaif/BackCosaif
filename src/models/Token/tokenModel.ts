@@ -1,14 +1,15 @@
+import { prisma } from '../../lib/prisma';
 // src/models/Token/tokenModel.ts
 /**
  * Acceso a datos para sesiones Token.
  * No se almacena el JWT, solo el jti y metadatos.
  */
-import { PrismaClient, DeviceType, TokenTipo, Token } from '@prisma/client';
+import { DeviceType, TokenTipo, Token } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import ms, { StringValue } from 'ms';
 import { logger as tokenLogger } from '../../utils/logger';
 
-const prisma = new PrismaClient();
+
 
 /* Helpers */
 type PlatformInput = string | null | undefined | DeviceType;

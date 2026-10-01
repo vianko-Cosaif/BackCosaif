@@ -26,6 +26,8 @@
 import { Router } from 'express';
 import { EmpresaController } from './EmpresaController';
 import { authenticateAccess } from '../../auth/authenticateAccess';
+import { PERMISSIONS } from '../../auth/accessPolicy';
+import { requirePermission } from '../../auth/authorize';
 
 const router = Router();
 
@@ -33,20 +35,20 @@ const router = Router();
 // Protege las rutas usando la estrategia JWT definida en Passport.
 router.use(authenticateAccess);
 // Ruta para crear una nueva empresa
-router.post('/', EmpresaController.crearEmpresa);
+router.post('/', requirePermission(PERMISSIONS.COMPANIES_MANAGE), EmpresaController.crearEmpresa);
 
 // Ruta para obtener la lista de empresas
-router.get('/', EmpresaController.obtenerEmpresas);
+router.get('/', requirePermission(PERMISSIONS.CATALOGS_READ), EmpresaController.obtenerEmpresas);
 
 // Ruta para obtener la lista ligera de empresas
-router.get('/lite', EmpresaController.obtenerEmpresasLite);
+router.get('/lite', requirePermission(PERMISSIONS.CATALOGS_READ), EmpresaController.obtenerEmpresasLite);
 
 
 
 // Ruta para editar una empresa existente (por ID)
-router.put('/:id', EmpresaController.editarEmpresa);
+router.put('/:id', requirePermission(PERMISSIONS.COMPANIES_MANAGE), EmpresaController.editarEmpresa);
 
 // Ruta para eliminar una empresa (por ID)
-router.delete('/:id', EmpresaController.eliminarEmpresa);
+router.delete('/:id', requirePermission(PERMISSIONS.COMPANIES_MANAGE), EmpresaController.eliminarEmpresa);
 
 export default router;

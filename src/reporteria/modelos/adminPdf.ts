@@ -1,3 +1,4 @@
+import { newPdfPage } from './pdf-browser';
 // reporteria/modelos/adminPdf.ts
 // PDF ADMIN (CEO) · Estilo ejecutivo tipo Power BI.
 // Puppeteer + SVG (0 deps extra).
@@ -7,7 +8,6 @@
 // - Gráficas de ejecución (0–9 / 10–89 / 90+), tráfico por hora y por día.
 // - Rankings breves (maquinistas, locomotoras, clientes, empresas).
 
-import * as puppeteer from 'puppeteer';
 import type { AdminReporte } from './admin-model';
 export type AdminReporteBase = AdminReporte;
 
@@ -17,34 +17,8 @@ export type PdfFile = {
   buffer: Buffer;
 };
 
-let browserSingleton: puppeteer.Browser | null = null;
+export { closeBrowser as closeAdminBrowser } from './pdf-browser';
 
-async function getBrowser() {
-  if (browserSingleton) return browserSingleton;
-
-  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN || undefined;
-
-  browserSingleton = await puppeteer.launch({
-    headless: 'new' as any,
-    executablePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--font-render-hinting=none',
-    ],
-  });
-
-  return browserSingleton;
-}
-
-export async function closeAdminBrowser() {
-  if (browserSingleton) {
-    await browserSingleton.close();
-    browserSingleton = null;
-  }
-}
 
 const MX_TZ = 'America/Mexico_City';
 const safeNum = (n: any) => (Number.isFinite(Number(n)) ? Number(n) : 0);
@@ -1117,8 +1091,7 @@ function buildHtml(r: AdminReporteBase) {
 
 
 export async function exportarAdminPDF(reporte: AdminReporteBase): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
 
   const etiquetaRaw = reporte.meta.etiqueta || 'Admin';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;

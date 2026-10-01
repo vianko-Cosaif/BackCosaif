@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { instrumentPrisma } from '../performance/metrics';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -6,10 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  instrumentPrisma(new PrismaClient({
     log: ['error', 'warn'],
-  });
+  }), 'main');
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;

@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model OfflineIdempotency {
+  key                 String   @id @db.VarChar(128)
+  userId              Int      @map("user_id")
+  requestHash         String   @map("request_hash") @db.Char(64)
+  state               String   @db.VarChar(16)
+  responseStatus      Int?     @map("response_status")
+  responseBody        String?  @map("response_body") @db.Text
+  responseContentType String?  @map("response_content_type") @db.Text
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  expiresAt           DateTime @default(dbgenerated("(now() + '7 days'::interval)")) @map("expires_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("offline_idempotency")
+}
+
 /**
  * ================== MODELOS BASE ==================
  */
@@ -47,6 +63,7 @@ model Localidad {
 }
 
 model Usuario {
+  reportExports      ReportExport[]
   id                 Int                 @id @default(autoincrement())
   nombre             String              @unique
   email              String              @unique
@@ -55,7 +72,7 @@ model Usuario {
   empresaId          Int
   localidadId        Int
   fcmTokens          FcmToken[]
-  activo             Boolean             @default(false)
+  activo             Boolean             @default(true)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   incidentes         Incidente[]
@@ -79,13 +96,16 @@ model Usuario {
 }
 
 model FcmToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique @db.VarChar(500)
-  usuarioId Int
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  token       String   @unique @db.VarChar(500)
+  usuarioId   Int
+  localidadId Int?
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
   @@index([usuarioId])
+  @@index([localidadId])
 }
 
 model Via {
@@ -176,6 +196,9 @@ model Movimiento {
   tornos  TornoT[]
   lavados LavadoT[]
 
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([empresaId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([localidadId, createdAt(sort: Desc), id(sort: Desc)])
   @@index([empresaId, estado])
   @@index([fechaInicio, fechaFin])
   @@index([estado, finalizado])
@@ -188,6 +211,7 @@ model Movimiento {
 }
 
 model Incidente {
+  reprogramming IncidentReprogramming?
   id           Int             @id @default(autoincrement())
   descripcion  String
   imagen1      String?
@@ -548,6 +572,7 @@ enum EstadoMovimiento {
   MODIFICADO
   CONCLUIDO
   CANCELADO
+  AGENDADO
 }
 
 enum Lavado {
@@ -557,10 +582,15 @@ enum Lavado {
 
 enum Rol {
   CLIENTE
+  CLIENTE_ADMIN
+  CLIENTE_COOR
+  ARRASTRE_TORREON
   SUPERVISOR
   COORDINADOR
   OPERADOR
   MAQUINISTA
+  MAQUINISTA_ARRASTRE
+  COMERCIAL
   ADMINISTRADOR
   LAVADO
   TORNO
@@ -607,4 +637,49 @@ enum AccionSeguimiento {
   ASIGNACION
   CIERRE
   REAPERTURA
+}
+
+model DurableJob {
+  key String @id @db.VarChar(200)
+  kind String @db.VarChar(80)
+  payload Json
+  attempts Int @default(0)
+  availableAt DateTime @default(now()) @map("available_at") @db.Timestamptz(6)
+  lockedUntil DateTime? @map("locked_until") @db.Timestamptz(6)
+  lockToken String? @map("lock_token") @db.Uuid
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  lastError String? @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("durable_jobs")
+}
+model IncidentReprogramming {
+  incidentId Int @id @map("incident_id")
+  result Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  incident Incidente @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  @@map("incident_reprogramming")
+}
+
+// Private export metadata; artifacts live on a private shared volume.
+model ReportExport {
+  id                String   @id @db.Uuid
+  ownerId           Int      @map("owner_id")
+  authorizationHash String   @map("authorization_hash") @db.Char(64)
+  format            String   @db.VarChar(8)
+  filters           Json
+  status            String   @default("QUEUED") @db.VarChar(16)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt         DateTime @default(dbgenerated("(now() + '1 day'::interval)")) @map("expires_at") @db.Timestamptz(6)
+  runToken          String?  @map("run_token") @db.Uuid
+  artifactToken     String?  @map("artifact_token") @db.Uuid
+  attempts          Int      @default(0)
+  rowCount          Int?     @map("row_count")
+  bytes             BigInt?
+  error             String?
+  owner             Usuario  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt], map: "report_exports_created_at_idx")
+  @@index([expiresAt], map: "report_exports_expires_at_idx")
+  @@index([ownerId], map: "report_exports_owner_id_idx")
+  @@map("report_exports")
 }

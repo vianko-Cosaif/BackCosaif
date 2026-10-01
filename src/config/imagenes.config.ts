@@ -41,8 +41,8 @@ export const IMAGEN_CONFIG: ConfigImagenes = {
  */
 export class ImagenUtils {
   /**
-   * Crea la estructura de directorios para almacenar imagenes.
-   * Organiza por a�o/mes/dia para facilitar busquedas.
+   * Crea la estructura de directorios para almacenar imágenes.
+   * Organiza por año/mes/día para facilitar búsquedas.
    */
   static async crearEstructuraDirectorios(): Promise<void> {
     try {
@@ -107,7 +107,7 @@ export class ImagenUtils {
       };
     }
 
-    // Validar tama�o
+    // Validar tamaño
     if (file.size > IMAGEN_CONFIG.maxFileSize) {
       return {
         valido: false,
@@ -145,7 +145,7 @@ export class ImagenUtils {
   }
 
   /**
-   * Obtiene informacion sobre una imagen (tama�o, dimensiones, etc.)
+   * Obtiene información sobre una imagen (tamaño, dimensiones, etc.)
    */
   static async obtenerInfoImagen(rutaRelativa: string): Promise<any> {
     try {

@@ -1,9 +1,10 @@
+import { prisma } from '../../lib/prisma';
 // src/models/Via/viaModel.ts
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { viaError } from './via.logger';
 import { SeccionViaModel, NotFoundError, ConflictError } from './Secciones/SeccionViasModel';
 
-const prisma = new PrismaClient();
+
 
 // Error especializado para adjuntar info del bloqueador
 export class ViaOcupadaPorOtroError extends ConflictError {
@@ -53,7 +54,7 @@ export class ViaModel {
     this.viasLitePorLocalidadCache.set(localidadId, { data, exp: Date.now() + this.CACHE_TTL_MS });
   }
 
-  private static clearViasLiteCache() {
+  static invalidateLiteCache() {
     this.viasLiteCache = null;
     this.viasLitePorLocalidadCache.clear();
   }
@@ -243,7 +244,7 @@ export class ViaModel {
   static async crearVia(numero: number, nombre: string, localidadId: number) {
     try {
       const created = await prisma.via.create({ data: { numero, nombre, localidadId } });
-      this.clearViasLiteCache();
+      this.invalidateLiteCache();
       return created;
     } catch (error: any) {
       viaError.error('Error al crear vía', { error, numero, nombre, localidadId });
@@ -263,7 +264,7 @@ export class ViaModel {
         if ('movimientoId' in payload) delete (payload as any).movimientoId;
       }
       const updated = await prisma.via.update({ where: { id }, data: payload });
-      this.clearViasLiteCache();
+      this.invalidateLiteCache();
       return updated;
     } catch (error: any) {
       viaError.error('Error al editar vía', { error, id, data });
@@ -274,7 +275,7 @@ export class ViaModel {
   static async eliminarVia(id: number) {
     try {
       const deleted = await prisma.via.delete({ where: { id } });
-      this.clearViasLiteCache();
+      this.invalidateLiteCache();
       return deleted;
     } catch (error: any) {
       viaError.error('Error al eliminar vía', { error, id });

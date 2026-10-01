@@ -1,3 +1,4 @@
+import { newPdfPage } from './pdf-browser';
 // reporteria/reporteriaMovimiento-pdf.ts
 // PDF empresarial (BLANCO) con gráficas (SIN Chart.js) vía Puppeteer (HTML -> PDF)
 // Gráficas en SVG embebido (0 dependencias extra, 0 problemas de "exports").
@@ -9,7 +10,6 @@
 // - Tabla "Movimientos por empresa" (segmentado: quién y cuántos, por estado)
 // - Tabla "Incidentes por empresa" opcional (útil y ligera)
 
-import * as puppeteer from 'puppeteer';
 
 export type ReporteBase = {
   meta: {
@@ -42,37 +42,8 @@ export type PdfFile = {
 };
 
 // ---------- Browser Singleton ----------
-let browserSingleton: puppeteer.Browser | null = null;
+export { closeBrowser as closeReporteriaBrowser } from './pdf-browser';
 
-async function getBrowser() {
-  if (browserSingleton) return browserSingleton;
-
-  const executablePath =
-    process.env.PUPPETEER_EXECUTABLE_PATH ||
-    process.env.CHROME_BIN ||
-    undefined;
-
-  browserSingleton = await puppeteer.launch({
-    headless: 'new' as any,
-    executablePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--font-render-hinting=none',
-    ],
-  });
-
-  return browserSingleton;
-}
-
-export async function closeReporteriaBrowser() {
-  if (browserSingleton) {
-    await browserSingleton.close();
-    browserSingleton = null;
-  }
-}
 
 // ---------- Helpers ----------
 const MX_TZ = 'America/Mexico_City';
@@ -1001,8 +972,7 @@ function buildHtml(reporte: ReporteBase, data: EmpresaRow[]) {
 
 // ---------- Export ----------
 export async function exportarReporteMovimientoPDF(reporte: ReporteBase): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
 
   const normalized = normalizeData(reporte);
 

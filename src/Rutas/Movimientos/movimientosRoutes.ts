@@ -1,3 +1,4 @@
+import { listCompact } from './movementQueryController';
 /**
  * @file movimientos.routes.ts
  * @description
@@ -15,7 +16,17 @@
 
 import { Router } from 'express';
 import { authenticateAccess } from '../../auth/authenticateAccess';
+import { PERMISSIONS } from '../../auth/accessPolicy';
+import { enforceQueryScope, requireAnyPermission, requirePermission } from '../../auth/authorize';
+import {
+  enforceMovementCreationScope,
+  enforcePathScope,
+  requireMovementScope,
+  requireRoundScope,
+} from '../../auth/resourceScope';
+import { idempotentMutation } from '../../middlewares/idempotentMutation';
 import { MovimientoController } from './MovimientoController'; // <-- asegura que coincide con el nombre real del archivo
+import { requireTornoModuleEnabled } from '../../config/tornoFeature';
 
 const router = Router();
 
@@ -42,7 +53,14 @@ const router = Router();
  *  - 500 Internal Server Error
  */
 router.use(authenticateAccess);
-router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendientes);
+router.use(idempotentMutation);
+router.get('/listado', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, listCompact);
+router.get(
+  '/servicios/pendientes',
+  requireAnyPermission(PERMISSIONS.MOVEMENTS_READ, PERMISSIONS.TORNO_READ),
+  enforceQueryScope,
+  MovimientoController.obtenerServiciosPendientes,
+);
 
 /**
  * PATCH /movimientos/servicios/:id/estado
@@ -52,7 +70,7 @@ router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendien
  *  - id: number (ID de movimiento/servicio)
  * Body:
  *  - estado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CANCELADO'
- *  - operadorId?: number
+ *  - operadorId se ignora; el actor se toma de la sesión JWT
  *  - razon?: string
  *
  * Efecto:
@@ -62,7 +80,12 @@ router.get('/servicios/pendientes', MovimientoController.obtenerServiciosPendien
  *  - 400 Bad Request: validación
  *  - 500 Internal Server Error
  */
-router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServicio);
+router.patch(
+  '/servicios/:id/estado',
+  requireAnyPermission(PERMISSIONS.MOVEMENTS_OPERATE, PERMISSIONS.TORNO_OPERATE),
+  requireMovementScope(),
+  MovimientoController.actualizarEstadoServicio,
+);
 
 // ---------------------------------------------------------------------------
 // 🚂 MOVIMIENTOS (CRUD + consultas)
@@ -74,13 +97,13 @@ router.patch('/servicios/:id/estado', MovimientoController.actualizarEstadoServi
  * Efecto: solo lectura.
  * 200 OK | 500
  */
-router.get('/', MovimientoController.obtenerMovimientos);
+router.get('/', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, MovimientoController.obtenerMovimientos);
 
 /**
  * GET /movimientos/buscar
  * Búsqueda server-side con filtros y paginación obligatoria.
  */
-router.get('/buscar', MovimientoController.buscarMovimientos);
+router.get('/buscar', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, MovimientoController.buscarMovimientos);
 
 /**
  * GET /movimientos/all
@@ -88,7 +111,7 @@ router.get('/buscar', MovimientoController.buscarMovimientos);
  * Efecto: solo lectura.
  * 200 OK | 500
  */
-router.get('/all', MovimientoController.obtenerTodosLosMovimientos);
+router.get('/all', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, MovimientoController.obtenerTodosLosMovimientos);
 
 /**
  * GET /movimientos/pendientes
@@ -96,7 +119,7 @@ router.get('/all', MovimientoController.obtenerTodosLosMovimientos);
  * Efecto: solo lectura.
  * 200 OK | 500
  */
-router.get('/pendientes', MovimientoController.obtenerMovimientosPendientes);
+router.get('/pendientes', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, MovimientoController.obtenerMovimientosPendientes);
 
 /**
  * GET /movimientos/empresa/:empresaId/pendientes
@@ -107,15 +130,58 @@ router.get('/pendientes', MovimientoController.obtenerMovimientosPendientes);
  * Efecto: solo lectura.
  * 200 OK | 400 | 500
  */
-router.get('/empresa/:empresaId/pendientes', MovimientoController.obtenerMovimientosPendientesPorEmpresa);
+router.get(
+  '/empresa/:empresaId/pendientes',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  MovimientoController.obtenerMovimientosPendientesPorEmpresa,
+);
 
 
 
 
 
 
-router.get('/servicios/espera', MovimientoController.listarServiciosPendientesFIFO);
-router.patch('/servicios/:id/solicitar', MovimientoController.solicitarServicioYEncolarFrenteR1);
+router.get(
+  '/servicios/espera',
+  requireAnyPermission(PERMISSIONS.MOVEMENTS_READ, PERMISSIONS.TORNO_READ),
+  enforceQueryScope,
+  MovimientoController.listarServiciosPendientesFIFO,
+);
+router.patch(
+  '/servicios/:id/solicitar',
+  requireAnyPermission(PERMISSIONS.MOVEMENTS_OPERATE, PERMISSIONS.TORNO_OPERATE),
+  requireMovementScope(),
+  MovimientoController.solicitarServicioYEncolarFrenteR1,
+);
+router.get(
+  '/torno/agendados/activable',
+  requireTornoModuleEnabled,
+  requirePermission(PERMISSIONS.TORNO_READ),
+  enforceQueryScope,
+  MovimientoController.buscarTornoAgendadoActivable,
+);
+router.get(
+  '/torno/agendados',
+  requireTornoModuleEnabled,
+  requirePermission(PERMISSIONS.TORNO_READ),
+  enforceQueryScope,
+  MovimientoController.listarTornoAgendadosPendientes,
+);
+router.post(
+  '/torno/agendados/:id/activar',
+  requireTornoModuleEnabled,
+  requirePermission(PERMISSIONS.TORNO_OPERATE),
+  requireMovementScope(),
+  MovimientoController.activarTornoAgendadoDirecto,
+);
+router.delete(
+  '/torno/agendados/vencidos',
+  requireTornoModuleEnabled,
+  requirePermission(PERMISSIONS.MOVEMENTS_DELETE),
+  MovimientoController.limpiarTornoAgendadosVencidos,
+);
 
 /**
  * GET /movimientos/empresa/:empresaId
@@ -125,7 +191,13 @@ router.patch('/servicios/:id/solicitar', MovimientoController.solicitarServicioY
  *  - empresaId: number
  * 200 OK | 400 | 500
  */
-router.get('/empresa/:empresaId', MovimientoController.obtenerMovimientosPorEmpresa);
+router.get(
+  '/empresa/:empresaId',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  MovimientoController.obtenerMovimientosPorEmpresa,
+);
 
 /**
  * GET /movimientos/empresa/:empresaId/localidad/:localidadId
@@ -136,7 +208,13 @@ router.get('/empresa/:empresaId', MovimientoController.obtenerMovimientosPorEmpr
  *  - localidadId: number
  * 200 OK | 400 | 500
  */
-router.get('/empresa/:empresaId/localidad/:localidadId', MovimientoController.obtenerMovimientosPorEmpresaYLocalidad);
+router.get(
+  '/empresa/:empresaId/localidad/:localidadId',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  MovimientoController.obtenerMovimientosPorEmpresaYLocalidad,
+);
 
 /**
  * GET /movimientos/empresa/:empresaId/localidad/:localidadId/pendientes
@@ -149,6 +227,9 @@ router.get('/empresa/:empresaId/localidad/:localidadId', MovimientoController.ob
  */
 router.get(
   '/empresa/:empresaId/localidad/:localidadId/pendientes',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
   MovimientoController.obtenerMovimientosNoConcluidosPorEmpresaYLocalidad
 );
 
@@ -160,7 +241,13 @@ router.get(
  *  - localidadId: number
  * 200 OK | 400 | 500
  */
-router.get('/localidad/:localidadId/pendientes', MovimientoController.obtenerMovimientosPendientesPorLocalidad);
+router.get(
+  '/localidad/:localidadId/pendientes',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  MovimientoController.obtenerMovimientosPendientesPorLocalidad,
+);
 
 /**
  * GET /movimientos/localidad/:localidadId/all
@@ -170,7 +257,13 @@ router.get('/localidad/:localidadId/pendientes', MovimientoController.obtenerMov
  *  - localidadId: number
  * 200 OK | 400 | 500
  */
-router.get('/localidad/:localidadId/all', MovimientoController.obtenerTodosMovimientosPorLocalidad);
+router.get(
+  '/localidad/:localidadId/all',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  MovimientoController.obtenerTodosMovimientosPorLocalidad,
+);
 
 /**
  * GET /movimientos/localidad/:localidadId/empresa/:empresaId
@@ -181,7 +274,13 @@ router.get('/localidad/:localidadId/all', MovimientoController.obtenerTodosMovim
  *  - empresaId: number
  * 200 OK | 400 | 500
  */
-router.get('/localidad/:localidadId/empresa/:empresaId', MovimientoController.obtenerMovimientosPorLocalidadEmpresa);
+router.get(
+  '/localidad/:localidadId/empresa/:empresaId',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  enforcePathScope,
+  enforceQueryScope,
+  MovimientoController.obtenerMovimientosPorLocalidadEmpresa,
+);
 
 /**
  * GET /movimientos/ronda/:rondaId/info
@@ -193,11 +292,21 @@ router.get('/localidad/:localidadId/empresa/:empresaId', MovimientoController.ob
  * Efecto: solo lectura; útil para el detalle en el editor de rondas.
  * 200 OK | 400 | 500
  */
-router.get('/ronda/:rondaId/info', MovimientoController.obtenerInfoPorRonda);
+router.get(
+  '/ronda/:rondaId/info',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  requireRoundScope('rondaId'),
+  MovimientoController.obtenerInfoPorRonda,
+);
 
 
 
-router.patch('/:id/cancelar', MovimientoController.cancelarMovimiento);
+router.patch(
+  '/:id/cancelar',
+  requirePermission(PERMISSIONS.MOVEMENTS_CANCEL),
+  requireMovementScope(),
+  MovimientoController.cancelarMovimiento,
+);
 
 /**
  * POST /movimientos
@@ -205,7 +314,7 @@ router.patch('/:id/cancelar', MovimientoController.cancelarMovimiento);
  *
  * Body (mínimo):
  *  - empresaId: number
- *  - creadoPorId: number
+ *  - creadoPorId se ignora; el creador se toma de la sesión JWT
  *  - localidadId: number
  *  - viaOrigenId: number
  *  - locomotiveNumber: number | string
@@ -222,7 +331,12 @@ router.patch('/:id/cancelar', MovimientoController.cancelarMovimiento);
  *
  * 201 Created | 400 | 500
  */
-router.post('/', MovimientoController.nuevoMovimiento);
+router.post(
+  '/',
+  requirePermission(PERMISSIONS.MOVEMENTS_CREATE),
+  enforceMovementCreationScope,
+  MovimientoController.nuevoMovimiento,
+);
 
 /**
  * PATCH /movimientos/:id/prioridad
@@ -237,12 +351,22 @@ router.post('/', MovimientoController.nuevoMovimiento);
  *  - Si pasa a 'ALTA' y estaba 'SOLICITADO', se puede disparar reorganización de rondas.
  * 200 OK | 400 | 404 | 500
  */
-router.patch('/:id/prioridad', MovimientoController.cambiarPrioridad);
+router.patch(
+  '/:id/prioridad',
+  requirePermission(PERMISSIONS.MOVEMENTS_EDIT),
+  requireMovementScope(),
+  MovimientoController.cambiarPrioridad,
+);
 
 
 
 
-router.get('/:id/edicion', MovimientoController.obtenerInfoEdicion);
+router.get(
+  '/:id/edicion',
+  requirePermission(PERMISSIONS.MOVEMENTS_READ),
+  requireMovementScope(),
+  MovimientoController.obtenerInfoEdicion,
+);
 
 
 
@@ -257,7 +381,12 @@ router.get('/:id/edicion', MovimientoController.obtenerInfoEdicion);
  *  - Puede afectar la ronda si estaba asignado (depende del modelo/cascadas).
  * 204 No Content | 400 | 500
  */
-router.delete('/:id', MovimientoController.eliminarMovimiento);
+router.delete(
+  '/:id',
+  requirePermission(PERMISSIONS.MOVEMENTS_DELETE),
+  requireMovementScope(),
+  MovimientoController.eliminarMovimiento,
+);
 
 // ---------------------------------------------------------------------------
 // ⏯️ Acciones de estado (flujo operativo del movimiento)
@@ -269,14 +398,18 @@ router.delete('/:id', MovimientoController.eliminarMovimiento);
  *
  * Params:
  *  - id: number
- * Body:
- *  - operadorId: number
+ * El operador se toma de la sesión JWT; no se confía en un ID enviado por el cliente.
  *
  * Efecto:
  *  - Cambia estado interno a "EN_PROCESO".
  * 200 OK | 400 | 500
  */
-router.patch('/:id/iniciar', MovimientoController.iniciarMovimiento);
+router.patch(
+  '/:id/iniciar',
+  requirePermission(PERMISSIONS.MOVEMENTS_OPERATE),
+  requireMovementScope(),
+  MovimientoController.iniciarMovimiento,
+);
 
 /**
  * PATCH /movimientos/:id/pausar
@@ -289,7 +422,12 @@ router.patch('/:id/iniciar', MovimientoController.iniciarMovimiento);
  *  - Estado pasa a "DETENIDO" (según implementación del modelo).
  * 200 OK | 400 | 500
  */
-router.patch('/:id/pausar', MovimientoController.pausarMovimiento);
+router.patch(
+  '/:id/pausar',
+  requirePermission(PERMISSIONS.MOVEMENTS_OPERATE),
+  requireMovementScope(),
+  MovimientoController.pausarMovimiento,
+);
 
 /**
  * PATCH /movimientos/:id/reanudar
@@ -302,7 +440,12 @@ router.patch('/:id/pausar', MovimientoController.pausarMovimiento);
  *  - Estado vuelve a "EN_PROCESO".
  * 200 OK | 400 | 500
  */
-router.patch('/:id/reanudar', MovimientoController.reanudarMovimiento);
+router.patch(
+  '/:id/reanudar',
+  requirePermission(PERMISSIONS.MOVEMENTS_OPERATE),
+  requireMovementScope(),
+  MovimientoController.reanudarMovimiento,
+);
 
 /**
  * PATCH /movimientos/:id/finalizar
@@ -321,7 +464,17 @@ router.patch('/:id/reanudar', MovimientoController.reanudarMovimiento);
  * 200 OK | 400 | 404 | 500
  */
 
-router.patch('/:id/edicion', MovimientoController.guardarEdicion);
-router.patch('/:id/finalizar', MovimientoController.finalizarMovimiento);
+router.patch(
+  '/:id/edicion',
+  requirePermission(PERMISSIONS.MOVEMENTS_EDIT),
+  requireMovementScope(),
+  MovimientoController.guardarEdicion,
+);
+router.patch(
+  '/:id/finalizar',
+  requirePermission(PERMISSIONS.MOVEMENTS_OPERATE),
+  requireMovementScope(),
+  MovimientoController.finalizarMovimiento,
+);
 
 export default router;
