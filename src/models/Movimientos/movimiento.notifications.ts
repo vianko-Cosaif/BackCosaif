@@ -1,14 +1,22 @@
-import { Rol } from '@prisma/client';
-import admin from 'firebase-admin';
+import '../../config/firebase';
+import { isDurableJobExecution } from '../../jobs/durableJobs';
 import { prisma } from '../../lib/prisma';
 import { movimientoError } from './movimiento.logger';
+import { sendMulticastCompat } from '../../services/fcmCompat';
+import { tokensAudienciaOperacion } from '../../services/fcmAudience';
+import { resolverAudienciaFcmMovimiento, tipoServicioFcm } from '../../services/serviceFcmRouting';
 
-function ensureAdmin() {
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-  }
+function contextoMovimientoFcm(movimiento: { torno?: boolean | null; lavado?: boolean | null }) {
+  const servicio = tipoServicioFcm(movimiento);
+  return {
+    servicio: servicio ?? '',
+    source: 'natural',
+    sujeto:
+      servicio === 'TORNO' ? 'Movimiento para torno' :
+      servicio === 'LAVADO' ? 'Movimiento para lavado' :
+      servicio === 'TORNO_LAVADO' ? 'Movimiento para torno y lavado' :
+      'Movimiento',
+  };
 }
 
 function chunk<T>(items: T[], size = 500): T[][] {
@@ -19,56 +27,78 @@ function chunk<T>(items: T[], size = 500): T[][] {
   return chunks;
 }
 
-function uniqueTokensFromUsers(
-  users: Array<{ fcmTokens?: Array<{ token: string | null }> }>
-) {
-  return [
-    ...new Set(
-      users.flatMap((user) => (user.fcmTokens ?? []).map((token) => token.token).filter(Boolean) as string[])
-    ),
-  ];
-}
-
-async function usuariosPorRolesLocalidadEmpresa(
-  localidadId: number,
-  empresaId?: number,
-  roles?: Rol[]
-) {
-  const rolesBase: Rol[] = roles?.length
-    ? roles
-    : [Rol.SUPERVISOR, Rol.COORDINADOR, Rol.OPERADOR, Rol.CLIENTE];
-
-  const where: any = { activo: true, localidadId, rol: { in: rolesBase } };
-  if (empresaId) where.empresaId = empresaId;
-
-  return prisma.usuario.findMany({ where, include: { fcmTokens: true } });
-}
-
 async function enviarMulticastMovimiento(
   tokens: string[],
   payload: { notification: { title: string; body: string }; data: Record<string, string> },
   logCtx: Record<string, any>
 ) {
-  ensureAdmin();
-
   if (!tokens.length) {
     movimientoError.warn('FCM movimiento: sin tokens', logCtx);
+    console.warn('FCM movimiento: sin tokens', logCtx);
     return;
   }
+
+  const invalidCodes = new Set([
+    'messaging/registration-token-not-registered',
+    'messaging/invalid-registration-token',
+  ]);
 
   const batches = chunk(tokens, 500);
   for (let index = 0; index < batches.length; index++) {
     const slice = batches[index];
     try {
-      const response = await admin.messaging().sendEachForMulticast({ ...payload, tokens: slice });
+      const response = await sendMulticastCompat({ ...payload, tokens: slice });
+      const invalidTokens = response.responses
+        .map((result, tokenIndex) =>
+          !result.success && result.error && invalidCodes.has(result.error.code) ? slice[tokenIndex] : null
+        )
+        .filter(Boolean) as string[];
+
+      if (invalidTokens.length) {
+        await prisma.fcmToken.deleteMany({ where: { token: { in: invalidTokens } } });
+      }
+
+      const details = response.responses
+        .map((result, tokenIndex) =>
+          result.error
+            ? {
+                tokenIndex,
+                code: result.error?.code,
+              }
+            : null
+        )
+        .filter(Boolean);
+
       movimientoError.info('FCM movimiento', {
         ...logCtx,
         lote: `${index + 1}/${batches.length}`,
         enviados: response.successCount,
         fallidos: response.failureCount,
+        omitidos: response.skippedCount,
+        vencidos: response.expiredCount,
+        tokensInvalidos: invalidTokens.length,
+        errores: details,
+      });
+      console.info('FCM movimiento', {
+        ...logCtx,
+        lote: `${index + 1}/${batches.length}`,
+        enviados: response.successCount,
+        fallidos: response.failureCount,
+        omitidos: response.skippedCount,
+        vencidos: response.expiredCount,
+        tokensInvalidos: invalidTokens.length,
+        errores: details,
       });
     } catch (error: any) {
+      if (isDurableJobExecution()) throw error;
       movimientoError.error('FCM movimiento error', {
+        ...logCtx,
+        lote: `${index + 1}/${batches.length}`,
+        errName: error?.name,
+        errMsg: error?.message,
+        errCode: error?.errorInfo?.code,
+      });
+      console.error('FCM movimiento error', {
         ...logCtx,
         lote: `${index + 1}/${batches.length}`,
         errName: error?.name,
@@ -80,8 +110,6 @@ async function enviarMulticastMovimiento(
 }
 
 export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'BAJA') {
-  ensureAdmin();
-
   const movimiento = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -94,21 +122,26 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
   });
   if (!movimiento) return;
 
-  const admins = await prisma.usuario.findMany({
-    where: {
-      localidadId: movimiento.localidadId,
-      activo: true,
-      rol: { in: [Rol.ADMINISTRADOR, Rol.COORDINADOR, Rol.SUPERVISOR] },
-      ...(movimiento.empresaId ? { empresaId: movimiento.empresaId } : {}),
-    },
-    include: { fcmTokens: true },
+  const contexto = contextoMovimientoFcm(movimiento);
+  const routing = resolverAudienciaFcmMovimiento('cambio_prioridad', movimiento);
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
+    roles: routing?.roles,
   });
 
-  const tokens = uniqueTokensFromUsers(admins);
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para cambio_prioridad', {
       movId: movimiento.id,
       localidadId: movimiento.localidadId,
+      roleCounts,
     });
     return;
   }
@@ -117,7 +150,7 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
     tokens,
     {
       notification: {
-        title: `Cambio de prioridad -> ${nueva}`,
+        title: `${contexto.sujeto}: prioridad ${nueva}`,
         body:
           `Movimiento #${movimiento.id} · Empresa: ${movimiento.empresa?.nombre ?? 'N/D'} · ` +
           `Origen: ${movimiento.viaOrigen?.nombre ?? 'N/D'} -> Destino: ${movimiento.viaDestino?.nombre ?? 'N/D'}`,
@@ -129,7 +162,14 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
         creadoPor: String(movimiento.creadoPor?.nombre ?? ''),
         fecha: new Date().toISOString(),
         empresa: String(movimiento.empresa?.nombre ?? ''),
+        empresaId: String(movimiento.empresaId),
         localidadId: String(movimiento.localidadId),
+        audience: String(routing?.audience ?? ''),
+        servicio: contexto.servicio,
+        source: contexto.source,
+        url: routing?.url ?? '/movimientos',
+        tag: `movimiento:${movimiento.id}:prioridad:${nueva}`,
+        timestamp: new Date().toISOString(),
       },
     },
     {
@@ -138,13 +178,12 @@ export async function notificarCambioPrioridad(movId: number, nueva: 'ALTA' | 'B
       localidadId: movimiento.localidadId,
       prioridad: nueva,
       tokens: tokens.length,
+      roleCounts,
     }
   );
 }
 
 export async function notificarMovimientoIniciado(movId: number) {
-  ensureAdmin();
-
   const movimiento = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -156,14 +195,21 @@ export async function notificarMovimientoIniciado(movId: number) {
   });
   if (!movimiento) return;
 
-  const roles: Rol[] = [Rol.SUPERVISOR, Rol.CLIENTE, Rol.COORDINADOR, Rol.OPERADOR];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(movimiento.localidadId, movimiento.empresaId, roles);
-  const tokens = uniqueTokensFromUsers(usuarios);
-
-  const roleCounts = roles.reduce<Record<string, number>>((acc, rol) => {
-    acc[rol] = usuarios.filter((usuario) => usuario.rol === rol).length;
-    return acc;
-  }, {});
+  const contexto = contextoMovimientoFcm(movimiento);
+  const routing = resolverAudienciaFcmMovimiento('movimiento_iniciado', movimiento);
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
+    roles: routing?.roles,
+    tipo: 'movimiento_iniciado',
+  });
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_iniciado', {
@@ -178,7 +224,7 @@ export async function notificarMovimientoIniciado(movId: number) {
     tokens,
     {
       notification: {
-        title: 'Movimiento iniciado',
+        title: `${contexto.sujeto} iniciado`,
         body:
           `#${movimiento.id} · ${movimiento.empresa?.nombre ?? 'Sin Empresa'} · Loco ${movimiento.locomotiveNumber} · ` +
           `${movimiento.viaOrigen?.nombre ?? 'N/D'} -> ${movimiento.viaDestino?.nombre ?? 'N/D'}`,
@@ -187,10 +233,18 @@ export async function notificarMovimientoIniciado(movId: number) {
         tipo: 'movimiento_iniciado',
         movimientoId: String(movimiento.id),
         empresa: String(movimiento.empresa?.nombre ?? ''),
+        empresaId: String(movimiento.empresaId),
         localidadId: String(movimiento.localidadId),
+        locomotora: String(movimiento.locomotiveNumber),
         viaOrigen: String(movimiento.viaOrigen?.nombre ?? ''),
         viaDestino: String(movimiento.viaDestino?.nombre ?? ''),
+        audience: String(routing?.audience ?? ''),
+        servicio: contexto.servicio,
+        source: contexto.source,
+        url: routing?.url ?? '/movimientos',
+        tag: `movimiento:${movimiento.id}:iniciado`,
         fecha: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       },
     },
     {
@@ -204,8 +258,6 @@ export async function notificarMovimientoIniciado(movId: number) {
 }
 
 export async function notificarMovimientoFinalizado(movId: number) {
-  ensureAdmin();
-
   const movimiento = await prisma.movimiento.findUnique({
     where: { id: movId },
     include: {
@@ -215,14 +267,20 @@ export async function notificarMovimientoFinalizado(movId: number) {
   });
   if (!movimiento) return;
 
-  const roles: Rol[] = [Rol.CLIENTE, Rol.COORDINADOR, Rol.SUPERVISOR];
-  const usuarios = await usuariosPorRolesLocalidadEmpresa(movimiento.localidadId, movimiento.empresaId, roles);
-  const tokens = uniqueTokensFromUsers(usuarios);
-
-  const roleCounts = roles.reduce<Record<string, number>>((acc, rol) => {
-    acc[rol] = usuarios.filter((usuario) => usuario.rol === rol).length;
-    return acc;
-  }, {});
+  const contexto = contextoMovimientoFcm(movimiento);
+  const routing = resolverAudienciaFcmMovimiento('movimiento_concluido', movimiento);
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
+    roles: routing?.roles,
+  });
 
   if (!tokens.length) {
     movimientoError.warn('Sin tokens para movimiento_concluido', {
@@ -237,19 +295,206 @@ export async function notificarMovimientoFinalizado(movId: number) {
     tokens,
     {
       notification: {
-        title: 'Movimiento concluido',
+        title: `${contexto.sujeto} concluido`,
         body: `#${movimiento.id} · ${movimiento.empresa?.nombre ?? 'Sin Empresa'} · Loco ${movimiento.locomotiveNumber}`,
       },
       data: {
         tipo: 'movimiento_concluido',
         movimientoId: String(movimiento.id),
         empresa: String(movimiento.empresa?.nombre ?? ''),
+        empresaId: String(movimiento.empresaId),
         localidadId: String(movimiento.localidadId),
+        locomotora: String(movimiento.locomotiveNumber),
+        audience: String(routing?.audience ?? ''),
+        servicio: contexto.servicio,
+        source: contexto.source,
+        url: routing?.url ?? '/movimientos',
+        tag: `movimiento:${movimiento.id}:concluido`,
         fecha: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       },
     },
     {
       evento: 'concluido',
+      movId: movimiento.id,
+      localidadId: movimiento.localidadId,
+      tokens: tokens.length,
+      roleCounts,
+    }
+  );
+}
+
+type ActualizacionMovimientoNatural =
+  | 'movimiento_editado'
+  | 'movimiento_reanudado'
+  | 'movimiento_detenido'
+  | 'movimiento_cancelado';
+
+async function notificarActualizacionMovimientoNatural(params: {
+  movId: number;
+  tipo: ActualizacionMovimientoNatural;
+  title: string;
+  detalle?: string;
+  campos?: string[];
+}) {
+  const movimiento = await prisma.movimiento.findUnique({
+    where: { id: params.movId },
+    include: {
+      empresa: { select: { nombre: true } },
+      viaOrigen: { select: { nombre: true } },
+      viaDestino: { select: { nombre: true } },
+    },
+  });
+  if (!movimiento) return;
+
+  const contexto = contextoMovimientoFcm(movimiento);
+  const routing = resolverAudienciaFcmMovimiento(params.tipo, movimiento);
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
+    roles: routing?.roles,
+  });
+
+  const campos = (params.campos ?? []).filter(Boolean).join(', ');
+  const detalle = params.detalle?.trim();
+  const body = [
+    `#${movimiento.id} · ${movimiento.empresa?.nombre ?? 'Sin Empresa'} · Loco ${movimiento.locomotiveNumber}`,
+    detalle || null,
+    campos ? `Cambios: ${campos}` : null,
+  ].filter(Boolean).join(' · ');
+
+  await enviarMulticastMovimiento(
+    tokens,
+    {
+      notification: {
+        title: contexto.servicio ? params.title.replace('Movimiento', contexto.sujeto) : params.title,
+        body,
+      },
+      data: {
+        tipo: params.tipo,
+        movimientoId: String(movimiento.id),
+        empresa: String(movimiento.empresa?.nombre ?? ''),
+        empresaId: String(movimiento.empresaId),
+        localidadId: String(movimiento.localidadId),
+        locomotora: String(movimiento.locomotiveNumber),
+        viaOrigen: String(movimiento.viaOrigen?.nombre ?? ''),
+        viaDestino: String(movimiento.viaDestino?.nombre ?? ''),
+        campos,
+        detalle: detalle ?? '',
+        audience: String(routing?.audience ?? ''),
+        servicio: contexto.servicio,
+        source: contexto.source,
+        url: routing?.url ?? '/movimientos',
+        tag: `movimiento:${movimiento.id}:${params.tipo}`,
+        timestamp: new Date().toISOString(),
+      },
+    },
+    {
+      evento: params.tipo,
+      movId: movimiento.id,
+      localidadId: movimiento.localidadId,
+      tokens: tokens.length,
+      roleCounts,
+    }
+  );
+}
+
+export async function notificarMovimientoEditado(movId: number, campos: string[] = []) {
+  return notificarActualizacionMovimientoNatural({
+    movId,
+    tipo: 'movimiento_editado',
+    title: 'Movimiento editado',
+    campos,
+  });
+}
+
+export async function notificarMovimientoReanudado(movId: number) {
+  return notificarActualizacionMovimientoNatural({
+    movId,
+    tipo: 'movimiento_reanudado',
+    title: 'Movimiento reanudado',
+  });
+}
+
+export async function notificarMovimientoDetenido(movId: number, razon?: string) {
+  return notificarActualizacionMovimientoNatural({
+    movId,
+    tipo: 'movimiento_detenido',
+    title: 'Movimiento detenido',
+    detalle: razon,
+  });
+}
+
+export async function notificarMovimientoCancelado(movId: number, razon?: string) {
+  return notificarActualizacionMovimientoNatural({
+    movId,
+    tipo: 'movimiento_cancelado',
+    title: 'Movimiento cancelado',
+    detalle: razon,
+  });
+}
+
+export async function notificarMovimientoEliminado(movimiento: {
+  id: number;
+  empresaId: number;
+  localidadId: number;
+  locomotiveNumber: number;
+  operadorId?: number | null;
+  clienteId?: number | null;
+  supervisorId?: number | null;
+  coordinadorId?: number | null;
+  creadoPorId?: number | null;
+  empresaNombre?: string | null;
+  torno?: boolean | null;
+  lavado?: boolean | null;
+}) {
+  const contexto = contextoMovimientoFcm(movimiento);
+  const routing = resolverAudienciaFcmMovimiento('movimiento_cancelado', movimiento);
+  const { tokens, roleCounts } = await tokensAudienciaOperacion({
+    empresaId: movimiento.empresaId,
+    localidadId: movimiento.localidadId,
+    usuarioIds: [
+      movimiento.operadorId,
+      movimiento.clienteId,
+      movimiento.supervisorId,
+      movimiento.coordinadorId,
+      movimiento.creadoPorId,
+    ],
+    roles: routing?.roles,
+  });
+
+  await enviarMulticastMovimiento(
+    tokens,
+    {
+      notification: {
+        title: contexto.servicio ? `${contexto.sujeto} eliminado` : 'Solicitud de movimiento eliminada',
+        body: `#${movimiento.id} · ${movimiento.empresaNombre ?? 'Sin Empresa'} · Loco ${movimiento.locomotiveNumber}`,
+      },
+      data: {
+        tipo: 'movimiento_cancelado',
+        accion: 'eliminar',
+        movimientoId: String(movimiento.id),
+        empresa: String(movimiento.empresaNombre ?? ''),
+        empresaId: String(movimiento.empresaId),
+        localidadId: String(movimiento.localidadId),
+        locomotora: String(movimiento.locomotiveNumber),
+        audience: String(routing?.audience ?? ''),
+        servicio: contexto.servicio,
+        source: contexto.source,
+        url: routing?.url ?? '/movimientos',
+        tag: `movimiento:${movimiento.id}:eliminado`,
+        timestamp: new Date().toISOString(),
+      },
+    },
+    {
+      evento: 'movimiento_eliminado',
       movId: movimiento.id,
       localidadId: movimiento.localidadId,
       tokens: tokens.length,

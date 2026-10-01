@@ -1,6 +1,6 @@
-import { PrismaClient, FcmToken } from '@prisma/client';
+import { FcmToken } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 export class FmcModel {
   /**

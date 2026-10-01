@@ -2,7 +2,7 @@
 // PDF CEO: Desempeño por Turno
 
 import type { ReporteTurnos } from './ceo-turnos-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import { baseCss, escapeHtml, fmtNum, safeFilename, svgLine } from './pdf-helpers';
 
 export type PdfFile = { filename: string; contentType: 'application/pdf'; buffer: Buffer };
@@ -178,8 +178,7 @@ function buildHtml(r: ReporteTurnos) {
 }
 
 export async function exportarTurnosPDF(reporte: ReporteTurnos): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.etiqueta || 'CEO_Turnos';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

@@ -26,6 +26,8 @@
 import { Router } from 'express';
 import { authenticateAccess } from '../../auth/authenticateAccess';
 import { ActualizacionController } from './ActualizacionController';
+import { PERMISSIONS } from '../../auth/accessPolicy';
+import { requirePermission } from '../../auth/authorize';
 
 const router = Router();
 
@@ -36,14 +38,14 @@ router.get('/ultima', ActualizacionController.obtenerUltimaActualizacion);
 router.use(authenticateAccess);
 
 // Obtener todas las actualizaciones
-router.get('/', ActualizacionController.obtenerActualizaciones);
+router.get('/', requirePermission(PERMISSIONS.UPDATES_READ), ActualizacionController.obtenerActualizaciones);
 
 
 
 // Crear nueva actualización
-router.post('/', ActualizacionController.crearActualizacion);
+router.post('/', requirePermission(PERMISSIONS.UPDATES_MANAGE), ActualizacionController.crearActualizacion);
 
 // Actualizar una actualización existente por ID
-router.put('/:id', ActualizacionController.actualizarActualizacion);
+router.put('/:id', requirePermission(PERMISSIONS.UPDATES_MANAGE), ActualizacionController.actualizarActualizacion);
 
 export default router;

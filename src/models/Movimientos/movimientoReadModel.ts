@@ -1,8 +1,9 @@
+import { publicUserSelect } from '../../auth/publicUser';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { parseMetaFromInstrucciones } from './movimiento.meta';
 import { movimientoError } from './movimiento.logger';
-import { EDITABLE_KEYS, ESTADOS_EDITABLES, MOVIMIENTO_RESPONSE_INCLUDE } from './movimiento.shared';
+import { EDITABLE_KEYS, ESTADOS_EDITABLES } from './movimiento.shared';
 import type { MovimientoPagination } from './movimiento.types';
 
 type MovimientoPageMeta = {
@@ -29,6 +30,7 @@ type MovimientoBusquedaParams = {
   locomotiveNumber?: number;
   empresaId?: number;
   localidadId?: number;
+  excludeLocalidadIds?: number[];
   estados?: string[];
   prioridad?: 'ALTA' | 'BAJA';
   finalizado?: boolean;
@@ -36,6 +38,8 @@ type MovimientoBusquedaParams = {
   fechaCampo?: 'solicitud' | 'inicio' | 'fin' | 'creacion';
   fechaDesde?: Date;
   fechaHasta?: Date;
+  sortBy?: 'id' | 'locomotora' | 'solicitud' | 'inicio' | 'fin' | 'estado' | 'prioridad' | 'tipo' | 'localidad' | 'empresa';
+  sortDir?: 'asc' | 'desc';
   pagination: MovimientoPagination;
 };
 
@@ -82,7 +86,17 @@ export class MovimientoReadModel {
   ] satisfies Prisma.MovimientoOrderByWithRelationInput[];
 
   public static readonly MOVIMIENTO_LIST_INCLUDE = {
-    ...MOVIMIENTO_RESPONSE_INCLUDE,
+    empresa: true,
+    creadoPor: { select: publicUserSelect },
+    cliente: { select: { id: true, nombre: true, rol: true } },
+    supervisor: { select: { id: true, nombre: true, rol: true } },
+    coordinador: { select: { id: true, nombre: true, rol: true } },
+    operador: { select: { id: true, nombre: true, rol: true } },
+    localidad: true,
+    viaOrigen: true,
+    viaDestino: true,
+    incidentes: true,
+    ronda: true,
   } satisfies Prisma.MovimientoInclude;
   private static async listarMovimientosColeccion(args: {
     where?: Prisma.MovimientoWhereInput;
@@ -164,19 +178,26 @@ export class MovimientoReadModel {
         locomotiveNumber,
         empresaId,
         localidadId,
+        excludeLocalidadIds,
         estados,
         prioridad,
         finalizado,
         fechaCampo = 'solicitud',
         fechaDesde,
         fechaHasta,
+        sortBy,
+        sortDir = 'desc',
         pagination,
       } = params;
       const where: Prisma.MovimientoWhereInput = {};
 
       if (locomotiveNumber !== undefined) where.locomotiveNumber = locomotiveNumber;
       if (empresaId !== undefined) where.empresaId = empresaId;
-      if (localidadId !== undefined) where.localidadId = localidadId;
+      if (localidadId !== undefined) {
+        where.localidadId = localidadId;
+      } else if (excludeLocalidadIds?.length) {
+        where.localidadId = { notIn: excludeLocalidadIds };
+      }
       if (prioridad) where.prioridad = prioridad as any;
       if (finalizado !== undefined) where.finalizado = finalizado;
       if (estados && estados.length) {
@@ -233,7 +254,22 @@ export class MovimientoReadModel {
       }
 
       let orderBy: Prisma.MovimientoOrderByWithRelationInput[] = this.MOVIMIENTOS_ORDER_DESC;
-      if (locomotivePrefix) {
+      if (sortBy) {
+        const direction = sortDir === 'asc' ? 'asc' : 'desc';
+        const orderMap: Record<NonNullable<MovimientoBusquedaParams['sortBy']>, Prisma.MovimientoOrderByWithRelationInput> = {
+          id: { id: direction },
+          locomotora: { locomotiveNumber: direction },
+          solicitud: { fechaSolicitud: direction },
+          inicio: { fechaInicio: direction },
+          fin: { fechaFin: direction },
+          estado: { estado: direction },
+          prioridad: { prioridad: direction },
+          tipo: { tipoMovimiento: direction },
+          localidad: { localidad: { nombre: direction } },
+          empresa: { empresa: { nombre: direction } },
+        };
+        orderBy = [orderMap[sortBy], { id: direction }];
+      } else if (locomotivePrefix) {
         orderBy = [{ locomotiveNumber: 'desc' }, { id: 'desc' }];
       } else if (params.ambito === 'actuales') {
         orderBy = this.MOVIMIENTOS_ORDER_RONDA;
@@ -259,15 +295,22 @@ export class MovimientoReadModel {
     try {
       const where: any = {
         finalizado: false,
+        locomotiveNumber: { gt: 0 },
         OR: [{ lavado: true }, { torno: true }],
-        estado: { in: ['SOLICITADO', 'DETENIDO', 'ESPERA'] },
+        estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] },
       };
       if (filters.localidadId) where.localidadId = filters.localidadId;
       if (filters.empresaId) where.empresaId = filters.empresaId;
 
       return await prisma.movimiento.findMany({
         where,
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: {
+          empresa: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          ronda: true,
+        },
         orderBy: [{ prioridad: 'desc' }, { createdAt: 'asc' }],
       });
     } catch (error: any) {
@@ -282,7 +325,7 @@ export class MovimientoReadModel {
   static async obtenerMovimientosPendientes() {
     try {
       return await prisma.movimiento.findMany({
-        where: { finalizado: false, estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
+        where: { finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         include: this.MOVIMIENTO_LIST_INCLUDE,
       });
     } catch (error: any) {
@@ -296,7 +339,7 @@ export class MovimientoReadModel {
   static async obtenerMovimientosPendientesPaginados(pagination: MovimientoPagination) {
     try {
       return await this.listarMovimientosColeccion({
-        where: { finalizado: false, estado: { in: ['EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
+        where: { finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'ESPERA'] } },
         orderBy: this.MOVIMIENTOS_ORDER_PENDIENTES,
         pagination,
       });
@@ -610,15 +653,22 @@ export class MovimientoReadModel {
     try {
       const where: any = {
         finalizado: false,
+        locomotiveNumber: { gt: 0 },
         OR: [{ lavado: true }, { torno: true }],
-        estado: { in: ['SOLICITADO', 'DETENIDO'] },
+        estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] },
       };
       if (filters.localidadId) where.localidadId = filters.localidadId;
       if (filters.empresaId) where.empresaId = filters.empresaId;
 
       return await prisma.movimiento.findMany({
         where,
-        include: MOVIMIENTO_RESPONSE_INCLUDE,
+        include: {
+          empresa: true,
+          localidad: true,
+          viaOrigen: true,
+          viaDestino: true,
+          ronda: true,
+        },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       });
     } catch (error: any) {

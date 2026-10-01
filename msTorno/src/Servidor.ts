@@ -1,14 +1,67 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
+import { ZodError } from "zod";
+import { apiRouter } from "./routes/api";
+import { prismaTorno } from "./db/prisma";
+import { createTornoGuardianAgent } from "./guardianAgent";
 
-const PORT = process.env.TORNO_PORT || "3003";
+function loopbackMetricsOnly(req: Request, res: Response, next: NextFunction) {
+  const address = req.socket.remoteAddress || "";
+  if (address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1") {
+    return next();
+  }
+  return res.status(404).end();
+}
 
 export function iniciarServidorTorno(): void {
   try {
+    const PORT = process.env.TORNO_PORT || "3001";
+    const HOST = process.env.TORNO_HOST || "127.0.0.1";
+    const SERVICE_TOKEN = process.env.TORNO_SERVICE_TOKEN;
+
+    if (!SERVICE_TOKEN) {
+      throw new Error("TORNO_SERVICE_TOKEN no está configurado");
+    }
+
     const app: Express = express();
 
-    app.use(express.json());
+
     app.use(cors());
+    const guardianAgent = createTornoGuardianAgent({
+      databaseCheck: async () => {
+        await prismaTorno.$queryRaw`SELECT 1`;
+        return true;
+      },
+    });
+    app.use(guardianAgent.middleware);
+    app.get("/metrics", loopbackMetricsOnly, guardianAgent.metrics);
+
+    // Autenticación simple entre servicios (3000 -> 3001)
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.path === "/health") {
+        return next();
+      }
+
+      const token = req.header("x-service-token");
+      if (!token || token !== SERVICE_TOKEN) {
+        return res.status(401).json({ ok: false, error: "Unauthorized" });
+      }
+
+      return next();
+    });
+
+    let activeRequests = 0;
+    app.disable('x-powered-by');
+    app.use((_req, res, next) => {
+      if (activeRequests >= 4) return res.status(429).json({ error: 'Servicio ocupado; reintenta' });
+      activeRequests++;
+      let released = false;
+      const release = () => { if (!released) { released = true; activeRequests--; } };
+      res.once('finish', release); res.once('close', release);
+      res.setTimeout(60_000, () => res.destroy());
+      next();
+    });
+    app.use(express.json({ limit: "50mb" }));
 
     app.get("/", (_req: Request, res: Response) => {
       res.json({ ok: true, servicio: "msTorno" });
@@ -18,8 +71,21 @@ export function iniciarServidorTorno(): void {
       res.json({ ok: true, status: "healthy" });
     });
 
-    app.listen(PORT, () => {
-      console.log(`msTorno corriendo en puerto ${PORT}`);
+    app.use("/api", apiRouter);
+
+    // Error handler (Zod + fallback)
+    app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+      if (err instanceof ZodError) {
+        return res.status(400).json({ ok: false, error: "Bad Request", details: err.flatten() });
+      }
+
+      console.error(err);
+      return res.status(500).json({ ok: false, error: "Internal Server Error" });
+    });
+
+    app.listen(Number(PORT), HOST, () => {
+      console.log(`msTorno corriendo en http://${HOST}:${PORT}`);
+      guardianAgent.start();
     });
   } catch (error) {
     console.error("Error al iniciar msTorno:", error);

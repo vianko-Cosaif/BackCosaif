@@ -2,7 +2,7 @@
 // PDF CEO: Cumplimiento Operativo
 
 import type { ReporteCumplimiento } from './ceo-cumplimiento-model';
-import { getBrowser } from './pdf-browser';
+import { newPdfPage } from './pdf-browser';
 import {
   baseCss,
   escapeHtml,
@@ -213,8 +213,7 @@ function buildHtml(r: ReporteCumplimiento) {
 }
 
 export async function exportarCumplimientoPDF(reporte: ReporteCumplimiento): Promise<PdfFile> {
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newPdfPage();
   const etiquetaRaw = reporte.meta?.etiqueta || 'CEO_Cumplimiento';
   const filename = `Reporte_${safeFilename(etiquetaRaw)}.pdf`;
 

@@ -4,6 +4,7 @@ import { getAccessTtlForRole, shouldSlideSessionByRole } from './sessionPolicy';
 import { logger } from '../utils/logger';
 import type { AuthenticatedUser } from '../types/auth';
 import * as tokenService from '../middlewares/token.service';
+import { buildAuthorizationProfile, type AuthorizationProfile } from './accessPolicy';
 
 const addSessionHeaders = (res: Response, expiresAt: Date) => {
   res.setHeader('x-session-expires-at', expiresAt.toISOString());
@@ -25,11 +26,14 @@ const refreshSessionIfNeeded = async (req: Request, res: Response) => {
 };
 
 export const authenticateAccess: RequestHandler = (req, res, next) => {
+  if (req.user && req.authorization) return next();
   passport.authenticate('jwt', { session: false }, (error: unknown, user: Express.User | false, info?: { message?: string }) => {
     if (error) return next(error as Error);
     if (!user) return res.status(401).json({ error: info?.message ?? 'No autorizado' });
 
     req.user = user;
+    (req as Request & { authorization?: AuthorizationProfile }).authorization =
+      buildAuthorizationProfile(user as AuthenticatedUser);
 
     void (async () => {
       try {
@@ -39,6 +43,7 @@ export const authenticateAccess: RequestHandler = (req, res, next) => {
           userId: (user as AuthenticatedUser).id,
           message: sessionError?.message ?? String(sessionError),
         });
+        return res.status(401).json({ error: 'La sesión ya no está vigente' });
       }
 
       next();

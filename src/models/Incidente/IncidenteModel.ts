@@ -1,3 +1,6 @@
+import { enqueueJob, registerJob, runJobsOnce, isDurableJobExecution } from '../../jobs/durableJobs';
+import { publicUserSelect } from '../../auth/publicUser';
+import { prisma } from '../../lib/prisma';
 // src/models/Incidentes/IncidenteModel.ts
 /**
  * Modelo de acceso a datos para la entidad Incidente.
@@ -8,19 +11,29 @@
  *
  * HARDENING PROD:
  * - Side-effects (FCM, recomposición, sweep) = best-effort (no tumba request)
- * - Cron interno = 1 solo líder en PM2 cluster (NODE_APP_INSTANCE === "0")
+ * - Barrido periódico por BD y trabajos durables compartidos por los workers
  * - Sweep vencidos = reutiliza la regla de cierre no resuelto
  */
 
-import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
+import { Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
+import {
+  publishMovimientoCreadoEvent,
+  publishMovimientoEstadoEvent,
+  publishRealtimeEvent,
+  publishRondaReordenadaEvent,
+} from '../../realtime/realtimeHub';
+import {
+  cancelarRondaTornoPorMovimiento,
+  crearRecuperacionTemporalTornoCancelado,
+} from '../../services/tornoMs/tornoMsClient';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
 
-const prisma = new PrismaClient();
+
 
 /* =========================================================
  *                    DEBUG / TRACE (PM2)
@@ -121,9 +134,108 @@ async function bestEffort<T>(name: string, fn: () => Promise<T>, meta?: Record<s
   try {
     return await traceSpan(name, fn, meta);
   } catch (e: any) {
+    if (isDurableJobExecution()) throw e;
     trace('warn', `${name} falló (ignorado)`, { ...(meta ?? {}), error: String(e?.stack ?? e) });
     return undefined;
   }
+}
+
+async function cancelarTornoRequeridoPorMovimiento(
+  movimientoId: number,
+  options: { fin: Date; razon: string },
+  meta?: Record<string, any>
+) {
+  let lastError: unknown;
+
+  for (let intento = 1; intento <= 3; intento += 1) {
+    try {
+      const result = await cancelarRondaTornoPorMovimiento(movimientoId, options);
+      const status = String(result?.ronda?.status ?? '').toUpperCase();
+
+      if (!result?.ronda?.id) {
+        throw new Error(`No se encontró RondaServicio de torno para el movimiento ${movimientoId}`);
+      }
+      if (status !== 'CANCELADO') {
+        throw new Error(`La ronda de torno quedó en estado ${status || 'DESCONOCIDO'}`);
+      }
+
+      trace('info', 'Torneado cancelado por límite de incidentes', {
+        ...(meta ?? {}),
+        movimientoId,
+        rondaServicioId: result.ronda.id,
+        intento,
+      });
+      return result;
+    } catch (error) {
+      lastError = error;
+      trace('warn', 'Falló la cancelación obligatoria del torneado', {
+        ...(meta ?? {}),
+        movimientoId,
+        intento,
+        error: String((error as any)?.stack ?? error),
+      });
+      if (intento < 3) {
+        await new Promise((resolve) => setTimeout(resolve, intento * 150));
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`No se pudo cancelar el torneado del movimiento ${movimientoId}`);
+}
+
+async function crearRecuperacionTornoRequerida(
+  movimiento: {
+    id: number;
+    torno?: boolean | null;
+    locomotiveNumber?: number | null;
+    localidadId?: number | null;
+  },
+  meta?: Record<string, any>
+) {
+  let lastError: unknown;
+
+  for (let intento = 1; intento <= 3; intento += 1) {
+    try {
+      const recovery = await crearRecuperacionTemporalTornoCancelado(movimiento);
+      const limite = new Date(recovery?.fechaLimiteActivacion ?? '');
+
+      if (!recovery?.id || recovery?.activo !== true) {
+        throw new Error(`msTorno no creó una recuperación activa para el movimiento ${movimiento.id}`);
+      }
+      if (String(recovery?.tipo ?? '').toUpperCase() !== 'TORNO_RECUPERACION') {
+        throw new Error(`msTorno devolvió un tipo de recuperación inválido para el movimiento ${movimiento.id}`);
+      }
+      if (Number.isNaN(limite.getTime()) || limite.getTime() <= Date.now()) {
+        throw new Error(`La recuperación del movimiento ${movimiento.id} no tiene una ventana válida`);
+      }
+
+      trace('info', 'Recuperación de torneado creada tras cancelación por incidentes', {
+        ...(meta ?? {}),
+        movimientoId: movimiento.id,
+        tornoAgendadoId: recovery.id,
+        fechaLimiteActivacion: limite.toISOString(),
+        intento,
+      });
+      return recovery;
+    } catch (error) {
+      lastError = error;
+      trace('warn', 'Falló la creación obligatoria de recuperación del torneado', {
+        ...(meta ?? {}),
+        movimientoId: movimiento.id,
+        intento,
+        error: String((error as any)?.stack ?? error),
+      });
+      if (intento < 3) {
+        await new Promise((resolve) => setTimeout(resolve, intento * 150));
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`No se pudo crear la recuperación del torneado ${movimiento.id}`);
 }
 
 /* =========================================================
@@ -248,6 +360,7 @@ export async function listarIncidentesPorCursor({
       const where = buildWhereByEstado(estado);
       const orderBy = [{ id: 'desc' as const }];
 
+      limit = Math.min(100, Math.max(1, Math.trunc(limit) || 20));
       trace('info', 'listarIncidentesPorCursor:params', { rid, cursor, limit, estado });
 
       const result = await prisma.incidente.findMany({
@@ -365,30 +478,26 @@ export class IncidenteModel {
 
   static ensureIncidentScheduler() {
     if (this.incidentSchedulerStarted) return;
-
     this.incidentSchedulerStarted = true;
-
-    if (!this.isIncidentSchedulerLeader()) {
-      trace('info', 'Scheduler puntual de incidentes NO iniciado (worker no líder)', {
-        pid: process.pid,
-        inst: process.env.NODE_APP_INSTANCE,
-      });
-      return;
-    }
-
-    trace('info', 'Scheduler puntual de incidentes iniciado (líder)', {
-      pid: process.pid,
-      inst: process.env.NODE_APP_INSTANCE,
+    registerJob('incident.reprogram', async (payload) => {
+      await this.reprogramarMovimientoPorIncidenteNoResuelto(Number(payload.incidenteId));
+      const incident = await prisma.incidente.findUnique({ where: { id: Number(payload.incidenteId) } });
+      if (incident) await NotificadorFCM.notificarCambioEstado(incident, 'ABIERTO', 'incidente_timeout');
     });
-
-    const t = setTimeout(() => {
-      void this.bootstrapIncidentScheduler();
-    }, 5_000);
-
-    _unref(t);
+    let scanning = false;
+    const scan = async () => {
+      if (scanning) return;
+      scanning = true;
+      try { await this.cerrarIncidentesVencidos(); } catch (error) { trace('error', 'incident_scheduler_failed', { error: String(error) }); }
+      finally { scanning = false; }
+    };
+    const timer = setInterval(() => void scan(), 15_000);
+    _unref(timer);
+    void scan();
   }
   private static appendMovimientoComentario(base: string | null | undefined, comentario: string) {
     const limpio = String(base ?? '').trim();
+    if (limpio.includes(comentario)) return limpio;
     return limpio ? `${limpio} | ${comentario}` : comentario;
   }
 
@@ -432,37 +541,16 @@ export class IncidenteModel {
   }
 
   static async cerrarIncidenteProgramado(incidenteId: number) {
-    const rid = _rid();
-    return traceSpan(
-      'cerrarIncidenteProgramado',
-      async () => {
-        this.clearIncidentTimer(incidenteId);
-
-        const actualizado = await prisma.incidente.updateMany({
-          where: { id: incidenteId, estado: 'ABIERTO' },
-          data: { estado: 'CERRADO', fechaFin: new Date() },
-        });
-
-        if (!actualizado.count) {
-          trace('info', 'Autocierre omitido: incidente ya no estaba abierto', {
-            rid,
-            incidenteId,
-          });
-          return false;
-        }
-
-        await this.reprogramarMovimientoPorIncidenteNoResuelto(incidenteId);
-
-        trace('info', 'Incidente autocerrado por timeout exacto', {
-          rid,
-          incidenteId,
-          timeoutMs: this.TIMEOUT_CONFIG.verificacion,
-        });
-
-        return true;
-      },
-      { rid, incidenteId }
-    );
+    this.clearIncidentTimer(incidenteId);
+    const changed = await prisma.$transaction(async tx => {
+      const result = await tx.incidente.updateMany({
+        where: { id: incidenteId, estado: 'ABIERTO', fechaInicio: { lte: new Date(Date.now() - this.TIMEOUT_CONFIG.verificacion) } },
+        data: { estado: 'CERRADO', fechaFin: new Date() },
+      });
+      if (result.count) await enqueueJob(`incident:${incidenteId}:reprogram`, 'incident.reprogram', { incidenteId }, tx);
+      return result.count > 0;
+    });
+    return changed;
   }
 
   private static async reprogramarMovimientoPorIncidenteNoResuelto(incidenteId: number) {
@@ -482,6 +570,13 @@ export class IncidenteModel {
 
         const movimientoId = incidente.movimientoId;
 
+        const savedOutcome = await prisma.$queryRaw<Array<{ result: any }>>`SELECT result FROM incident_reprogramming WHERE incident_id = ${incidenteId}`;
+        if (savedOutcome.length) {
+          const result = savedOutcome[0].result;
+          const comment = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
+          if (result.cancelado) return this.completeCancelledReprogramming(result, incidente, rid, this.MAX_INCIDENTES_POR_LOCOMOTORA, comment, new Date(incidente.fechaFin ?? Date.now()));
+          return this.completeReprogramming(result, incidente, rid, comment);
+        }
         if (incidente.movimiento.finalizado) {
           trace('info', 'Reprogramación omitida: movimiento original ya quedó histórico', {
             rid,
@@ -511,10 +606,15 @@ export class IncidenteModel {
             `${comentarioBase}. Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${incidente.movimiento.locomotiveNumber}.`;
 
           const resultado = await prisma.$transaction(async (tx) => {
-            const original = await tx.movimiento.findUnique({
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(64091::int, ${incidenteId}::int)::text`;
+            const saved = await tx.$queryRaw<Array<{ result: any }>>`SELECT result FROM incident_reprogramming WHERE incident_id = ${incidenteId}`;
+            if (saved.length) return saved[0].result;
+            await tx.$queryRaw`SELECT id FROM "Movimiento" WHERE id = ${movimientoId} FOR UPDATE`;
+          const original = await tx.movimiento.findUnique({
               where: { id: movimientoId },
             });
             if (!original) throw new Error(`No se encontró movimiento con id ${movimientoId}`);
+          if (original.finalizado) return { skipped: true };
 
             await tx.movimiento.update({
               where: { id: original.id },
@@ -531,7 +631,7 @@ export class IncidenteModel {
 
             await tx.ronda.deleteMany({ where: { movimientoId: original.id } });
 
-            return {
+            const outcome = {
               originalMovimientoId: original.id,
               nuevoMovimientoId: null,
               localidadId: original.localidadId,
@@ -540,46 +640,12 @@ export class IncidenteModel {
               reutilizoRonda: false,
               cancelado: true,
             };
+            await tx.$executeRaw`INSERT INTO incident_reprogramming (incident_id, result) VALUES (${incidenteId}, ${JSON.stringify(outcome)}::jsonb)`;
+            return outcome;
           });
 
-          await bestEffort(
-            'RondaModel.recomponerRondasLocalidad(cancelado_por_incidentes)',
-            () => RondaModel.recomponerRondasLocalidad(resultado.localidadId),
-            { rid, incidenteId, localidadId: resultado.localidadId }
-          );
-
-          await bestEffort(
-            'RondaModel.siguienteInteligente(cancelado_por_incidentes)',
-            () => RondaModel.siguienteInteligente(resultado.localidadId),
-            { rid, incidenteId, localidadId: resultado.localidadId }
-          );
-
-          const movimientoCancelado = await prisma.movimiento.findUnique({
-            where: { id: movimientoId },
-            include: { empresa: true, localidad: true },
-          });
-
-          if (movimientoCancelado) {
-            await bestEffort(
-              'NotificadorFCM.notificarCancelacionMovimiento(limite_incidentes)',
-              () =>
-                NotificadorFCM.notificarCancelacionMovimiento(
-                  movimientoCancelado,
-                  `Límite de ${this.MAX_INCIDENTES_POR_LOCOMOTORA} incidentes para locomotora ${movimientoCancelado.locomotiveNumber}`
-                ),
-              { rid, incidenteId, movimientoId }
-            );
-          }
-
-          trace('warn', 'Movimiento cancelado por límite de incidentes en locomotora', {
-            rid,
-            incidenteId,
-            movimientoId,
-            locomotiveNumber: incidente.movimiento.locomotiveNumber,
-            totalIncidentesCadena,
-          });
-
-          return resultado;
+          if (resultado.skipped) return resultado;
+          return this.completeCancelledReprogramming(resultado, incidente, rid, totalIncidentesCadena, comentarioCancelacion, ahora);
         }
 
         try {
@@ -605,11 +671,16 @@ export class IncidenteModel {
         const comentarioBase = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
 
         const resultado = await prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(64091::int, ${incidenteId}::int)::text`;
+          const saved = await tx.$queryRaw<Array<{ result: any }>>`SELECT result FROM incident_reprogramming WHERE incident_id = ${incidenteId}`;
+          if (saved.length) return saved[0].result;
+          await tx.$queryRaw`SELECT id FROM "Movimiento" WHERE id = ${movimientoId} FOR UPDATE`;
           const original = await tx.movimiento.findUnique({
             where: { id: movimientoId },
             include: { ronda: true },
           });
           if (!original) throw new Error(`No se encontró movimiento con id ${movimientoId}`);
+          if (original.finalizado) return { skipped: true };
 
           const instruccionesBase = this.limpiarComentariosIncidente(original.instrucciones);
 
@@ -671,7 +742,7 @@ export class IncidenteModel {
             });
           }
 
-          return {
+          const outcome = {
             originalMovimientoId: original.id,
             nuevoMovimientoId: nuevoMovimiento.id,
             localidadId: nuevoMovimiento.localidadId,
@@ -680,9 +751,78 @@ export class IncidenteModel {
             reutilizoRonda: !!rondaActiva,
             rondaId: rondaActiva?.id ?? null,
           };
+          await tx.$executeRaw`INSERT INTO incident_reprogramming (incident_id, result) VALUES (${incidenteId}, ${JSON.stringify(outcome)}::jsonb)`;
+          return outcome;
         });
 
-        if (!resultado.reutilizoRonda) {
+        if (resultado.skipped) return resultado;
+        return this.completeReprogramming(resultado, incidente, rid, comentarioBase);
+      },
+      { rid, incidenteId }
+    );
+  }
+
+  private static async completeCancelledReprogramming(resultado: any, incidente: any, rid: string, totalIncidentesCadena: number, comentarioCancelacion: string, ahora: Date) {
+    const incidenteId = incidente.id;
+    const movimientoId = incidente.movimientoId;
+          await bestEffort(
+            'RondaModel.recomponerRondasLocalidad(cancelado_por_incidentes)',
+            () => RondaModel.recomponerRondasLocalidad(resultado.localidadId),
+            { rid, incidenteId, localidadId: resultado.localidadId }
+          );
+
+          await bestEffort(
+            'RondaModel.siguienteInteligente(cancelado_por_incidentes)',
+            () => RondaModel.siguienteInteligente(resultado.localidadId),
+            { rid, incidenteId, localidadId: resultado.localidadId }
+          );
+
+          const movimientoCancelado = await prisma.movimiento.findUnique({
+            where: { id: movimientoId },
+            include: { empresa: true, localidad: true },
+          });
+
+          if (movimientoCancelado) {
+            if (movimientoCancelado.torno === true) {
+              await cancelarTornoRequeridoPorMovimiento(
+                movimientoCancelado.id,
+                {
+                  fin: ahora,
+                  razon: comentarioCancelacion,
+                },
+                { rid, incidenteId, movimientoId }
+              );
+
+              await crearRecuperacionTornoRequerida(
+                movimientoCancelado,
+                { rid, incidenteId, movimientoId }
+              );
+            }
+
+            await bestEffort(
+              'NotificadorFCM.notificarCancelacionMovimiento(limite_incidentes)',
+              () =>
+                NotificadorFCM.notificarCancelacionMovimiento(
+                  movimientoCancelado,
+                  `Límite de ${this.MAX_INCIDENTES_POR_LOCOMOTORA} incidentes para locomotora ${movimientoCancelado.locomotiveNumber}`
+                ),
+              { rid, incidenteId, movimientoId }
+            );
+          }
+
+          trace('warn', 'Movimiento cancelado por límite de incidentes en locomotora', {
+            rid,
+            incidenteId,
+            movimientoId,
+            locomotiveNumber: incidente.movimiento.locomotiveNumber,
+            totalIncidentesCadena,
+          });
+
+          return resultado;
+  }
+  private static async completeReprogramming(resultado: any, incidente: any, rid: string, comentarioBase: string) {
+    const incidenteId = incidente.id;
+        if (!resultado.reutilizoRonda && !await prisma.ronda.findFirst({ where: { movimientoId: resultado.nuevoMovimientoId, concluido: false } })) {
           await traceSpan(
             'RondaModel.generarRondaParaMovimiento',
             () =>
@@ -721,6 +861,31 @@ export class IncidenteModel {
           { rid, incidenteId, localidadId: resultado.localidadId }
         );
 
+        const nuevoMovimientoRealtime = await prisma.movimiento.findUnique({
+          where: { id: resultado.nuevoMovimientoId },
+          include: { ronda: true },
+        });
+
+        if (nuevoMovimientoRealtime) {
+          publishMovimientoCreadoEvent(nuevoMovimientoRealtime);
+          publishMovimientoEstadoEvent({
+            ...nuevoMovimientoRealtime,
+            estadoAnterior: 'DETENIDO',
+          });
+          publishRondaReordenadaEvent({
+            id: nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId,
+            movimientoId: nuevoMovimientoRealtime.id,
+            empresaId: nuevoMovimientoRealtime.empresaId,
+            localidadId: nuevoMovimientoRealtime.localidadId,
+            clienteId: nuevoMovimientoRealtime.clienteId,
+            rondaIds: [nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId].filter(
+              (id): id is number => Number.isFinite(Number(id))
+            ),
+            movimientoIds: [resultado.originalMovimientoId, resultado.nuevoMovimientoId],
+            reason: 'incidente-no-resuelto-reprogramado',
+          });
+        }
+
         await bestEffort(
           'NotificadorFCM.notificarNuevoMovimiento(reprogramado)',
           () => NotificadorFCM.notificarNuevoMovimiento(resultado.nuevoMovimientoId),
@@ -736,9 +901,6 @@ export class IncidenteModel {
         });
 
         return resultado;
-      },
-      { rid, incidenteId }
-    );
   }
 
   /* ======================= LECTURA ======================= */
@@ -905,6 +1067,8 @@ export class IncidenteModel {
     return traceSpan(
       'obtenerIncidentesPaginados',
       async () => {
+        page = Math.max(1, Math.trunc(Number(page) || 1));
+        pageSize = Math.min(100, Math.max(1, Math.trunc(Number(pageSize) || 20)));
         const skip = (page - 1) * pageSize;
         const whereClause: any = {};
         if (estado) whereClause.estado = estado;
@@ -914,7 +1078,7 @@ export class IncidenteModel {
         const [incidentes, total] = await Promise.all([
           prisma.incidente.findMany({
             where: whereClause,
-            include: { movimiento: true, usuario: true },
+            include: { movimiento: true, usuario: { select: publicUserSelect } },
             orderBy: { fechaInicio: 'desc' },
             skip,
             take: pageSize,
@@ -943,11 +1107,13 @@ export class IncidenteModel {
     return traceSpan(
       'obtenerIncidentesPorLocalidad',
       async () => {
+        page = Math.max(1, Math.trunc(Number(page) || 1));
+        pageSize = Math.min(100, Math.max(1, Math.trunc(Number(pageSize) || 20)));
         const skip = (page - 1) * pageSize;
         const [incidentes, total] = await Promise.all([
           prisma.incidente.findMany({
             where: { movimiento: { localidadId } },
-            include: { movimiento: true, usuario: true },
+            include: { movimiento: true, usuario: { select: publicUserSelect } },
             orderBy: { fechaInicio: 'desc' },
             skip,
             take: pageSize,
@@ -968,11 +1134,13 @@ export class IncidenteModel {
     return traceSpan(
       'obtenerIncidentesPorEmpresaYLocalidad',
       async () => {
+        page = Math.max(1, Math.trunc(Number(page) || 1));
+        pageSize = Math.min(100, Math.max(1, Math.trunc(Number(pageSize) || 20)));
         const skip = (page - 1) * pageSize;
         const [incidentes, total] = await Promise.all([
           prisma.incidente.findMany({
             where: { movimiento: { empresaId, localidadId } },
-            include: { movimiento: true, usuario: true },
+            include: { movimiento: true, usuario: { select: publicUserSelect } },
             orderBy: { fechaInicio: 'desc' },
             skip,
             take: pageSize,
@@ -993,11 +1161,13 @@ export class IncidenteModel {
     return traceSpan(
       'obtenerIncidentesPorEmpresa',
       async () => {
+        page = Math.max(1, Math.trunc(Number(page) || 1));
+        pageSize = Math.min(100, Math.max(1, Math.trunc(Number(pageSize) || 20)));
         const skip = (page - 1) * pageSize;
         const [incidentes, total] = await Promise.all([
           prisma.incidente.findMany({
             where: { movimiento: { empresaId } },
-            include: { movimiento: true, usuario: true },
+            include: { movimiento: true, usuario: { select: publicUserSelect } },
             orderBy: { fechaInicio: 'desc' },
             skip,
             take: pageSize,
@@ -1120,6 +1290,7 @@ export class IncidenteModel {
                 estadoNuevo: upd.estado,
               });
 
+              if (data.estado === 'CERRADO') await enqueueJob(`incident:${id}:reprogram`, 'incident.reprogram', { incidenteId: id }, tx);
               return { incidenteActualizado: upd, estadoAnterior: actual.estado };
             }),
           { rid, id }
@@ -1127,7 +1298,7 @@ export class IncidenteModel {
 
         // ======= LÓGICA AL CERRAR =======
         if (data.estado === 'CERRADO') {
-          await this.reprogramarMovimientoPorIncidenteNoResuelto(id);
+          this.ensureIncidentScheduler();
           trace('info', 'Cierre no resuelto ejecutado con reprogramación', {
             rid,
             incidenteId: id,
@@ -1142,6 +1313,28 @@ export class IncidenteModel {
             () => NotificadorFCM.notificarCambioEstado(incidenteActualizado as Incidente, estadoAnterior),
             { rid, incidenteId: id, estadoAnterior, estadoNuevo: data.estado }
           );
+
+          publishRealtimeEvent({
+            type: 'incidente.estado',
+            movimientoId: incidenteActualizado.movimientoId,
+            empresaId: incidenteActualizado.movimiento?.empresaId,
+            localidadId: incidenteActualizado.movimiento?.localidadId,
+            clienteId: incidenteActualizado.movimiento?.clienteId,
+            incidenteId: incidenteActualizado.id,
+            estado: data.estado,
+            estadoAnterior,
+            incidenteGlobal: data.estado === 'ABIERTO',
+            locomotiveNumber: incidenteActualizado.movimiento?.locomotiveNumber,
+          });
+
+          if (data.estado === 'RESUELTO') {
+            publishMovimientoEstadoEvent({
+              ...incidenteActualizado.movimiento,
+              estado: 'EN_PROCESO',
+              estadoAnterior: 'DETENIDO',
+              incidenteGlobal: false,
+            });
+          }
         }
 
         if (data.estado === 'CERRADO' || data.estado === 'RESUELTO') {
@@ -1435,7 +1628,25 @@ export class IncidenteModel {
         });
         if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
 
-        const fechaBaseIncidente = movimiento.fechaInicio ?? movimiento.fechaSolicitud ?? new Date();
+        const incidenteExistente = await prisma.incidente.findFirst({
+          where: {
+            movimientoId: data.movimientoId,
+            usuarioId: data.usuarioId,
+            descripcion: data.descripcion,
+            estado: 'ABIERTO',
+          },
+          orderBy: { fechaInicio: 'desc' },
+        });
+        if (incidenteExistente) {
+          trace('info', 'crearIncidente:idempotente', {
+            rid,
+            incidenteId: incidenteExistente.id,
+            movimientoId: data.movimientoId,
+          });
+          return incidenteExistente;
+        }
+
+        const fechaInicioIncidente = new Date();
 
         const nuevoIncidente = await prisma.incidente.create({
           data: {
@@ -1443,7 +1654,7 @@ export class IncidenteModel {
             movimientoId: data.movimientoId,
             usuarioId: data.usuarioId,
             estado: 'ABIERTO',
-            fechaInicio: fechaBaseIncidente,
+            fechaInicio: fechaInicioIncidente,
           },
         });
 
@@ -1462,14 +1673,130 @@ export class IncidenteModel {
           },
         });
 
+        const cadenaMovimientos = await this.obtenerCadenaMovimientos(data.movimientoId);
+        const totalIncidentesCadena = await prisma.incidente.count({
+          where: { movimientoId: { in: cadenaMovimientos } },
+        });
+
+        if (!movimiento.finalizado && totalIncidentesCadena >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
+          const ahora = new Date();
+          const comentarioCancelacion =
+            `Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${movimiento.locomotiveNumber}.`;
+
+          await prisma.$transaction(async (tx) => {
+            await tx.movimiento.update({
+              where: { id: movimiento.id },
+              data: {
+                estado: 'CANCELADO',
+                finalizado: true,
+                fechaFin: ahora,
+                fechaPausa: null,
+                updatedAt: ahora,
+                incidenteGlobal: false,
+                instrucciones: this.appendMovimientoComentario(movimiento.instrucciones, comentarioCancelacion),
+              },
+            });
+
+            await tx.incidente.updateMany({
+              where: { movimientoId: { in: cadenaMovimientos }, estado: 'ABIERTO' },
+              data: { estado: 'CERRADO', fechaFin: ahora },
+            });
+
+            await tx.ronda.deleteMany({ where: { movimientoId: movimiento.id } });
+          });
+
+          for (const movimientoId of cadenaMovimientos) {
+            const incidentes = await prisma.incidente.findMany({
+              where: { movimientoId },
+              select: { id: true },
+            });
+            for (const inc of incidentes) this.clearIncidentTimer(inc.id);
+          }
+
+          await bestEffort(
+            'RondaModel.recomponerRondasLocalidad(cancelado_por_incidentes_al_crear)',
+            () => RondaModel.recomponerRondasLocalidad(movimiento.localidadId),
+            { rid, incidenteId: nuevoIncidente.id, localidadId: movimiento.localidadId }
+          );
+
+          await bestEffort(
+            'RondaModel.siguienteInteligente(cancelado_por_incidentes_al_crear)',
+            () => RondaModel.siguienteInteligente(movimiento.localidadId),
+            { rid, incidenteId: nuevoIncidente.id, localidadId: movimiento.localidadId }
+          );
+
+          const movimientoCancelado = await prisma.movimiento.findUnique({
+            where: { id: movimiento.id },
+            include: { empresa: true, localidad: true },
+          });
+
+          if (movimientoCancelado?.torno === true) {
+            await cancelarTornoRequeridoPorMovimiento(
+              movimientoCancelado.id,
+              {
+                fin: ahora,
+                razon: comentarioCancelacion,
+              },
+              { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
+            );
+
+            await crearRecuperacionTornoRequerida(
+              movimientoCancelado,
+              { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
+            );
+          }
+
+          if (movimientoCancelado) {
+            await bestEffort(
+              'NotificadorFCM.notificarCancelacionMovimiento(limite_incidentes_al_crear)',
+              () =>
+                NotificadorFCM.notificarCancelacionMovimiento(
+                  movimientoCancelado,
+                  `Límite de ${this.MAX_INCIDENTES_POR_LOCOMOTORA} incidentes para locomotora ${movimientoCancelado.locomotiveNumber}`
+                ),
+              { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
+            );
+          }
+
+          trace('warn', 'Movimiento cancelado al levantar incidente por límite de incidentes', {
+            rid,
+            incidenteId: nuevoIncidente.id,
+            movimientoId: movimiento.id,
+            locomotiveNumber: movimiento.locomotiveNumber,
+            totalIncidentesCadena,
+          });
+
+          return await prisma.incidente.findUnique({
+            where: { id: nuevoIncidente.id },
+            include: {
+              movimiento: { include: { empresa: true, localidad: true, ronda: true } },
+              usuario: { select: { id: true, nombre: true, email: true, empresa: true } },
+            },
+          });
+        }
+
         await prisma.movimiento.update({
           where: { id: data.movimientoId },
           data: {
             estado: 'DETENIDO',
-            fechaPausa: new Date(),
+            fechaPausa: fechaInicioIncidente,
             incidenteGlobal: true,
-            ...(movimiento.fechaInicio ? {} : { fechaInicio: fechaBaseIncidente }),
+            ...(movimiento.fechaInicio ? {} : { fechaInicio: fechaInicioIncidente }),
           },
+        });
+
+        // El aviso realtime debe llegar a la web incluso si Firebase falla o tarda.
+        publishRealtimeEvent({
+          type: 'movimiento.incidente',
+          movimientoId: movimiento.id,
+          empresaId: movimiento.empresaId,
+          localidadId: movimiento.localidadId,
+          clienteId: movimiento.clienteId,
+          estado: 'DETENIDO',
+          incidenteGlobal: true,
+          incidenteId: nuevoIncidente.id,
+          descripcion: nuevoIncidente.descripcion,
+          locomotiveNumber: movimiento.locomotiveNumber,
         });
 
         const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
@@ -1633,7 +1960,7 @@ export class IncidenteModel {
           include: { movimiento: true },
         });
 
-        await prisma.movimiento.update({
+        const movimientoContinuado = await prisma.movimiento.update({
           where: { id: incidente.movimientoId },
           data: { estado: 'EN_PROCESO', fechaPausa: null, incidenteGlobal: false },
         });
@@ -1646,6 +1973,23 @@ export class IncidenteModel {
         );
 
         this.clearIncidentTimer(id);
+
+        publishRealtimeEvent({
+          type: 'incidente.estado',
+          movimientoId: actualizado.movimientoId,
+          empresaId: movimientoContinuado.empresaId,
+          localidadId: movimientoContinuado.localidadId,
+          clienteId: movimientoContinuado.clienteId,
+          incidenteId: actualizado.id,
+          estado: RESUELTO,
+          estadoAnterior: incidente.estado,
+          incidenteGlobal: false,
+          locomotiveNumber: movimientoContinuado.locomotiveNumber,
+        });
+        publishMovimientoEstadoEvent({
+          ...movimientoContinuado,
+          estadoAnterior: 'DETENIDO',
+        });
 
         return actualizado;
       },
