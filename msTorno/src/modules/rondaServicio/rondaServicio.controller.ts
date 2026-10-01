@@ -17,6 +17,7 @@ const HISTORIAL_STATUSES = ["SOLICITADO", "EN_PROCESO", "CONCLUIDO", "DETENIDO",
 const MEDIDA_KEYS = ["l1", "l2", "l3", "l4", "l5", "l6", "r1", "r2", "r3", "r4", "r5", "r6"] as const;
 const EMPTY_MEASURE_VALUES = new Set(["", "0", "0.0", "0.00", "0.000", "N/A", "NA", "NO APLICA", "SIN DATO", "NULL", "UNDEFINED"]);
 const RONDA_FINAL_STATUSES = new Set(["CONCLUIDO", "CANCELADO"]);
+const VALID_WHEEL_COUNTS = new Set([4, 6, 8, 12]);
 
 function parseStatusFilter(value: unknown) {
   if (!value) return HISTORIAL_STATUSES;
@@ -34,10 +35,12 @@ function isRondaFinal(status: string) {
 
 function pickMedidas(source: Record<string, unknown> | null | undefined) {
   if (!source) return null;
-  return MEDIDA_KEYS.reduce<Record<(typeof MEDIDA_KEYS)[number], unknown>>((acc, key) => {
+  const result = MEDIDA_KEYS.reduce<Record<(typeof MEDIDA_KEYS)[number], unknown>>((acc, key) => {
     acc[key] = source[key];
     return acc;
   }, {} as Record<(typeof MEDIDA_KEYS)[number], unknown>);
+  const wheelCount = normalizeWheelCount(source.wheelCount);
+  return { wheelCount, ...result };
 }
 
 function hasMeasureValue(value: unknown) {
@@ -55,6 +58,20 @@ function getActiveWheelPositions(ruedaSolicitud: Record<string, unknown>) {
     });
   }
   return active;
+}
+
+function normalizeWheelCount(value: unknown) {
+  const parsed = Number(value);
+  return VALID_WHEEL_COUNTS.has(parsed) ? parsed : 8;
+}
+
+function getConfiguredWheelPositions(wheelCount: number) {
+  const axleCount = Math.max(1, Math.floor(wheelCount / 2));
+  const wheels: Array<{ lado: "L" | "R"; posicion: number }> = [];
+  for (let position = 1; position <= axleCount; position += 1) {
+    wheels.push({ lado: "L", posicion: position }, { lado: "R", posicion: position });
+  }
+  return wheels;
 }
 
 function calculateDurationSeconds(start: Date | null | undefined, end: Date) {
@@ -77,13 +94,9 @@ async function ensureTornoGForRonda(
   });
   if (!ronda) throw new Error("RondaServicio no encontrada");
 
-  const activeWheels = getActiveWheelPositions(ronda.ruedaSolicitud as Record<string, unknown>);
-  const wheels = activeWheels.length > 0
-    ? activeWheels
-    : MEDIDA_KEYS.map((key) => ({
-        lado: key.startsWith("l") ? "L" as const : "R" as const,
-        posicion: Number(key.slice(1)),
-      }));
+  const ruedaSolicitud = ronda.ruedaSolicitud as Record<string, unknown>;
+  const configuredWheelCount = normalizeWheelCount(ruedaSolicitud.wheelCount);
+  const wheels = getConfiguredWheelPositions(configuredWheelCount);
 
   const tornoG = ronda.tornoG
     ? await tx.tornoG.update({

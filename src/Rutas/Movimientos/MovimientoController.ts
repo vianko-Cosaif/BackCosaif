@@ -31,6 +31,7 @@ import { MovimientoModel } from '../../models/Movimientos';
 import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { readMovimientoPagination } from './movimiento.pagination';
+import { requestTorreonMs } from '../../services/torreonMs/torreonMsClient';
 import {
   buscarTornoAgendadoActivable,
   cancelarRondaTornoPorMovimiento,
@@ -43,6 +44,7 @@ import {
   normalizeMedidasRuedaInput,
   upsertRuedaSolicitudPorMovimiento,
 } from '../../services/tornoMs/tornoMsClient';
+import { esLocalidadTorreon } from '../../utils/operacionLocalidad';
 
 const medidaSchema = z.preprocess(
   (v) => (typeof v === 'number' ? String(v) : v),
@@ -51,7 +53,7 @@ const medidaSchema = z.preprocess(
 
 const wheelCountSchema = z.union([z.literal(4), z.literal(6), z.literal(8), z.literal(12)]);
 const CANCELAR_TORNEADO_ROLES = new Set(['ADMINISTRADOR', 'COORDINADOR', 'SUPERVISOR']);
-const CLIENTE_ROLES = new Set(['CLIENTE']);
+const CLIENTE_ROLES = new Set(['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR', 'ARRASTRE_TORREON']);
 const TORNERO_ROLES = new Set(['TORNO', 'TORNERO']);
 
 function getRequestRole(req: Parameters<RequestHandler>[0]) {
@@ -112,6 +114,259 @@ function bodyIntentaCambiarEstadoMovimiento(body: unknown) {
   return ['estado', 'status', 'finalizado', 'fechaInicio', 'fechaFin', 'fechaPausa'].some((key) =>
     Object.prototype.hasOwnProperty.call(body, key)
   );
+}
+
+type TorreonSearchRow = Record<string, any>;
+
+const TORREON_MOVIMIENTO_ESTADOS = new Set(['SOLICITADO', 'ASIGNADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO']);
+const TORREON_MOVIMIENTO_CERRADOS = new Set(['CONCLUIDO', 'CANCELADO']);
+
+function toTorreonRecord(input: unknown): TorreonSearchRow {
+  return input && typeof input === 'object' ? (input as TorreonSearchRow) : {};
+}
+
+function extractTorreonRows(input: unknown): TorreonSearchRow[] {
+  if (Array.isArray(input)) return input.map(toTorreonRecord);
+  const record = toTorreonRecord(input);
+  if (Array.isArray(record.data)) return record.data.map(toTorreonRecord);
+  if (Array.isArray(record.items)) return record.items.map(toTorreonRecord);
+  if (Array.isArray(record.rows)) return record.rows.map(toTorreonRecord);
+  return [];
+}
+
+function toPositiveInt(input: unknown): number | null {
+  const value = Number(input);
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function textOrNull(input: unknown): string | null {
+  return typeof input === 'string' && input.trim() ? input.trim() : null;
+}
+
+function torreonRef(snapshot: unknown, prefix: string, id: unknown) {
+  return textOrNull(snapshot) ?? (toPositiveInt(id) ? `${prefix} ${toPositiveInt(id)}` : null);
+}
+
+function torreonUser(id: unknown, nombre?: unknown, rol?: unknown) {
+  const numericId = toPositiveInt(id);
+  if (!numericId) return null;
+  return {
+    id: numericId,
+    nombre: textOrNull(nombre) ?? `Usuario ${numericId}`,
+    rol: textOrNull(rol) ?? undefined,
+  };
+}
+
+function torreonDateValue(row: TorreonSearchRow, field: 'solicitud' | 'inicio' | 'fin' | 'creacion') {
+  const raw =
+    field === 'inicio'
+      ? row.fechaInicio
+      : field === 'fin'
+      ? row.fechaFin
+      : field === 'creacion'
+      ? row.createdAt
+      : row.fechaSolicitud ?? row.createdAt;
+  const date = raw ? new Date(String(raw)) : null;
+  return date && !Number.isNaN(date.getTime()) ? date.getTime() : 0;
+}
+
+function torreonEstadoVisible(row: TorreonSearchRow) {
+  const estado = String(row.estado ?? '').toUpperCase();
+  const ronda = Array.isArray(row.rondas) ? toTorreonRecord(row.rondas[0]) : {};
+  const estadoRonda = String(ronda.estado ?? '').toUpperCase();
+  if (estadoRonda === 'BLOQUEADO') return 'ESPERA';
+  return estado || 'SOLICITADO';
+}
+
+function torreonMatchesEstados(row: TorreonSearchRow, estados: string[]) {
+  if (!estados.length) return true;
+  const estado = String(row.estado ?? '').toUpperCase();
+  const estadoVisible = torreonEstadoVisible(row);
+  return estados.some((requested) => {
+    const normalized = String(requested).toUpperCase();
+    if (normalized === 'ESPERA') return estadoVisible === 'ESPERA';
+    return normalized === estado || normalized === estadoVisible;
+  });
+}
+
+function torreonMatchesText(row: TorreonSearchRow, term?: string) {
+  const q = String(term ?? '').trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    row.id,
+    row.locomotiveNumber,
+    row.estado,
+    row.prioridad,
+    row.tipoMovimiento,
+    row.instrucciones,
+    row.empresaNombreSnapshot,
+    row.localidadNombreSnapshot,
+    row.viaOrigenNombreSnapshot,
+    row.viaDestinoNombreSnapshot,
+    row.seccionOrigenNombreSnapshot,
+    row.seccionDestinoNombreSnapshot,
+  ]
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => String(value).toLowerCase());
+  return haystack.some((value) => value.includes(q));
+}
+
+function mapTorreonMovimientoParaCosaif(row: TorreonSearchRow) {
+  const id = toPositiveInt(row.id);
+  const empresaId = toPositiveInt(row.empresaId);
+  const localidadId = toPositiveInt(row.localidadId);
+  const viaOrigenId = toPositiveInt(row.viaOrigenId);
+  const viaDestinoId = toPositiveInt(row.viaDestinoId);
+  const seccionOrigenId = toPositiveInt(row.seccionOrigenId);
+  const seccionDestinoId = toPositiveInt(row.seccionDestinoId);
+  const rondaItem = Array.isArray(row.rondas) ? toTorreonRecord(row.rondas[0]) : {};
+  const ronda = toTorreonRecord(rondaItem.ronda);
+  const estado = torreonEstadoVisible(row);
+
+  return {
+    ...row,
+    id,
+    idTecnico: id,
+    folioLocalidad: id,
+    folioLocalidadLabel: id ? `#${id}` : null,
+    source: 'torreon',
+    empresaId,
+    empresa: empresaId
+      ? { id: empresaId, nombre: textOrNull(row.empresaNombreSnapshot) ?? `Empresa ${empresaId}` }
+      : null,
+    localidadId,
+    localidad: localidadId
+      ? { id: localidadId, nombre: textOrNull(row.localidadNombreSnapshot) ?? 'Torreon' }
+      : null,
+    viaOrigen: viaOrigenId
+      ? {
+          id: viaOrigenId,
+          nombre: torreonRef(row.viaOrigenNombreSnapshot, 'Via', viaOrigenId),
+          seccion: seccionOrigenId
+            ? { id: seccionOrigenId, nombre: torreonRef(row.seccionOrigenNombreSnapshot, 'Seccion', seccionOrigenId) }
+            : null,
+        }
+      : null,
+    viaDestino: viaDestinoId
+      ? {
+          id: viaDestinoId,
+          nombre: torreonRef(row.viaDestinoNombreSnapshot, 'Via', viaDestinoId),
+          seccion: seccionDestinoId
+            ? { id: seccionDestinoId, nombre: torreonRef(row.seccionDestinoNombreSnapshot, 'Seccion', seccionDestinoId) }
+            : null,
+        }
+      : null,
+    creadoPor: torreonUser(row.creadoPorId),
+    cliente: torreonUser(row.clienteId),
+    supervisor: torreonUser(row.supervisorId),
+    coordinador: torreonUser(row.coordinadorId),
+    operador: torreonUser(row.operadorId),
+    lavado: false,
+    torno: false,
+    finalizado: TORREON_MOVIMIENTO_CERRADOS.has(String(row.estado ?? '').toUpperCase()),
+    estado,
+    estadoOriginalTorreon: row.estado,
+    ronda:
+      toPositiveInt(rondaItem.id) || toPositiveInt(ronda.id)
+        ? {
+            id: toPositiveInt(rondaItem.id) ?? toPositiveInt(ronda.id),
+            rondaId: toPositiveInt(rondaItem.rondaId) ?? toPositiveInt(ronda.id),
+            rondaNumero: toPositiveInt(ronda.numeroRonda),
+            orden: toPositiveInt(rondaItem.orden),
+            estado: rondaItem.estado,
+            concluido: String(rondaItem.estado ?? '').toUpperCase() === 'CONCLUIDO',
+          }
+        : null,
+  };
+}
+
+async function localidadEsTorreonNatural(localidadId: number) {
+  const localidad = await prisma.localidad.findUnique({
+    where: { id: localidadId },
+    select: { nombre: true },
+  });
+  return esLocalidadTorreon(localidad?.nombre);
+}
+
+async function obtenerLocalidadesTorreonNaturalIds() {
+  const localidades = await prisma.localidad.findMany({
+    select: { id: true, nombre: true },
+  });
+  return localidades
+    .filter((localidad) => esLocalidadTorreon(localidad.nombre))
+    .map((localidad) => localidad.id);
+}
+
+async function buscarMovimientosTorreonNatural(params: {
+  q?: string;
+  locomotivePrefix?: string;
+  locomotiveNumber?: number;
+  empresaId?: number;
+  localidadId: number;
+  estados: string[];
+  prioridad?: string;
+  ambito?: 'actuales' | 'pasados';
+  fechaCampo: 'solicitud' | 'inicio' | 'fin' | 'creacion';
+  fechaDesde?: Date;
+  fechaHasta?: Date;
+  sortBy?: string;
+  sortDir?: string;
+  pagination: { page: number; pageSize: number };
+}) {
+  const query = new URLSearchParams({
+    localidadId: String(params.localidadId),
+    page: String(params.pagination.page),
+    pageSize: String(Math.min(100, Math.max(params.pagination.pageSize, 25))),
+    includeFotos: 'false',
+  });
+
+  if (params.empresaId !== undefined) query.set('empresaId', String(params.empresaId));
+  if (params.ambito) query.set('vista', params.ambito === 'pasados' ? 'PASADOS' : 'ACTIVOS');
+  if (params.estados.length === 1 && TORREON_MOVIMIENTO_ESTADOS.has(params.estados[0])) {
+    query.set('estado', params.estados[0]);
+  }
+
+  const response = await requestTorreonMs<any>(`/movimientos?${query.toString()}`, { method: 'GET' });
+  const fromMs = extractTorreonRows(response.data);
+  let rows = fromMs.filter((row) => {
+    const locomotive = Number(row.locomotiveNumber);
+    if (params.locomotiveNumber !== undefined && locomotive !== params.locomotiveNumber) return false;
+    if (params.locomotivePrefix && !String(row.locomotiveNumber ?? '').startsWith(params.locomotivePrefix)) return false;
+    if (params.prioridad && String(row.prioridad ?? '').toUpperCase() !== params.prioridad) return false;
+    if (!torreonMatchesEstados(row, params.estados)) return false;
+    if (!torreonMatchesText(row, params.q)) return false;
+    if (params.fechaDesde && torreonDateValue(row, params.fechaCampo) < params.fechaDesde.getTime()) return false;
+    if (params.fechaHasta && torreonDateValue(row, params.fechaCampo) > params.fechaHasta.getTime()) return false;
+    return true;
+  });
+
+  if (params.sortBy) {
+    const direction = params.sortDir === 'asc' ? 1 : -1;
+    rows = rows.sort((a, b) => {
+      const field = params.sortBy === 'locomotora' ? 'locomotiveNumber' : params.sortBy;
+      if (field === 'solicitud' || field === 'inicio' || field === 'fin') {
+        return (torreonDateValue(a, field as any) - torreonDateValue(b, field as any)) * direction;
+      }
+      const av = field === 'id' ? Number(a.id ?? 0) : String(a[field as keyof TorreonSearchRow] ?? '');
+      const bv = field === 'id' ? Number(b.id ?? 0) : String(b[field as keyof TorreonSearchRow] ?? '');
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * direction;
+      return String(av).localeCompare(String(bv)) * direction;
+    });
+  }
+
+  const data = rows.map(mapTorreonMovimientoParaCosaif);
+  return {
+    data,
+    meta: {
+      total: data.length,
+      page: params.pagination.page,
+      pageSize: params.pagination.pageSize,
+      totalPages: data.length === 0 ? 1 : Math.ceil(data.length / params.pagination.pageSize),
+      hasNextPage: fromMs.length >= Math.max(params.pagination.pageSize, 25),
+      hasPreviousPage: params.pagination.page > 1,
+      source: 'torreon',
+    },
+  };
 }
 
 const medidasTornoSchema = z.object({
@@ -244,6 +499,7 @@ const isTornoRecoveryCompatible = (
 const extractMedidasFromRuedaSolicitud = (ruedaSolicitud: any): ReturnType<typeof normalizeMedidasRuedaInput> | null => {
   if (!ruedaSolicitud) return null;
   const draft = {
+    wheelCount: ruedaSolicitud.wheelCount,
     l1: ruedaSolicitud.l1,
     l2: ruedaSolicitud.l2,
     l3: ruedaSolicitud.l3,
@@ -350,7 +606,8 @@ const saveTemporaryTornoRecovery = async (movimiento: {
 
 const reconcileRecentTornoRecoveries = async (
   _authenticatedUserId: number,
-  excludedMovementIds: number[] = []
+  excludedMovementIds: number[] = [],
+  scope: { empresaId?: number; localidadId?: number } = {},
 ) => {
   const now = new Date();
   const recoveryStart = addMinutes(now, -TORNO_RECUPERACION_WINDOW_MINUTES);
@@ -359,6 +616,8 @@ const reconcileRecentTornoRecoveries = async (
       torno: true,
       estado: 'CANCELADO' as any,
       fechaFin: { gte: recoveryStart },
+      ...(scope.empresaId ? { empresaId: scope.empresaId } : {}),
+      ...(scope.localidadId ? { localidadId: scope.localidadId } : {}),
       ...(excludedMovementIds.length ? { id: { notIn: excludedMovementIds } } : {}),
     },
     include: {
@@ -485,6 +744,12 @@ async function enrichWithTornoMeasures<T extends { movimiento?: { id?: number; t
  * ------------------------------------------------------------------------ */
 
 export class MovimientoController {
+  private static scopedQueryIds(req: Parameters<RequestHandler>[0]) {
+    const empresaId = req.query.empresaId === undefined ? undefined : Number(req.query.empresaId);
+    const localidadId = req.query.localidadId === undefined ? undefined : Number(req.query.localidadId);
+    return { empresaId, localidadId };
+  }
+
   private static requirePagination(req: any, res: any) {
     const { pagination, error } = readMovimientoPagination(req.query as Record<string, unknown>);
     if (error) {
@@ -510,7 +775,14 @@ export class MovimientoController {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPaginados(pagination);
+      const { empresaId, localidadId } = this.scopedQueryIds(req);
+      const movimientos = empresaId && localidadId
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : empresaId
+          ? await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination)
+          : localidadId
+            ? await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination)
+            : await MovimientoModel.obtenerMovimientosPaginados(pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos', { error, query: req.query });
@@ -555,27 +827,25 @@ export class MovimientoController {
    * @description Los servicios solo serán ofrecidos al maquinista cuando estén **EN_PROCESO**.
    * @auth Requiere JWT.
    * @param {number} req.params.id
-   * @body {{estado:'SOLICITADO'|'EN_PROCESO'|'DETENIDO'|'CONCLUIDO'|'CANCELADO', operadorId?:number, razon?:string, fechaInicio?:string, fechaFin?:string}}
+   * @body {{estado:'SOLICITADO'|'EN_PROCESO'|'DETENIDO'|'CONCLUIDO'|'CANCELADO', razon?:string, fechaInicio?:string, fechaFin?:string}}
    * @returns 200 {message, movimiento} | 400 | 500
    */
   static actualizarEstadoServicio: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { estado, operadorId, razon, fechaInicio, fechaFin } = req.body as {
+    const { estado, razon, fechaInicio, fechaFin } = req.body as {
       estado: 'SOLICITADO' | 'EN_PROCESO' | 'DETENIDO' | 'CONCLUIDO' | 'CANCELADO';
-      operadorId?: number;
       razon?: string;
       fechaInicio?: string;
       fechaFin?: string;
     };
+    const operadorId = Number(req.user?.id);
 
     const validos = ['SOLICITADO', 'EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO'];
     if (!Number.isInteger(id)) return res.status(400).json({ message: 'ID inválido' });
     if (!validos.includes(estado)) {
       return res.status(400).json({ message: `Estado inválido. Debe ser uno de: ${validos.join(' | ')}` });
     }
-    if (operadorId !== undefined && typeof operadorId !== 'number') {
-      return res.status(400).json({ message: 'operadorId debe ser numérico si se envía' });
-    }
+    if (!Number.isInteger(operadorId) || operadorId <= 0) return res.status(401).json({ message: 'No autenticado' });
     if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
@@ -1133,8 +1403,16 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       }
 
       const localidadRaw = Number(req.query.localidadId ?? req.query.localidad);
+      const empresaRaw = Number(req.query.empresaId);
       const viaOrigenRaw = Number(req.query.viaOrigenId);
       const authenticatedUserId = Number((req as any).user?.id || 0);
+      const requestedScope = {
+        empresaId: Number.isFinite(empresaRaw) && empresaRaw > 0 ? empresaRaw : undefined,
+        localidadId: Number.isFinite(localidadRaw) && localidadRaw > 0 ? localidadRaw : undefined,
+      };
+      const matchesRequestedScope = (movimiento: { empresaId: number; localidadId: number }) =>
+        (!requestedScope.empresaId || movimiento.empresaId === requestedScope.empresaId) &&
+        (!requestedScope.localidadId || movimiento.localidadId === requestedScope.localidadId);
       try {
         const helperResult = await buscarTornoAgendadoActivable({
           locomotive: locomotiveNumber,
@@ -1156,19 +1434,23 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               creadoPor: { select: { nombre: true } },
             },
           });
-          if (compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado) {
+          const validCompatible = compatible && String(compatible.estado) === 'AGENDADO' && compatible.torno === true && !compatible.finalizado;
+          if (validCompatible && matchesRequestedScope(compatible)) {
             return res.status(200).json({
               activable: true,
               scheduledMovement: getScheduledPayload(compatible, helper),
             });
           }
-          await eliminarTornoAgendadoPorMovimiento(idMovimiento).catch((error: any) =>
-            log.error('No se pudo limpiar índice TornoAgendado huérfano', { movId: idMovimiento, err: error?.message })
-          );
+          if (!validCompatible) {
+            await eliminarTornoAgendadoPorMovimiento(idMovimiento).catch((error: any) =>
+              log.error('No se pudo limpiar índice TornoAgendado huérfano', { movId: idMovimiento, err: error?.message })
+            );
+          }
         }
         const recoveryResult = await buscarTornoAgendadoActivable({
           locomotive: locomotiveNumber,
           tipo: TORNO_RECUPERACION_TIPO,
+          localidad: requestedScope.localidadId ?? null,
         });
         const recoveryHelper = recoveryResult?.scheduled ?? null;
         const recoveryMovimientoId = Number(recoveryHelper?.idMovimiento);
@@ -1187,6 +1469,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           });
           if (
             compatible &&
+            matchesRequestedScope(compatible) &&
             isTornoRecoveryCompatible(compatible, {
               locomotiveNumber,
             })
@@ -1197,12 +1480,14 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               scheduledMovement: getScheduledPayload(compatible, recoveryHelper),
             });
           }
-          await eliminarTornoAgendadoPorMovimiento(recoveryMovimientoId).catch((error: any) =>
-            log.error('No se pudo limpiar recuperacion TornoAgendado huerfana', {
-              movId: recoveryMovimientoId,
-              err: error?.message,
-            })
-          );
+          if (!compatible || !isTornoRecoveryCompatible(compatible, { locomotiveNumber })) {
+            await eliminarTornoAgendadoPorMovimiento(recoveryMovimientoId).catch((error: any) =>
+              log.error('No se pudo limpiar recuperacion TornoAgendado huerfana', {
+                movId: recoveryMovimientoId,
+                err: error?.message,
+              })
+            );
+          }
         }
       } catch (error: any) {
         log.error('No se pudo consultar índice TornoAgendado; usando búsqueda legacy', { err: error?.message });
@@ -1214,6 +1499,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           estado: 'AGENDADO' as any,
           finalizado: false,
           locomotiveNumber,
+          ...(requestedScope.empresaId ? { empresaId: requestedScope.empresaId } : {}),
+          ...(requestedScope.localidadId ? { localidadId: requestedScope.localidadId } : {}),
         },
         orderBy: { fechaSolicitud: 'asc' },
         take: 5,
@@ -1232,6 +1519,10 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
   static listarTornoAgendadosPendientes: RequestHandler = async (req, res) => {
     try {
       const authenticatedUserId = Number((req as any).user?.id || 0);
+      const requestedScope = {
+        empresaId: req.query.empresaId === undefined ? undefined : Number(req.query.empresaId),
+        localidadId: req.query.localidadId === undefined ? undefined : Number(req.query.localidadId),
+      };
       await cleanupExpiredTornoSchedules();
       try {
         const [helperResult, recoveryResult] = await Promise.all([
@@ -1251,6 +1542,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               id: { in: ids },
               torno: true,
               estado: { in: ['AGENDADO', 'CANCELADO'] as any },
+              ...(requestedScope.empresaId ? { empresaId: requestedScope.empresaId } : {}),
+              ...(requestedScope.localidadId ? { localidadId: requestedScope.localidadId } : {}),
             },
             include: {
               empresa: true,
@@ -1277,7 +1570,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
               return isScheduled || isRecoveryValid ? getScheduledPayload(movimiento, helper) : null;
             })
             .filter(Boolean);
-          const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, ids);
+          const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, ids, requestedScope);
           return res.status(200).json({
             items: [...items, ...reconciled],
           });
@@ -1291,6 +1584,8 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
           torno: true,
           estado: 'AGENDADO' as any,
           finalizado: false,
+          ...(requestedScope.empresaId ? { empresaId: requestedScope.empresaId } : {}),
+          ...(requestedScope.localidadId ? { localidadId: requestedScope.localidadId } : {}),
         },
         orderBy: { fechaSolicitud: 'asc' },
         take: 100,
@@ -1299,7 +1594,7 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
       const items = candidatos
         .filter(canActivateScheduledTorno)
         .map(getScheduledPayload);
-      const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId);
+      const reconciled = await reconcileRecentTornoRecoveries(authenticatedUserId, [], requestedScope);
 
       return res.status(200).json({ items: [...items, ...reconciled] });
     } catch (error: any) {
@@ -1605,7 +1900,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPaginados(pagination);
+      const { empresaId, localidadId } = this.scopedQueryIds(req);
+      const pendientes = empresaId && localidadId
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : empresaId
+          ? await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination)
+          : localidadId
+            ? await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination)
+            : await MovimientoModel.obtenerMovimientosPendientesPaginados(pagination);
       res.status(200).json(pendientes);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes', { error, query: req.query });
@@ -1629,7 +1931,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const pendientes = await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination);
+      const localidadId = req.query.localidadId === undefined ? undefined : Number(req.query.localidadId);
+      const pendientes = localidadId
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPendientesPorEmpresaPaginados(empresaId, pagination);
       res.status(200).json(pendientes);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes por empresa', { error, empresaId, query: req.query });
@@ -1649,7 +1954,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerTodosLosMovimientosPaginados(pagination);
+      const { empresaId, localidadId } = this.scopedQueryIds(req);
+      const movimientos = empresaId && localidadId
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : empresaId
+          ? await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination)
+          : localidadId
+            ? await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination)
+            : await MovimientoModel.obtenerTodosLosMovimientosPaginados(pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener todos los movimientos', { error, query: req.query });
@@ -1673,7 +1985,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination);
+      const localidadId = req.query.localidadId === undefined ? undefined : Number(req.query.localidadId);
+      const movimientos = localidadId
+        ? await MovimientoModel.obtenerMovimientosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPorEmpresaPaginados(empresaId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos por empresa', { error, empresaId, query: req.query });
@@ -1697,7 +2012,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination);
+      const empresaId = req.query.empresaId === undefined ? undefined : Number(req.query.empresaId);
+      const movimientos = empresaId
+        ? await MovimientoModel.obtenerMovimientosNoConcluidosPorEmpresaYLocalidadPaginados(empresaId, localidadId, pagination)
+        : await MovimientoModel.obtenerMovimientosPendientesPorLocalidadPaginados(localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener movimientos pendientes por localidad', { error, localidadId, query: req.query });
@@ -1721,7 +2039,10 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     if (!pagination) return;
 
     try {
-      const movimientos = await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination);
+      const empresaId = req.query.empresaId === undefined ? undefined : Number(req.query.empresaId);
+      const movimientos = empresaId
+        ? await MovimientoModel.obtenerMovimientosPorLocalidadEmpresaPaginados(localidadId, empresaId, pagination)
+        : await MovimientoModel.obtenerTodosMovimientosPorLocalidadPaginados(localidadId, pagination);
       res.status(200).json(movimientos);
     } catch (error) {
       log.error('Error al obtener todos los movimientos por localidad', { error, localidadId, query: req.query });
@@ -1831,6 +2152,16 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const fechaCampoRaw = typeof req.query.fechaCampo === 'string' ? req.query.fechaCampo.toLowerCase() : 'solicitud';
     const fechaDesdeRaw = typeof req.query.fechaDesde === 'string' ? req.query.fechaDesde : undefined;
     const fechaHastaRaw = typeof req.query.fechaHasta === 'string' ? req.query.fechaHasta : undefined;
+    const sortByRaw = typeof req.query.sortBy === 'string'
+      ? req.query.sortBy.toLowerCase()
+      : typeof req.query.campoOrden === 'string'
+        ? req.query.campoOrden.toLowerCase()
+        : undefined;
+    const sortDirRaw = typeof req.query.sortDir === 'string'
+      ? req.query.sortDir.toLowerCase()
+      : typeof req.query.direccionOrden === 'string'
+        ? req.query.direccionOrden.toLowerCase()
+        : undefined;
 
     if (empresaId !== undefined && Number.isNaN(empresaId)) {
       return res.status(400).json({ message: 'empresaId debe ser numérico' });
@@ -1859,6 +2190,14 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     const camposFechaValidos = ['solicitud', 'inicio', 'fin', 'creacion'];
     if (fechaCampoRaw && !camposFechaValidos.includes(fechaCampoRaw)) {
       return res.status(400).json({ message: `fechaCampo inválido (válidos: ${camposFechaValidos.join(', ')})` });
+    }
+
+    const camposOrdenValidos = ['id', 'locomotora', 'solicitud', 'inicio', 'fin', 'estado', 'prioridad', 'tipo', 'localidad', 'empresa'];
+    if (sortByRaw && !camposOrdenValidos.includes(sortByRaw)) {
+      return res.status(400).json({ message: `sortBy inválido (válidos: ${camposOrdenValidos.join(', ')})` });
+    }
+    if (sortDirRaw && !['asc', 'desc'].includes(sortDirRaw)) {
+      return res.status(400).json({ message: 'sortDir inválido (asc|desc)' });
     }
 
     const parseFecha = (v?: string) => {
@@ -1935,12 +2274,37 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
     }
 
     try {
+      if (localidadId !== undefined && await localidadEsTorreonNatural(localidadId)) {
+        const resultado = await buscarMovimientosTorreonNatural({
+          q,
+          locomotivePrefix,
+          locomotiveNumber,
+          empresaId,
+          localidadId,
+          estados: estadosFinal,
+          prioridad,
+          ambito: ambitoFinal,
+          fechaCampo: fechaCampoRaw as any,
+          fechaDesde,
+          fechaHasta,
+          sortBy: sortByRaw,
+          sortDir: sortDirRaw,
+          pagination,
+        });
+        res.status(200).json(resultado);
+        return;
+      }
+
+      const excludeLocalidadIds =
+        localidadId === undefined ? await obtenerLocalidadesTorreonNaturalIds() : undefined;
+
       const resultado = await MovimientoModel.buscarMovimientos({
         q,
         locomotivePrefix,
         locomotiveNumber,
         empresaId,
         localidadId,
+        excludeLocalidadIds,
         estados: estadosFinal,
         prioridad: prioridad as any,
         finalizado,
@@ -1948,6 +2312,8 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
         fechaCampo: fechaCampoRaw as any,
         fechaDesde,
         fechaHasta,
+        sortBy: sortByRaw as any,
+        sortDir: sortDirRaw as any,
         pagination,
       });
       res.status(200).json(resultado);
@@ -1982,27 +2348,29 @@ static obtenerInfoPorRonda: RequestHandler = async (req, res) => {
   /**
    * PATCH /movimientos/:id/iniciar
    *
-   * @summary Marca un movimiento como iniciado por `operadorId`.
+   * @summary Marca un movimiento como iniciado por el usuario autenticado.
    * @auth Requiere JWT.
    * @param {number} req.params.id
-   * @body {{operadorId:number}}
    * @returns 200 { message, movimiento } | 400 | 500
    */
   static iniciarMovimiento: RequestHandler = async (req, res) => {
     const id = Number(req.params.id);
-    const { operadorId } = req.body;
+    const operadorId = Number(req.user?.id);
 
-    if (!Number.isInteger(id) || typeof operadorId !== 'number') {
-      return res.status(400).json({ message: 'Datos inválidos: id o operadorId faltante o incorrecto' });
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ message: 'ID de movimiento inválido' });
     }
+    if (!Number.isInteger(operadorId) || operadorId <= 0) return res.status(401).json({ message: 'No autenticado' });
     if (bloquearClienteEstadoMovimiento(req, res)) return;
 
     try {
       const movimiento = await MovimientoModel.iniciarMovimiento(id, operadorId);
       res.status(200).json({ message: 'Movimiento iniciado', movimiento });
-    } catch (error) {
+    } catch (error: any) {
       log.error('Error al iniciar movimiento', { id, operadorId, error });
-      res.status(500).json({ message: 'Error al iniciar movimiento' });
+      res.status(Number(error?.status) || 500).json({
+        message: error?.message || 'Error al iniciar movimiento',
+      });
     }
   };
 

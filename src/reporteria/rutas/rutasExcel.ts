@@ -7,6 +7,10 @@ import { MovimientoExcelController } from '../controller/movimientoExcel';
 import { LocomotorasExcelController } from '../controller/locomotorasExcel';
 import { EmpresasExcelController } from '../controller/empresasExcel';
 import { EmpresaLocomotorasExcelController } from '../controller/empresaLocomotorasExcel';
+import { ComercialExcelController } from '../controller/comercialExcelController';
+import { requireCommercialReportAccess } from '../commercialAccess';
+import { PERMISSIONS } from '../../auth/accessPolicy';
+import { enforceQueryScope, requirePermission } from '../../auth/authorize';
 
 const router = Router();
 
@@ -22,9 +26,12 @@ router.use(authenticateAccess);
  *   GET /reporteria/empresas/excel
  *   GET /reporteria/empresa-locomotoras/excel
  */
-router.get('/movimientos/excel', MovimientoExcelController.generar);
-router.get('/locomotoras/excel', LocomotorasExcelController.generar);
-router.get('/empresas/excel', EmpresasExcelController.generar);
-router.get('/empresa-locomotoras/excel', EmpresaLocomotorasExcelController.generar);
+const requireReportExport = requirePermission(PERMISSIONS.REPORTS_EXPORT);
+
+router.get('/movimientos/excel', requireReportExport, enforceQueryScope, MovimientoExcelController.generar);
+router.get('/locomotoras/excel', requireReportExport, enforceQueryScope, LocomotorasExcelController.generar);
+router.get('/empresas/excel', requireReportExport, enforceQueryScope, EmpresasExcelController.generar);
+router.get('/empresa-locomotoras/excel', requireReportExport, enforceQueryScope, EmpresaLocomotorasExcelController.generar);
+router.post('/comercial/excel', requireCommercialReportAccess, ComercialExcelController.generar);
 
 export default router;

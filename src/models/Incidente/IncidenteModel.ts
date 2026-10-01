@@ -16,7 +16,12 @@ import { PrismaClient, Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
 import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
-import { publishMovimientoEstadoEvent, publishRealtimeEvent } from '../../realtime/realtimeHub';
+import {
+  publishMovimientoCreadoEvent,
+  publishMovimientoEstadoEvent,
+  publishRealtimeEvent,
+  publishRondaReordenadaEvent,
+} from '../../realtime/realtimeHub';
 import {
   cancelarRondaTornoPorMovimiento,
   crearRecuperacionTemporalTornoCancelado,
@@ -556,6 +561,15 @@ export class IncidenteModel {
 
         await this.reprogramarMovimientoPorIncidenteNoResuelto(incidenteId);
 
+        const incidenteCerrado = await prisma.incidente.findUnique({ where: { id: incidenteId } });
+        if (incidenteCerrado) {
+          await bestEffort(
+            'NotificadorFCM.notificarCambioEstado(timeout)',
+            () => NotificadorFCM.notificarCambioEstado(incidenteCerrado, 'ABIERTO', 'incidente_timeout'),
+            { rid, incidenteId }
+          );
+        }
+
         trace('info', 'Incidente autocerrado por timeout exacto', {
           rid,
           incidenteId,
@@ -839,6 +853,31 @@ export class IncidenteModel {
           () => RondaModel.siguienteInteligente(resultado.localidadId),
           { rid, incidenteId, localidadId: resultado.localidadId }
         );
+
+        const nuevoMovimientoRealtime = await prisma.movimiento.findUnique({
+          where: { id: resultado.nuevoMovimientoId },
+          include: { ronda: true },
+        });
+
+        if (nuevoMovimientoRealtime) {
+          publishMovimientoCreadoEvent(nuevoMovimientoRealtime);
+          publishMovimientoEstadoEvent({
+            ...nuevoMovimientoRealtime,
+            estadoAnterior: 'DETENIDO',
+          });
+          publishRondaReordenadaEvent({
+            id: nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId,
+            movimientoId: nuevoMovimientoRealtime.id,
+            empresaId: nuevoMovimientoRealtime.empresaId,
+            localidadId: nuevoMovimientoRealtime.localidadId,
+            clienteId: nuevoMovimientoRealtime.clienteId,
+            rondaIds: [nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId].filter(
+              (id): id is number => Number.isFinite(Number(id))
+            ),
+            movimientoIds: [resultado.originalMovimientoId, resultado.nuevoMovimientoId],
+            reason: 'incidente-no-resuelto-reprogramado',
+          });
+        }
 
         await bestEffort(
           'NotificadorFCM.notificarNuevoMovimiento(reprogramado)',
@@ -1576,6 +1615,24 @@ export class IncidenteModel {
         });
         if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
 
+        const incidenteExistente = await prisma.incidente.findFirst({
+          where: {
+            movimientoId: data.movimientoId,
+            usuarioId: data.usuarioId,
+            descripcion: data.descripcion,
+            estado: 'ABIERTO',
+          },
+          orderBy: { fechaInicio: 'desc' },
+        });
+        if (incidenteExistente) {
+          trace('info', 'crearIncidente:idempotente', {
+            rid,
+            incidenteId: incidenteExistente.id,
+            movimientoId: data.movimientoId,
+          });
+          return incidenteExistente;
+        }
+
         const fechaInicioIncidente = new Date();
 
         const nuevoIncidente = await prisma.incidente.create({
@@ -1715,14 +1772,7 @@ export class IncidenteModel {
           },
         });
 
-        const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
-        if (incPlano) {
-          await bestEffort('NotificadorFCM.notificarNuevoIncidente', () => NotificadorFCM.notificarNuevoIncidente(incPlano), {
-            rid,
-            incidenteId: incPlano.id,
-          });
-        }
-
+        // El aviso realtime debe llegar a la web incluso si Firebase falla o tarda.
         publishRealtimeEvent({
           type: 'movimiento.incidente',
           movimientoId: movimiento.id,
@@ -1735,6 +1785,14 @@ export class IncidenteModel {
           descripcion: nuevoIncidente.descripcion,
           locomotiveNumber: movimiento.locomotiveNumber,
         });
+
+        const incPlano = await prisma.incidente.findUnique({ where: { id: incidenteConImagenes.id } });
+        if (incPlano) {
+          await bestEffort('NotificadorFCM.notificarNuevoIncidente', () => NotificadorFCM.notificarNuevoIncidente(incPlano), {
+            rid,
+            incidenteId: incPlano.id,
+          });
+        }
 
         this.ensureIncidentScheduler();
         this.scheduleIncidentAutoClose(nuevoIncidente.id, nuevoIncidente.fechaInicio);

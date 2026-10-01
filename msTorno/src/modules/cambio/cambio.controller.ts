@@ -56,6 +56,97 @@ export async function listCambios(req: Request, res: Response) {
   return respondPaginated(res, data, total, pagination);
 }
 
+export async function getCambioStats(req: Request, res: Response) {
+  const localidadIdRaw = req.query.localidadId?.toString();
+  const baseWhere: Prisma.CambioWhereInput = localidadIdRaw
+    ? { localidadId: parseIntParam(localidadIdRaw, "localidadId") }
+    : {};
+  const now = new Date();
+  const ultimos30Dias = new Date(now);
+  ultimos30Dias.setUTCDate(ultimos30Dias.getUTCDate() - 30);
+  const inicioTendencia = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
+
+  const [
+    totalCambios,
+    concluidos,
+    pendientes,
+    cambiosUltimos30Dias,
+    conEvidencia,
+    rango,
+    gruposNavaja,
+    fechasTendencia,
+    configuraciones,
+  ] = await Promise.all([
+    prismaTorno.cambio.count({ where: baseWhere }),
+    prismaTorno.cambio.count({ where: { ...baseWhere, status: "CONCLUIDO" } }),
+    prismaTorno.cambio.count({ where: { ...baseWhere, status: "PENDIENTE" } }),
+    prismaTorno.cambio.count({ where: { ...baseWhere, fechaCambio: { gte: ultimos30Dias } } }),
+    prismaTorno.cambio.count({
+      where: {
+        ...baseWhere,
+        OR: [{ imagen1: { not: null } }, { imagen2: { not: null } }, { imagen3: { not: null } }],
+      },
+    }),
+    prismaTorno.cambio.aggregate({
+      where: baseWhere,
+      _min: { fechaCambio: true },
+      _max: { fechaCambio: true },
+    }),
+    prismaTorno.cambio.groupBy({
+      by: ["localidadId", "numeroNavaja"],
+      where: baseWhere,
+      _count: { _all: true },
+      _max: { fechaCambio: true },
+    }),
+    prismaTorno.cambio.findMany({
+      where: { ...baseWhere, fechaCambio: { gte: inicioTendencia } },
+      select: { fechaCambio: true },
+    }),
+    prismaTorno.nava.findMany({
+      where: localidadIdRaw ? { localidadId: parseIntParam(localidadIdRaw, "localidadId") } : {},
+      select: { localidadId: true, cantidad: true },
+    }),
+  ]);
+
+  const topNavajas = gruposNavaja
+    .map((grupo) => ({
+      localidadId: grupo.localidadId,
+      numeroNavaja: grupo.numeroNavaja,
+      total: grupo._count._all,
+      ultimaFechaCambio: grupo._max.fechaCambio,
+    }))
+    .sort((a, b) => b.total - a.total || a.numeroNavaja - b.numeroNavaja)
+    .slice(0, 5);
+
+  const conteoMensual = new Map<string, number>();
+  for (const item of fechasTendencia) {
+    const key = `${item.fechaCambio.getUTCFullYear()}-${String(item.fechaCambio.getUTCMonth() + 1).padStart(2, "0")}`;
+    conteoMensual.set(key, (conteoMensual.get(key) ?? 0) + 1);
+  }
+  const tendenciaMensual = Array.from({ length: 6 }, (_, index) => {
+    const fecha = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + index, 1));
+    const periodo = `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
+    return { periodo, total: conteoMensual.get(periodo) ?? 0 };
+  });
+  const navajasConfiguradas = configuraciones.reduce((total, item) => total + item.cantidad, 0);
+
+  return ok(res, {
+    totalCambios,
+    concluidos,
+    pendientes,
+    cambiosUltimos30Dias,
+    navajasDistintas: gruposNavaja.length,
+    navajasConfiguradas,
+    coberturaNavajas: navajasConfiguradas > 0 ? Math.round((gruposNavaja.length / navajasConfiguradas) * 1000) / 10 : 0,
+    conEvidencia,
+    coberturaEvidencia: totalCambios > 0 ? Math.round((conEvidencia / totalCambios) * 1000) / 10 : 0,
+    primeraFechaCambio: rango._min.fechaCambio,
+    ultimaFechaCambio: rango._max.fechaCambio,
+    topNavajas,
+    tendenciaMensual,
+  });
+}
+
 export async function getCambio(req: Request, res: Response) {
   const id = parseIntParam(req.params.id, "id");
   const data = await prismaTorno.cambio.findUnique({ where: { id }, include: { nava: true } });

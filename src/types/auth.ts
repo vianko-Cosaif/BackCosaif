@@ -60,7 +60,7 @@ export interface AuthenticatedUser {
   id: number;
   nombre: string;
   rol: string;
-  empresa?: { id: number; nombre: string } | null;
-  localidad?: { id: number; nombre: string; estado: string } | null;
+  empresa?: { id: number; nombre: string };
+  localidad?: { id: number; nombre: string; estado: string };
   auth: AuthTokenMeta;
 }

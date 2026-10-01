@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+﻿import { messaging } from '../config/firebase';
 
 type MulticastMessageCompat = {
   tokens: string[];
@@ -54,6 +54,13 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
     },
     webpush: {
       ...((payload.webpush as any) ?? {}),
+      headers: {
+        // Conserva el push hasta 24 h si el dispositivo está temporalmente
+        // sin conexión y solicita entrega inmediata al volver a conectarse.
+        TTL: '86400',
+        Urgency: 'high',
+        ...((payload.webpush as any)?.headers ?? {}),
+      },
       fcmOptions: {
         link,
         ...((payload.webpush as any)?.fcmOptions ?? {}),
@@ -64,6 +71,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
         tag: String(tag),
         renotify: true,
         requireInteraction: true,
+        silent: false,
         ...((payload.webpush as any)?.notification ?? {}),
       },
     },
@@ -72,7 +80,7 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
   const responses: SendResponseCompat[] = await Promise.all(
     tokens.map(async (token) => {
       try {
-        const messageId = await admin.messaging().send({ ...sendPayload, token } as any);
+        const messageId = await messaging.send({ ...sendPayload, token } as any);
         return { success: true, messageId };
       } catch (error: any) {
         return {
@@ -108,3 +116,4 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
     failureCount: responses.filter((response) => !response.success).length,
   };
 }
+

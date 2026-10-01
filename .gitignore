@@ -10,9 +10,17 @@ logs/*
 .env
 .env.torno
 msTorno/generated
+msComercial/generated
 src/logs
 dist
 logs/
 logs/empresa-controller-errors.log
 *.log
 /logs
+*.log
+/logs
+/logs/incidentes
+/logs/incidentes
+/logs/incidentes
+/logs/incidentes
+logs/empresa-controller-errors.log

@@ -73,6 +73,7 @@ async function requestTornoMs<T extends Json>(
 }
 
 export type MedidasRuedaInput = {
+  wheelCount: TornoWheelCount;
   l1: string;
   l2: string;
   l3: string;
@@ -138,7 +139,9 @@ export function normalizeMedidasRuedaInput(input: MedidasRuedaDraftInput): Medid
     throw new Error("Debe capturar al menos una medida de torno");
   }
 
-  const normalized = {} as MedidasRuedaInput;
+  const normalized = {
+    wheelCount: input.wheelCount ?? 8,
+  } as MedidasRuedaInput;
 
   for (const key of MEDIDA_KEYS) {
     const value = input[key];
