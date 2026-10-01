@@ -23,7 +23,7 @@ export function canClientUseTorreonPath(role: string, method: string, rest: stri
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/(resolver|cerrar)$/.test(path)) return true;
   if (kind === "NATURAL") {
     return (verb === "POST" && path === "/movimientos")
-      || (verb === "PATCH" && path === "/rondas/movimientos/orden");
+      || (verb === "PATCH" && (path === "/rondas/movimientos/orden" || path === "/rondas/intercambiar-movimientos" || /^\/movimientos\/\d+(?:\/(?:edicion|cancelar))?$/.test(path)));
   }
   return (verb === "POST" && path === "/arrastres")
     || (verb === "PATCH" && /^\/arrastres\/(?:orden-solicitudes|\d+(?:\/cancelar|\/vagones\/(?:orden|\d+))?)$/.test(path))

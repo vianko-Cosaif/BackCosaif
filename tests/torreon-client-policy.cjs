@@ -7,6 +7,8 @@ const user = (rol) => ({ id: 7, nombre: 'Synthetic client', rol, empresa: { id: 
 async function main() {
   for (const role of roles) {
     assert.equal(allowed(role, 'POST', '/movimientos'), true);
+    assert.equal(allowed(role, 'PATCH', '/movimientos/701'), true);
+    assert.equal(allowed(role, 'PATCH', '/movimientos/701/iniciar'), false);
     assert.equal(allowed(role, 'GET', '/movimientos?localidadId=2'), true);
     for (const [method, path] of [['GET','/arrastres'],['POST','/arrastres'],['PATCH','/arrastres/1/vagones/2'],['POST','/movimientos/1/iniciar'],['PATCH','/movimientos/1/finalizar'],['GET','/incidentes?tipo=ARRASTRE']]) assert.equal(allowed(role, method, path), false);
     assert.equal(scopeTorreonClientPath(role, '/incidentes?empresaId=3'), '/incidentes?empresaId=3&tipo=NATURAL');

@@ -1,3 +1,4 @@
+import { INCIDENT_WINDOW_MS, AUTO_CLOSE_PREFIX } from "./incidentPolicy";
 import {
   EstadoIncidenteArrastreTorreon,
   EstadoIncidenteTorreon,
@@ -99,6 +100,7 @@ const normalizeTipo = (tipo?: string) => {
 
 const withNaturalMeta = <T extends Record<string, unknown>>(incidente: T) => ({
   ...incidente,
+  estado: String(incidente.solucion ?? '').startsWith(AUTO_CLOSE_PREFIX) ? 'CERRADO' : incidente.estado,
   _torreonTipo: "NATURAL" as const,
   tipoIncidente: "NATURAL" as const,
 });
@@ -335,9 +337,12 @@ export class IncidenteModel {
     if (!incidente) throw new DomainError(404, "Incidente no encontrado");
 
     if (incidente.estado === EstadoIncidenteTorreon.RESUELTO) return incidente;
+    if (incidente.fechaInicio && incidente.fechaInicio.getTime() + INCIDENT_WINDOW_MS <= Date.now()) {
+      throw new DomainError(409, 'El tiempo del incidente venció; se está reprogramando el movimiento.');
+    }
 
-    const updated = await tx.incidenteTorreonFerro.update({
-      where: { id: incidenteId },
+    const changed = await tx.incidenteTorreonFerro.updateMany({
+      where: { id: incidenteId, estado: EstadoIncidenteTorreon.ABIERTO },
       data: {
         estado: EstadoIncidenteTorreon.RESUELTO,
         solucion: input.solucion,
@@ -346,6 +351,7 @@ export class IncidenteModel {
       },
     });
 
+    if (changed.count !== 1) throw new DomainError(409, 'El incidente ya fue atendido. Actualiza la información.');
     if (
       incidente.movimiento.estado !== EstadoMovimientoTorreon.CONCLUIDO &&
       incidente.movimiento.estado !== EstadoMovimientoTorreon.CANCELADO
@@ -363,10 +369,16 @@ export class IncidenteModel {
       });
     }
 
+    if (![EstadoMovimientoTorreon.CONCLUIDO, EstadoMovimientoTorreon.CANCELADO].includes(incidente.movimiento.estado as any)) {
+      await tx.rondaTorreonMovimiento.updateMany({
+        where: { movimientoId: incidente.movimientoId, estado: { in: ['PENDIENTE', 'ACTIVO', 'BLOQUEADO'] } },
+        data: { estado: 'PENDIENTE', fechaInicio: null, fechaFin: null, bloqueadoPorIncidenteId: null },
+      });
+    }
     await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
     await RondaModel.promoverMovimientoPrimero(tx, incidente.movimientoId);
     await ArrastreModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
-    return updated;
+    return tx.incidenteTorreonFerro.findUnique({ where: { id: incidenteId } });
   }
 
   static async cerrarTx(
@@ -385,8 +397,8 @@ export class IncidenteModel {
     }
 
     const fechaCierre = input.fechaResolucion ?? new Date();
-    const updated = await tx.incidenteTorreonFerro.update({
-      where: { id: incidenteId },
+    const changed = await tx.incidenteTorreonFerro.updateMany({
+      where: { id: incidenteId, estado: EstadoIncidenteTorreon.ABIERTO },
       data: {
         estado: EstadoIncidenteTorreon.RESUELTO,
         solucion: input.solucion,
@@ -394,6 +406,7 @@ export class IncidenteModel {
         fechaResolucion: fechaCierre,
       },
     });
+    if (changed.count !== 1) throw new DomainError(409, 'El incidente ya fue atendido. Actualiza la información.');
     await tx.movimientoTorreonFerro.update({
       where: { id: incidente.movimientoId },
       data: {
@@ -411,7 +424,7 @@ export class IncidenteModel {
     await RondaModel.marcarMovimientoCancelado(tx, incidente.movimientoId, fechaCierre);
     await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
     await ArrastreModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
-    return updated;
+    return tx.incidenteTorreonFerro.findUnique({ where: { id: incidenteId } });
   }
 
   static async resolver(id: number, input: z.infer<typeof resolverIncidenteSchema>, tipo?: string) {

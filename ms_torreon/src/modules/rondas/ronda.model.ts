@@ -9,6 +9,7 @@ import { prismaTorreon } from "../../db/prisma";
 import { DomainError } from "../../utils/domainError";
 import { reordenarRondaMovimientoSchema } from "./ronda.schemas";
 import { z } from "zod";
+import { naturalRoundPlan } from "./naturalRoundPlan";
 
 type Tx = Prisma.TransactionClient;
 
@@ -25,6 +26,7 @@ export type MovimientoRondaRefs = {
 
 export type IncidenteBloqueoRefs = {
   id: number;
+  movimientoId?: number;
   localidadId: number;
   viaBloqueadaId: number | null;
   seccionBloqueadaId: number | null;
@@ -32,7 +34,6 @@ export type IncidenteBloqueoRefs = {
 };
 
 const ORDER_SHIFT = 100000;
-const MAX_MOVIMIENTOS_POR_RONDA = 3;
 const ESTADOS_RONDA_ACTIVA: EstadoRondaTorreon[] = [EstadoRondaTorreon.ABIERTA, EstadoRondaTorreon.EN_PROCESO];
 const ESTADOS_MOVIMIENTO_RECALCULABLE: EstadoRondaMovimientoTorreon[] = [
   EstadoRondaMovimientoTorreon.PENDIENTE,
@@ -119,7 +120,7 @@ function movimientoEstaBloqueadoPorIncidente(
     typeof incidente.seccionBloqueadaId === "number" &&
     seccionesMovimiento.includes(incidente.seccionBloqueadaId);
 
-  return bloqueaVia || bloqueaSeccion;
+  return incidente.movimientoId === movimiento.id || bloqueaVia || bloqueaSeccion;
 }
 
 export class RondaModel {
@@ -230,7 +231,24 @@ export class RondaModel {
     bloqueadoPorIncidenteId?: number | null,
     bloqueado = Boolean(bloqueadoPorIncidenteId)
   ) {
-    const ronda = await this.getOrCreateActiveRonda(tx, movimiento.localidadId);
+    let ronda = await this.getOrCreateActiveRonda(tx, movimiento.localidadId);
+    if (movimiento.prioridad === 'BAJA' || bloqueado) {
+      const active = await tx.rondaTorreon.findMany({
+        where: { localidadId: movimiento.localidadId, estado: { in: ESTADOS_RONDA_ACTIVA } },
+        orderBy: { numeroRonda: 'asc' },
+        include: { movimientos: { where: { estado: { in: ESTADOS_MOVIMIENTO_RECALCULABLE } } } },
+      });
+      const lows = active.filter(r => !r.movimientos.length || r.movimientos.some(m => m.prioridad === 'BAJA' || m.estado === 'BLOQUEADO'));
+      const own = lows.filter(r => r.movimientos.some(m => m.empresaId === movimiento.empresaId && (m.prioridad === 'BAJA' || m.estado === 'BLOQUEADO')));
+      const lastOwn = own.at(-1)?.numeroRonda;
+      const target = lastOwn == null ? lows[0] : lows.find(r => r.numeroRonda > lastOwn);
+      if (target) ronda = target;
+      else ronda = await tx.rondaTorreon.create({ data: {
+        localidadId: movimiento.localidadId,
+        numeroRonda: Math.max(0, ...active.map(r => r.numeroRonda)) + 1,
+        estado: EstadoRondaTorreon.ABIERTA,
+      } });
+    }
     const orden = await this.resolveOrdenRonda(tx, ronda.id, movimiento.prioridad);
 
     return tx.rondaTorreonMovimiento.create({
@@ -388,7 +406,9 @@ export class RondaModel {
     }
 
     const ordenados = [...movimientos].sort(compareQueueItems);
-    const rondasNecesarias = Math.ceil(ordenados.length / MAX_MOVIMIENTOS_POR_RONDA);
+    const roundNumbers = new Map(activeRondas.map(ronda => [ronda.id, ronda.numeroRonda]));
+    const plan = naturalRoundPlan(ordenados, row => roundNumbers.get(row.rondaId) ?? 1);
+    const rondasNecesarias = plan.length;
     const rondasDestino = await this.ensureActiveRondas(tx, localidadId, rondasNecesarias, activeRondas);
     const destinoIds = new Set(rondasDestino.map((ronda) => ronda.id));
 
@@ -398,29 +418,27 @@ export class RondaModel {
     });
 
     await Promise.all(
-      ordenados.map((movimiento, index) => {
-        const rondaDestino = rondasDestino[Math.floor(index / MAX_MOVIMIENTOS_POR_RONDA)];
+      plan.flatMap((items, roundIndex) => items.map((movimiento, index) => {
+        const rondaDestino = rondasDestino[roundIndex];
         return tx.rondaTorreonMovimiento.update({
           where: { id: movimiento.id },
           data: {
             rondaId: rondaDestino.id,
-            orden: (index % MAX_MOVIMIENTOS_POR_RONDA) + 1,
+            orden: index + 1,
           },
         });
-      })
+      }))
     );
 
     await Promise.all(
       rondasDestino.map((ronda, index) => {
-        const inicio = index * MAX_MOVIMIENTOS_POR_RONDA;
-        const fin = inicio + MAX_MOVIMIENTOS_POR_RONDA;
-        const tieneActivo = ordenados
-          .slice(inicio, fin)
+        const tieneActivo = plan[index]
           .some((movimiento) => movimiento.estado === EstadoRondaMovimientoTorreon.ACTIVO);
 
         return tx.rondaTorreon.update({
           where: { id: ronda.id },
           data: {
+            numeroRonda: index + 1,
             estado: tieneActivo ? EstadoRondaTorreon.EN_PROCESO : EstadoRondaTorreon.ABIERTA,
             fechaCierre: null,
           },
@@ -442,7 +460,7 @@ export class RondaModel {
     return {
       rondasActivas: rondasDestino.length,
       movimientosEnCola: ordenados.length,
-      slots: MAX_MOVIMIENTOS_POR_RONDA,
+      slots: Math.max(...plan.map(items => items.length)),
     };
   }
 
@@ -458,6 +476,7 @@ export class RondaModel {
         localidadId: true,
         viaBloqueadaId: true,
         seccionBloqueadaId: true,
+        movimientoId: true,
       },
     });
     const incidentesAbiertos: IncidenteBloqueoRefs[] = incidentesNaturales.map((incidente) => ({
@@ -518,7 +537,8 @@ export class RondaModel {
         await tx.rondaTorreonMovimiento.update({
           where: { id: item.id },
           data: {
-            estado: EstadoRondaMovimientoTorreon.PENDIENTE,
+            estado: item.movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO
+              ? EstadoRondaMovimientoTorreon.ACTIVO : EstadoRondaMovimientoTorreon.PENDIENTE,
             bloqueadoPorIncidenteId: null,
           },
         });
@@ -555,6 +575,39 @@ export class RondaModel {
     });
     if (movimiento) await this.normalizarRondasActivas(tx, movimiento.localidadId);
     return result;
+  }
+
+  static async intercambiar(input: { rondaAId: number; rondaBId: number; empresaId?: number }) {
+    return prismaTorreon.$transaction(async tx => {
+      const pair = await tx.rondaTorreonMovimiento.findMany({
+        where: { id: { in: [input.rondaAId, input.rondaBId] } }, include: { ronda: true, movimiento: true },
+      });
+      if (pair.length !== 2) throw new DomainError(404, 'Selecciona dos movimientos de ronda distintos');
+      if (pair[0].ronda.localidadId !== pair[1].ronda.localidadId) throw new DomainError(403, 'No puedes mezclar localidades');
+      if (input.empresaId && pair.some(row => row.empresaId !== input.empresaId)) throw new DomainError(403, 'Solo puedes intercambiar movimientos de tu empresa');
+      if (pair[0].prioridad !== pair[1].prioridad) throw new DomainError(409, 'Selecciona movimientos de la misma prioridad para conservar los turnos de atención');
+      if (pair.some(row => !ESTADOS_RONDA_ACTIVA.includes(row.ronda.estado) || !ESTADOS_RONDA_MOVIMIENTO_REORDENABLE.includes(row.estado) || ESTADOS_MOVIMIENTO_NO_EDITABLE.includes(row.movimiento.estado))) {
+        throw new DomainError(409, 'Solo puedes intercambiar movimientos pendientes');
+      }
+      const queue = await tx.rondaTorreonMovimiento.findMany({
+        where: { ronda: { localidadId: pair[0].ronda.localidadId, estado: { in: ESTADOS_RONDA_ACTIVA } }, estado: { in: ESTADOS_MOVIMIENTO_RECALCULABLE } },
+        include: { movimiento: { select: { id: true, fechaSolicitud: true, estado: true } } },
+      });
+      const ordered = queue.sort(compareQueueItems);
+      const a = ordered.findIndex(row => row.id === input.rondaAId), b = ordered.findIndex(row => row.id === input.rondaBId);
+      if (a < 0 || b < 0) throw new DomainError(409, 'La cola cambió. Actualiza e intenta de nuevo.');
+      const first = pair.find(row => row.id === input.rondaAId)!;
+      const second = pair.find(row => row.id === input.rondaBId)!;
+      // Move the two items into each other's slots before stable normalization.
+      const lastSlot = await tx.rondaTorreonMovimiento.aggregate({ where: { rondaId: first.rondaId }, _max: { orden: true } });
+      await tx.rondaTorreonMovimiento.update({ where: { id: first.id }, data: { orden: (lastSlot._max.orden ?? 0) + 1 } });
+      await tx.rondaTorreonMovimiento.update({ where: { id: second.id }, data: { rondaId: first.rondaId, orden: first.orden } });
+      await tx.rondaTorreonMovimiento.update({ where: { id: first.id }, data: { rondaId: second.rondaId, orden: second.orden } });
+      [ordered[a], ordered[b]] = [ordered[b], ordered[a]];
+      for (const [index, row] of ordered.entries()) await tx.rondaTorreonMovimiento.update({ where: { id: row.id }, data: { ordenManual: index + 1, fechaReordenManual: new Date() } });
+      await this.normalizarRondasActivas(tx, pair[0].ronda.localidadId);
+      return { ok: true };
+    }, { isolationLevel: 'Serializable' });
   }
 
   static async reordenarMovimiento(input: z.infer<typeof reordenarRondaMovimientoSchema>) {
@@ -626,11 +679,17 @@ export class RondaModel {
       ));
       const fechaReordenManual = new Date();
 
+      await tx.rondaTorreonMovimiento.updateMany({
+        where: { id: { in: ordenados.map(item => item.id) } },
+        data: { orden: { increment: ORDER_SHIFT } },
+      });
       await Promise.all(
         finalOrder.map((item, index) =>
           tx.rondaTorreonMovimiento.update({
             where: { id: item.id },
             data: {
+              rondaId: ordenados[index].rondaId,
+              orden: ordenados[index].orden,
               ordenManual: index + 1,
               fechaReordenManual,
             },

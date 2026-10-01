@@ -1,3 +1,4 @@
+import { startIncidentExpiry } from "./modules/incidentes/incidentExpiry";
 import express, { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { ZodError } from "zod";
@@ -88,7 +89,9 @@ export function iniciarServidorTorreon(): void {
       return res.status(500).json({ ok: false, error: "Internal Server Error" });
     });
 
-    app.listen(Number(PORT), HOST, () => {
+    const server = app.listen(Number(PORT), HOST, () => {
+      const stopIncidentExpiry = startIncidentExpiry();
+      server.once("close", stopIncidentExpiry);
       console.log(`ms_torreon corriendo en http://${HOST}:${PORT}`);
       guardianAgent.start();
     });

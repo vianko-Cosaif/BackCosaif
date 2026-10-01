@@ -123,10 +123,17 @@ function mapMovimientoTorreon(movimiento: UnknownRecord, detail: UnknownRecord) 
   const movimientoId = asPositiveNumber(detail.movimientoId) ?? asPositiveNumber(movimiento.id);
   const empresaId = asPositiveNumber(detail.empresaId) ?? asPositiveNumber(movimiento.empresaId);
   const empresaNombre = asText(movimiento.empresaNombreSnapshot) ?? (empresaId ? `Empresa ${empresaId}` : "Empresa");
-  const estado = String(detail.estado ?? movimiento.estado ?? "SOLICITADO").toUpperCase();
+  const incident = asRecord(detail.bloqueadoPorIncidente);
+  const blocked = detail.estado === 'BLOQUEADO' || incident.estado === 'ABIERTO';
+  const estado = blocked ? (movimiento.estado === 'DETENIDO' ? 'DETENIDO' : 'ESPERA')
+    : String(movimiento.estado ?? (detail.estado === "ACTIVO" ? "EN_PROCESO" : "SOLICITADO")).toUpperCase();
 
   return {
     id: movimientoId ?? undefined,
+    source: "torreon",
+    incidenteActivo: incident.estado === 'ABIERTO' ? { id: incident.id, fechaInicio: incident.fechaInicio, estado: incident.estado, source: 'torreon' } : null,
+    bloqueadoPorIncidenteId: detail.bloqueadoPorIncidenteId ?? null,
+    fechaPausa: movimiento.fechaPausa ?? null,
     idTecnico: movimientoId ?? undefined,
     folioLocalidad: movimientoId ?? null,
     folioLocalidadLabel: movimientoId ? `#${movimientoId}` : null,

@@ -12,6 +12,7 @@ import { prisma } from "../../lib/prisma";
 import { resolverAudienciaFcmTorreon } from "../../services/torreonFcmRouting";
 
 import { prismaTorreon } from '../../lib/servicePrisma';
+import { prepareNaturalEdit, enrichNaturalEdit } from '../../services/torreonMs/prepareNaturalEdit';
 
 const router = Router();
 
@@ -807,6 +808,10 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
     };
   }
 
+  if (verb === 'PATCH' && /^\/movimientos\/\d+(?:\/edicion)?$/.test(path)) {
+    return { realtimeType: 'torreon.movimiento.estado' as const, fcmTipo: 'torreon_movimiento_editado', title: 'Movimiento actualizado', body: 'Se actualizaron los datos del movimiento', url: '/movimientos', sendFcm: false, accion: 'editar' };
+  }
+
   if (verb === "PATCH" && path === "/rondas/movimientos/orden") {
     return {
       realtimeType: "torreon.movimiento.estado",
@@ -950,10 +955,17 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
       title: "Movimiento Torreon creado",
       body: `Movimiento #${movimientoId ?? ""} · Loco ${movimiento?.locomotiveNumber ?? "N/D"}`,
       url: "/movimientos",
-      sendFcm: true,
+      // Expiry sends one incident notification; the new movement still refreshes the queue.
+      sendFcm: !String(movimiento?.clientRequestId ?? '').startsWith('incident-retry:'),
       movimientoId,
       accion: "crear_movimiento",
     };
+  }
+
+  if (/^\/movimientos\/\d+\/cancelar$/.test(path)) {
+    return { realtimeType: "torreon.movimiento.estado", fcmTipo: "torreon_movimiento_cancelado",
+      title: "Movimiento cancelado", body: `Movimiento #${movimientoId ?? ""}`,
+      url: "/movimientos", sendFcm: false, movimientoId, accion: "cancelar_movimiento" };
   }
 
   if (/^\/movimientos\/\d+\/iniciar$/.test(path)) {
@@ -1019,6 +1031,17 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
       sendFcm: true,
       incidenteId,
       accion: "resolver_incidente",
+    };
+  }
+
+  if (/^\/incidentes\/\d+\/vencer$/.test(path)) {
+    const detail = data as Record<string, unknown>;
+    return {
+      realtimeType: 'torreon.incidente.estado', fcmTipo: 'incidente_timeout',
+      title: 'Incidente vencido',
+      body: `Incidente #${incidenteId} · ${String(detail.solucion ?? '').replace(/^CIERRE_AUTOMATICO_10_MIN:\s*/, '') || 'Se agotaron los 10 minutos para atenderlo.'}`,
+      url: '/incidentes?source=torreon', sendFcm: true, movimientoId, incidenteId,
+      accion: 'vencer_incidente',
     };
   }
 
@@ -1217,10 +1240,12 @@ router.all("/*", async (req, res) => {
       }
     }
 
-    const proxiedBody =
+    let proxiedBody =
       req.method === "GET" || req.method === "DELETE"
         ? undefined
         : await withActorDefaults(req.method, scopedRest, req.body, user);
+    const naturalEdit = scopedRest.split('?')[0].match(/^\/movimientos\/(\d+)(?:\/edicion)?$/);
+    if (req.method === 'PATCH' && naturalEdit) proxiedBody = await prepareNaturalEdit(Number(naturalEdit[1]), readRecord(proxiedBody) ?? {});
 
     const result = await proxyToTorreonMs(scopedRest, {
       method: req.method,
@@ -1234,7 +1259,7 @@ router.all("/*", async (req, res) => {
     if (req.method.toUpperCase() === "GET") {
       const filtered = filterDataForUser(result.data, user, generalLocalityQueue);
       if (filtered == null) return res.status(403).json({ error: "No autorizado para este recurso" });
-      const completed = await completarResponsablesFaltantes(filtered, user);
+      const completed = await completarResponsablesFaltantes(naturalEdit && scopedRest.split("?")[0].endsWith("/edicion") ? await enrichNaturalEdit(filtered) : filtered, user);
       return res.status(result.status).send(await enrichTorreonResponsables(completed));
     }
 
@@ -1257,18 +1282,20 @@ registerJob('torreon.event', async ({ table, row, previous, action }) => {
   let rest: string;
   let method = 'PATCH';
   if (table === 'ronda_torreon_movimiento') {
-    if (action === 'INSERT' || (row.orden === previous?.orden && row.orden_manual === previous?.orden_manual)) return;
+    if (action === 'INSERT' || ['orden', 'orden_manual', 'ronda_id', 'movimiento_id', 'estado', 'bloqueado_por_incidente_id'].every(key => row[key] === previous?.[key])) return;
     const round = await prismaTorreon.rondaTorreonMovimiento.findUnique({ where: { id }, include: { movimiento: true } });
     if (!round) return;
     data = round.movimiento;
     rest = '/rondas/movimientos/orden';
   } else if (table === 'movimiento_torreon_ferro') {
-    if (action !== 'INSERT' && (!stateChanged || !['EN_PROCESO', 'CONCLUIDO'].includes(state))) return;
+    const editFields = ['locomotive_number', 'prioridad', 'tipo_movimiento', 'instrucciones', 'via_origen_id', 'via_destino_id', 'seccion_origen_id', 'seccion_destino_id', 'posicion_cabina', 'posicion_chimenea', 'direccion_empuje'];
+    const edited = action !== 'INSERT' && !stateChanged && editFields.some(key => row[key] !== previous?.[key]);
+    if (action !== 'INSERT' && !edited && (!stateChanged || !['EN_PROCESO', 'CONCLUIDO', 'CANCELADO'].includes(state))) return;
     data = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id } });
     if (!data) return;
     data = { ...data, estado: state };
     method = action === 'INSERT' || state === 'EN_PROCESO' ? 'POST' : 'PATCH';
-    rest = action === 'INSERT' ? '/movimientos' : `/movimientos/${id}/${state === 'EN_PROCESO' ? (previous?.estado === 'DETENIDO' ? 'reanudar' : 'iniciar') : 'finalizar'}`;
+    rest = edited ? `/movimientos/${id}/edicion` : action === 'INSERT' ? '/movimientos' : `/movimientos/${id}/${state === 'EN_PROCESO' ? (previous?.estado === 'DETENIDO' ? 'reanudar' : 'iniciar') : state === 'CANCELADO' ? 'cancelar' : 'finalizar'}`;
   } else if (table === 'arrastre_torreon') {
     data = await prismaTorreon.arrastreTorreon.findUnique({ where: { id }, include: { vagones: true } });
     if (!data) return;
@@ -1295,6 +1322,14 @@ registerJob('torreon.event', async ({ table, row, previous, action }) => {
     data = { ...data, estado: state, incidenteId: id };
     method = action === 'INSERT' ? 'POST' : 'PATCH';
     rest = action === 'INSERT' ? (arrastre ? `/arrastres/${data.arrastreId}/incidentes` : `/movimientos/${data.movimientoId}/incidentes`) : (arrastre && state === 'RESUELTO' ? `/arrastres/${data.arrastreId}/incidentes/${id}/resolver` : `/incidentes/${id}/${state === 'RESUELTO' ? 'resolver' : 'cerrar'}`);
+    if (!arrastre && action !== 'INSERT' && data.movimiento?.estado === 'CANCELADO') {
+      rest = `/incidentes/${id}/cerrar`;
+      data.estado = 'CERRADO';
+    }
+    if (!arrastre && action !== 'INSERT' && String(row.solucion ?? '').startsWith('CIERRE_AUTOMATICO_10_MIN:')) {
+      rest = `/incidentes/${id}/vencer`;
+      data.estado = 'CERRADO';
+    }
   }
   await dispatchTorreonSideEffects(method, rest, data);
 });

@@ -2,7 +2,9 @@ import type { Request, Response } from "express";
 import { ok } from "../../utils/http";
 import { crearIncidenteMovimientoSchema } from "../incidentes/incidente.schemas";
 import {
+  cancelarMovimientoSchema,
   createMovimientoSchema,
+  editMovimientoSchema,
   finalizarMovimientoSchema,
   iniciarMovimientoSchema,
   registrarFotosMovimientoSchema,
@@ -49,6 +51,21 @@ export class MovimientoController {
     const payload = createMovimientoSchema.parse(req.body);
     const data = await MovimientoModel.crear(payload);
     return res.status(201).json(data);
+  }
+
+  static async obtenerEdicion(req: Request, res: Response) {
+    return res.json(await MovimientoModel.obtenerEdicion(parseIdParam(req)));
+  }
+
+  static async editar(req: Request, res: Response) {
+    const payload = editMovimientoSchema.parse(req.body);
+    const data = await MovimientoModel.editar(parseIdParam(req), payload);
+    return ok(res, data);
+  }
+
+  static async cancelar(req: Request, res: Response) {
+    const { razon } = cancelarMovimientoSchema.parse(req.body);
+    return ok(res, await MovimientoModel.cancelar(parseIdParam(req), razon));
   }
 
   static async iniciar(req: Request, res: Response) {

@@ -61,6 +61,26 @@ export const createMovimientoSchema = z.object({
   message: "Debe especificar al menos una via o seccion origen/destino",
 });
 
+export const editMovimientoSchema = z.object({
+  viaOrigenId: idSchema.nullable().optional(),
+  viaDestinoId: idSchema.nullable().optional(),
+  seccionOrigenId: idSchema.nullable().optional(),
+  seccionDestinoId: idSchema.nullable().optional(),
+  viaOrigenNombreSnapshot: z.string().nullable().optional(),
+  viaDestinoNombreSnapshot: z.string().nullable().optional(),
+  seccionOrigenNombreSnapshot: z.string().nullable().optional(),
+  seccionDestinoNombreSnapshot: z.string().nullable().optional(),
+  locomotiveNumber: idSchema.optional(),
+  prioridad: z.enum(["BAJA", "ALTA"]).optional(),
+  tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
+  instrucciones: z.string().trim().max(2000).nullable().optional(),
+  posicionChimenea: z.enum(["Sin_Solicitar", "DENTRO", "AFUERA"]).optional(),
+  posicionCabina: z.enum(["Sin_Solicitar", "DENTRO", "AFUERA"]).optional(),
+  direccionEmpuje: z.enum(["Sin_Solicitar", "EMPUJAR", "JALAR"]).optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, "Indica al menos un dato para editar");
+
+export const cancelarMovimientoSchema = z.object({ razon: z.string().trim().min(1).max(1000).default("Cancelado por cliente") });
+
 export const iniciarMovimientoSchema = withCapturas.extend({
   operadorId: idSchema.optional(),
   supervisorId: idSchema.optional(),
@@ -70,9 +90,7 @@ export const iniciarMovimientoSchema = withCapturas.extend({
 }).transform((data) => ({
   ...data,
   fotos: data.fotos ?? data.capturas ?? [],
-})).refine((data) => data.fotos.length >= 1, {
-  message: "Iniciar movimiento requiere al menos una captura",
-}).refine(maxCuatroCapturas, {
+})).refine(maxCuatroCapturas, {
   message: "Iniciar movimiento permite maximo 4 capturas",
 });
 
@@ -94,9 +112,7 @@ export const finalizarMovimientoSchema = withCapturas.extend({
 }).transform((data) => ({
   ...data,
   fotos: data.fotos ?? data.capturas ?? [],
-})).refine((data) => data.fotos.length >= 1, {
-  message: "Finalizar movimiento requiere al menos una captura",
-}).refine(maxCuatroCapturas, {
+})).refine(maxCuatroCapturas, {
   message: "Finalizar movimiento permite maximo 4 capturas",
 });
 
