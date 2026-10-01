@@ -263,7 +263,7 @@ export class MovimientoModel {
 
   static async obtenerEdicion(id: number) {
     const m = await getMovimientoDetalle(id);
-    const estadosPermitidos = ['SOLICITADO', 'ASIGNADO', 'DETENIDO'];
+    const estadosPermitidos = ['SOLICITADO', 'ASIGNADO'];
     const editable = estadosPermitidos.includes(m.estado);
     return {
       empresaId: m.empresaId, localidadId: m.localidadId,
@@ -282,7 +282,7 @@ export class MovimientoModel {
   static async editar(id: number, input: z.infer<typeof editMovimientoSchema>) {
     await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await getMovimientoOrThrow(tx, id);
-      if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO', 'DETENIDO']).has(movimiento.estado)) {
+      if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede editarse en estado ${movimiento.estado}`);
       }
       const changed = await tx.movimientoTorreonFerro.updateMany({

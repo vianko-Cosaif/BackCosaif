@@ -228,7 +228,7 @@ export class MovimientoWriteService {
 
     const actualizado = await prisma.$transaction(async (tx) => {
       const updated = await tx.movimiento.update({
-        where: { id },
+        where: { id, estado: actual.estado, updatedAt: actual.updatedAt, finalizado: false },
         data: { ...updateData, updatedAt: new Date() },
         include: { empresa: true, localidad: true, viaOrigen: true, viaDestino: true, ronda: true },
       });

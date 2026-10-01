@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express';
 import { prismaTorreon } from '../lib/servicePrisma';
-import { buildAuthorizationProfile, PERMISSIONS } from './accessPolicy';
+import { buildAuthorizationProfile, hasPermission, PERMISSIONS } from './accessPolicy';
 import { resourceFitsAuthorizationScope } from './resourceScope';
 import type { AuthenticatedUser } from '../types/auth';
 
@@ -13,8 +13,8 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD') return next();
     const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : (req.body = {});
     const path = req.path.replace(/\/+$/, '');
-    if (req.method === 'PATCH' && /^\/movimientos\/\d+(?:\/edicion)?$/.test(path) && !auth.permissions.includes(PERMISSIONS.MOVEMENTS_EDIT)) return deny();
-    if (path.startsWith('/rondas/') && !auth.permissions.includes(PERMISSIONS.ROUNDS_EDIT)) return deny();
+    if (req.method === 'PATCH' && /^\/movimientos\/\d+(?:\/edicion)?$/.test(path) && !hasPermission(auth, PERMISSIONS.MOVEMENTS_EDIT)) return deny();
+    if (path.startsWith('/rondas/') && !hasPermission(auth, PERMISSIONS.ROUNDS_EDIT)) return deny();
     if (/^\/movimientos\/\d+\/cancelar$/.test(path) && !auth.permissions.includes(PERMISSIONS.MOVEMENTS_CANCEL)) return deny();
     if (/^\/movimientos\/\d+\/(?:iniciar|finalizar|detener|reanudar|fotos)$/.test(path) && !auth.permissions.includes(PERMISSIONS.MOVEMENTS_OPERATE)) return deny();
     const resources: { empresaId: number; localidadId: number }[] = [];

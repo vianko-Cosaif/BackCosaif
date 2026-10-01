@@ -1538,10 +1538,14 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     if (rondaAId === rondaBId) throw new Error("Debe indicar dos rondas distintas para el intercambio");
     return await prisma.$transaction(async tx => {
       const [rondaA, rondaB] = await Promise.all([
-        tx.ronda.findUnique({ where: { id: rondaAId } }),
-        tx.ronda.findUnique({ where: { id: rondaBId } }),
+        tx.ronda.findUnique({ where: { id: rondaAId }, include: { movimiento: true } }),
+        tx.ronda.findUnique({ where: { id: rondaBId }, include: { movimiento: true } }),
       ]);
       if (!rondaA || !rondaB) throw new Error("Rondas o movimientos invÃ¡lidos");
+
+      if ([rondaA, rondaB].some(r => r.concluido || r.movimiento.finalizado || !['SOLICITADO', 'ESPERA', 'MODIFICADO'].includes(r.movimiento.estado))) {
+        throw new Error('Sólo puedes intercambiar movimientos pendientes que no hayan iniciado');
+      }
 
       const movimientoIdA = rondaA.movimientoId;
       const movimientoIdB = rondaB.movimientoId;
@@ -1582,15 +1586,16 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   static async intercambiarMovimientoEnRonda(rondaId: number, nuevoMovimientoId: number) {
     try {
-      const ronda = await prisma.ronda.findUnique({ where: { id: rondaId } });
-      if (!ronda) throw new Error('Ronda no encontrada');
-      const movimiento = await prisma.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
-      if (!movimiento) throw new Error('Movimiento no encontrado');
-
-      return await prisma.ronda.update({
-        where: { id: rondaId },
-        data: { movimientoId: nuevoMovimientoId },
-      });
+      return await prisma.$transaction(async tx => {
+        const ronda = await tx.ronda.findUnique({ where: { id: rondaId }, include: { movimiento: true } });
+        if (!ronda) throw new Error('Ronda no encontrada');
+        const movimiento = await tx.movimiento.findUnique({ where: { id: nuevoMovimientoId } });
+        if (!movimiento) throw new Error('Movimiento no encontrado');
+        if (ronda.concluido || [ronda.movimiento, movimiento].some(m => m.finalizado || !['SOLICITADO', 'ESPERA', 'MODIFICADO'].includes(m.estado))) {
+          throw new Error('Sólo puedes intercambiar movimientos pendientes que no hayan iniciado');
+        }
+        return tx.ronda.update({ where: { id: rondaId }, data: { movimientoId: nuevoMovimientoId } });
+      }, { isolationLevel: 'Serializable' });
     } catch (error) {
       movimientoError.error('Error al intercambiar movimiento en ronda', { rondaId, nuevoMovimientoId, error });
       throw new Error('Error al intercambiar movimiento en ronda');

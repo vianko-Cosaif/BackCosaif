@@ -19,6 +19,31 @@ async function main() {
   for (const path of ['/arrastres/1', '/arrastres/1/cancelar', '/arrastres/1/vagones/2', '/arrastres/1/incidentes/3/resolver']) assert.equal(allowed('ARRASTRE_TORREON', 'PATCH', path), true);
   for (const path of ['/arrastres/1/vagones/2/iniciar', '/arrastres/1/vagones/2/finalizar']) assert.equal(allowed('ARRASTRE_TORREON', 'PATCH', path), false);
 
+  const { buildAuthorizationProfile, hasPermission, PERMISSIONS } = load('src/auth/accessPolicy.ts');
+  for (const role of ['SUPERVISOR', 'COORDINADOR']) {
+    const auth = buildAuthorizationProfile(user(role));
+    assert.equal(hasPermission(auth, PERMISSIONS.MOVEMENTS_EDIT), false);
+    assert.equal(hasPermission(auth, PERMISSIONS.ROUNDS_EDIT), false);
+    assert.equal(hasPermission(auth, PERMISSIONS.MOVEMENTS_OPERATE), true);
+    auth.permissions.push(PERMISSIONS.MOVEMENTS_EDIT, PERMISSIONS.ROUNDS_EDIT);
+    assert.equal(hasPermission(auth, PERMISSIONS.MOVEMENTS_EDIT), false, 'Las sesiones antiguas tampoco habilitan edición');
+    const staleScope = loader({ 'src/lib/servicePrisma': { prismaTorreon: {} } })('src/auth/torreonScope.ts').requireTorreonScope;
+    for (const path of ['/movimientos/701/edicion', '/rondas/movimientos/orden']) {
+      assert.equal((await invoke(staleScope, { user: user(role), authorization: auth, method: 'PATCH', path })).statusCode, 403);
+    }
+  }
+  let resource = { empresaId: 3, localidadId: 2 };
+  const editScope = loader({ 'src/lib/servicePrisma': { prismaTorreon: { movimientoTorreonFerro: { findUnique: async () => resource } } } })('src/auth/torreonScope.ts').requireTorreonScope;
+  for (const role of roles) {
+    const req = { user: user(role), method: 'PATCH', path: '/movimientos/701/edicion', body: { locomotiveNumber: 1234 } };
+    resource = { empresaId: 3, localidadId: 2 };
+    assert.equal((await invoke(editScope, req)).allowed, true, role + ' puede editar su empresa');
+    resource = { empresaId: 4, localidadId: 2 };
+    assert.equal((await invoke(editScope, req)).statusCode, 403, role + ' no puede editar otra empresa');
+  }
+  const editableStates = load('src/models/Movimientos/movimiento.shared.ts').ESTADOS_EDITABLES;
+  for (const state of ['EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO']) assert.equal(editableStates.has(state), false);
+
   const scope = loader({ 'src/lib/servicePrisma': { prismaTorreon: {} } })('src/auth/torreonScope.ts').requireTorreonScope;
   for (const role of roles) {
     const own = { empresaId: 3, localidadId: 2, creadoPorId: 999 };

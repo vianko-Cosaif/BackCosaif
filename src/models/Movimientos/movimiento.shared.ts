@@ -1,4 +1,4 @@
-export const ESTADOS_EDITABLES = new Set(['SOLICITADO', 'DETENIDO', 'ESPERA', 'MODIFICADO']);
+export const ESTADOS_EDITABLES = new Set(['SOLICITADO', 'ESPERA', 'MODIFICADO']);
 
 export const EDITABLE_KEYS = new Set([
   'instrucciones',
