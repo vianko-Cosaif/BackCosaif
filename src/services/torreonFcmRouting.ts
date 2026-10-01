@@ -43,7 +43,7 @@ export function resolverAudienciaFcmTorreon(tipo: string): TorreonFcmRouting | n
   if (tipo === 'arrastre_incidente') {
     return { audience: 'CLIENTE_CONTROL_ARRASTRE', roles: [Rol.ARRASTRE_TORREON, Rol.COORDINADOR, Rol.SUPERVISOR, Rol.MAQUINISTA_ARRASTRE], url: '/cliente/torreon/incidentes' };
   }
-  if (['torreon_movimiento_creado', 'incidente_resuelto_cliente', 'incidente_cerrado_manual', 'movimiento_pendiente_recordatorio'].includes(tipo)) {
+  if (['torreon_movimiento_creado', 'incidente_resuelto_cliente', 'incidente_cerrado_manual', 'incidente_timeout', 'movimiento_pendiente_recordatorio'].includes(tipo)) {
     return { audience: 'OPERACION_NATURAL', roles: [Rol.MAQUINISTA, Rol.COORDINADOR, Rol.SUPERVISOR],
       url: tipo.startsWith('incidente_') ? '/incidentes?source=torreon' : '/movimientos' };
   }

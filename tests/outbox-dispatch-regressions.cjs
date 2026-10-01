@@ -50,6 +50,23 @@ async function main() {
   await dispatch({ table: 'ronda_torreon_movimiento', action: 'UPDATE', row: { id: 76, orden: 2 }, previous: { orden: 1 } });
   assert.equal(events.at(-1).accion, 'orden_ronda');
   assert.equal(refreshEvents.length, 2);
+  await dispatch({ table: 'ronda_torreon_movimiento', action: 'UPDATE', row: { id: 76, orden: 2, estado: 'BLOQUEADO', bloqueado_por_incidente_id: 75 }, previous: { orden: 2, estado: 'PENDIENTE', bloqueado_por_incidente_id: null } });
+  assert.equal(events.at(-1).accion, 'orden_ronda');
+  assert.equal(notifications.length, count, 'Bloquear una ronda refresca datos sin otro push');
+  movement.estado='CANCELADO';
+  await dispatch({ table: 'incidente_torreon_ferro', action: 'UPDATE', row: {id:75,estado:'RESUELTO'}, previous:{estado:'ABIERTO'} });
+  assert.equal(events.at(-1).estado,'CANCELADO','El cierre conserva el estado del movimiento cancelado');
+  assert.equal(events.at(-1).accion,'cerrar_incidente_cancelar_movimiento');
+  assert.equal(notifications.at(-1).tipo,'incidente_cerrado_manual','El cierre no se anuncia como resolución para reanudar');
+  const beforeTimeout = notifications.length;
+  await dispatch({ table: 'incidente_torreon_ferro', action: 'UPDATE', row: {id:75,estado:'RESUELTO',solucion:'CIERRE_AUTOMATICO_10_MIN: Reprogramado en movimiento #76.'}, previous:{estado:'ABIERTO'} });
+  assert.equal(notifications.at(-1).tipo,'incidente_timeout');
+  assert.equal(events.at(-1).accion,'vencer_incidente');
+  movement.clientRequestId='incident-retry:75';
+  await dispatch({ table:'movimiento_torreon_ferro',action:'INSERT',row:{id:71,estado:'SOLICITADO'} });
+  assert.equal(events.at(-1).type,'torreon.movimiento.creado');
+  assert.equal(events.at(-1).recipientRoles.length,0);
+  assert.equal(notifications.length,beforeTimeout+1,'Closure plus retry generates just one notification');
   console.log('Outbox: movement resume, incident IDs and queue order event delivery OK');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

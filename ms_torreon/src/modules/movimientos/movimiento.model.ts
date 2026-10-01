@@ -13,6 +13,7 @@ import { crearIncidenteMovimientoSchema } from "../incidentes/incidente.schemas"
 import { RondaModel } from "../rondas/ronda.model";
 import {
   createMovimientoSchema,
+  editMovimientoSchema,
   finalizarMovimientoSchema,
   fotoInputSchema,
   iniciarMovimientoSchema,
@@ -260,6 +261,45 @@ export class MovimientoModel {
     return getMovimientoDetalle(movimientoId);
   }
 
+  static async obtenerEdicion(id: number) {
+    const m = await getMovimientoDetalle(id);
+    const estadosPermitidos = ['SOLICITADO', 'ASIGNADO', 'DETENIDO'];
+    const editable = estadosPermitidos.includes(m.estado);
+    return {
+      empresaId: m.empresaId, localidadId: m.localidadId,
+      editable, restricciones: { motivo: editable ? null : 'El movimiento ya inició o terminó', estadosPermitidos, mismaLocalidadParaVias: true },
+      movimiento: {
+        ...m, source: 'torreon', finalizado: isMovimientoCerrado(m.estado),
+        empresa: { id: m.empresaId, nombre: m.empresaNombreSnapshot ?? '' },
+        localidad: { id: m.localidadId, nombre: m.localidadNombreSnapshot ?? 'Torreón' },
+        viaOrigen: m.viaOrigenId ? { id: m.viaOrigenId, nombre: m.viaOrigenNombreSnapshot ?? '' } : null,
+        viaDestino: m.viaDestinoId ? { id: m.viaDestinoId, nombre: m.viaDestinoNombreSnapshot ?? '' } : null,
+      },
+      editableKeys: ['instrucciones', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId', 'tipoMovimiento', 'posicionCabina', 'posicionChimenea', 'direccionEmpuje'],
+    };
+  }
+
+  static async editar(id: number, input: z.infer<typeof editMovimientoSchema>) {
+    await prismaTorreon.$transaction(async (tx) => {
+      const movimiento = await getMovimientoOrThrow(tx, id);
+      if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO', 'DETENIDO']).has(movimiento.estado)) {
+        throw new DomainError(409, `Movimiento no puede editarse en estado ${movimiento.estado}`);
+      }
+      const changed = await tx.movimientoTorreonFerro.updateMany({
+        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt }, data: input,
+      });
+      if (changed.count !== 1) throw new DomainError(409, 'El movimiento cambió mientras lo editabas. Actualiza e intenta de nuevo.');
+      if (input.prioridad && input.prioridad !== movimiento.prioridad) {
+        await tx.rondaTorreonMovimiento.updateMany({
+          where: { movimientoId: id, estado: { in: ["PENDIENTE", "BLOQUEADO"] } },
+          data: { prioridad: input.prioridad },
+        });
+      }
+      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
+    });
+    return getMovimientoDetalle(id);
+  }
+
   static async iniciar(id: number, input: z.infer<typeof iniciarMovimientoSchema>) {
     const movimientoId = await prismaTorreon.$transaction(async (tx) => {
       const movimiento = await getMovimientoOrThrow(tx, id);
@@ -325,6 +365,26 @@ export class MovimientoModel {
     });
 
     return getMovimientoDetalle(movimientoId);
+  }
+
+  static async cancelar(id: number, razon: string) {
+    await prismaTorreon.$transaction(async tx => {
+      const movimiento = await getMovimientoOrThrow(tx, id);
+      if (movimiento.estado === EstadoMovimientoTorreon.CANCELADO) return;
+      if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
+        throw new DomainError(409, 'Solo se pueden cancelar movimientos pendientes de iniciar');
+      }
+      const fechaFin = new Date();
+      const result = await tx.movimientoTorreonFerro.updateMany({
+        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt },
+        data: { estado: EstadoMovimientoTorreon.CANCELADO, finalizado: true, fechaFin,
+          instrucciones: `${movimiento.instrucciones ?? ''}\nCANCELADO: ${razon}`.trim() },
+      });
+      if (result.count !== 1) throw new DomainError(409, 'El movimiento cambió. Actualiza e intenta de nuevo.');
+      await RondaModel.marcarMovimientoCancelado(tx, id, fechaFin);
+      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
+    }, { isolationLevel: 'Serializable' });
+    return getMovimientoDetalle(id);
   }
 
   static async registrarFotos(id: number, input: z.infer<typeof registrarFotosMovimientoSchema>) {
