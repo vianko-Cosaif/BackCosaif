@@ -122,11 +122,14 @@ export class MovimientoWriteService {
         localidad: movimientoDetenido.localidad?.nombre,
       });
 
-      await notificarMovimientoBestEffort('movimiento_detenido', movimientoDetenido.id, () =>
-        notificarMovimientoDetenido(movimientoDetenido.id, razon)
-      );
-      await RondaModel.siguienteInteligente(movimientoDetenido.localidadId);
-      publishMovimientoEstadoEvent(movimientoDetenido);
+      try {
+        await notificarMovimientoBestEffort('movimiento_detenido', movimientoDetenido.id, () =>
+          notificarMovimientoDetenido(movimientoDetenido.id, razon)
+        );
+        await RondaModel.siguienteInteligente(movimientoDetenido.localidadId);
+      } finally {
+        publishMovimientoEstadoEvent(movimientoDetenido);
+      }
       return movimientoDetenido;
     } catch (error: any) {
       movimientoError.error('Error al detener movimiento', {
@@ -1003,11 +1006,14 @@ export class MovimientoWriteService {
         data: { estado: 'DETENIDO', fechaPausa: fechaActual, updatedAt: fechaActual },
       });
 
-      await notificarMovimientoBestEffort('movimiento_detenido', movimiento.id, () =>
-        notificarMovimientoDetenido(movimiento.id)
-      );
-      await RondaModel.siguienteInteligente(movimiento.localidadId);
-      publishMovimientoEstadoEvent(movimiento);
+      try {
+        await notificarMovimientoBestEffort('movimiento_detenido', movimiento.id, () =>
+          notificarMovimientoDetenido(movimiento.id)
+        );
+        await RondaModel.siguienteInteligente(movimiento.localidadId);
+      } finally {
+        publishMovimientoEstadoEvent(movimiento);
+      }
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al pausar movimiento', {

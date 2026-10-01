@@ -1756,6 +1756,30 @@ export class IncidenteModel {
                 ),
               { rid, incidenteId: nuevoIncidente.id, movimientoId: movimientoCancelado.id }
             );
+
+            publishMovimientoEstadoEvent({
+              ...movimientoCancelado,
+              estadoAnterior: movimiento.estado,
+            });
+          }
+
+          const incidenteCancelado = await prisma.incidente.findUnique({
+            where: { id: nuevoIncidente.id },
+            include: { movimiento: true },
+          });
+          if (incidenteCancelado) {
+            publishRealtimeEvent({
+              type: 'incidente.estado',
+              movimientoId: incidenteCancelado.movimientoId,
+              empresaId: movimiento.empresaId,
+              localidadId: movimiento.localidadId,
+              clienteId: movimiento.clienteId,
+              incidenteId: incidenteCancelado.id,
+              estado: incidenteCancelado.estado,
+              estadoAnterior: 'ABIERTO',
+              incidenteGlobal: false,
+              locomotiveNumber: movimiento.locomotiveNumber,
+            });
           }
 
           trace('warn', 'Movimiento cancelado al levantar incidente por límite de incidentes', {
@@ -1766,7 +1790,7 @@ export class IncidenteModel {
             totalIncidentesCadena,
           });
 
-          return await prisma.incidente.findUnique({
+          return prisma.incidente.findUnique({
             where: { id: nuevoIncidente.id },
             include: {
               movimiento: { include: { empresa: true, localidad: true, ronda: true } },
