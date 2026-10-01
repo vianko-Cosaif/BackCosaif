@@ -21,12 +21,12 @@ async function main() {
     'ms_torreon/src/utils/imagenesTorreon':{guardarFotoTorreon(){throw Error('No photos in edit')}},
     'ms_torreon/src/modules/rondas/ronda.model':{RondaModel:{marcarMovimientoCancelado:async()=>{cancelled++},recalcularBloqueosLocalidad:async()=>{recalculated++}}},
   })('ms_torreon/src/modules/movimientos/movimiento.model.ts').MovimientoModel;
-  for (state of ['SOLICITADO','ASIGNADO','DETENIDO']) {
+  for (state of ['SOLICITADO','ASIGNADO']) {
     assert.equal((await model.obtenerEdicion(7)).editable,true);
     await model.editar(7,{viaDestinoId:12}); assert.equal(data.where.estado,state);
   }
-  assert.equal(recalculated,3,'Se recalculan bloqueos al cambiar recorrido');
-  for (state of ['EN_PROCESO','CONCLUIDO','CANCELADO']) {
+  assert.equal(recalculated,2,'Se recalculan bloqueos al cambiar recorrido');
+  for (state of ['EN_PROCESO','DETENIDO','CONCLUIDO','CANCELADO']) {
     assert.equal((await model.obtenerEdicion(7)).editable,false);
     await assert.rejects(()=>model.editar(7,{locomotiveNumber:9}),/no puede editarse/);
   }
