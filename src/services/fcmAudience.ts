@@ -68,7 +68,9 @@ export async function usuariosAudienciaOperacion(params: AudienceParams) {
     select: { id: true, rol: true, empresaId: true, localidadId: true, fcmTokens: { select: { token: true, localidadId: true } } },
   });
   // Defense in depth: stale assignments and stale device scope must not widen delivery.
-  return users.filter(user => roles.includes(user.rol)
+  const assignedNaturalNotice = ['torreon_unidad_asignada', 'torreon_reanudacion_disponible'].includes(params.tipo ?? '');
+  const assignedIds = (params.usuarioIds ?? []).map(toPositiveInt);
+  return users.filter(user => (!assignedNaturalNotice || assignedIds.includes(user.id)) && roles.includes(user.rol)
     && (!companyScopedRoles.includes(user.rol) || user.empresaId === company)
     && (user.localidadId === yard || SELECTABLE_YARD_ROLES.includes(user.rol))
     && uniqueTokensFromUsers([user], yard).length > 0);

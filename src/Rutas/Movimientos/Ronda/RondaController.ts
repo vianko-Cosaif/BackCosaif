@@ -154,80 +154,25 @@ function mapMovimientoTorreon(movimiento: UnknownRecord, detail: UnknownRecord) 
   };
 }
 
-function mapRondasTorreon(raw: unknown, concluido: boolean, localidadId: number) {
-  const rondas = extractArray(raw);
-  const rows: UnknownRecord[] = [];
-
-  for (const ronda of rondas) {
-    const movimientos = Array.isArray(ronda.movimientos) ? ronda.movimientos as UnknownRecord[] : [];
-    const rondaNumero = asPositiveNumber(ronda.numeroRonda) ?? 0;
-
-    movimientos.forEach((detail, index) => {
-      const movimiento = asRecord(detail.movimiento);
-      const detailId = asPositiveNumber(detail.id);
-      const movimientoId = asPositiveNumber(detail.movimientoId) ?? asPositiveNumber(movimiento.id);
-      if (!detailId || !movimientoId) return;
-
-      const itemDone = movimientoTorreonConcluido(detail, movimiento);
-      if (itemDone !== concluido) return;
-
-      const mappedMovimiento = mapMovimientoTorreon(movimiento, detail);
-      rows.push({
-        id: detailId,
-        rondaNumero,
-        orden: asPositiveNumber(detail.orden) ?? index + 1,
-        concluido: itemDone,
-        empresa: mappedMovimiento.empresa,
-        movimiento: mappedMovimiento,
-        movimientoId,
-        empresaId: mappedMovimiento.empresaId,
-        localidadId,
-        createdAt: detail.fechaAsignado ?? movimiento.fechaSolicitud ?? ronda.fechaApertura ?? ronda.createdAt ?? null,
-        source: "torreon",
-      });
-    });
-  }
-
-  return rows.sort((a, b) => {
-    const rondaDiff = Number(a.rondaNumero ?? 0) - Number(b.rondaNumero ?? 0);
-    if (rondaDiff) return rondaDiff;
-    const ordenDiff = Number(a.orden ?? 0) - Number(b.orden ?? 0);
-    if (ordenDiff) return ordenDiff;
-    return Number(a.id ?? 0) - Number(b.id ?? 0);
-  });
+async function obtenerRondasTorreon(localidadId: number, concluido: boolean, user?: any) {
+  // Compatibility shape for older callers, backed by the new queue; GDL never enters this branch.
+  const company = ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(user?.rol) ? user.empresa?.id : undefined;
+  const result = await requestTorreonMs<any[]>(`/cola?localidadId=${localidadId}&historial=${concluido}${company ? `&empresaId=${company}` : ''}`, { method: 'GET' });
+  return extractArray(result.data).flatMap((unit, index) => extractArray(unit.movimientos).map(m => ({
+    id: m.id, localidadId, empresaId: m.empresaId, source: 'torreon', unidadId: unit.id, unidad: unit,
+    rondaNumero: 0, orden: index + 1, concluido, estado: m.estado,
+    empresa: { id: m.empresaId, nombre: m.empresaNombreSnapshot },
+    movimiento: { ...m, ...mapMovimientoTorreon(m, {}), unidad: unit, operadorId: unit.operadorId },
+  })));
+}
+async function siguienteColaTorreon(localidadId: number, userId?: number) {
+  const result = await requestTorreonMs<any>(`/cola/siguiente?localidadId=${localidadId}`, { method: 'GET', headers: { 'x-user-id': String(userId ?? 0), 'x-user-rol': 'MAQUINISTA' } });
+  const data = result.data;
+  if (data.vacio) return data;
+  return { ...data, movimientoId: data.movimiento.id, rondaId: null, rondaNumero: 0, orden: data.unidad.posicion ?? 1,
+    movimiento: { ...data.movimiento, ...mapMovimientoTorreon(data.movimiento, {}), unidad: data.unidad } };
 }
 
-async function obtenerRondasTorreon(localidadId: number, concluido: boolean) {
-  const params = new URLSearchParams({ localidadId: String(localidadId) });
-  if (concluido) params.set("estado", "CERRADA");
-  const result = await requestTorreonMs<unknown[]>(`/rondas?${params.toString()}`, { method: "GET" });
-  return mapRondasTorreon(result.data, concluido, localidadId);
-}
-
-function siguienteTorreonDesdeRondas(rows: UnknownRecord[]) {
-  const next = rows.find((row) => {
-    const movimiento = asRecord(row.movimiento);
-    const estado = String(movimiento.estado ?? "").toUpperCase();
-    return !["BLOQUEADO", "ESPERA", "DETENIDO", "CONCLUIDO", "CANCELADO"].includes(estado);
-  });
-  if (!next) return { vacio: true, motivo: "Sin movimientos pendientes en Torreon", source: "torreon" };
-
-  const movimiento = asRecord(next.movimiento);
-  return {
-    rondaId: next.id,
-    movimientoId: next.movimientoId ?? movimiento.id,
-    empresaId: asPositiveNumber(asRecord(next.empresa).id) ?? asPositiveNumber(movimiento.empresaId),
-    prioridad: movimiento.prioridad ?? "BAJA",
-    locomotiveNumber: movimiento.locomotiveNumber ?? null,
-    viaDestino: asRecord(movimiento.viaDestino).nombre ?? null,
-    bloqueado: false,
-    permiteInicio: true,
-    rondaNumero: next.rondaNumero,
-    orden: next.orden,
-    movimiento,
-    source: "torreon",
-  };
-}
 
 export class RondaController {
   /**
@@ -364,7 +309,7 @@ export class RondaController {
     }
     try {
       if (await localidadUsaTorreon(localidadId)) {
-        const rondas = await obtenerRondasTorreon(localidadId, false);
+        const rondas = await obtenerRondasTorreon(localidadId, false, req.user);
         res.status(200).json(filterRondasForRequest(req, rondas as any));
         return;
       }
@@ -400,7 +345,7 @@ export class RondaController {
 
     try {
       if (await localidadUsaTorreon(localidadId)) {
-        const rondas = await obtenerRondasTorreon(localidadId, concluido);
+        const rondas = await obtenerRondasTorreon(localidadId, concluido, req.user);
         res.status(200).json(filterRondasForRequest(req, rondas as any));
         return;
       }
@@ -536,8 +481,7 @@ static obtenerSiguienteEnRonda: RequestHandler = async (req, res) => {
 
   try {
     if (await localidadUsaTorreon(localidadId)) {
-      const rondas = await obtenerRondasTorreon(localidadId, false);
-      res.status(200).json(siguienteTorreonDesdeRondas(rondas));
+      res.status(200).json(await siguienteColaTorreon(localidadId, userId));
       return;
     }
 
@@ -572,8 +516,7 @@ static obtenerSiguienteInteligente: RequestHandler = async (req, res) => {
 
   try {
     if (await localidadUsaTorreon(localidadId)) {
-      const rondas = await obtenerRondasTorreon(localidadId, false);
-      res.status(200).json(siguienteTorreonDesdeRondas(rondas));
+      res.status(200).json(await siguienteColaTorreon(localidadId, userId));
       return;
     }
 

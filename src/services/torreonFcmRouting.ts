@@ -36,6 +36,9 @@ const NATURAL_PARA_CLIENTE = new Set([
 ]);
 
 export function resolverAudienciaFcmTorreon(tipo: string): TorreonFcmRouting | null {
+  if (['torreon_unidad_asignada', 'torreon_reanudacion_disponible'].includes(tipo)) {
+    return { audience: 'OPERACION_NATURAL', roles: [Rol.MAQUINISTA], url: '/movimientos' };
+  }
   if (['arrastre_creado', 'arrastre_incidente_resuelto', 'arrastre_pendiente_recordatorio', 'arrastre_incidente_cerrado'].includes(tipo)) {
     return { audience: 'OPERACION_ARRASTRE', roles: [Rol.MAQUINISTA_ARRASTRE, Rol.COORDINADOR, Rol.SUPERVISOR],
       url: tipo.includes('incidente') ? '/cliente/torreon/incidentes' : '/cliente/torreon/movimientos' };

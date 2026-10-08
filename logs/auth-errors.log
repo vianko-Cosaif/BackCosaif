@@ -31,3 +31,6 @@
 {"level":"error","message":"security:audit_disabled_missing_key AUDIT_HMAC_KEY independiente es obligatoria; auditoría de mutaciones deshabilitada.","service":"api-service","timestamp":"2026-09-10 11:32:18"}
 {"level":"error","message":"security:audit_disabled_missing_key AUDIT_HMAC_KEY independiente es obligatoria; auditoría de mutaciones deshabilitada.","service":"api-service","timestamp":"2026-09-28 10:24:57"}
 {"attempts":1,"delay":120,"key":"test","level":"error","message":"jobs:retry retry","service":"api-service","timestamp":"2026-09-28 13:11:17"}
+{"level":"error","message":"security:audit_disabled_missing_key AUDIT_HMAC_KEY independiente es obligatoria; auditoría de mutaciones deshabilitada.","service":"api-service","timestamp":"2026-10-01 11:46:43"}
+{"level":"error","message":"security:audit_disabled_missing_key AUDIT_HMAC_KEY independiente es obligatoria; auditoría de mutaciones deshabilitada.","service":"api-service","timestamp":"2026-10-01 12:22:19"}
+{"level":"error","message":"security:audit_disabled_missing_key AUDIT_HMAC_KEY independiente es obligatoria; auditoría de mutaciones deshabilitada.","service":"api-service","timestamp":"2026-10-01 12:27:31"}

@@ -5,6 +5,7 @@ import { MovimientoController } from "./movimiento.controller";
 export const movimientoRouter = Router();
 
 movimientoRouter.get("/", asyncHandler(MovimientoController.listar));
+movimientoRouter.post("/lote", asyncHandler(MovimientoController.crearLote));
 movimientoRouter.post("/", asyncHandler(MovimientoController.crear));
 movimientoRouter.get("/:id/edicion", asyncHandler(MovimientoController.obtenerEdicion));
 movimientoRouter.patch("/:id/edicion", asyncHandler(MovimientoController.editar));

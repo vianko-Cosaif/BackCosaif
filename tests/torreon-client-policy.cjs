@@ -7,6 +7,9 @@ const user = (rol) => ({ id: 7, nombre: 'Synthetic client', rol, empresa: { id: 
 async function main() {
   for (const role of roles) {
     assert.equal(allowed(role, 'POST', '/movimientos'), true);
+    assert.equal(allowed(role, 'POST', '/movimientos/lote'), true);
+    assert.equal(allowed(role, 'GET', '/cola?localidadId=2'), true);
+    assert.equal(allowed(role, 'PATCH', '/cola/priorizar'), false);
     assert.equal(allowed(role, 'PATCH', '/movimientos/701'), true);
     assert.equal(allowed(role, 'PATCH', '/movimientos/701/iniciar'), false);
     assert.equal(allowed(role, 'GET', '/movimientos?localidadId=2'), true);
@@ -27,13 +30,13 @@ async function main() {
     assert.equal(hasPermission(auth, PERMISSIONS.MOVEMENTS_OPERATE), true);
     auth.permissions.push(PERMISSIONS.MOVEMENTS_EDIT, PERMISSIONS.ROUNDS_EDIT);
     assert.equal(hasPermission(auth, PERMISSIONS.MOVEMENTS_EDIT), false, 'Las sesiones antiguas tampoco habilitan edición');
-    const staleScope = loader({ 'src/lib/servicePrisma': { prismaTorreon: {} } })('src/auth/torreonScope.ts').requireTorreonScope;
+    const staleScope = loader({ 'src/lib/prisma': { prisma: {} }, 'src/lib/servicePrisma': { prismaTorreon: {} } })('src/auth/torreonScope.ts').requireTorreonScope;
     for (const path of ['/movimientos/701/edicion', '/rondas/movimientos/orden']) {
       assert.equal((await invoke(staleScope, { user: user(role), authorization: auth, method: 'PATCH', path })).statusCode, 403);
     }
   }
   let resource = { empresaId: 3, localidadId: 2 };
-  const editScope = loader({ 'src/lib/servicePrisma': { prismaTorreon: { movimientoTorreonFerro: { findUnique: async () => resource } } } })('src/auth/torreonScope.ts').requireTorreonScope;
+  const editScope = loader({ 'src/lib/prisma': { prisma: {} }, 'src/lib/servicePrisma': { prismaTorreon: { movimientoTorreonFerro: { findUnique: async () => resource } } } })('src/auth/torreonScope.ts').requireTorreonScope;
   for (const role of roles) {
     const req = { user: user(role), method: 'PATCH', path: '/movimientos/701/edicion', body: { locomotiveNumber: 1234 } };
     resource = { empresaId: 3, localidadId: 2 };
@@ -44,7 +47,7 @@ async function main() {
   const editableStates = load('src/models/Movimientos/movimiento.shared.ts').ESTADOS_EDITABLES;
   for (const state of ['EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO']) assert.equal(editableStates.has(state), false);
 
-  const scope = loader({ 'src/lib/servicePrisma': { prismaTorreon: {} } })('src/auth/torreonScope.ts').requireTorreonScope;
+  const scope = loader({ 'src/lib/prisma': { prisma: {} }, 'src/lib/servicePrisma': { prismaTorreon: {} } })('src/auth/torreonScope.ts').requireTorreonScope;
   for (const role of roles) {
     const own = { empresaId: 3, localidadId: 2, creadoPorId: 999 };
     assert.equal((await invoke(scope, { user: user(role), method: 'POST', path: '/movimientos', body: own })).allowed, true);
@@ -55,16 +58,18 @@ async function main() {
 
   let handler;
   const calls = [];
+  let responseData = { id: 701, empresaId: 3, localidadId: 2 };
   const routeLoad = loader({
     express: { Router: () => ({ use() {}, all(_path, fn) { handler = fn; } }) },
     'src/jobs/durableJobs': { registerJob() {} },
     'src/auth/authenticateAccess': { authenticateAccess() {} },
     'src/auth/torreonScope': { requireTorreonScope() {} },
     'src/middlewares/idempotentMutation': { idempotentMutation() {} },
-    'src/services/torreonMs/torreonMsClient': { proxyToTorreonMs: async (path, options) => { calls.push({path, ...options}); return { status: 201, data: { id: 701, empresaId: 3, localidadId: 2 } }; } },
+    'src/services/torreonMs/torreonMsClient': { proxyToTorreonMs: async (path, options) => { calls.push({path, ...options}); return { status: 201, data: responseData }; } },
     'src/services/NotificadorFCM': { NotificadorFCM: {} },
     'src/realtime/realtimeHub': { publishRealtimeEvent() {} },
     'src/lib/prisma': { prisma: { token: { findFirst: async () => ({ usuarioId: 5 }) }, usuario: { findMany: async () => [] } } },
+    'src/services/torreonMs/prepareNaturalEdit': { prepareNaturalCreate: async body => body, prepareNaturalEdit: async (_id, body) => body, enrichNaturalEdit: async body => body },
     'src/services/torreonFcmRouting': { resolverAudienciaFcmTorreon() {} },
     'src/lib/servicePrisma': { prismaTorreon: {} },
   });
@@ -78,6 +83,12 @@ async function main() {
     assert.equal((await invoke(handler, { user: user(role), method: 'POST', baseUrl: '/torreon', originalUrl: '/torreon' + path, body: {} })).statusCode, 403);
   }
   assert.equal(calls.length, 1);
+  const group = { id: 20, localidadId: 2, modalidad: 'CONJUNTO', movimientos: [{ id: 701, empresaId: 3, localidadId: 2 }, { id: 702, empresaId: 4, localidadId: 2 }], incidentes: [{ id: 91, movimientoId: 701 }, { id: 92, movimientoId: 702 }] };
+  responseData = { id: 701, empresaId: 3, localidadId: 2, unidad: group };
+  const detail = await invoke(handler, { user: user('CLIENTE'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/701', body: {} });
+  assert.equal(detail.body.unidad.totalIntegrantes, 2);
+  assert.deepEqual(Array.from(detail.body.unidad.movimientos, m => m.id), [701]);
+  assert.deepEqual(Array.from(detail.body.unidad.incidentes, i => i.id), [91]);
   console.log('PASS Torreón clients: natural creation reaches service; company/locality and actor verified; domains separated; operational actions denied');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

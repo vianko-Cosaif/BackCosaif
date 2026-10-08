@@ -24,6 +24,7 @@ export const fotoInputSchema = z.object({
 
 const withCapturas = z.object({
   fotos: z.array(fotoInputSchema).optional(),
+  fotosPorMovimiento: z.array(z.object({ movimientoId: idSchema, fotos: z.array(fotoInputSchema).min(1).max(4) })).optional(),
   capturas: z.array(fotoInputSchema).optional(),
 });
 
@@ -43,6 +44,8 @@ export const createMovimientoSchema = z.object({
   seccionOrigenId: idSchema.optional(),
   seccionDestinoId: idSchema.optional(),
   locomotiveNumber: idSchema,
+  locomotoraRemolque: idSchema.optional(),
+  polo: z.enum(["Sin_Solicitar", "NORTE", "SUR"]).optional(),
   prioridad: z.enum(["BAJA", "ALTA"]).default("BAJA"),
   tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
   instrucciones: z.string().min(1).optional(),
@@ -56,10 +59,23 @@ export const createMovimientoSchema = z.object({
   seccionOrigenNombreSnapshot: z.string().min(1).optional(),
   seccionDestinoNombreSnapshot: z.string().min(1).optional(),
 }).refine((data) => (
-  Boolean(data.viaOrigenId || data.viaDestinoId || data.seccionOrigenId || data.seccionDestinoId)
+  Boolean(data.viaOrigenId && data.viaDestinoId && data.tipoMovimiento)
 ), {
-  message: "Debe especificar al menos una via o seccion origen/destino",
+  message: "Cada solicitud requiere vía de origen, vía de destino y tipo de movimiento",
 });
+
+export const createLoteSchema = z.object({
+  clientRequestId: z.string().trim().min(8).max(100),
+  movimientos: z.array(createMovimientoSchema).min(1).max(5),
+}).refine(data => new Set(data.movimientos.map(m => m.localidadId)).size === 1, "El envío debe pertenecer a una sola localidad");
+
+export function validarCondicionesNaturales(data: { tipoMovimiento?: string | null; locomotiveNumber: number; locomotoraRemolque?: number | null; direccionEmpuje?: string | null; polo?: string | null; posicionCabina?: string | null; posicionChimenea?: string | null }) {
+  if (!data.tipoMovimiento) return "Indica el tipo de movimiento";
+  if (data.tipoMovimiento === "REMOLCADA" && (!data.locomotoraRemolque || !["EMPUJAR", "JALAR"].includes(data.direccionEmpuje ?? ""))) return "La solicitud remolcada requiere máquina de remolque y Empujar/Jalar";
+  if (data.tipoMovimiento === "REMOLCADA" && data.locomotoraRemolque === data.locomotiveNumber) return "La locomotora remolcada y la máquina que remolca deben ser distintas";
+  if (!["NORTE", "SUR"].includes(data.polo ?? "") && !["DENTRO", "AFUERA"].includes(data.posicionChimenea ?? "")) return "Selecciona polo o posición de chimenea, conforme a las reglas de Cosaif";
+  return null;
+}
 
 export const editMovimientoSchema = z.object({
   viaOrigenId: idSchema.nullable().optional(),
@@ -71,6 +87,8 @@ export const editMovimientoSchema = z.object({
   seccionOrigenNombreSnapshot: z.string().nullable().optional(),
   seccionDestinoNombreSnapshot: z.string().nullable().optional(),
   locomotiveNumber: idSchema.optional(),
+  locomotoraRemolque: idSchema.nullable().optional(),
+  polo: z.enum(["Sin_Solicitar", "NORTE", "SUR"]).optional(),
   prioridad: z.enum(["BAJA", "ALTA"]).optional(),
   tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
   instrucciones: z.string().trim().max(2000).nullable().optional(),

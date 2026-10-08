@@ -124,6 +124,10 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.MovimientoTorreonFerroScalarFieldEnum = {
   id: 'id',
   clientRequestId: 'clientRequestId',
+  loteCapturaId: 'loteCapturaId',
+  unidadId: 'unidadId',
+  locomotoraRemolque: 'locomotoraRemolque',
+  polo: 'polo',
   empresaId: 'empresaId',
   creadoPorId: 'creadoPorId',
   clienteId: 'clienteId',
@@ -158,6 +162,34 @@ exports.Prisma.MovimientoTorreonFerroScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.UnidadAtencionTorreonScalarFieldEnum = {
+  id: 'id',
+  localidadId: 'localidadId',
+  modalidad: 'modalidad',
+  estado: 'estado',
+  operadorId: 'operadorId',
+  ordenManual: 'ordenManual',
+  fechaRecepcion: 'fechaRecepcion',
+  fechaHabilitacion: 'fechaHabilitacion',
+  fechaInicio: 'fechaInicio',
+  fechaFin: 'fechaFin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BitacoraNaturalTorreonScalarFieldEnum = {
+  id: 'id',
+  localidadId: 'localidadId',
+  unidadId: 'unidadId',
+  movimientoId: 'movimientoId',
+  incidenteId: 'incidenteId',
+  usuarioId: 'usuarioId',
+  rol: 'rol',
+  accion: 'accion',
+  datos: 'datos',
+  fecha: 'fecha'
+};
+
 exports.Prisma.RondaTorreonScalarFieldEnum = {
   id: 'id',
   localidadId: 'localidadId',
@@ -190,6 +222,8 @@ exports.Prisma.RondaTorreonMovimientoScalarFieldEnum = {
 exports.Prisma.IncidenteTorreonFerroScalarFieldEnum = {
   id: 'id',
   movimientoId: 'movimientoId',
+  unidadId: 'unidadId',
+  confirmadoPorRol: 'confirmadoPorRol',
   creadoPorId: 'creadoPorId',
   resueltoPorId: 'resueltoPorId',
   estado: 'estado',
@@ -357,12 +391,12 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -471,6 +505,8 @@ exports.EstadoIncidenteArrastreTorreon = exports.$Enums.EstadoIncidenteArrastreT
 
 exports.Prisma.ModelName = {
   MovimientoTorreonFerro: 'MovimientoTorreonFerro',
+  UnidadAtencionTorreon: 'UnidadAtencionTorreon',
+  BitacoraNaturalTorreon: 'BitacoraNaturalTorreon',
   RondaTorreon: 'RondaTorreon',
   RondaTorreonMovimiento: 'RondaTorreonMovimiento',
   IncidenteTorreonFerro: 'IncidenteTorreonFerro',

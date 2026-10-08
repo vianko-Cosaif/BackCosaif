@@ -98,19 +98,23 @@ enum TipoFotoMovimientoTorreon {
 }
 
 model MovimientoTorreonFerro {
-  id               Int  @id @default(autoincrement())
-  clientRequestId  String? @unique @map("client_request_id")
-  empresaId        Int  @map("empresa_id")
-  creadoPorId      Int  @map("creado_por_id")
-  clienteId        Int? @map("cliente_id")
-  supervisorId     Int? @map("supervisor_id")
-  coordinadorId    Int? @map("coordinador_id")
-  operadorId       Int? @map("operador_id")
-  localidadId      Int  @map("localidad_id")
-  viaOrigenId      Int? @map("via_origen_id")
-  viaDestinoId     Int? @map("via_destino_id")
-  seccionOrigenId  Int? @map("seccion_origen_id")
-  seccionDestinoId Int? @map("seccion_destino_id")
+  id                 Int     @id @default(autoincrement())
+  clientRequestId    String? @unique @map("client_request_id")
+  loteCapturaId      String? @map("lote_captura_id")
+  unidadId           Int?    @map("unidad_id")
+  locomotoraRemolque Int?    @map("locomotora_remolque")
+  polo               String?
+  empresaId          Int     @map("empresa_id")
+  creadoPorId        Int     @map("creado_por_id")
+  clienteId          Int?    @map("cliente_id")
+  supervisorId       Int?    @map("supervisor_id")
+  coordinadorId      Int?    @map("coordinador_id")
+  operadorId         Int?    @map("operador_id")
+  localidadId        Int     @map("localidad_id")
+  viaOrigenId        Int?    @map("via_origen_id")
+  viaDestinoId       Int?    @map("via_destino_id")
+  seccionOrigenId    Int?    @map("seccion_origen_id")
+  seccionDestinoId   Int?    @map("seccion_destino_id")
 
   locomotiveNumber Int                     @map("locomotive_number")
   prioridad        PrioridadTorreon        @default(BAJA)
@@ -139,10 +143,13 @@ model MovimientoTorreonFerro {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   rondas     RondaTorreonMovimiento[]
+  unidad     UnidadAtencionTorreon?   @relation(fields: [unidadId], references: [id])
   incidentes IncidenteTorreonFerro[]
   fotos      MovimientoTorreonFoto[]
 
   @@index([empresaId, estado])
+  @@index([unidadId])
+  @@index([loteCapturaId])
   @@index([fechaInicio, fechaFin])
   @@index([estado, finalizado])
   @@index([clienteId, estado])
@@ -155,6 +162,45 @@ model MovimientoTorreonFerro {
   @@index([viaOrigenId, viaDestinoId])
   @@index([seccionOrigenId, seccionDestinoId])
   @@map("movimiento_torreon_ferro")
+}
+
+// Only Torreón natural movements. Historical rounds remain available for audit.
+model UnidadAtencionTorreon {
+  id                Int                      @id @default(autoincrement())
+  localidadId       Int                      @map("localidad_id")
+  modalidad         String                   @default("INDIVIDUAL")
+  estado            String                   @default("PENDIENTE")
+  operadorId        Int?                     @map("operador_id")
+  ordenManual       Int?                     @map("orden_manual")
+  fechaRecepcion    DateTime                 @default(now()) @map("fecha_recepcion")
+  fechaHabilitacion DateTime?                @map("fecha_habilitacion")
+  fechaInicio       DateTime?                @map("fecha_inicio")
+  fechaFin          DateTime?                @map("fecha_fin")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+  movimientos       MovimientoTorreonFerro[]
+  incidentes        IncidenteTorreonFerro[]
+
+  @@index([localidadId, estado])
+  @@index([operadorId, estado])
+  @@map("unidad_atencion_torreon")
+}
+
+model BitacoraNaturalTorreon {
+  id           Int      @id @default(autoincrement())
+  localidadId  Int      @map("localidad_id")
+  unidadId     Int?     @map("unidad_id")
+  movimientoId Int?     @map("movimiento_id")
+  incidenteId  Int?     @map("incidente_id")
+  usuarioId    Int      @map("usuario_id")
+  rol          String?
+  accion       String
+  datos        Json?
+  fecha        DateTime @default(now())
+
+  @@index([unidadId, fecha])
+  @@index([movimientoId, fecha])
+  @@map("bitacora_natural_torreon")
 }
 
 model RondaTorreon {
@@ -208,6 +254,8 @@ model RondaTorreonMovimiento {
 model IncidenteTorreonFerro {
   id                 Int                    @id @default(autoincrement())
   movimientoId       Int                    @map("movimiento_id")
+  unidadId           Int?                   @map("unidad_id")
+  confirmadoPorRol   String?                @map("confirmado_por_rol")
   creadoPorId        Int                    @map("creado_por_id")
   resueltoPorId      Int?                   @map("resuelto_por_id")
   estado             EstadoIncidenteTorreon @default(ABIERTO)
@@ -222,6 +270,7 @@ model IncidenteTorreonFerro {
   updatedAt          DateTime               @updatedAt @map("updated_at")
 
   movimiento       MovimientoTorreonFerro   @relation(fields: [movimientoId], references: [id], onDelete: Cascade)
+  unidad           UnidadAtencionTorreon?   @relation(fields: [unidadId], references: [id])
   rondasBloqueadas RondaTorreonMovimiento[]
   fotos            IncidenteTorreonFoto[]
 
@@ -315,27 +364,27 @@ model ArrastreTorreon {
 }
 
 model ArrastreTorreonVagon {
-  id              Int                        @id @default(autoincrement())
-  arrastreId      Int                        @map("arrastre_id")
-  operadorId      Int?                       @map("operador_id")
-  orden           Int
-  numeroVagon     String?                    @map("numero_vagon")
-  carga           CargaVagonArrastreTorreon
-  viaOrigenId     Int?                       @map("via_origen_id")
-  seccionOrigenId Int?                       @map("seccion_origen_id")
-  viaId           Int?                       @map("via_id")
-  seccionId       Int?                       @map("seccion_id")
-  viaOrigenNombre String?                    @map("via_origen_nombre")
-  seccionOrigenNombre String?                @map("seccion_origen_nombre")
-  viaDestinoNombre String?                   @map("via_destino_nombre")
-  seccionDestinoNombre String?               @map("seccion_destino_nombre")
-  comentario      String?
-  estado          EstadoVagonArrastreTorreon @default(PENDIENTE)
-  fechaSolicitud  DateTime                   @default(now()) @map("fecha_solicitud")
-  fechaInicio     DateTime?                  @map("fecha_inicio")
-  fechaFin        DateTime?                  @map("fecha_fin")
-  createdAt       DateTime                   @default(now()) @map("created_at")
-  updatedAt       DateTime                   @updatedAt @map("updated_at")
+  id                   Int                        @id @default(autoincrement())
+  arrastreId           Int                        @map("arrastre_id")
+  operadorId           Int?                       @map("operador_id")
+  orden                Int
+  numeroVagon          String?                    @map("numero_vagon")
+  carga                CargaVagonArrastreTorreon
+  viaOrigenId          Int?                       @map("via_origen_id")
+  seccionOrigenId      Int?                       @map("seccion_origen_id")
+  viaId                Int?                       @map("via_id")
+  seccionId            Int?                       @map("seccion_id")
+  viaOrigenNombre      String?                    @map("via_origen_nombre")
+  seccionOrigenNombre  String?                    @map("seccion_origen_nombre")
+  viaDestinoNombre     String?                    @map("via_destino_nombre")
+  seccionDestinoNombre String?                    @map("seccion_destino_nombre")
+  comentario           String?
+  estado               EstadoVagonArrastreTorreon @default(PENDIENTE)
+  fechaSolicitud       DateTime                   @default(now()) @map("fecha_solicitud")
+  fechaInicio          DateTime?                  @map("fecha_inicio")
+  fechaFin             DateTime?                  @map("fecha_fin")
+  createdAt            DateTime                   @default(now()) @map("created_at")
+  updatedAt            DateTime                   @updatedAt @map("updated_at")
 
   arrastre   ArrastreTorreon            @relation(fields: [arrastreId], references: [id], onDelete: Cascade)
   incidentes IncidenteArrastreTorreon[]
@@ -355,15 +404,15 @@ model ArrastreTorreonVagon {
 /// Bitácora inmutable de cambios realizados a una solicitud de Arrastre.
 /// Conserva evidencia aunque el contenido operativo cambie posteriormente.
 model ArrastreTorreonEdicion {
-  id             Int      @id @default(autoincrement())
-  arrastreId     Int      @map("arrastre_id")
+  id               Int      @id @default(autoincrement())
+  arrastreId       Int      @map("arrastre_id")
   editadoPorId     Int      @map("editado_por_id")
   editadoPorRol    String   @map("editado_por_rol")
   editadoPorNombre String?  @map("editado_por_nombre")
-  motivo         String?
-  antes          Json
-  despues        Json
-  fechaEdicion   DateTime @default(now()) @map("fecha_edicion")
+  motivo           String?
+  antes            Json
+  despues          Json
+  fechaEdicion     DateTime @default(now()) @map("fecha_edicion")
 
   @@index([arrastreId, fechaEdicion])
   @@index([editadoPorId, fechaEdicion])
@@ -415,7 +464,7 @@ model IncidenteArrastreTorreon {
   estado             EstadoIncidenteArrastreTorreon @default(ABIERTO)
   motivo             String
   solucion           String?
-  bloqueoGeneral     Boolean                         @default(false) @map("bloqueo_general")
+  bloqueoGeneral     Boolean                        @default(false) @map("bloqueo_general")
   localidadId        Int                            @map("localidad_id")
   viaBloqueadaId     Int?                           @map("via_bloqueada_id")
   seccionBloqueadaId Int?                           @map("seccion_bloqueada_id")
@@ -456,12 +505,13 @@ model IncidenteArrastreFoto {
 }
 
 model OperationalOutbox {
-  id BigInt @id @default(autoincrement())
-  tableName String @map("table_name")
-  action String
-  payload Json
-  previous Json?
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id          BigInt    @id @default(autoincrement())
+  tableName   String    @map("table_name")
+  action      String
+  payload     Json
+  previous    Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   processedAt DateTime? @map("processed_at") @db.Timestamptz(6)
+
   @@map("operational_outbox")
 }

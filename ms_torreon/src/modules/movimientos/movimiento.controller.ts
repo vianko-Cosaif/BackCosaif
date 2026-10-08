@@ -4,12 +4,14 @@ import { crearIncidenteMovimientoSchema } from "../incidentes/incidente.schemas"
 import {
   cancelarMovimientoSchema,
   createMovimientoSchema,
+  createLoteSchema,
   editMovimientoSchema,
   finalizarMovimientoSchema,
   iniciarMovimientoSchema,
   registrarFotosMovimientoSchema,
   reanudarMovimientoSchema,
 } from "./movimiento.schemas";
+import { actorNatural, driverNatural } from "../cola/cola.actor";
 import { MovimientoModel } from "./movimiento.model";
 
 const parseIdParam = (req: Request) => Number(req.params.id);
@@ -49,8 +51,12 @@ export class MovimientoController {
 
   static async crear(req: Request, res: Response) {
     const payload = createMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.crear(payload);
+    const data = await MovimientoModel.crear(payload, actorNatural(req));
     return res.status(201).json(data);
+  }
+
+  static async crearLote(req: Request, res: Response) {
+    res.status(201).json(await MovimientoModel.crearLote(createLoteSchema.parse(req.body), actorNatural(req)));
   }
 
   static async obtenerEdicion(req: Request, res: Response) {
@@ -59,42 +65,42 @@ export class MovimientoController {
 
   static async editar(req: Request, res: Response) {
     const payload = editMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.editar(parseIdParam(req), payload);
+    const data = await MovimientoModel.editar(parseIdParam(req), payload, actorNatural(req));
     return ok(res, data);
   }
 
   static async cancelar(req: Request, res: Response) {
     const { razon } = cancelarMovimientoSchema.parse(req.body);
-    return ok(res, await MovimientoModel.cancelar(parseIdParam(req), razon));
+    return ok(res, await MovimientoModel.cancelar(parseIdParam(req), razon, actorNatural(req)));
   }
 
   static async iniciar(req: Request, res: Response) {
     const payload = iniciarMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.iniciar(parseIdParam(req), payload);
+    const data = await MovimientoModel.iniciar(parseIdParam(req), payload, driverNatural(req));
     return ok(res, data);
   }
 
   static async registrarFotos(req: Request, res: Response) {
     const payload = registrarFotosMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.registrarFotos(parseIdParam(req), payload);
+    const data = await MovimientoModel.registrarFotos(parseIdParam(req), payload, driverNatural(req));
     return ok(res, data);
   }
 
   static async finalizar(req: Request, res: Response) {
     const payload = finalizarMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.finalizar(parseIdParam(req), payload);
+    const data = await MovimientoModel.finalizar(parseIdParam(req), payload, driverNatural(req));
     return ok(res, data);
   }
 
   static async detener(req: Request, res: Response) {
     const payload = crearIncidenteMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.detenerConIncidente(parseIdParam(req), payload);
+    const data = await MovimientoModel.detenerConIncidente(parseIdParam(req), payload, driverNatural(req));
     return res.status(201).json(data);
   }
 
   static async reanudar(req: Request, res: Response) {
     const payload = reanudarMovimientoSchema.parse(req.body);
-    const data = await MovimientoModel.reanudar(parseIdParam(req), payload);
+    const data = await MovimientoModel.reanudar(parseIdParam(req), payload, driverNatural(req));
     return ok(res, data);
   }
 }

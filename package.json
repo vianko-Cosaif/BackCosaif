@@ -22,6 +22,7 @@
     "test:comercial:excel": "ts-node src/reporteria/modelos/comercial-crm-excel.test.ts",
     "prisma:comercial:generate": "node scripts/prisma-comercial.cjs generate",
     "prisma:comercial:push": "node scripts/prisma-comercial.cjs push",
+    "migrate:torreon:operativo": "node scripts/security-migrate.cjs --version=torreon-operativo-20261008 --target=torreon",
     "ms:torreon": "ts-node-dev --project ms_torreon/tsconfig.json ms_torreon/src/index.ts",
     "build:torreon": "tsc -p ms_torreon/tsconfig.json",
     "test:realtime": "ts-node src/realtime/realtimeHub.permissions.test.ts",

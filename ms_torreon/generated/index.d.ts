@@ -19,6 +19,16 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type MovimientoTorreonFerro = $Result.DefaultSelection<Prisma.$MovimientoTorreonFerroPayload>
 /**
+ * Model UnidadAtencionTorreon
+ * 
+ */
+export type UnidadAtencionTorreon = $Result.DefaultSelection<Prisma.$UnidadAtencionTorreonPayload>
+/**
+ * Model BitacoraNaturalTorreon
+ * 
+ */
+export type BitacoraNaturalTorreon = $Result.DefaultSelection<Prisma.$BitacoraNaturalTorreonPayload>
+/**
  * Model RondaTorreon
  * 
  */
@@ -404,6 +414,26 @@ export class PrismaClient<
     * ```
     */
   get movimientoTorreonFerro(): Prisma.MovimientoTorreonFerroDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.unidadAtencionTorreon`: Exposes CRUD operations for the **UnidadAtencionTorreon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UnidadAtencionTorreons
+    * const unidadAtencionTorreons = await prisma.unidadAtencionTorreon.findMany()
+    * ```
+    */
+  get unidadAtencionTorreon(): Prisma.UnidadAtencionTorreonDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.bitacoraNaturalTorreon`: Exposes CRUD operations for the **BitacoraNaturalTorreon** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more BitacoraNaturalTorreons
+    * const bitacoraNaturalTorreons = await prisma.bitacoraNaturalTorreon.findMany()
+    * ```
+    */
+  get bitacoraNaturalTorreon(): Prisma.BitacoraNaturalTorreonDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.rondaTorreon`: Exposes CRUD operations for the **RondaTorreon** model.
@@ -976,6 +1006,8 @@ export namespace Prisma {
 
   export const ModelName: {
     MovimientoTorreonFerro: 'MovimientoTorreonFerro',
+    UnidadAtencionTorreon: 'UnidadAtencionTorreon',
+    BitacoraNaturalTorreon: 'BitacoraNaturalTorreon',
     RondaTorreon: 'RondaTorreon',
     RondaTorreonMovimiento: 'RondaTorreonMovimiento',
     IncidenteTorreonFerro: 'IncidenteTorreonFerro',
@@ -1007,7 +1039,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "movimientoTorreonFerro" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "arrastreTorreonEdicion" | "viaArrastreTorreon" | "seccionArrastreTorreon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto" | "operationalOutbox"
+      modelProps: "movimientoTorreonFerro" | "unidadAtencionTorreon" | "bitacoraNaturalTorreon" | "rondaTorreon" | "rondaTorreonMovimiento" | "incidenteTorreonFerro" | "movimientoTorreonFoto" | "incidenteTorreonFoto" | "arrastreTorreon" | "arrastreTorreonVagon" | "arrastreTorreonEdicion" | "viaArrastreTorreon" | "seccionArrastreTorreon" | "incidenteArrastreTorreon" | "incidenteArrastreFoto" | "operationalOutbox"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1082,6 +1114,154 @@ export namespace Prisma {
           count: {
             args: Prisma.MovimientoTorreonFerroCountArgs<ExtArgs>
             result: $Utils.Optional<MovimientoTorreonFerroCountAggregateOutputType> | number
+          }
+        }
+      }
+      UnidadAtencionTorreon: {
+        payload: Prisma.$UnidadAtencionTorreonPayload<ExtArgs>
+        fields: Prisma.UnidadAtencionTorreonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UnidadAtencionTorreonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UnidadAtencionTorreonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>
+          }
+          findFirst: {
+            args: Prisma.UnidadAtencionTorreonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UnidadAtencionTorreonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>
+          }
+          findMany: {
+            args: Prisma.UnidadAtencionTorreonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>[]
+          }
+          create: {
+            args: Prisma.UnidadAtencionTorreonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>
+          }
+          createMany: {
+            args: Prisma.UnidadAtencionTorreonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UnidadAtencionTorreonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>[]
+          }
+          delete: {
+            args: Prisma.UnidadAtencionTorreonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>
+          }
+          update: {
+            args: Prisma.UnidadAtencionTorreonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>
+          }
+          deleteMany: {
+            args: Prisma.UnidadAtencionTorreonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UnidadAtencionTorreonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.UnidadAtencionTorreonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>[]
+          }
+          upsert: {
+            args: Prisma.UnidadAtencionTorreonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UnidadAtencionTorreonPayload>
+          }
+          aggregate: {
+            args: Prisma.UnidadAtencionTorreonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUnidadAtencionTorreon>
+          }
+          groupBy: {
+            args: Prisma.UnidadAtencionTorreonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UnidadAtencionTorreonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UnidadAtencionTorreonCountArgs<ExtArgs>
+            result: $Utils.Optional<UnidadAtencionTorreonCountAggregateOutputType> | number
+          }
+        }
+      }
+      BitacoraNaturalTorreon: {
+        payload: Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>
+        fields: Prisma.BitacoraNaturalTorreonFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.BitacoraNaturalTorreonFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.BitacoraNaturalTorreonFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>
+          }
+          findFirst: {
+            args: Prisma.BitacoraNaturalTorreonFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.BitacoraNaturalTorreonFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>
+          }
+          findMany: {
+            args: Prisma.BitacoraNaturalTorreonFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>[]
+          }
+          create: {
+            args: Prisma.BitacoraNaturalTorreonCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>
+          }
+          createMany: {
+            args: Prisma.BitacoraNaturalTorreonCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.BitacoraNaturalTorreonCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>[]
+          }
+          delete: {
+            args: Prisma.BitacoraNaturalTorreonDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>
+          }
+          update: {
+            args: Prisma.BitacoraNaturalTorreonUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>
+          }
+          deleteMany: {
+            args: Prisma.BitacoraNaturalTorreonDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.BitacoraNaturalTorreonUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.BitacoraNaturalTorreonUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>[]
+          }
+          upsert: {
+            args: Prisma.BitacoraNaturalTorreonUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BitacoraNaturalTorreonPayload>
+          }
+          aggregate: {
+            args: Prisma.BitacoraNaturalTorreonAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateBitacoraNaturalTorreon>
+          }
+          groupBy: {
+            args: Prisma.BitacoraNaturalTorreonGroupByArgs<ExtArgs>
+            result: $Utils.Optional<BitacoraNaturalTorreonGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.BitacoraNaturalTorreonCountArgs<ExtArgs>
+            result: $Utils.Optional<BitacoraNaturalTorreonCountAggregateOutputType> | number
           }
         }
       }
@@ -2144,6 +2324,8 @@ export namespace Prisma {
   }
   export type GlobalOmitConfig = {
     movimientoTorreonFerro?: MovimientoTorreonFerroOmit
+    unidadAtencionTorreon?: UnidadAtencionTorreonOmit
+    bitacoraNaturalTorreon?: BitacoraNaturalTorreonOmit
     rondaTorreon?: RondaTorreonOmit
     rondaTorreonMovimiento?: RondaTorreonMovimientoOmit
     incidenteTorreonFerro?: IncidenteTorreonFerroOmit
@@ -2278,6 +2460,46 @@ export namespace Prisma {
    */
   export type MovimientoTorreonFerroCountOutputTypeCountFotosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: MovimientoTorreonFotoWhereInput
+  }
+
+
+  /**
+   * Count Type UnidadAtencionTorreonCountOutputType
+   */
+
+  export type UnidadAtencionTorreonCountOutputType = {
+    movimientos: number
+    incidentes: number
+  }
+
+  export type UnidadAtencionTorreonCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    movimientos?: boolean | UnidadAtencionTorreonCountOutputTypeCountMovimientosArgs
+    incidentes?: boolean | UnidadAtencionTorreonCountOutputTypeCountIncidentesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * UnidadAtencionTorreonCountOutputType without action
+   */
+  export type UnidadAtencionTorreonCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreonCountOutputType
+     */
+    select?: UnidadAtencionTorreonCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * UnidadAtencionTorreonCountOutputType without action
+   */
+  export type UnidadAtencionTorreonCountOutputTypeCountMovimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MovimientoTorreonFerroWhereInput
+  }
+
+  /**
+   * UnidadAtencionTorreonCountOutputType without action
+   */
+  export type UnidadAtencionTorreonCountOutputTypeCountIncidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IncidenteTorreonFerroWhereInput
   }
 
 
@@ -2503,6 +2725,8 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroAvgAggregateOutputType = {
     id: number | null
+    unidadId: number | null
+    locomotoraRemolque: number | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2519,6 +2743,8 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSumAggregateOutputType = {
     id: number | null
+    unidadId: number | null
+    locomotoraRemolque: number | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2536,6 +2762,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroMinAggregateOutputType = {
     id: number | null
     clientRequestId: string | null
+    loteCapturaId: string | null
+    unidadId: number | null
+    locomotoraRemolque: number | null
+    polo: string | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2573,6 +2803,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroMaxAggregateOutputType = {
     id: number | null
     clientRequestId: string | null
+    loteCapturaId: string | null
+    unidadId: number | null
+    locomotoraRemolque: number | null
+    polo: string | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2610,6 +2844,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroCountAggregateOutputType = {
     id: number
     clientRequestId: number
+    loteCapturaId: number
+    unidadId: number
+    locomotoraRemolque: number
+    polo: number
     empresaId: number
     creadoPorId: number
     clienteId: number
@@ -2648,6 +2886,8 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroAvgAggregateInputType = {
     id?: true
+    unidadId?: true
+    locomotoraRemolque?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2664,6 +2904,8 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSumAggregateInputType = {
     id?: true
+    unidadId?: true
+    locomotoraRemolque?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2681,6 +2923,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroMinAggregateInputType = {
     id?: true
     clientRequestId?: true
+    loteCapturaId?: true
+    unidadId?: true
+    locomotoraRemolque?: true
+    polo?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2718,6 +2964,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroMaxAggregateInputType = {
     id?: true
     clientRequestId?: true
+    loteCapturaId?: true
+    unidadId?: true
+    locomotoraRemolque?: true
+    polo?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2755,6 +3005,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroCountAggregateInputType = {
     id?: true
     clientRequestId?: true
+    loteCapturaId?: true
+    unidadId?: true
+    locomotoraRemolque?: true
+    polo?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2879,6 +3133,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroGroupByOutputType = {
     id: number
     clientRequestId: string | null
+    loteCapturaId: string | null
+    unidadId: number | null
+    locomotoraRemolque: number | null
+    polo: string | null
     empresaId: number
     creadoPorId: number
     clienteId: number | null
@@ -2935,6 +3193,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     clientRequestId?: boolean
+    loteCapturaId?: boolean
+    unidadId?: boolean
+    locomotoraRemolque?: boolean
+    polo?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -2968,6 +3230,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     rondas?: boolean | MovimientoTorreonFerro$rondasArgs<ExtArgs>
+    unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
     incidentes?: boolean | MovimientoTorreonFerro$incidentesArgs<ExtArgs>
     fotos?: boolean | MovimientoTorreonFerro$fotosArgs<ExtArgs>
     _count?: boolean | MovimientoTorreonFerroCountOutputTypeDefaultArgs<ExtArgs>
@@ -2976,6 +3239,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     clientRequestId?: boolean
+    loteCapturaId?: boolean
+    unidadId?: boolean
+    locomotoraRemolque?: boolean
+    polo?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3008,11 +3275,16 @@ export namespace Prisma {
     seccionDestinoNombreSnapshot?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
   }, ExtArgs["result"]["movimientoTorreonFerro"]>
 
   export type MovimientoTorreonFerroSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     clientRequestId?: boolean
+    loteCapturaId?: boolean
+    unidadId?: boolean
+    locomotoraRemolque?: boolean
+    polo?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3045,11 +3317,16 @@ export namespace Prisma {
     seccionDestinoNombreSnapshot?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
   }, ExtArgs["result"]["movimientoTorreonFerro"]>
 
   export type MovimientoTorreonFerroSelectScalar = {
     id?: boolean
     clientRequestId?: boolean
+    loteCapturaId?: boolean
+    unidadId?: boolean
+    locomotoraRemolque?: boolean
+    polo?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3084,26 +3361,36 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type MovimientoTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientRequestId" | "empresaId" | "creadoPorId" | "clienteId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "locomotiveNumber" | "prioridad" | "tipoMovimiento" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "instrucciones" | "posicionChimenea" | "finalizado" | "direccionEmpuje" | "posicionCabina" | "empresaNombreSnapshot" | "localidadNombreSnapshot" | "viaOrigenNombreSnapshot" | "viaDestinoNombreSnapshot" | "seccionOrigenNombreSnapshot" | "seccionDestinoNombreSnapshot" | "createdAt" | "updatedAt", ExtArgs["result"]["movimientoTorreonFerro"]>
+  export type MovimientoTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientRequestId" | "loteCapturaId" | "unidadId" | "locomotoraRemolque" | "polo" | "empresaId" | "creadoPorId" | "clienteId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "locomotiveNumber" | "prioridad" | "tipoMovimiento" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "instrucciones" | "posicionChimenea" | "finalizado" | "direccionEmpuje" | "posicionCabina" | "empresaNombreSnapshot" | "localidadNombreSnapshot" | "viaOrigenNombreSnapshot" | "viaDestinoNombreSnapshot" | "seccionOrigenNombreSnapshot" | "seccionDestinoNombreSnapshot" | "createdAt" | "updatedAt", ExtArgs["result"]["movimientoTorreonFerro"]>
   export type MovimientoTorreonFerroInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     rondas?: boolean | MovimientoTorreonFerro$rondasArgs<ExtArgs>
+    unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
     incidentes?: boolean | MovimientoTorreonFerro$incidentesArgs<ExtArgs>
     fotos?: boolean | MovimientoTorreonFerro$fotosArgs<ExtArgs>
     _count?: boolean | MovimientoTorreonFerroCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type MovimientoTorreonFerroIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type MovimientoTorreonFerroIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type MovimientoTorreonFerroIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
+  }
+  export type MovimientoTorreonFerroIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
+  }
 
   export type $MovimientoTorreonFerroPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "MovimientoTorreonFerro"
     objects: {
       rondas: Prisma.$RondaTorreonMovimientoPayload<ExtArgs>[]
+      unidad: Prisma.$UnidadAtencionTorreonPayload<ExtArgs> | null
       incidentes: Prisma.$IncidenteTorreonFerroPayload<ExtArgs>[]
       fotos: Prisma.$MovimientoTorreonFotoPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
       clientRequestId: string | null
+      loteCapturaId: string | null
+      unidadId: number | null
+      locomotoraRemolque: number | null
+      polo: string | null
       empresaId: number
       creadoPorId: number
       clienteId: number | null
@@ -3531,6 +3818,7 @@ export namespace Prisma {
   export interface Prisma__MovimientoTorreonFerroClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     rondas<T extends MovimientoTorreonFerro$rondasArgs<ExtArgs> = {}>(args?: Subset<T, MovimientoTorreonFerro$rondasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RondaTorreonMovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    unidad<T extends MovimientoTorreonFerro$unidadArgs<ExtArgs> = {}>(args?: Subset<T, MovimientoTorreonFerro$unidadArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     incidentes<T extends MovimientoTorreonFerro$incidentesArgs<ExtArgs> = {}>(args?: Subset<T, MovimientoTorreonFerro$incidentesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteTorreonFerroPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fotos<T extends MovimientoTorreonFerro$fotosArgs<ExtArgs> = {}>(args?: Subset<T, MovimientoTorreonFerro$fotosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MovimientoTorreonFotoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -3564,6 +3852,10 @@ export namespace Prisma {
   interface MovimientoTorreonFerroFieldRefs {
     readonly id: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly clientRequestId: FieldRef<"MovimientoTorreonFerro", 'String'>
+    readonly loteCapturaId: FieldRef<"MovimientoTorreonFerro", 'String'>
+    readonly unidadId: FieldRef<"MovimientoTorreonFerro", 'Int'>
+    readonly locomotoraRemolque: FieldRef<"MovimientoTorreonFerro", 'Int'>
+    readonly polo: FieldRef<"MovimientoTorreonFerro", 'String'>
     readonly empresaId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly creadoPorId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly clienteId: FieldRef<"MovimientoTorreonFerro", 'Int'>
@@ -3845,6 +4137,10 @@ export namespace Prisma {
      */
     data: MovimientoTorreonFerroCreateManyInput | MovimientoTorreonFerroCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MovimientoTorreonFerroIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -3915,6 +4211,10 @@ export namespace Prisma {
      * Limit how many MovimientoTorreonFerros to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MovimientoTorreonFerroIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -4008,6 +4308,25 @@ export namespace Prisma {
   }
 
   /**
+   * MovimientoTorreonFerro.unidad
+   */
+  export type MovimientoTorreonFerro$unidadArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    where?: UnidadAtencionTorreonWhereInput
+  }
+
+  /**
    * MovimientoTorreonFerro.incidentes
    */
   export type MovimientoTorreonFerro$incidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4071,6 +4390,2351 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: MovimientoTorreonFerroInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UnidadAtencionTorreon
+   */
+
+  export type AggregateUnidadAtencionTorreon = {
+    _count: UnidadAtencionTorreonCountAggregateOutputType | null
+    _avg: UnidadAtencionTorreonAvgAggregateOutputType | null
+    _sum: UnidadAtencionTorreonSumAggregateOutputType | null
+    _min: UnidadAtencionTorreonMinAggregateOutputType | null
+    _max: UnidadAtencionTorreonMaxAggregateOutputType | null
+  }
+
+  export type UnidadAtencionTorreonAvgAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    operadorId: number | null
+    ordenManual: number | null
+  }
+
+  export type UnidadAtencionTorreonSumAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    operadorId: number | null
+    ordenManual: number | null
+  }
+
+  export type UnidadAtencionTorreonMinAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    modalidad: string | null
+    estado: string | null
+    operadorId: number | null
+    ordenManual: number | null
+    fechaRecepcion: Date | null
+    fechaHabilitacion: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UnidadAtencionTorreonMaxAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    modalidad: string | null
+    estado: string | null
+    operadorId: number | null
+    ordenManual: number | null
+    fechaRecepcion: Date | null
+    fechaHabilitacion: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type UnidadAtencionTorreonCountAggregateOutputType = {
+    id: number
+    localidadId: number
+    modalidad: number
+    estado: number
+    operadorId: number
+    ordenManual: number
+    fechaRecepcion: number
+    fechaHabilitacion: number
+    fechaInicio: number
+    fechaFin: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type UnidadAtencionTorreonAvgAggregateInputType = {
+    id?: true
+    localidadId?: true
+    operadorId?: true
+    ordenManual?: true
+  }
+
+  export type UnidadAtencionTorreonSumAggregateInputType = {
+    id?: true
+    localidadId?: true
+    operadorId?: true
+    ordenManual?: true
+  }
+
+  export type UnidadAtencionTorreonMinAggregateInputType = {
+    id?: true
+    localidadId?: true
+    modalidad?: true
+    estado?: true
+    operadorId?: true
+    ordenManual?: true
+    fechaRecepcion?: true
+    fechaHabilitacion?: true
+    fechaInicio?: true
+    fechaFin?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UnidadAtencionTorreonMaxAggregateInputType = {
+    id?: true
+    localidadId?: true
+    modalidad?: true
+    estado?: true
+    operadorId?: true
+    ordenManual?: true
+    fechaRecepcion?: true
+    fechaHabilitacion?: true
+    fechaInicio?: true
+    fechaFin?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type UnidadAtencionTorreonCountAggregateInputType = {
+    id?: true
+    localidadId?: true
+    modalidad?: true
+    estado?: true
+    operadorId?: true
+    ordenManual?: true
+    fechaRecepcion?: true
+    fechaHabilitacion?: true
+    fechaInicio?: true
+    fechaFin?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type UnidadAtencionTorreonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UnidadAtencionTorreon to aggregate.
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UnidadAtencionTorreons to fetch.
+     */
+    orderBy?: UnidadAtencionTorreonOrderByWithRelationInput | UnidadAtencionTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UnidadAtencionTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UnidadAtencionTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UnidadAtencionTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UnidadAtencionTorreons
+    **/
+    _count?: true | UnidadAtencionTorreonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: UnidadAtencionTorreonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UnidadAtencionTorreonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UnidadAtencionTorreonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UnidadAtencionTorreonMaxAggregateInputType
+  }
+
+  export type GetUnidadAtencionTorreonAggregateType<T extends UnidadAtencionTorreonAggregateArgs> = {
+        [P in keyof T & keyof AggregateUnidadAtencionTorreon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUnidadAtencionTorreon[P]>
+      : GetScalarType<T[P], AggregateUnidadAtencionTorreon[P]>
+  }
+
+
+
+
+  export type UnidadAtencionTorreonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UnidadAtencionTorreonWhereInput
+    orderBy?: UnidadAtencionTorreonOrderByWithAggregationInput | UnidadAtencionTorreonOrderByWithAggregationInput[]
+    by: UnidadAtencionTorreonScalarFieldEnum[] | UnidadAtencionTorreonScalarFieldEnum
+    having?: UnidadAtencionTorreonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UnidadAtencionTorreonCountAggregateInputType | true
+    _avg?: UnidadAtencionTorreonAvgAggregateInputType
+    _sum?: UnidadAtencionTorreonSumAggregateInputType
+    _min?: UnidadAtencionTorreonMinAggregateInputType
+    _max?: UnidadAtencionTorreonMaxAggregateInputType
+  }
+
+  export type UnidadAtencionTorreonGroupByOutputType = {
+    id: number
+    localidadId: number
+    modalidad: string
+    estado: string
+    operadorId: number | null
+    ordenManual: number | null
+    fechaRecepcion: Date
+    fechaHabilitacion: Date | null
+    fechaInicio: Date | null
+    fechaFin: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: UnidadAtencionTorreonCountAggregateOutputType | null
+    _avg: UnidadAtencionTorreonAvgAggregateOutputType | null
+    _sum: UnidadAtencionTorreonSumAggregateOutputType | null
+    _min: UnidadAtencionTorreonMinAggregateOutputType | null
+    _max: UnidadAtencionTorreonMaxAggregateOutputType | null
+  }
+
+  type GetUnidadAtencionTorreonGroupByPayload<T extends UnidadAtencionTorreonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UnidadAtencionTorreonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UnidadAtencionTorreonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UnidadAtencionTorreonGroupByOutputType[P]>
+            : GetScalarType<T[P], UnidadAtencionTorreonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UnidadAtencionTorreonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    modalidad?: boolean
+    estado?: boolean
+    operadorId?: boolean
+    ordenManual?: boolean
+    fechaRecepcion?: boolean
+    fechaHabilitacion?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    movimientos?: boolean | UnidadAtencionTorreon$movimientosArgs<ExtArgs>
+    incidentes?: boolean | UnidadAtencionTorreon$incidentesArgs<ExtArgs>
+    _count?: boolean | UnidadAtencionTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["unidadAtencionTorreon"]>
+
+  export type UnidadAtencionTorreonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    modalidad?: boolean
+    estado?: boolean
+    operadorId?: boolean
+    ordenManual?: boolean
+    fechaRecepcion?: boolean
+    fechaHabilitacion?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["unidadAtencionTorreon"]>
+
+  export type UnidadAtencionTorreonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    modalidad?: boolean
+    estado?: boolean
+    operadorId?: boolean
+    ordenManual?: boolean
+    fechaRecepcion?: boolean
+    fechaHabilitacion?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["unidadAtencionTorreon"]>
+
+  export type UnidadAtencionTorreonSelectScalar = {
+    id?: boolean
+    localidadId?: boolean
+    modalidad?: boolean
+    estado?: boolean
+    operadorId?: boolean
+    ordenManual?: boolean
+    fechaRecepcion?: boolean
+    fechaHabilitacion?: boolean
+    fechaInicio?: boolean
+    fechaFin?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type UnidadAtencionTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "localidadId" | "modalidad" | "estado" | "operadorId" | "ordenManual" | "fechaRecepcion" | "fechaHabilitacion" | "fechaInicio" | "fechaFin" | "createdAt" | "updatedAt", ExtArgs["result"]["unidadAtencionTorreon"]>
+  export type UnidadAtencionTorreonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    movimientos?: boolean | UnidadAtencionTorreon$movimientosArgs<ExtArgs>
+    incidentes?: boolean | UnidadAtencionTorreon$incidentesArgs<ExtArgs>
+    _count?: boolean | UnidadAtencionTorreonCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type UnidadAtencionTorreonIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type UnidadAtencionTorreonIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $UnidadAtencionTorreonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UnidadAtencionTorreon"
+    objects: {
+      movimientos: Prisma.$MovimientoTorreonFerroPayload<ExtArgs>[]
+      incidentes: Prisma.$IncidenteTorreonFerroPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      localidadId: number
+      modalidad: string
+      estado: string
+      operadorId: number | null
+      ordenManual: number | null
+      fechaRecepcion: Date
+      fechaHabilitacion: Date | null
+      fechaInicio: Date | null
+      fechaFin: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["unidadAtencionTorreon"]>
+    composites: {}
+  }
+
+  type UnidadAtencionTorreonGetPayload<S extends boolean | null | undefined | UnidadAtencionTorreonDefaultArgs> = $Result.GetResult<Prisma.$UnidadAtencionTorreonPayload, S>
+
+  type UnidadAtencionTorreonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<UnidadAtencionTorreonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: UnidadAtencionTorreonCountAggregateInputType | true
+    }
+
+  export interface UnidadAtencionTorreonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UnidadAtencionTorreon'], meta: { name: 'UnidadAtencionTorreon' } }
+    /**
+     * Find zero or one UnidadAtencionTorreon that matches the filter.
+     * @param {UnidadAtencionTorreonFindUniqueArgs} args - Arguments to find a UnidadAtencionTorreon
+     * @example
+     * // Get one UnidadAtencionTorreon
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UnidadAtencionTorreonFindUniqueArgs>(args: SelectSubset<T, UnidadAtencionTorreonFindUniqueArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one UnidadAtencionTorreon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {UnidadAtencionTorreonFindUniqueOrThrowArgs} args - Arguments to find a UnidadAtencionTorreon
+     * @example
+     * // Get one UnidadAtencionTorreon
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UnidadAtencionTorreonFindUniqueOrThrowArgs>(args: SelectSubset<T, UnidadAtencionTorreonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UnidadAtencionTorreon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonFindFirstArgs} args - Arguments to find a UnidadAtencionTorreon
+     * @example
+     * // Get one UnidadAtencionTorreon
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UnidadAtencionTorreonFindFirstArgs>(args?: SelectSubset<T, UnidadAtencionTorreonFindFirstArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UnidadAtencionTorreon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonFindFirstOrThrowArgs} args - Arguments to find a UnidadAtencionTorreon
+     * @example
+     * // Get one UnidadAtencionTorreon
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UnidadAtencionTorreonFindFirstOrThrowArgs>(args?: SelectSubset<T, UnidadAtencionTorreonFindFirstOrThrowArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more UnidadAtencionTorreons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UnidadAtencionTorreons
+     * const unidadAtencionTorreons = await prisma.unidadAtencionTorreon.findMany()
+     * 
+     * // Get first 10 UnidadAtencionTorreons
+     * const unidadAtencionTorreons = await prisma.unidadAtencionTorreon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const unidadAtencionTorreonWithIdOnly = await prisma.unidadAtencionTorreon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UnidadAtencionTorreonFindManyArgs>(args?: SelectSubset<T, UnidadAtencionTorreonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a UnidadAtencionTorreon.
+     * @param {UnidadAtencionTorreonCreateArgs} args - Arguments to create a UnidadAtencionTorreon.
+     * @example
+     * // Create one UnidadAtencionTorreon
+     * const UnidadAtencionTorreon = await prisma.unidadAtencionTorreon.create({
+     *   data: {
+     *     // ... data to create a UnidadAtencionTorreon
+     *   }
+     * })
+     * 
+     */
+    create<T extends UnidadAtencionTorreonCreateArgs>(args: SelectSubset<T, UnidadAtencionTorreonCreateArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many UnidadAtencionTorreons.
+     * @param {UnidadAtencionTorreonCreateManyArgs} args - Arguments to create many UnidadAtencionTorreons.
+     * @example
+     * // Create many UnidadAtencionTorreons
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UnidadAtencionTorreonCreateManyArgs>(args?: SelectSubset<T, UnidadAtencionTorreonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UnidadAtencionTorreons and returns the data saved in the database.
+     * @param {UnidadAtencionTorreonCreateManyAndReturnArgs} args - Arguments to create many UnidadAtencionTorreons.
+     * @example
+     * // Create many UnidadAtencionTorreons
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UnidadAtencionTorreons and only return the `id`
+     * const unidadAtencionTorreonWithIdOnly = await prisma.unidadAtencionTorreon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UnidadAtencionTorreonCreateManyAndReturnArgs>(args?: SelectSubset<T, UnidadAtencionTorreonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a UnidadAtencionTorreon.
+     * @param {UnidadAtencionTorreonDeleteArgs} args - Arguments to delete one UnidadAtencionTorreon.
+     * @example
+     * // Delete one UnidadAtencionTorreon
+     * const UnidadAtencionTorreon = await prisma.unidadAtencionTorreon.delete({
+     *   where: {
+     *     // ... filter to delete one UnidadAtencionTorreon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UnidadAtencionTorreonDeleteArgs>(args: SelectSubset<T, UnidadAtencionTorreonDeleteArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one UnidadAtencionTorreon.
+     * @param {UnidadAtencionTorreonUpdateArgs} args - Arguments to update one UnidadAtencionTorreon.
+     * @example
+     * // Update one UnidadAtencionTorreon
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UnidadAtencionTorreonUpdateArgs>(args: SelectSubset<T, UnidadAtencionTorreonUpdateArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more UnidadAtencionTorreons.
+     * @param {UnidadAtencionTorreonDeleteManyArgs} args - Arguments to filter UnidadAtencionTorreons to delete.
+     * @example
+     * // Delete a few UnidadAtencionTorreons
+     * const { count } = await prisma.unidadAtencionTorreon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UnidadAtencionTorreonDeleteManyArgs>(args?: SelectSubset<T, UnidadAtencionTorreonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UnidadAtencionTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UnidadAtencionTorreons
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UnidadAtencionTorreonUpdateManyArgs>(args: SelectSubset<T, UnidadAtencionTorreonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UnidadAtencionTorreons and returns the data updated in the database.
+     * @param {UnidadAtencionTorreonUpdateManyAndReturnArgs} args - Arguments to update many UnidadAtencionTorreons.
+     * @example
+     * // Update many UnidadAtencionTorreons
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more UnidadAtencionTorreons and only return the `id`
+     * const unidadAtencionTorreonWithIdOnly = await prisma.unidadAtencionTorreon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends UnidadAtencionTorreonUpdateManyAndReturnArgs>(args: SelectSubset<T, UnidadAtencionTorreonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one UnidadAtencionTorreon.
+     * @param {UnidadAtencionTorreonUpsertArgs} args - Arguments to update or create a UnidadAtencionTorreon.
+     * @example
+     * // Update or create a UnidadAtencionTorreon
+     * const unidadAtencionTorreon = await prisma.unidadAtencionTorreon.upsert({
+     *   create: {
+     *     // ... data to create a UnidadAtencionTorreon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UnidadAtencionTorreon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UnidadAtencionTorreonUpsertArgs>(args: SelectSubset<T, UnidadAtencionTorreonUpsertArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of UnidadAtencionTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonCountArgs} args - Arguments to filter UnidadAtencionTorreons to count.
+     * @example
+     * // Count the number of UnidadAtencionTorreons
+     * const count = await prisma.unidadAtencionTorreon.count({
+     *   where: {
+     *     // ... the filter for the UnidadAtencionTorreons we want to count
+     *   }
+     * })
+    **/
+    count<T extends UnidadAtencionTorreonCountArgs>(
+      args?: Subset<T, UnidadAtencionTorreonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UnidadAtencionTorreonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UnidadAtencionTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UnidadAtencionTorreonAggregateArgs>(args: Subset<T, UnidadAtencionTorreonAggregateArgs>): Prisma.PrismaPromise<GetUnidadAtencionTorreonAggregateType<T>>
+
+    /**
+     * Group by UnidadAtencionTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UnidadAtencionTorreonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UnidadAtencionTorreonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UnidadAtencionTorreonGroupByArgs['orderBy'] }
+        : { orderBy?: UnidadAtencionTorreonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UnidadAtencionTorreonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUnidadAtencionTorreonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UnidadAtencionTorreon model
+   */
+  readonly fields: UnidadAtencionTorreonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UnidadAtencionTorreon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UnidadAtencionTorreonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    movimientos<T extends UnidadAtencionTorreon$movimientosArgs<ExtArgs> = {}>(args?: Subset<T, UnidadAtencionTorreon$movimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MovimientoTorreonFerroPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    incidentes<T extends UnidadAtencionTorreon$incidentesArgs<ExtArgs> = {}>(args?: Subset<T, UnidadAtencionTorreon$incidentesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteTorreonFerroPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UnidadAtencionTorreon model
+   */
+  interface UnidadAtencionTorreonFieldRefs {
+    readonly id: FieldRef<"UnidadAtencionTorreon", 'Int'>
+    readonly localidadId: FieldRef<"UnidadAtencionTorreon", 'Int'>
+    readonly modalidad: FieldRef<"UnidadAtencionTorreon", 'String'>
+    readonly estado: FieldRef<"UnidadAtencionTorreon", 'String'>
+    readonly operadorId: FieldRef<"UnidadAtencionTorreon", 'Int'>
+    readonly ordenManual: FieldRef<"UnidadAtencionTorreon", 'Int'>
+    readonly fechaRecepcion: FieldRef<"UnidadAtencionTorreon", 'DateTime'>
+    readonly fechaHabilitacion: FieldRef<"UnidadAtencionTorreon", 'DateTime'>
+    readonly fechaInicio: FieldRef<"UnidadAtencionTorreon", 'DateTime'>
+    readonly fechaFin: FieldRef<"UnidadAtencionTorreon", 'DateTime'>
+    readonly createdAt: FieldRef<"UnidadAtencionTorreon", 'DateTime'>
+    readonly updatedAt: FieldRef<"UnidadAtencionTorreon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UnidadAtencionTorreon findUnique
+   */
+  export type UnidadAtencionTorreonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which UnidadAtencionTorreon to fetch.
+     */
+    where: UnidadAtencionTorreonWhereUniqueInput
+  }
+
+  /**
+   * UnidadAtencionTorreon findUniqueOrThrow
+   */
+  export type UnidadAtencionTorreonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which UnidadAtencionTorreon to fetch.
+     */
+    where: UnidadAtencionTorreonWhereUniqueInput
+  }
+
+  /**
+   * UnidadAtencionTorreon findFirst
+   */
+  export type UnidadAtencionTorreonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which UnidadAtencionTorreon to fetch.
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UnidadAtencionTorreons to fetch.
+     */
+    orderBy?: UnidadAtencionTorreonOrderByWithRelationInput | UnidadAtencionTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UnidadAtencionTorreons.
+     */
+    cursor?: UnidadAtencionTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UnidadAtencionTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UnidadAtencionTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UnidadAtencionTorreons.
+     */
+    distinct?: UnidadAtencionTorreonScalarFieldEnum | UnidadAtencionTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * UnidadAtencionTorreon findFirstOrThrow
+   */
+  export type UnidadAtencionTorreonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which UnidadAtencionTorreon to fetch.
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UnidadAtencionTorreons to fetch.
+     */
+    orderBy?: UnidadAtencionTorreonOrderByWithRelationInput | UnidadAtencionTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UnidadAtencionTorreons.
+     */
+    cursor?: UnidadAtencionTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UnidadAtencionTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UnidadAtencionTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UnidadAtencionTorreons.
+     */
+    distinct?: UnidadAtencionTorreonScalarFieldEnum | UnidadAtencionTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * UnidadAtencionTorreon findMany
+   */
+  export type UnidadAtencionTorreonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * Filter, which UnidadAtencionTorreons to fetch.
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UnidadAtencionTorreons to fetch.
+     */
+    orderBy?: UnidadAtencionTorreonOrderByWithRelationInput | UnidadAtencionTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UnidadAtencionTorreons.
+     */
+    cursor?: UnidadAtencionTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UnidadAtencionTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UnidadAtencionTorreons.
+     */
+    skip?: number
+    distinct?: UnidadAtencionTorreonScalarFieldEnum | UnidadAtencionTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * UnidadAtencionTorreon create
+   */
+  export type UnidadAtencionTorreonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to create a UnidadAtencionTorreon.
+     */
+    data: XOR<UnidadAtencionTorreonCreateInput, UnidadAtencionTorreonUncheckedCreateInput>
+  }
+
+  /**
+   * UnidadAtencionTorreon createMany
+   */
+  export type UnidadAtencionTorreonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UnidadAtencionTorreons.
+     */
+    data: UnidadAtencionTorreonCreateManyInput | UnidadAtencionTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UnidadAtencionTorreon createManyAndReturn
+   */
+  export type UnidadAtencionTorreonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to create many UnidadAtencionTorreons.
+     */
+    data: UnidadAtencionTorreonCreateManyInput | UnidadAtencionTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UnidadAtencionTorreon update
+   */
+  export type UnidadAtencionTorreonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * The data needed to update a UnidadAtencionTorreon.
+     */
+    data: XOR<UnidadAtencionTorreonUpdateInput, UnidadAtencionTorreonUncheckedUpdateInput>
+    /**
+     * Choose, which UnidadAtencionTorreon to update.
+     */
+    where: UnidadAtencionTorreonWhereUniqueInput
+  }
+
+  /**
+   * UnidadAtencionTorreon updateMany
+   */
+  export type UnidadAtencionTorreonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UnidadAtencionTorreons.
+     */
+    data: XOR<UnidadAtencionTorreonUpdateManyMutationInput, UnidadAtencionTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which UnidadAtencionTorreons to update
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * Limit how many UnidadAtencionTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UnidadAtencionTorreon updateManyAndReturn
+   */
+  export type UnidadAtencionTorreonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to update UnidadAtencionTorreons.
+     */
+    data: XOR<UnidadAtencionTorreonUpdateManyMutationInput, UnidadAtencionTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which UnidadAtencionTorreons to update
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * Limit how many UnidadAtencionTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UnidadAtencionTorreon upsert
+   */
+  export type UnidadAtencionTorreonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * The filter to search for the UnidadAtencionTorreon to update in case it exists.
+     */
+    where: UnidadAtencionTorreonWhereUniqueInput
+    /**
+     * In case the UnidadAtencionTorreon found by the `where` argument doesn't exist, create a new UnidadAtencionTorreon with this data.
+     */
+    create: XOR<UnidadAtencionTorreonCreateInput, UnidadAtencionTorreonUncheckedCreateInput>
+    /**
+     * In case the UnidadAtencionTorreon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UnidadAtencionTorreonUpdateInput, UnidadAtencionTorreonUncheckedUpdateInput>
+  }
+
+  /**
+   * UnidadAtencionTorreon delete
+   */
+  export type UnidadAtencionTorreonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    /**
+     * Filter which UnidadAtencionTorreon to delete.
+     */
+    where: UnidadAtencionTorreonWhereUniqueInput
+  }
+
+  /**
+   * UnidadAtencionTorreon deleteMany
+   */
+  export type UnidadAtencionTorreonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UnidadAtencionTorreons to delete
+     */
+    where?: UnidadAtencionTorreonWhereInput
+    /**
+     * Limit how many UnidadAtencionTorreons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * UnidadAtencionTorreon.movimientos
+   */
+  export type UnidadAtencionTorreon$movimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the MovimientoTorreonFerro
+     */
+    select?: MovimientoTorreonFerroSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the MovimientoTorreonFerro
+     */
+    omit?: MovimientoTorreonFerroOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MovimientoTorreonFerroInclude<ExtArgs> | null
+    where?: MovimientoTorreonFerroWhereInput
+    orderBy?: MovimientoTorreonFerroOrderByWithRelationInput | MovimientoTorreonFerroOrderByWithRelationInput[]
+    cursor?: MovimientoTorreonFerroWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MovimientoTorreonFerroScalarFieldEnum | MovimientoTorreonFerroScalarFieldEnum[]
+  }
+
+  /**
+   * UnidadAtencionTorreon.incidentes
+   */
+  export type UnidadAtencionTorreon$incidentesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IncidenteTorreonFerro
+     */
+    select?: IncidenteTorreonFerroSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IncidenteTorreonFerro
+     */
+    omit?: IncidenteTorreonFerroOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IncidenteTorreonFerroInclude<ExtArgs> | null
+    where?: IncidenteTorreonFerroWhereInput
+    orderBy?: IncidenteTorreonFerroOrderByWithRelationInput | IncidenteTorreonFerroOrderByWithRelationInput[]
+    cursor?: IncidenteTorreonFerroWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IncidenteTorreonFerroScalarFieldEnum | IncidenteTorreonFerroScalarFieldEnum[]
+  }
+
+  /**
+   * UnidadAtencionTorreon without action
+   */
+  export type UnidadAtencionTorreonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model BitacoraNaturalTorreon
+   */
+
+  export type AggregateBitacoraNaturalTorreon = {
+    _count: BitacoraNaturalTorreonCountAggregateOutputType | null
+    _avg: BitacoraNaturalTorreonAvgAggregateOutputType | null
+    _sum: BitacoraNaturalTorreonSumAggregateOutputType | null
+    _min: BitacoraNaturalTorreonMinAggregateOutputType | null
+    _max: BitacoraNaturalTorreonMaxAggregateOutputType | null
+  }
+
+  export type BitacoraNaturalTorreonAvgAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    unidadId: number | null
+    movimientoId: number | null
+    incidenteId: number | null
+    usuarioId: number | null
+  }
+
+  export type BitacoraNaturalTorreonSumAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    unidadId: number | null
+    movimientoId: number | null
+    incidenteId: number | null
+    usuarioId: number | null
+  }
+
+  export type BitacoraNaturalTorreonMinAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    unidadId: number | null
+    movimientoId: number | null
+    incidenteId: number | null
+    usuarioId: number | null
+    rol: string | null
+    accion: string | null
+    fecha: Date | null
+  }
+
+  export type BitacoraNaturalTorreonMaxAggregateOutputType = {
+    id: number | null
+    localidadId: number | null
+    unidadId: number | null
+    movimientoId: number | null
+    incidenteId: number | null
+    usuarioId: number | null
+    rol: string | null
+    accion: string | null
+    fecha: Date | null
+  }
+
+  export type BitacoraNaturalTorreonCountAggregateOutputType = {
+    id: number
+    localidadId: number
+    unidadId: number
+    movimientoId: number
+    incidenteId: number
+    usuarioId: number
+    rol: number
+    accion: number
+    datos: number
+    fecha: number
+    _all: number
+  }
+
+
+  export type BitacoraNaturalTorreonAvgAggregateInputType = {
+    id?: true
+    localidadId?: true
+    unidadId?: true
+    movimientoId?: true
+    incidenteId?: true
+    usuarioId?: true
+  }
+
+  export type BitacoraNaturalTorreonSumAggregateInputType = {
+    id?: true
+    localidadId?: true
+    unidadId?: true
+    movimientoId?: true
+    incidenteId?: true
+    usuarioId?: true
+  }
+
+  export type BitacoraNaturalTorreonMinAggregateInputType = {
+    id?: true
+    localidadId?: true
+    unidadId?: true
+    movimientoId?: true
+    incidenteId?: true
+    usuarioId?: true
+    rol?: true
+    accion?: true
+    fecha?: true
+  }
+
+  export type BitacoraNaturalTorreonMaxAggregateInputType = {
+    id?: true
+    localidadId?: true
+    unidadId?: true
+    movimientoId?: true
+    incidenteId?: true
+    usuarioId?: true
+    rol?: true
+    accion?: true
+    fecha?: true
+  }
+
+  export type BitacoraNaturalTorreonCountAggregateInputType = {
+    id?: true
+    localidadId?: true
+    unidadId?: true
+    movimientoId?: true
+    incidenteId?: true
+    usuarioId?: true
+    rol?: true
+    accion?: true
+    datos?: true
+    fecha?: true
+    _all?: true
+  }
+
+  export type BitacoraNaturalTorreonAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which BitacoraNaturalTorreon to aggregate.
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BitacoraNaturalTorreons to fetch.
+     */
+    orderBy?: BitacoraNaturalTorreonOrderByWithRelationInput | BitacoraNaturalTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: BitacoraNaturalTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BitacoraNaturalTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BitacoraNaturalTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned BitacoraNaturalTorreons
+    **/
+    _count?: true | BitacoraNaturalTorreonCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: BitacoraNaturalTorreonAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: BitacoraNaturalTorreonSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: BitacoraNaturalTorreonMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: BitacoraNaturalTorreonMaxAggregateInputType
+  }
+
+  export type GetBitacoraNaturalTorreonAggregateType<T extends BitacoraNaturalTorreonAggregateArgs> = {
+        [P in keyof T & keyof AggregateBitacoraNaturalTorreon]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateBitacoraNaturalTorreon[P]>
+      : GetScalarType<T[P], AggregateBitacoraNaturalTorreon[P]>
+  }
+
+
+
+
+  export type BitacoraNaturalTorreonGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BitacoraNaturalTorreonWhereInput
+    orderBy?: BitacoraNaturalTorreonOrderByWithAggregationInput | BitacoraNaturalTorreonOrderByWithAggregationInput[]
+    by: BitacoraNaturalTorreonScalarFieldEnum[] | BitacoraNaturalTorreonScalarFieldEnum
+    having?: BitacoraNaturalTorreonScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: BitacoraNaturalTorreonCountAggregateInputType | true
+    _avg?: BitacoraNaturalTorreonAvgAggregateInputType
+    _sum?: BitacoraNaturalTorreonSumAggregateInputType
+    _min?: BitacoraNaturalTorreonMinAggregateInputType
+    _max?: BitacoraNaturalTorreonMaxAggregateInputType
+  }
+
+  export type BitacoraNaturalTorreonGroupByOutputType = {
+    id: number
+    localidadId: number
+    unidadId: number | null
+    movimientoId: number | null
+    incidenteId: number | null
+    usuarioId: number
+    rol: string | null
+    accion: string
+    datos: JsonValue | null
+    fecha: Date
+    _count: BitacoraNaturalTorreonCountAggregateOutputType | null
+    _avg: BitacoraNaturalTorreonAvgAggregateOutputType | null
+    _sum: BitacoraNaturalTorreonSumAggregateOutputType | null
+    _min: BitacoraNaturalTorreonMinAggregateOutputType | null
+    _max: BitacoraNaturalTorreonMaxAggregateOutputType | null
+  }
+
+  type GetBitacoraNaturalTorreonGroupByPayload<T extends BitacoraNaturalTorreonGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<BitacoraNaturalTorreonGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof BitacoraNaturalTorreonGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], BitacoraNaturalTorreonGroupByOutputType[P]>
+            : GetScalarType<T[P], BitacoraNaturalTorreonGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type BitacoraNaturalTorreonSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    unidadId?: boolean
+    movimientoId?: boolean
+    incidenteId?: boolean
+    usuarioId?: boolean
+    rol?: boolean
+    accion?: boolean
+    datos?: boolean
+    fecha?: boolean
+  }, ExtArgs["result"]["bitacoraNaturalTorreon"]>
+
+  export type BitacoraNaturalTorreonSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    unidadId?: boolean
+    movimientoId?: boolean
+    incidenteId?: boolean
+    usuarioId?: boolean
+    rol?: boolean
+    accion?: boolean
+    datos?: boolean
+    fecha?: boolean
+  }, ExtArgs["result"]["bitacoraNaturalTorreon"]>
+
+  export type BitacoraNaturalTorreonSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    localidadId?: boolean
+    unidadId?: boolean
+    movimientoId?: boolean
+    incidenteId?: boolean
+    usuarioId?: boolean
+    rol?: boolean
+    accion?: boolean
+    datos?: boolean
+    fecha?: boolean
+  }, ExtArgs["result"]["bitacoraNaturalTorreon"]>
+
+  export type BitacoraNaturalTorreonSelectScalar = {
+    id?: boolean
+    localidadId?: boolean
+    unidadId?: boolean
+    movimientoId?: boolean
+    incidenteId?: boolean
+    usuarioId?: boolean
+    rol?: boolean
+    accion?: boolean
+    datos?: boolean
+    fecha?: boolean
+  }
+
+  export type BitacoraNaturalTorreonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "localidadId" | "unidadId" | "movimientoId" | "incidenteId" | "usuarioId" | "rol" | "accion" | "datos" | "fecha", ExtArgs["result"]["bitacoraNaturalTorreon"]>
+
+  export type $BitacoraNaturalTorreonPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "BitacoraNaturalTorreon"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      localidadId: number
+      unidadId: number | null
+      movimientoId: number | null
+      incidenteId: number | null
+      usuarioId: number
+      rol: string | null
+      accion: string
+      datos: Prisma.JsonValue | null
+      fecha: Date
+    }, ExtArgs["result"]["bitacoraNaturalTorreon"]>
+    composites: {}
+  }
+
+  type BitacoraNaturalTorreonGetPayload<S extends boolean | null | undefined | BitacoraNaturalTorreonDefaultArgs> = $Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload, S>
+
+  type BitacoraNaturalTorreonCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<BitacoraNaturalTorreonFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: BitacoraNaturalTorreonCountAggregateInputType | true
+    }
+
+  export interface BitacoraNaturalTorreonDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['BitacoraNaturalTorreon'], meta: { name: 'BitacoraNaturalTorreon' } }
+    /**
+     * Find zero or one BitacoraNaturalTorreon that matches the filter.
+     * @param {BitacoraNaturalTorreonFindUniqueArgs} args - Arguments to find a BitacoraNaturalTorreon
+     * @example
+     * // Get one BitacoraNaturalTorreon
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends BitacoraNaturalTorreonFindUniqueArgs>(args: SelectSubset<T, BitacoraNaturalTorreonFindUniqueArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one BitacoraNaturalTorreon that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {BitacoraNaturalTorreonFindUniqueOrThrowArgs} args - Arguments to find a BitacoraNaturalTorreon
+     * @example
+     * // Get one BitacoraNaturalTorreon
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends BitacoraNaturalTorreonFindUniqueOrThrowArgs>(args: SelectSubset<T, BitacoraNaturalTorreonFindUniqueOrThrowArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first BitacoraNaturalTorreon that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonFindFirstArgs} args - Arguments to find a BitacoraNaturalTorreon
+     * @example
+     * // Get one BitacoraNaturalTorreon
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends BitacoraNaturalTorreonFindFirstArgs>(args?: SelectSubset<T, BitacoraNaturalTorreonFindFirstArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first BitacoraNaturalTorreon that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonFindFirstOrThrowArgs} args - Arguments to find a BitacoraNaturalTorreon
+     * @example
+     * // Get one BitacoraNaturalTorreon
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends BitacoraNaturalTorreonFindFirstOrThrowArgs>(args?: SelectSubset<T, BitacoraNaturalTorreonFindFirstOrThrowArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more BitacoraNaturalTorreons that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all BitacoraNaturalTorreons
+     * const bitacoraNaturalTorreons = await prisma.bitacoraNaturalTorreon.findMany()
+     * 
+     * // Get first 10 BitacoraNaturalTorreons
+     * const bitacoraNaturalTorreons = await prisma.bitacoraNaturalTorreon.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const bitacoraNaturalTorreonWithIdOnly = await prisma.bitacoraNaturalTorreon.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends BitacoraNaturalTorreonFindManyArgs>(args?: SelectSubset<T, BitacoraNaturalTorreonFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a BitacoraNaturalTorreon.
+     * @param {BitacoraNaturalTorreonCreateArgs} args - Arguments to create a BitacoraNaturalTorreon.
+     * @example
+     * // Create one BitacoraNaturalTorreon
+     * const BitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.create({
+     *   data: {
+     *     // ... data to create a BitacoraNaturalTorreon
+     *   }
+     * })
+     * 
+     */
+    create<T extends BitacoraNaturalTorreonCreateArgs>(args: SelectSubset<T, BitacoraNaturalTorreonCreateArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many BitacoraNaturalTorreons.
+     * @param {BitacoraNaturalTorreonCreateManyArgs} args - Arguments to create many BitacoraNaturalTorreons.
+     * @example
+     * // Create many BitacoraNaturalTorreons
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends BitacoraNaturalTorreonCreateManyArgs>(args?: SelectSubset<T, BitacoraNaturalTorreonCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many BitacoraNaturalTorreons and returns the data saved in the database.
+     * @param {BitacoraNaturalTorreonCreateManyAndReturnArgs} args - Arguments to create many BitacoraNaturalTorreons.
+     * @example
+     * // Create many BitacoraNaturalTorreons
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many BitacoraNaturalTorreons and only return the `id`
+     * const bitacoraNaturalTorreonWithIdOnly = await prisma.bitacoraNaturalTorreon.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends BitacoraNaturalTorreonCreateManyAndReturnArgs>(args?: SelectSubset<T, BitacoraNaturalTorreonCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a BitacoraNaturalTorreon.
+     * @param {BitacoraNaturalTorreonDeleteArgs} args - Arguments to delete one BitacoraNaturalTorreon.
+     * @example
+     * // Delete one BitacoraNaturalTorreon
+     * const BitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.delete({
+     *   where: {
+     *     // ... filter to delete one BitacoraNaturalTorreon
+     *   }
+     * })
+     * 
+     */
+    delete<T extends BitacoraNaturalTorreonDeleteArgs>(args: SelectSubset<T, BitacoraNaturalTorreonDeleteArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one BitacoraNaturalTorreon.
+     * @param {BitacoraNaturalTorreonUpdateArgs} args - Arguments to update one BitacoraNaturalTorreon.
+     * @example
+     * // Update one BitacoraNaturalTorreon
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends BitacoraNaturalTorreonUpdateArgs>(args: SelectSubset<T, BitacoraNaturalTorreonUpdateArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more BitacoraNaturalTorreons.
+     * @param {BitacoraNaturalTorreonDeleteManyArgs} args - Arguments to filter BitacoraNaturalTorreons to delete.
+     * @example
+     * // Delete a few BitacoraNaturalTorreons
+     * const { count } = await prisma.bitacoraNaturalTorreon.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends BitacoraNaturalTorreonDeleteManyArgs>(args?: SelectSubset<T, BitacoraNaturalTorreonDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more BitacoraNaturalTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many BitacoraNaturalTorreons
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends BitacoraNaturalTorreonUpdateManyArgs>(args: SelectSubset<T, BitacoraNaturalTorreonUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more BitacoraNaturalTorreons and returns the data updated in the database.
+     * @param {BitacoraNaturalTorreonUpdateManyAndReturnArgs} args - Arguments to update many BitacoraNaturalTorreons.
+     * @example
+     * // Update many BitacoraNaturalTorreons
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more BitacoraNaturalTorreons and only return the `id`
+     * const bitacoraNaturalTorreonWithIdOnly = await prisma.bitacoraNaturalTorreon.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends BitacoraNaturalTorreonUpdateManyAndReturnArgs>(args: SelectSubset<T, BitacoraNaturalTorreonUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one BitacoraNaturalTorreon.
+     * @param {BitacoraNaturalTorreonUpsertArgs} args - Arguments to update or create a BitacoraNaturalTorreon.
+     * @example
+     * // Update or create a BitacoraNaturalTorreon
+     * const bitacoraNaturalTorreon = await prisma.bitacoraNaturalTorreon.upsert({
+     *   create: {
+     *     // ... data to create a BitacoraNaturalTorreon
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the BitacoraNaturalTorreon we want to update
+     *   }
+     * })
+     */
+    upsert<T extends BitacoraNaturalTorreonUpsertArgs>(args: SelectSubset<T, BitacoraNaturalTorreonUpsertArgs<ExtArgs>>): Prisma__BitacoraNaturalTorreonClient<$Result.GetResult<Prisma.$BitacoraNaturalTorreonPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of BitacoraNaturalTorreons.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonCountArgs} args - Arguments to filter BitacoraNaturalTorreons to count.
+     * @example
+     * // Count the number of BitacoraNaturalTorreons
+     * const count = await prisma.bitacoraNaturalTorreon.count({
+     *   where: {
+     *     // ... the filter for the BitacoraNaturalTorreons we want to count
+     *   }
+     * })
+    **/
+    count<T extends BitacoraNaturalTorreonCountArgs>(
+      args?: Subset<T, BitacoraNaturalTorreonCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], BitacoraNaturalTorreonCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a BitacoraNaturalTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends BitacoraNaturalTorreonAggregateArgs>(args: Subset<T, BitacoraNaturalTorreonAggregateArgs>): Prisma.PrismaPromise<GetBitacoraNaturalTorreonAggregateType<T>>
+
+    /**
+     * Group by BitacoraNaturalTorreon.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BitacoraNaturalTorreonGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends BitacoraNaturalTorreonGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: BitacoraNaturalTorreonGroupByArgs['orderBy'] }
+        : { orderBy?: BitacoraNaturalTorreonGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, BitacoraNaturalTorreonGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetBitacoraNaturalTorreonGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the BitacoraNaturalTorreon model
+   */
+  readonly fields: BitacoraNaturalTorreonFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for BitacoraNaturalTorreon.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__BitacoraNaturalTorreonClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the BitacoraNaturalTorreon model
+   */
+  interface BitacoraNaturalTorreonFieldRefs {
+    readonly id: FieldRef<"BitacoraNaturalTorreon", 'Int'>
+    readonly localidadId: FieldRef<"BitacoraNaturalTorreon", 'Int'>
+    readonly unidadId: FieldRef<"BitacoraNaturalTorreon", 'Int'>
+    readonly movimientoId: FieldRef<"BitacoraNaturalTorreon", 'Int'>
+    readonly incidenteId: FieldRef<"BitacoraNaturalTorreon", 'Int'>
+    readonly usuarioId: FieldRef<"BitacoraNaturalTorreon", 'Int'>
+    readonly rol: FieldRef<"BitacoraNaturalTorreon", 'String'>
+    readonly accion: FieldRef<"BitacoraNaturalTorreon", 'String'>
+    readonly datos: FieldRef<"BitacoraNaturalTorreon", 'Json'>
+    readonly fecha: FieldRef<"BitacoraNaturalTorreon", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * BitacoraNaturalTorreon findUnique
+   */
+  export type BitacoraNaturalTorreonFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * Filter, which BitacoraNaturalTorreon to fetch.
+     */
+    where: BitacoraNaturalTorreonWhereUniqueInput
+  }
+
+  /**
+   * BitacoraNaturalTorreon findUniqueOrThrow
+   */
+  export type BitacoraNaturalTorreonFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * Filter, which BitacoraNaturalTorreon to fetch.
+     */
+    where: BitacoraNaturalTorreonWhereUniqueInput
+  }
+
+  /**
+   * BitacoraNaturalTorreon findFirst
+   */
+  export type BitacoraNaturalTorreonFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * Filter, which BitacoraNaturalTorreon to fetch.
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BitacoraNaturalTorreons to fetch.
+     */
+    orderBy?: BitacoraNaturalTorreonOrderByWithRelationInput | BitacoraNaturalTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for BitacoraNaturalTorreons.
+     */
+    cursor?: BitacoraNaturalTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BitacoraNaturalTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BitacoraNaturalTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of BitacoraNaturalTorreons.
+     */
+    distinct?: BitacoraNaturalTorreonScalarFieldEnum | BitacoraNaturalTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * BitacoraNaturalTorreon findFirstOrThrow
+   */
+  export type BitacoraNaturalTorreonFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * Filter, which BitacoraNaturalTorreon to fetch.
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BitacoraNaturalTorreons to fetch.
+     */
+    orderBy?: BitacoraNaturalTorreonOrderByWithRelationInput | BitacoraNaturalTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for BitacoraNaturalTorreons.
+     */
+    cursor?: BitacoraNaturalTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BitacoraNaturalTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BitacoraNaturalTorreons.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of BitacoraNaturalTorreons.
+     */
+    distinct?: BitacoraNaturalTorreonScalarFieldEnum | BitacoraNaturalTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * BitacoraNaturalTorreon findMany
+   */
+  export type BitacoraNaturalTorreonFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * Filter, which BitacoraNaturalTorreons to fetch.
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BitacoraNaturalTorreons to fetch.
+     */
+    orderBy?: BitacoraNaturalTorreonOrderByWithRelationInput | BitacoraNaturalTorreonOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing BitacoraNaturalTorreons.
+     */
+    cursor?: BitacoraNaturalTorreonWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BitacoraNaturalTorreons from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BitacoraNaturalTorreons.
+     */
+    skip?: number
+    distinct?: BitacoraNaturalTorreonScalarFieldEnum | BitacoraNaturalTorreonScalarFieldEnum[]
+  }
+
+  /**
+   * BitacoraNaturalTorreon create
+   */
+  export type BitacoraNaturalTorreonCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * The data needed to create a BitacoraNaturalTorreon.
+     */
+    data: XOR<BitacoraNaturalTorreonCreateInput, BitacoraNaturalTorreonUncheckedCreateInput>
+  }
+
+  /**
+   * BitacoraNaturalTorreon createMany
+   */
+  export type BitacoraNaturalTorreonCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many BitacoraNaturalTorreons.
+     */
+    data: BitacoraNaturalTorreonCreateManyInput | BitacoraNaturalTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * BitacoraNaturalTorreon createManyAndReturn
+   */
+  export type BitacoraNaturalTorreonCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to create many BitacoraNaturalTorreons.
+     */
+    data: BitacoraNaturalTorreonCreateManyInput | BitacoraNaturalTorreonCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * BitacoraNaturalTorreon update
+   */
+  export type BitacoraNaturalTorreonUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * The data needed to update a BitacoraNaturalTorreon.
+     */
+    data: XOR<BitacoraNaturalTorreonUpdateInput, BitacoraNaturalTorreonUncheckedUpdateInput>
+    /**
+     * Choose, which BitacoraNaturalTorreon to update.
+     */
+    where: BitacoraNaturalTorreonWhereUniqueInput
+  }
+
+  /**
+   * BitacoraNaturalTorreon updateMany
+   */
+  export type BitacoraNaturalTorreonUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update BitacoraNaturalTorreons.
+     */
+    data: XOR<BitacoraNaturalTorreonUpdateManyMutationInput, BitacoraNaturalTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which BitacoraNaturalTorreons to update
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * Limit how many BitacoraNaturalTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * BitacoraNaturalTorreon updateManyAndReturn
+   */
+  export type BitacoraNaturalTorreonUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * The data used to update BitacoraNaturalTorreons.
+     */
+    data: XOR<BitacoraNaturalTorreonUpdateManyMutationInput, BitacoraNaturalTorreonUncheckedUpdateManyInput>
+    /**
+     * Filter which BitacoraNaturalTorreons to update
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * Limit how many BitacoraNaturalTorreons to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * BitacoraNaturalTorreon upsert
+   */
+  export type BitacoraNaturalTorreonUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * The filter to search for the BitacoraNaturalTorreon to update in case it exists.
+     */
+    where: BitacoraNaturalTorreonWhereUniqueInput
+    /**
+     * In case the BitacoraNaturalTorreon found by the `where` argument doesn't exist, create a new BitacoraNaturalTorreon with this data.
+     */
+    create: XOR<BitacoraNaturalTorreonCreateInput, BitacoraNaturalTorreonUncheckedCreateInput>
+    /**
+     * In case the BitacoraNaturalTorreon was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<BitacoraNaturalTorreonUpdateInput, BitacoraNaturalTorreonUncheckedUpdateInput>
+  }
+
+  /**
+   * BitacoraNaturalTorreon delete
+   */
+  export type BitacoraNaturalTorreonDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
+    /**
+     * Filter which BitacoraNaturalTorreon to delete.
+     */
+    where: BitacoraNaturalTorreonWhereUniqueInput
+  }
+
+  /**
+   * BitacoraNaturalTorreon deleteMany
+   */
+  export type BitacoraNaturalTorreonDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which BitacoraNaturalTorreons to delete
+     */
+    where?: BitacoraNaturalTorreonWhereInput
+    /**
+     * Limit how many BitacoraNaturalTorreons to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * BitacoraNaturalTorreon without action
+   */
+  export type BitacoraNaturalTorreonDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BitacoraNaturalTorreon
+     */
+    select?: BitacoraNaturalTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BitacoraNaturalTorreon
+     */
+    omit?: BitacoraNaturalTorreonOmit<ExtArgs> | null
   }
 
 
@@ -6521,6 +9185,7 @@ export namespace Prisma {
   export type IncidenteTorreonFerroAvgAggregateOutputType = {
     id: number | null
     movimientoId: number | null
+    unidadId: number | null
     creadoPorId: number | null
     resueltoPorId: number | null
     localidadId: number | null
@@ -6531,6 +9196,7 @@ export namespace Prisma {
   export type IncidenteTorreonFerroSumAggregateOutputType = {
     id: number | null
     movimientoId: number | null
+    unidadId: number | null
     creadoPorId: number | null
     resueltoPorId: number | null
     localidadId: number | null
@@ -6541,6 +9207,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroMinAggregateOutputType = {
     id: number | null
     movimientoId: number | null
+    unidadId: number | null
+    confirmadoPorRol: string | null
     creadoPorId: number | null
     resueltoPorId: number | null
     estado: $Enums.EstadoIncidenteTorreon | null
@@ -6558,6 +9226,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroMaxAggregateOutputType = {
     id: number | null
     movimientoId: number | null
+    unidadId: number | null
+    confirmadoPorRol: string | null
     creadoPorId: number | null
     resueltoPorId: number | null
     estado: $Enums.EstadoIncidenteTorreon | null
@@ -6575,6 +9245,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroCountAggregateOutputType = {
     id: number
     movimientoId: number
+    unidadId: number
+    confirmadoPorRol: number
     creadoPorId: number
     resueltoPorId: number
     estado: number
@@ -6594,6 +9266,7 @@ export namespace Prisma {
   export type IncidenteTorreonFerroAvgAggregateInputType = {
     id?: true
     movimientoId?: true
+    unidadId?: true
     creadoPorId?: true
     resueltoPorId?: true
     localidadId?: true
@@ -6604,6 +9277,7 @@ export namespace Prisma {
   export type IncidenteTorreonFerroSumAggregateInputType = {
     id?: true
     movimientoId?: true
+    unidadId?: true
     creadoPorId?: true
     resueltoPorId?: true
     localidadId?: true
@@ -6614,6 +9288,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroMinAggregateInputType = {
     id?: true
     movimientoId?: true
+    unidadId?: true
+    confirmadoPorRol?: true
     creadoPorId?: true
     resueltoPorId?: true
     estado?: true
@@ -6631,6 +9307,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroMaxAggregateInputType = {
     id?: true
     movimientoId?: true
+    unidadId?: true
+    confirmadoPorRol?: true
     creadoPorId?: true
     resueltoPorId?: true
     estado?: true
@@ -6648,6 +9326,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroCountAggregateInputType = {
     id?: true
     movimientoId?: true
+    unidadId?: true
+    confirmadoPorRol?: true
     creadoPorId?: true
     resueltoPorId?: true
     estado?: true
@@ -6752,6 +9432,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroGroupByOutputType = {
     id: number
     movimientoId: number
+    unidadId: number | null
+    confirmadoPorRol: string | null
     creadoPorId: number
     resueltoPorId: number | null
     estado: $Enums.EstadoIncidenteTorreon
@@ -6788,6 +9470,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     movimientoId?: boolean
+    unidadId?: boolean
+    confirmadoPorRol?: boolean
     creadoPorId?: boolean
     resueltoPorId?: boolean
     estado?: boolean
@@ -6801,6 +9485,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
+    unidad?: boolean | IncidenteTorreonFerro$unidadArgs<ExtArgs>
     rondasBloqueadas?: boolean | IncidenteTorreonFerro$rondasBloqueadasArgs<ExtArgs>
     fotos?: boolean | IncidenteTorreonFerro$fotosArgs<ExtArgs>
     _count?: boolean | IncidenteTorreonFerroCountOutputTypeDefaultArgs<ExtArgs>
@@ -6809,6 +9494,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     movimientoId?: boolean
+    unidadId?: boolean
+    confirmadoPorRol?: boolean
     creadoPorId?: boolean
     resueltoPorId?: boolean
     estado?: boolean
@@ -6822,11 +9509,14 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
+    unidad?: boolean | IncidenteTorreonFerro$unidadArgs<ExtArgs>
   }, ExtArgs["result"]["incidenteTorreonFerro"]>
 
   export type IncidenteTorreonFerroSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     movimientoId?: boolean
+    unidadId?: boolean
+    confirmadoPorRol?: boolean
     creadoPorId?: boolean
     resueltoPorId?: boolean
     estado?: boolean
@@ -6840,11 +9530,14 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
+    unidad?: boolean | IncidenteTorreonFerro$unidadArgs<ExtArgs>
   }, ExtArgs["result"]["incidenteTorreonFerro"]>
 
   export type IncidenteTorreonFerroSelectScalar = {
     id?: boolean
     movimientoId?: boolean
+    unidadId?: boolean
+    confirmadoPorRol?: boolean
     creadoPorId?: boolean
     resueltoPorId?: boolean
     estado?: boolean
@@ -6859,30 +9552,36 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type IncidenteTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "movimientoId" | "creadoPorId" | "resueltoPorId" | "estado" | "motivo" | "solucion" | "localidadId" | "viaBloqueadaId" | "seccionBloqueadaId" | "fechaInicio" | "fechaResolucion" | "createdAt" | "updatedAt", ExtArgs["result"]["incidenteTorreonFerro"]>
+  export type IncidenteTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "movimientoId" | "unidadId" | "confirmadoPorRol" | "creadoPorId" | "resueltoPorId" | "estado" | "motivo" | "solucion" | "localidadId" | "viaBloqueadaId" | "seccionBloqueadaId" | "fechaInicio" | "fechaResolucion" | "createdAt" | "updatedAt", ExtArgs["result"]["incidenteTorreonFerro"]>
   export type IncidenteTorreonFerroInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
+    unidad?: boolean | IncidenteTorreonFerro$unidadArgs<ExtArgs>
     rondasBloqueadas?: boolean | IncidenteTorreonFerro$rondasBloqueadasArgs<ExtArgs>
     fotos?: boolean | IncidenteTorreonFerro$fotosArgs<ExtArgs>
     _count?: boolean | IncidenteTorreonFerroCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type IncidenteTorreonFerroIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
+    unidad?: boolean | IncidenteTorreonFerro$unidadArgs<ExtArgs>
   }
   export type IncidenteTorreonFerroIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     movimiento?: boolean | MovimientoTorreonFerroDefaultArgs<ExtArgs>
+    unidad?: boolean | IncidenteTorreonFerro$unidadArgs<ExtArgs>
   }
 
   export type $IncidenteTorreonFerroPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "IncidenteTorreonFerro"
     objects: {
       movimiento: Prisma.$MovimientoTorreonFerroPayload<ExtArgs>
+      unidad: Prisma.$UnidadAtencionTorreonPayload<ExtArgs> | null
       rondasBloqueadas: Prisma.$RondaTorreonMovimientoPayload<ExtArgs>[]
       fotos: Prisma.$IncidenteTorreonFotoPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
       movimientoId: number
+      unidadId: number | null
+      confirmadoPorRol: string | null
       creadoPorId: number
       resueltoPorId: number | null
       estado: $Enums.EstadoIncidenteTorreon
@@ -7290,6 +9989,7 @@ export namespace Prisma {
   export interface Prisma__IncidenteTorreonFerroClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     movimiento<T extends MovimientoTorreonFerroDefaultArgs<ExtArgs> = {}>(args?: Subset<T, MovimientoTorreonFerroDefaultArgs<ExtArgs>>): Prisma__MovimientoTorreonFerroClient<$Result.GetResult<Prisma.$MovimientoTorreonFerroPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    unidad<T extends IncidenteTorreonFerro$unidadArgs<ExtArgs> = {}>(args?: Subset<T, IncidenteTorreonFerro$unidadArgs<ExtArgs>>): Prisma__UnidadAtencionTorreonClient<$Result.GetResult<Prisma.$UnidadAtencionTorreonPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     rondasBloqueadas<T extends IncidenteTorreonFerro$rondasBloqueadasArgs<ExtArgs> = {}>(args?: Subset<T, IncidenteTorreonFerro$rondasBloqueadasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RondaTorreonMovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fotos<T extends IncidenteTorreonFerro$fotosArgs<ExtArgs> = {}>(args?: Subset<T, IncidenteTorreonFerro$fotosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IncidenteTorreonFotoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -7323,6 +10023,8 @@ export namespace Prisma {
   interface IncidenteTorreonFerroFieldRefs {
     readonly id: FieldRef<"IncidenteTorreonFerro", 'Int'>
     readonly movimientoId: FieldRef<"IncidenteTorreonFerro", 'Int'>
+    readonly unidadId: FieldRef<"IncidenteTorreonFerro", 'Int'>
+    readonly confirmadoPorRol: FieldRef<"IncidenteTorreonFerro", 'String'>
     readonly creadoPorId: FieldRef<"IncidenteTorreonFerro", 'Int'>
     readonly resueltoPorId: FieldRef<"IncidenteTorreonFerro", 'Int'>
     readonly estado: FieldRef<"IncidenteTorreonFerro", 'EstadoIncidenteTorreon'>
@@ -7728,6 +10430,25 @@ export namespace Prisma {
      * Limit how many IncidenteTorreonFerros to delete.
      */
     limit?: number
+  }
+
+  /**
+   * IncidenteTorreonFerro.unidad
+   */
+  export type IncidenteTorreonFerro$unidadArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UnidadAtencionTorreon
+     */
+    select?: UnidadAtencionTorreonSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UnidadAtencionTorreon
+     */
+    omit?: UnidadAtencionTorreonOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UnidadAtencionTorreonInclude<ExtArgs> | null
+    where?: UnidadAtencionTorreonWhereInput
   }
 
   /**
@@ -19775,6 +22496,10 @@ export namespace Prisma {
   export const MovimientoTorreonFerroScalarFieldEnum: {
     id: 'id',
     clientRequestId: 'clientRequestId',
+    loteCapturaId: 'loteCapturaId',
+    unidadId: 'unidadId',
+    locomotoraRemolque: 'locomotoraRemolque',
+    polo: 'polo',
     empresaId: 'empresaId',
     creadoPorId: 'creadoPorId',
     clienteId: 'clienteId',
@@ -19810,6 +22535,40 @@ export namespace Prisma {
   };
 
   export type MovimientoTorreonFerroScalarFieldEnum = (typeof MovimientoTorreonFerroScalarFieldEnum)[keyof typeof MovimientoTorreonFerroScalarFieldEnum]
+
+
+  export const UnidadAtencionTorreonScalarFieldEnum: {
+    id: 'id',
+    localidadId: 'localidadId',
+    modalidad: 'modalidad',
+    estado: 'estado',
+    operadorId: 'operadorId',
+    ordenManual: 'ordenManual',
+    fechaRecepcion: 'fechaRecepcion',
+    fechaHabilitacion: 'fechaHabilitacion',
+    fechaInicio: 'fechaInicio',
+    fechaFin: 'fechaFin',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type UnidadAtencionTorreonScalarFieldEnum = (typeof UnidadAtencionTorreonScalarFieldEnum)[keyof typeof UnidadAtencionTorreonScalarFieldEnum]
+
+
+  export const BitacoraNaturalTorreonScalarFieldEnum: {
+    id: 'id',
+    localidadId: 'localidadId',
+    unidadId: 'unidadId',
+    movimientoId: 'movimientoId',
+    incidenteId: 'incidenteId',
+    usuarioId: 'usuarioId',
+    rol: 'rol',
+    accion: 'accion',
+    datos: 'datos',
+    fecha: 'fecha'
+  };
+
+  export type BitacoraNaturalTorreonScalarFieldEnum = (typeof BitacoraNaturalTorreonScalarFieldEnum)[keyof typeof BitacoraNaturalTorreonScalarFieldEnum]
 
 
   export const RondaTorreonScalarFieldEnum: {
@@ -19850,6 +22609,8 @@ export namespace Prisma {
   export const IncidenteTorreonFerroScalarFieldEnum: {
     id: 'id',
     movimientoId: 'movimientoId',
+    unidadId: 'unidadId',
+    confirmadoPorRol: 'confirmadoPorRol',
     creadoPorId: 'creadoPorId',
     resueltoPorId: 'resueltoPorId',
     estado: 'estado',
@@ -20053,19 +22814,19 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
-
-
   export const NullableJsonNullValueInput: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -20232,6 +22993,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'QueryMode'
+   */
+  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
    * Reference to a field of type 'EstadoRondaTorreon'
    */
   export type EnumEstadoRondaTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoRondaTorreon'>
@@ -20330,20 +23105,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Json'
-   */
-  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-  /**
-   * Reference to a field of type 'QueryMode'
-   */
-  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-  /**
    * Reference to a field of type 'EstadoIncidenteArrastreTorreon'
    */
   export type EnumEstadoIncidenteArrastreTorreonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoIncidenteArrastreTorreon'>
@@ -20394,6 +23155,10 @@ export namespace Prisma {
     NOT?: MovimientoTorreonFerroWhereInput | MovimientoTorreonFerroWhereInput[]
     id?: IntFilter<"MovimientoTorreonFerro"> | number
     clientRequestId?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    loteCapturaId?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    unidadId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    locomotoraRemolque?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    polo?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
@@ -20427,6 +23192,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
     updatedAt?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
     rondas?: RondaTorreonMovimientoListRelationFilter
+    unidad?: XOR<UnidadAtencionTorreonNullableScalarRelationFilter, UnidadAtencionTorreonWhereInput> | null
     incidentes?: IncidenteTorreonFerroListRelationFilter
     fotos?: MovimientoTorreonFotoListRelationFilter
   }
@@ -20434,6 +23200,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroOrderByWithRelationInput = {
     id?: SortOrder
     clientRequestId?: SortOrderInput | SortOrder
+    loteCapturaId?: SortOrderInput | SortOrder
+    unidadId?: SortOrderInput | SortOrder
+    locomotoraRemolque?: SortOrderInput | SortOrder
+    polo?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrderInput | SortOrder
@@ -20467,6 +23237,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     rondas?: RondaTorreonMovimientoOrderByRelationAggregateInput
+    unidad?: UnidadAtencionTorreonOrderByWithRelationInput
     incidentes?: IncidenteTorreonFerroOrderByRelationAggregateInput
     fotos?: MovimientoTorreonFotoOrderByRelationAggregateInput
   }
@@ -20477,6 +23248,10 @@ export namespace Prisma {
     AND?: MovimientoTorreonFerroWhereInput | MovimientoTorreonFerroWhereInput[]
     OR?: MovimientoTorreonFerroWhereInput[]
     NOT?: MovimientoTorreonFerroWhereInput | MovimientoTorreonFerroWhereInput[]
+    loteCapturaId?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    unidadId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    locomotoraRemolque?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    polo?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
@@ -20510,6 +23285,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
     updatedAt?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
     rondas?: RondaTorreonMovimientoListRelationFilter
+    unidad?: XOR<UnidadAtencionTorreonNullableScalarRelationFilter, UnidadAtencionTorreonWhereInput> | null
     incidentes?: IncidenteTorreonFerroListRelationFilter
     fotos?: MovimientoTorreonFotoListRelationFilter
   }, "id" | "clientRequestId">
@@ -20517,6 +23293,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroOrderByWithAggregationInput = {
     id?: SortOrder
     clientRequestId?: SortOrderInput | SortOrder
+    loteCapturaId?: SortOrderInput | SortOrder
+    unidadId?: SortOrderInput | SortOrder
+    locomotoraRemolque?: SortOrderInput | SortOrder
+    polo?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrderInput | SortOrder
@@ -20562,6 +23342,10 @@ export namespace Prisma {
     NOT?: MovimientoTorreonFerroScalarWhereWithAggregatesInput | MovimientoTorreonFerroScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     clientRequestId?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
+    loteCapturaId?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
+    unidadId?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
+    locomotoraRemolque?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
+    polo?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
@@ -20594,6 +23378,180 @@ export namespace Prisma {
     seccionDestinoNombreSnapshot?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"MovimientoTorreonFerro"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"MovimientoTorreonFerro"> | Date | string
+  }
+
+  export type UnidadAtencionTorreonWhereInput = {
+    AND?: UnidadAtencionTorreonWhereInput | UnidadAtencionTorreonWhereInput[]
+    OR?: UnidadAtencionTorreonWhereInput[]
+    NOT?: UnidadAtencionTorreonWhereInput | UnidadAtencionTorreonWhereInput[]
+    id?: IntFilter<"UnidadAtencionTorreon"> | number
+    localidadId?: IntFilter<"UnidadAtencionTorreon"> | number
+    modalidad?: StringFilter<"UnidadAtencionTorreon"> | string
+    estado?: StringFilter<"UnidadAtencionTorreon"> | string
+    operadorId?: IntNullableFilter<"UnidadAtencionTorreon"> | number | null
+    ordenManual?: IntNullableFilter<"UnidadAtencionTorreon"> | number | null
+    fechaRecepcion?: DateTimeFilter<"UnidadAtencionTorreon"> | Date | string
+    fechaHabilitacion?: DateTimeNullableFilter<"UnidadAtencionTorreon"> | Date | string | null
+    fechaInicio?: DateTimeNullableFilter<"UnidadAtencionTorreon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"UnidadAtencionTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"UnidadAtencionTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"UnidadAtencionTorreon"> | Date | string
+    movimientos?: MovimientoTorreonFerroListRelationFilter
+    incidentes?: IncidenteTorreonFerroListRelationFilter
+  }
+
+  export type UnidadAtencionTorreonOrderByWithRelationInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    modalidad?: SortOrder
+    estado?: SortOrder
+    operadorId?: SortOrderInput | SortOrder
+    ordenManual?: SortOrderInput | SortOrder
+    fechaRecepcion?: SortOrder
+    fechaHabilitacion?: SortOrderInput | SortOrder
+    fechaInicio?: SortOrderInput | SortOrder
+    fechaFin?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    movimientos?: MovimientoTorreonFerroOrderByRelationAggregateInput
+    incidentes?: IncidenteTorreonFerroOrderByRelationAggregateInput
+  }
+
+  export type UnidadAtencionTorreonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: UnidadAtencionTorreonWhereInput | UnidadAtencionTorreonWhereInput[]
+    OR?: UnidadAtencionTorreonWhereInput[]
+    NOT?: UnidadAtencionTorreonWhereInput | UnidadAtencionTorreonWhereInput[]
+    localidadId?: IntFilter<"UnidadAtencionTorreon"> | number
+    modalidad?: StringFilter<"UnidadAtencionTorreon"> | string
+    estado?: StringFilter<"UnidadAtencionTorreon"> | string
+    operadorId?: IntNullableFilter<"UnidadAtencionTorreon"> | number | null
+    ordenManual?: IntNullableFilter<"UnidadAtencionTorreon"> | number | null
+    fechaRecepcion?: DateTimeFilter<"UnidadAtencionTorreon"> | Date | string
+    fechaHabilitacion?: DateTimeNullableFilter<"UnidadAtencionTorreon"> | Date | string | null
+    fechaInicio?: DateTimeNullableFilter<"UnidadAtencionTorreon"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"UnidadAtencionTorreon"> | Date | string | null
+    createdAt?: DateTimeFilter<"UnidadAtencionTorreon"> | Date | string
+    updatedAt?: DateTimeFilter<"UnidadAtencionTorreon"> | Date | string
+    movimientos?: MovimientoTorreonFerroListRelationFilter
+    incidentes?: IncidenteTorreonFerroListRelationFilter
+  }, "id">
+
+  export type UnidadAtencionTorreonOrderByWithAggregationInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    modalidad?: SortOrder
+    estado?: SortOrder
+    operadorId?: SortOrderInput | SortOrder
+    ordenManual?: SortOrderInput | SortOrder
+    fechaRecepcion?: SortOrder
+    fechaHabilitacion?: SortOrderInput | SortOrder
+    fechaInicio?: SortOrderInput | SortOrder
+    fechaFin?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: UnidadAtencionTorreonCountOrderByAggregateInput
+    _avg?: UnidadAtencionTorreonAvgOrderByAggregateInput
+    _max?: UnidadAtencionTorreonMaxOrderByAggregateInput
+    _min?: UnidadAtencionTorreonMinOrderByAggregateInput
+    _sum?: UnidadAtencionTorreonSumOrderByAggregateInput
+  }
+
+  export type UnidadAtencionTorreonScalarWhereWithAggregatesInput = {
+    AND?: UnidadAtencionTorreonScalarWhereWithAggregatesInput | UnidadAtencionTorreonScalarWhereWithAggregatesInput[]
+    OR?: UnidadAtencionTorreonScalarWhereWithAggregatesInput[]
+    NOT?: UnidadAtencionTorreonScalarWhereWithAggregatesInput | UnidadAtencionTorreonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"UnidadAtencionTorreon"> | number
+    localidadId?: IntWithAggregatesFilter<"UnidadAtencionTorreon"> | number
+    modalidad?: StringWithAggregatesFilter<"UnidadAtencionTorreon"> | string
+    estado?: StringWithAggregatesFilter<"UnidadAtencionTorreon"> | string
+    operadorId?: IntNullableWithAggregatesFilter<"UnidadAtencionTorreon"> | number | null
+    ordenManual?: IntNullableWithAggregatesFilter<"UnidadAtencionTorreon"> | number | null
+    fechaRecepcion?: DateTimeWithAggregatesFilter<"UnidadAtencionTorreon"> | Date | string
+    fechaHabilitacion?: DateTimeNullableWithAggregatesFilter<"UnidadAtencionTorreon"> | Date | string | null
+    fechaInicio?: DateTimeNullableWithAggregatesFilter<"UnidadAtencionTorreon"> | Date | string | null
+    fechaFin?: DateTimeNullableWithAggregatesFilter<"UnidadAtencionTorreon"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"UnidadAtencionTorreon"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"UnidadAtencionTorreon"> | Date | string
+  }
+
+  export type BitacoraNaturalTorreonWhereInput = {
+    AND?: BitacoraNaturalTorreonWhereInput | BitacoraNaturalTorreonWhereInput[]
+    OR?: BitacoraNaturalTorreonWhereInput[]
+    NOT?: BitacoraNaturalTorreonWhereInput | BitacoraNaturalTorreonWhereInput[]
+    id?: IntFilter<"BitacoraNaturalTorreon"> | number
+    localidadId?: IntFilter<"BitacoraNaturalTorreon"> | number
+    unidadId?: IntNullableFilter<"BitacoraNaturalTorreon"> | number | null
+    movimientoId?: IntNullableFilter<"BitacoraNaturalTorreon"> | number | null
+    incidenteId?: IntNullableFilter<"BitacoraNaturalTorreon"> | number | null
+    usuarioId?: IntFilter<"BitacoraNaturalTorreon"> | number
+    rol?: StringNullableFilter<"BitacoraNaturalTorreon"> | string | null
+    accion?: StringFilter<"BitacoraNaturalTorreon"> | string
+    datos?: JsonNullableFilter<"BitacoraNaturalTorreon">
+    fecha?: DateTimeFilter<"BitacoraNaturalTorreon"> | Date | string
+  }
+
+  export type BitacoraNaturalTorreonOrderByWithRelationInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrderInput | SortOrder
+    movimientoId?: SortOrderInput | SortOrder
+    incidenteId?: SortOrderInput | SortOrder
+    usuarioId?: SortOrder
+    rol?: SortOrderInput | SortOrder
+    accion?: SortOrder
+    datos?: SortOrderInput | SortOrder
+    fecha?: SortOrder
+  }
+
+  export type BitacoraNaturalTorreonWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    AND?: BitacoraNaturalTorreonWhereInput | BitacoraNaturalTorreonWhereInput[]
+    OR?: BitacoraNaturalTorreonWhereInput[]
+    NOT?: BitacoraNaturalTorreonWhereInput | BitacoraNaturalTorreonWhereInput[]
+    localidadId?: IntFilter<"BitacoraNaturalTorreon"> | number
+    unidadId?: IntNullableFilter<"BitacoraNaturalTorreon"> | number | null
+    movimientoId?: IntNullableFilter<"BitacoraNaturalTorreon"> | number | null
+    incidenteId?: IntNullableFilter<"BitacoraNaturalTorreon"> | number | null
+    usuarioId?: IntFilter<"BitacoraNaturalTorreon"> | number
+    rol?: StringNullableFilter<"BitacoraNaturalTorreon"> | string | null
+    accion?: StringFilter<"BitacoraNaturalTorreon"> | string
+    datos?: JsonNullableFilter<"BitacoraNaturalTorreon">
+    fecha?: DateTimeFilter<"BitacoraNaturalTorreon"> | Date | string
+  }, "id">
+
+  export type BitacoraNaturalTorreonOrderByWithAggregationInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrderInput | SortOrder
+    movimientoId?: SortOrderInput | SortOrder
+    incidenteId?: SortOrderInput | SortOrder
+    usuarioId?: SortOrder
+    rol?: SortOrderInput | SortOrder
+    accion?: SortOrder
+    datos?: SortOrderInput | SortOrder
+    fecha?: SortOrder
+    _count?: BitacoraNaturalTorreonCountOrderByAggregateInput
+    _avg?: BitacoraNaturalTorreonAvgOrderByAggregateInput
+    _max?: BitacoraNaturalTorreonMaxOrderByAggregateInput
+    _min?: BitacoraNaturalTorreonMinOrderByAggregateInput
+    _sum?: BitacoraNaturalTorreonSumOrderByAggregateInput
+  }
+
+  export type BitacoraNaturalTorreonScalarWhereWithAggregatesInput = {
+    AND?: BitacoraNaturalTorreonScalarWhereWithAggregatesInput | BitacoraNaturalTorreonScalarWhereWithAggregatesInput[]
+    OR?: BitacoraNaturalTorreonScalarWhereWithAggregatesInput[]
+    NOT?: BitacoraNaturalTorreonScalarWhereWithAggregatesInput | BitacoraNaturalTorreonScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"BitacoraNaturalTorreon"> | number
+    localidadId?: IntWithAggregatesFilter<"BitacoraNaturalTorreon"> | number
+    unidadId?: IntNullableWithAggregatesFilter<"BitacoraNaturalTorreon"> | number | null
+    movimientoId?: IntNullableWithAggregatesFilter<"BitacoraNaturalTorreon"> | number | null
+    incidenteId?: IntNullableWithAggregatesFilter<"BitacoraNaturalTorreon"> | number | null
+    usuarioId?: IntWithAggregatesFilter<"BitacoraNaturalTorreon"> | number
+    rol?: StringNullableWithAggregatesFilter<"BitacoraNaturalTorreon"> | string | null
+    accion?: StringWithAggregatesFilter<"BitacoraNaturalTorreon"> | string
+    datos?: JsonNullableWithAggregatesFilter<"BitacoraNaturalTorreon">
+    fecha?: DateTimeWithAggregatesFilter<"BitacoraNaturalTorreon"> | Date | string
   }
 
   export type RondaTorreonWhereInput = {
@@ -20789,6 +23747,8 @@ export namespace Prisma {
     NOT?: IncidenteTorreonFerroWhereInput | IncidenteTorreonFerroWhereInput[]
     id?: IntFilter<"IncidenteTorreonFerro"> | number
     movimientoId?: IntFilter<"IncidenteTorreonFerro"> | number
+    unidadId?: IntNullableFilter<"IncidenteTorreonFerro"> | number | null
+    confirmadoPorRol?: StringNullableFilter<"IncidenteTorreonFerro"> | string | null
     creadoPorId?: IntFilter<"IncidenteTorreonFerro"> | number
     resueltoPorId?: IntNullableFilter<"IncidenteTorreonFerro"> | number | null
     estado?: EnumEstadoIncidenteTorreonFilter<"IncidenteTorreonFerro"> | $Enums.EstadoIncidenteTorreon
@@ -20802,6 +23762,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"IncidenteTorreonFerro"> | Date | string
     updatedAt?: DateTimeFilter<"IncidenteTorreonFerro"> | Date | string
     movimiento?: XOR<MovimientoTorreonFerroScalarRelationFilter, MovimientoTorreonFerroWhereInput>
+    unidad?: XOR<UnidadAtencionTorreonNullableScalarRelationFilter, UnidadAtencionTorreonWhereInput> | null
     rondasBloqueadas?: RondaTorreonMovimientoListRelationFilter
     fotos?: IncidenteTorreonFotoListRelationFilter
   }
@@ -20809,6 +23770,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroOrderByWithRelationInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrderInput | SortOrder
+    confirmadoPorRol?: SortOrderInput | SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrderInput | SortOrder
     estado?: SortOrder
@@ -20822,6 +23785,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     movimiento?: MovimientoTorreonFerroOrderByWithRelationInput
+    unidad?: UnidadAtencionTorreonOrderByWithRelationInput
     rondasBloqueadas?: RondaTorreonMovimientoOrderByRelationAggregateInput
     fotos?: IncidenteTorreonFotoOrderByRelationAggregateInput
   }
@@ -20832,6 +23796,8 @@ export namespace Prisma {
     OR?: IncidenteTorreonFerroWhereInput[]
     NOT?: IncidenteTorreonFerroWhereInput | IncidenteTorreonFerroWhereInput[]
     movimientoId?: IntFilter<"IncidenteTorreonFerro"> | number
+    unidadId?: IntNullableFilter<"IncidenteTorreonFerro"> | number | null
+    confirmadoPorRol?: StringNullableFilter<"IncidenteTorreonFerro"> | string | null
     creadoPorId?: IntFilter<"IncidenteTorreonFerro"> | number
     resueltoPorId?: IntNullableFilter<"IncidenteTorreonFerro"> | number | null
     estado?: EnumEstadoIncidenteTorreonFilter<"IncidenteTorreonFerro"> | $Enums.EstadoIncidenteTorreon
@@ -20845,6 +23811,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"IncidenteTorreonFerro"> | Date | string
     updatedAt?: DateTimeFilter<"IncidenteTorreonFerro"> | Date | string
     movimiento?: XOR<MovimientoTorreonFerroScalarRelationFilter, MovimientoTorreonFerroWhereInput>
+    unidad?: XOR<UnidadAtencionTorreonNullableScalarRelationFilter, UnidadAtencionTorreonWhereInput> | null
     rondasBloqueadas?: RondaTorreonMovimientoListRelationFilter
     fotos?: IncidenteTorreonFotoListRelationFilter
   }, "id">
@@ -20852,6 +23819,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroOrderByWithAggregationInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrderInput | SortOrder
+    confirmadoPorRol?: SortOrderInput | SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrderInput | SortOrder
     estado?: SortOrder
@@ -20877,6 +23846,8 @@ export namespace Prisma {
     NOT?: IncidenteTorreonFerroScalarWhereWithAggregatesInput | IncidenteTorreonFerroScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"IncidenteTorreonFerro"> | number
     movimientoId?: IntWithAggregatesFilter<"IncidenteTorreonFerro"> | number
+    unidadId?: IntNullableWithAggregatesFilter<"IncidenteTorreonFerro"> | number | null
+    confirmadoPorRol?: StringNullableWithAggregatesFilter<"IncidenteTorreonFerro"> | string | null
     creadoPorId?: IntWithAggregatesFilter<"IncidenteTorreonFerro"> | number
     resueltoPorId?: IntNullableWithAggregatesFilter<"IncidenteTorreonFerro"> | number | null
     estado?: EnumEstadoIncidenteTorreonWithAggregatesFilter<"IncidenteTorreonFerro"> | $Enums.EstadoIncidenteTorreon
@@ -21817,6 +24788,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCreateInput = {
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -21850,6 +24824,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     rondas?: RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutMovimientosInput
     incidentes?: IncidenteTorreonFerroCreateNestedManyWithoutMovimientoInput
     fotos?: MovimientoTorreonFotoCreateNestedManyWithoutMovimientoInput
   }
@@ -21857,6 +24832,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroUncheckedCreateInput = {
     id?: number
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    unidadId?: number | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -21896,6 +24875,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUpdateInput = {
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21929,6 +24911,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rondas?: RondaTorreonMovimientoUpdateManyWithoutMovimientoNestedInput
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutMovimientosNestedInput
     incidentes?: IncidenteTorreonFerroUpdateManyWithoutMovimientoNestedInput
     fotos?: MovimientoTorreonFotoUpdateManyWithoutMovimientoNestedInput
   }
@@ -21936,6 +24919,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -21976,6 +24963,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroCreateManyInput = {
     id?: number
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    unidadId?: number | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -22012,6 +25003,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUpdateManyMutationInput = {
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -22049,6 +25043,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -22081,6 +25079,204 @@ export namespace Prisma {
     seccionDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UnidadAtencionTorreonCreateInput = {
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    movimientos?: MovimientoTorreonFerroCreateNestedManyWithoutUnidadInput
+    incidentes?: IncidenteTorreonFerroCreateNestedManyWithoutUnidadInput
+  }
+
+  export type UnidadAtencionTorreonUncheckedCreateInput = {
+    id?: number
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    movimientos?: MovimientoTorreonFerroUncheckedCreateNestedManyWithoutUnidadInput
+    incidentes?: IncidenteTorreonFerroUncheckedCreateNestedManyWithoutUnidadInput
+  }
+
+  export type UnidadAtencionTorreonUpdateInput = {
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimientos?: MovimientoTorreonFerroUpdateManyWithoutUnidadNestedInput
+    incidentes?: IncidenteTorreonFerroUpdateManyWithoutUnidadNestedInput
+  }
+
+  export type UnidadAtencionTorreonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimientos?: MovimientoTorreonFerroUncheckedUpdateManyWithoutUnidadNestedInput
+    incidentes?: IncidenteTorreonFerroUncheckedUpdateManyWithoutUnidadNestedInput
+  }
+
+  export type UnidadAtencionTorreonCreateManyInput = {
+    id?: number
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UnidadAtencionTorreonUpdateManyMutationInput = {
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UnidadAtencionTorreonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BitacoraNaturalTorreonCreateInput = {
+    localidadId: number
+    unidadId?: number | null
+    movimientoId?: number | null
+    incidenteId?: number | null
+    usuarioId: number
+    rol?: string | null
+    accion: string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: Date | string
+  }
+
+  export type BitacoraNaturalTorreonUncheckedCreateInput = {
+    id?: number
+    localidadId: number
+    unidadId?: number | null
+    movimientoId?: number | null
+    incidenteId?: number | null
+    usuarioId: number
+    rol?: string | null
+    accion: string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: Date | string
+  }
+
+  export type BitacoraNaturalTorreonUpdateInput = {
+    localidadId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    movimientoId?: NullableIntFieldUpdateOperationsInput | number | null
+    incidenteId?: NullableIntFieldUpdateOperationsInput | number | null
+    usuarioId?: IntFieldUpdateOperationsInput | number
+    rol?: NullableStringFieldUpdateOperationsInput | string | null
+    accion?: StringFieldUpdateOperationsInput | string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BitacoraNaturalTorreonUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    movimientoId?: NullableIntFieldUpdateOperationsInput | number | null
+    incidenteId?: NullableIntFieldUpdateOperationsInput | number | null
+    usuarioId?: IntFieldUpdateOperationsInput | number
+    rol?: NullableStringFieldUpdateOperationsInput | string | null
+    accion?: StringFieldUpdateOperationsInput | string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BitacoraNaturalTorreonCreateManyInput = {
+    id?: number
+    localidadId: number
+    unidadId?: number | null
+    movimientoId?: number | null
+    incidenteId?: number | null
+    usuarioId: number
+    rol?: string | null
+    accion: string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: Date | string
+  }
+
+  export type BitacoraNaturalTorreonUpdateManyMutationInput = {
+    localidadId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    movimientoId?: NullableIntFieldUpdateOperationsInput | number | null
+    incidenteId?: NullableIntFieldUpdateOperationsInput | number | null
+    usuarioId?: IntFieldUpdateOperationsInput | number
+    rol?: NullableStringFieldUpdateOperationsInput | string | null
+    accion?: StringFieldUpdateOperationsInput | string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BitacoraNaturalTorreonUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    movimientoId?: NullableIntFieldUpdateOperationsInput | number | null
+    incidenteId?: NullableIntFieldUpdateOperationsInput | number | null
+    usuarioId?: IntFieldUpdateOperationsInput | number
+    rol?: NullableStringFieldUpdateOperationsInput | string | null
+    accion?: StringFieldUpdateOperationsInput | string
+    datos?: NullableJsonNullValueInput | InputJsonValue
+    fecha?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type RondaTorreonCreateInput = {
@@ -22282,6 +25478,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroCreateInput = {
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -22295,6 +25492,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     movimiento: MovimientoTorreonFerroCreateNestedOneWithoutIncidentesInput
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutIncidentesInput
     rondasBloqueadas?: RondaTorreonMovimientoCreateNestedManyWithoutBloqueadoPorIncidenteInput
     fotos?: IncidenteTorreonFotoCreateNestedManyWithoutIncidenteInput
   }
@@ -22302,6 +25500,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroUncheckedCreateInput = {
     id?: number
     movimientoId: number
+    unidadId?: number | null
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -22319,6 +25519,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroUpdateInput = {
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -22332,6 +25533,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     movimiento?: MovimientoTorreonFerroUpdateOneRequiredWithoutIncidentesNestedInput
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutIncidentesNestedInput
     rondasBloqueadas?: RondaTorreonMovimientoUpdateManyWithoutBloqueadoPorIncidenteNestedInput
     fotos?: IncidenteTorreonFotoUpdateManyWithoutIncidenteNestedInput
   }
@@ -22339,6 +25541,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     movimientoId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -22358,6 +25562,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroCreateManyInput = {
     id?: number
     movimientoId: number
+    unidadId?: number | null
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -22373,6 +25579,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroUpdateManyMutationInput = {
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -22390,6 +25597,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     movimientoId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -23544,6 +26753,11 @@ export namespace Prisma {
     none?: RondaTorreonMovimientoWhereInput
   }
 
+  export type UnidadAtencionTorreonNullableScalarRelationFilter = {
+    is?: UnidadAtencionTorreonWhereInput | null
+    isNot?: UnidadAtencionTorreonWhereInput | null
+  }
+
   export type IncidenteTorreonFerroListRelationFilter = {
     every?: IncidenteTorreonFerroWhereInput
     some?: IncidenteTorreonFerroWhereInput
@@ -23576,6 +26790,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroCountOrderByAggregateInput = {
     id?: SortOrder
     clientRequestId?: SortOrder
+    loteCapturaId?: SortOrder
+    unidadId?: SortOrder
+    locomotoraRemolque?: SortOrder
+    polo?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -23612,6 +26830,8 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroAvgOrderByAggregateInput = {
     id?: SortOrder
+    unidadId?: SortOrder
+    locomotoraRemolque?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -23629,6 +26849,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroMaxOrderByAggregateInput = {
     id?: SortOrder
     clientRequestId?: SortOrder
+    loteCapturaId?: SortOrder
+    unidadId?: SortOrder
+    locomotoraRemolque?: SortOrder
+    polo?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -23666,6 +26890,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroMinOrderByAggregateInput = {
     id?: SortOrder
     clientRequestId?: SortOrder
+    loteCapturaId?: SortOrder
+    unidadId?: SortOrder
+    locomotoraRemolque?: SortOrder
+    polo?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -23702,6 +26930,8 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroSumOrderByAggregateInput = {
     id?: SortOrder
+    unidadId?: SortOrder
+    locomotoraRemolque?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -23860,6 +27090,212 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumPosicionCabinaTorreonNullableFilter<$PrismaModel>
     _max?: NestedEnumPosicionCabinaTorreonNullableFilter<$PrismaModel>
+  }
+
+  export type StringFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type MovimientoTorreonFerroListRelationFilter = {
+    every?: MovimientoTorreonFerroWhereInput
+    some?: MovimientoTorreonFerroWhereInput
+    none?: MovimientoTorreonFerroWhereInput
+  }
+
+  export type MovimientoTorreonFerroOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type UnidadAtencionTorreonCountOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    modalidad?: SortOrder
+    estado?: SortOrder
+    operadorId?: SortOrder
+    ordenManual?: SortOrder
+    fechaRecepcion?: SortOrder
+    fechaHabilitacion?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UnidadAtencionTorreonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    operadorId?: SortOrder
+    ordenManual?: SortOrder
+  }
+
+  export type UnidadAtencionTorreonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    modalidad?: SortOrder
+    estado?: SortOrder
+    operadorId?: SortOrder
+    ordenManual?: SortOrder
+    fechaRecepcion?: SortOrder
+    fechaHabilitacion?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UnidadAtencionTorreonMinOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    modalidad?: SortOrder
+    estado?: SortOrder
+    operadorId?: SortOrder
+    ordenManual?: SortOrder
+    fechaRecepcion?: SortOrder
+    fechaHabilitacion?: SortOrder
+    fechaInicio?: SortOrder
+    fechaFin?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type UnidadAtencionTorreonSumOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    operadorId?: SortOrder
+    ordenManual?: SortOrder
+  }
+
+  export type StringWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type BitacoraNaturalTorreonCountOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrder
+    movimientoId?: SortOrder
+    incidenteId?: SortOrder
+    usuarioId?: SortOrder
+    rol?: SortOrder
+    accion?: SortOrder
+    datos?: SortOrder
+    fecha?: SortOrder
+  }
+
+  export type BitacoraNaturalTorreonAvgOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrder
+    movimientoId?: SortOrder
+    incidenteId?: SortOrder
+    usuarioId?: SortOrder
+  }
+
+  export type BitacoraNaturalTorreonMaxOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrder
+    movimientoId?: SortOrder
+    incidenteId?: SortOrder
+    usuarioId?: SortOrder
+    rol?: SortOrder
+    accion?: SortOrder
+    fecha?: SortOrder
+  }
+
+  export type BitacoraNaturalTorreonMinOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrder
+    movimientoId?: SortOrder
+    incidenteId?: SortOrder
+    usuarioId?: SortOrder
+    rol?: SortOrder
+    accion?: SortOrder
+    fecha?: SortOrder
+  }
+
+  export type BitacoraNaturalTorreonSumOrderByAggregateInput = {
+    id?: SortOrder
+    localidadId?: SortOrder
+    unidadId?: SortOrder
+    movimientoId?: SortOrder
+    incidenteId?: SortOrder
+    usuarioId?: SortOrder
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type EnumEstadoRondaTorreonFilter<$PrismaModel = never> = {
@@ -24047,21 +27483,6 @@ export namespace Prisma {
     not?: NestedEnumEstadoIncidenteTorreonFilter<$PrismaModel> | $Enums.EstadoIncidenteTorreon
   }
 
-  export type StringFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringFilter<$PrismaModel> | string
-  }
-
   export type IncidenteTorreonFotoListRelationFilter = {
     every?: IncidenteTorreonFotoWhereInput
     some?: IncidenteTorreonFotoWhereInput
@@ -24075,6 +27496,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroCountOrderByAggregateInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrder
+    confirmadoPorRol?: SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrder
     estado?: SortOrder
@@ -24092,6 +27515,7 @@ export namespace Prisma {
   export type IncidenteTorreonFerroAvgOrderByAggregateInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrder
     localidadId?: SortOrder
@@ -24102,6 +27526,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroMaxOrderByAggregateInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrder
+    confirmadoPorRol?: SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrder
     estado?: SortOrder
@@ -24119,6 +27545,8 @@ export namespace Prisma {
   export type IncidenteTorreonFerroMinOrderByAggregateInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrder
+    confirmadoPorRol?: SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrder
     estado?: SortOrder
@@ -24136,6 +27564,7 @@ export namespace Prisma {
   export type IncidenteTorreonFerroSumOrderByAggregateInput = {
     id?: SortOrder
     movimientoId?: SortOrder
+    unidadId?: SortOrder
     creadoPorId?: SortOrder
     resueltoPorId?: SortOrder
     localidadId?: SortOrder
@@ -24151,24 +27580,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumEstadoIncidenteTorreonFilter<$PrismaModel>
     _max?: NestedEnumEstadoIncidenteTorreonFilter<$PrismaModel>
-  }
-
-  export type StringWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
   }
 
   export type EnumTipoFotoMovimientoTorreonFilter<$PrismaModel = never> = {
@@ -24983,29 +28394,6 @@ export namespace Prisma {
     gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
     not?: NestedBigIntFilter<$PrismaModel> | bigint | number
   }
-  export type JsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type OperationalOutboxCountOrderByAggregateInput = {
     id?: SortOrder
@@ -25056,38 +28444,18 @@ export namespace Prisma {
     _min?: NestedBigIntFilter<$PrismaModel>
     _max?: NestedBigIntFilter<$PrismaModel>
   }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
-  }
 
   export type RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput = {
     create?: XOR<RondaTorreonMovimientoCreateWithoutMovimientoInput, RondaTorreonMovimientoUncheckedCreateWithoutMovimientoInput> | RondaTorreonMovimientoCreateWithoutMovimientoInput[] | RondaTorreonMovimientoUncheckedCreateWithoutMovimientoInput[]
     connectOrCreate?: RondaTorreonMovimientoCreateOrConnectWithoutMovimientoInput | RondaTorreonMovimientoCreateOrConnectWithoutMovimientoInput[]
     createMany?: RondaTorreonMovimientoCreateManyMovimientoInputEnvelope
     connect?: RondaTorreonMovimientoWhereUniqueInput | RondaTorreonMovimientoWhereUniqueInput[]
+  }
+
+  export type UnidadAtencionTorreonCreateNestedOneWithoutMovimientosInput = {
+    create?: XOR<UnidadAtencionTorreonCreateWithoutMovimientosInput, UnidadAtencionTorreonUncheckedCreateWithoutMovimientosInput>
+    connectOrCreate?: UnidadAtencionTorreonCreateOrConnectWithoutMovimientosInput
+    connect?: UnidadAtencionTorreonWhereUniqueInput
   }
 
   export type IncidenteTorreonFerroCreateNestedManyWithoutMovimientoInput = {
@@ -25129,16 +28497,16 @@ export namespace Prisma {
     set?: string | null
   }
 
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
   }
 
-  export type NullableIntFieldUpdateOperationsInput = {
-    set?: number | null
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
     increment?: number
     decrement?: number
     multiply?: number
@@ -25193,6 +28561,16 @@ export namespace Prisma {
     update?: RondaTorreonMovimientoUpdateWithWhereUniqueWithoutMovimientoInput | RondaTorreonMovimientoUpdateWithWhereUniqueWithoutMovimientoInput[]
     updateMany?: RondaTorreonMovimientoUpdateManyWithWhereWithoutMovimientoInput | RondaTorreonMovimientoUpdateManyWithWhereWithoutMovimientoInput[]
     deleteMany?: RondaTorreonMovimientoScalarWhereInput | RondaTorreonMovimientoScalarWhereInput[]
+  }
+
+  export type UnidadAtencionTorreonUpdateOneWithoutMovimientosNestedInput = {
+    create?: XOR<UnidadAtencionTorreonCreateWithoutMovimientosInput, UnidadAtencionTorreonUncheckedCreateWithoutMovimientosInput>
+    connectOrCreate?: UnidadAtencionTorreonCreateOrConnectWithoutMovimientosInput
+    upsert?: UnidadAtencionTorreonUpsertWithoutMovimientosInput
+    disconnect?: UnidadAtencionTorreonWhereInput | boolean
+    delete?: UnidadAtencionTorreonWhereInput | boolean
+    connect?: UnidadAtencionTorreonWhereUniqueInput
+    update?: XOR<XOR<UnidadAtencionTorreonUpdateToOneWithWhereWithoutMovimientosInput, UnidadAtencionTorreonUpdateWithoutMovimientosInput>, UnidadAtencionTorreonUncheckedUpdateWithoutMovimientosInput>
   }
 
   export type IncidenteTorreonFerroUpdateManyWithoutMovimientoNestedInput = {
@@ -25263,6 +28641,94 @@ export namespace Prisma {
     update?: MovimientoTorreonFotoUpdateWithWhereUniqueWithoutMovimientoInput | MovimientoTorreonFotoUpdateWithWhereUniqueWithoutMovimientoInput[]
     updateMany?: MovimientoTorreonFotoUpdateManyWithWhereWithoutMovimientoInput | MovimientoTorreonFotoUpdateManyWithWhereWithoutMovimientoInput[]
     deleteMany?: MovimientoTorreonFotoScalarWhereInput | MovimientoTorreonFotoScalarWhereInput[]
+  }
+
+  export type MovimientoTorreonFerroCreateNestedManyWithoutUnidadInput = {
+    create?: XOR<MovimientoTorreonFerroCreateWithoutUnidadInput, MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput> | MovimientoTorreonFerroCreateWithoutUnidadInput[] | MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput | MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    createMany?: MovimientoTorreonFerroCreateManyUnidadInputEnvelope
+    connect?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+  }
+
+  export type IncidenteTorreonFerroCreateNestedManyWithoutUnidadInput = {
+    create?: XOR<IncidenteTorreonFerroCreateWithoutUnidadInput, IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput> | IncidenteTorreonFerroCreateWithoutUnidadInput[] | IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput | IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    createMany?: IncidenteTorreonFerroCreateManyUnidadInputEnvelope
+    connect?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+  }
+
+  export type MovimientoTorreonFerroUncheckedCreateNestedManyWithoutUnidadInput = {
+    create?: XOR<MovimientoTorreonFerroCreateWithoutUnidadInput, MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput> | MovimientoTorreonFerroCreateWithoutUnidadInput[] | MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput | MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    createMany?: MovimientoTorreonFerroCreateManyUnidadInputEnvelope
+    connect?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+  }
+
+  export type IncidenteTorreonFerroUncheckedCreateNestedManyWithoutUnidadInput = {
+    create?: XOR<IncidenteTorreonFerroCreateWithoutUnidadInput, IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput> | IncidenteTorreonFerroCreateWithoutUnidadInput[] | IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput | IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    createMany?: IncidenteTorreonFerroCreateManyUnidadInputEnvelope
+    connect?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+  }
+
+  export type StringFieldUpdateOperationsInput = {
+    set?: string
+  }
+
+  export type MovimientoTorreonFerroUpdateManyWithoutUnidadNestedInput = {
+    create?: XOR<MovimientoTorreonFerroCreateWithoutUnidadInput, MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput> | MovimientoTorreonFerroCreateWithoutUnidadInput[] | MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput | MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    upsert?: MovimientoTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput | MovimientoTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput[]
+    createMany?: MovimientoTorreonFerroCreateManyUnidadInputEnvelope
+    set?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    disconnect?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    delete?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    connect?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    update?: MovimientoTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput | MovimientoTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput[]
+    updateMany?: MovimientoTorreonFerroUpdateManyWithWhereWithoutUnidadInput | MovimientoTorreonFerroUpdateManyWithWhereWithoutUnidadInput[]
+    deleteMany?: MovimientoTorreonFerroScalarWhereInput | MovimientoTorreonFerroScalarWhereInput[]
+  }
+
+  export type IncidenteTorreonFerroUpdateManyWithoutUnidadNestedInput = {
+    create?: XOR<IncidenteTorreonFerroCreateWithoutUnidadInput, IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput> | IncidenteTorreonFerroCreateWithoutUnidadInput[] | IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput | IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    upsert?: IncidenteTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput | IncidenteTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput[]
+    createMany?: IncidenteTorreonFerroCreateManyUnidadInputEnvelope
+    set?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    disconnect?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    delete?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    connect?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    update?: IncidenteTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput | IncidenteTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput[]
+    updateMany?: IncidenteTorreonFerroUpdateManyWithWhereWithoutUnidadInput | IncidenteTorreonFerroUpdateManyWithWhereWithoutUnidadInput[]
+    deleteMany?: IncidenteTorreonFerroScalarWhereInput | IncidenteTorreonFerroScalarWhereInput[]
+  }
+
+  export type MovimientoTorreonFerroUncheckedUpdateManyWithoutUnidadNestedInput = {
+    create?: XOR<MovimientoTorreonFerroCreateWithoutUnidadInput, MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput> | MovimientoTorreonFerroCreateWithoutUnidadInput[] | MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput | MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    upsert?: MovimientoTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput | MovimientoTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput[]
+    createMany?: MovimientoTorreonFerroCreateManyUnidadInputEnvelope
+    set?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    disconnect?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    delete?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    connect?: MovimientoTorreonFerroWhereUniqueInput | MovimientoTorreonFerroWhereUniqueInput[]
+    update?: MovimientoTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput | MovimientoTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput[]
+    updateMany?: MovimientoTorreonFerroUpdateManyWithWhereWithoutUnidadInput | MovimientoTorreonFerroUpdateManyWithWhereWithoutUnidadInput[]
+    deleteMany?: MovimientoTorreonFerroScalarWhereInput | MovimientoTorreonFerroScalarWhereInput[]
+  }
+
+  export type IncidenteTorreonFerroUncheckedUpdateManyWithoutUnidadNestedInput = {
+    create?: XOR<IncidenteTorreonFerroCreateWithoutUnidadInput, IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput> | IncidenteTorreonFerroCreateWithoutUnidadInput[] | IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput[]
+    connectOrCreate?: IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput | IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput[]
+    upsert?: IncidenteTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput | IncidenteTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput[]
+    createMany?: IncidenteTorreonFerroCreateManyUnidadInputEnvelope
+    set?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    disconnect?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    delete?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    connect?: IncidenteTorreonFerroWhereUniqueInput | IncidenteTorreonFerroWhereUniqueInput[]
+    update?: IncidenteTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput | IncidenteTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput[]
+    updateMany?: IncidenteTorreonFerroUpdateManyWithWhereWithoutUnidadInput | IncidenteTorreonFerroUpdateManyWithWhereWithoutUnidadInput[]
+    deleteMany?: IncidenteTorreonFerroScalarWhereInput | IncidenteTorreonFerroScalarWhereInput[]
   }
 
   export type RondaTorreonMovimientoCreateNestedManyWithoutRondaInput = {
@@ -25365,6 +28831,12 @@ export namespace Prisma {
     connect?: MovimientoTorreonFerroWhereUniqueInput
   }
 
+  export type UnidadAtencionTorreonCreateNestedOneWithoutIncidentesInput = {
+    create?: XOR<UnidadAtencionTorreonCreateWithoutIncidentesInput, UnidadAtencionTorreonUncheckedCreateWithoutIncidentesInput>
+    connectOrCreate?: UnidadAtencionTorreonCreateOrConnectWithoutIncidentesInput
+    connect?: UnidadAtencionTorreonWhereUniqueInput
+  }
+
   export type RondaTorreonMovimientoCreateNestedManyWithoutBloqueadoPorIncidenteInput = {
     create?: XOR<RondaTorreonMovimientoCreateWithoutBloqueadoPorIncidenteInput, RondaTorreonMovimientoUncheckedCreateWithoutBloqueadoPorIncidenteInput> | RondaTorreonMovimientoCreateWithoutBloqueadoPorIncidenteInput[] | RondaTorreonMovimientoUncheckedCreateWithoutBloqueadoPorIncidenteInput[]
     connectOrCreate?: RondaTorreonMovimientoCreateOrConnectWithoutBloqueadoPorIncidenteInput | RondaTorreonMovimientoCreateOrConnectWithoutBloqueadoPorIncidenteInput[]
@@ -25397,16 +28869,22 @@ export namespace Prisma {
     set?: $Enums.EstadoIncidenteTorreon
   }
 
-  export type StringFieldUpdateOperationsInput = {
-    set?: string
-  }
-
   export type MovimientoTorreonFerroUpdateOneRequiredWithoutIncidentesNestedInput = {
     create?: XOR<MovimientoTorreonFerroCreateWithoutIncidentesInput, MovimientoTorreonFerroUncheckedCreateWithoutIncidentesInput>
     connectOrCreate?: MovimientoTorreonFerroCreateOrConnectWithoutIncidentesInput
     upsert?: MovimientoTorreonFerroUpsertWithoutIncidentesInput
     connect?: MovimientoTorreonFerroWhereUniqueInput
     update?: XOR<XOR<MovimientoTorreonFerroUpdateToOneWithWhereWithoutIncidentesInput, MovimientoTorreonFerroUpdateWithoutIncidentesInput>, MovimientoTorreonFerroUncheckedUpdateWithoutIncidentesInput>
+  }
+
+  export type UnidadAtencionTorreonUpdateOneWithoutIncidentesNestedInput = {
+    create?: XOR<UnidadAtencionTorreonCreateWithoutIncidentesInput, UnidadAtencionTorreonUncheckedCreateWithoutIncidentesInput>
+    connectOrCreate?: UnidadAtencionTorreonCreateOrConnectWithoutIncidentesInput
+    upsert?: UnidadAtencionTorreonUpsertWithoutIncidentesInput
+    disconnect?: UnidadAtencionTorreonWhereInput | boolean
+    delete?: UnidadAtencionTorreonWhereInput | boolean
+    connect?: UnidadAtencionTorreonWhereUniqueInput
+    update?: XOR<XOR<UnidadAtencionTorreonUpdateToOneWithWhereWithoutIncidentesInput, UnidadAtencionTorreonUpdateWithoutIncidentesInput>, UnidadAtencionTorreonUncheckedUpdateWithoutIncidentesInput>
   }
 
   export type RondaTorreonMovimientoUpdateManyWithoutBloqueadoPorIncidenteNestedInput = {
@@ -26075,6 +29553,60 @@ export namespace Prisma {
     _max?: NestedEnumPosicionCabinaTorreonNullableFilter<$PrismaModel>
   }
 
+  export type NestedStringFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
   export type NestedEnumEstadoRondaTorreonFilter<$PrismaModel = never> = {
     equals?: $Enums.EstadoRondaTorreon | EnumEstadoRondaTorreonFieldRefInput<$PrismaModel>
     in?: $Enums.EstadoRondaTorreon[] | ListEnumEstadoRondaTorreonFieldRefInput<$PrismaModel>
@@ -26116,20 +29648,6 @@ export namespace Prisma {
     not?: NestedEnumEstadoIncidenteTorreonFilter<$PrismaModel> | $Enums.EstadoIncidenteTorreon
   }
 
-  export type NestedStringFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringFilter<$PrismaModel> | string
-  }
-
   export type NestedEnumEstadoIncidenteTorreonWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.EstadoIncidenteTorreon | EnumEstadoIncidenteTorreonFieldRefInput<$PrismaModel>
     in?: $Enums.EstadoIncidenteTorreon[] | ListEnumEstadoIncidenteTorreonFieldRefInput<$PrismaModel>
@@ -26138,23 +29656,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumEstadoIncidenteTorreonFilter<$PrismaModel>
     _max?: NestedEnumEstadoIncidenteTorreonFilter<$PrismaModel>
-  }
-
-  export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
   }
 
   export type NestedEnumTipoFotoMovimientoTorreonFilter<$PrismaModel = never> = {
@@ -26291,29 +29792,6 @@ export namespace Prisma {
     _min?: NestedBigIntFilter<$PrismaModel>
     _max?: NestedBigIntFilter<$PrismaModel>
   }
-  export type NestedJsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type RondaTorreonMovimientoCreateWithoutMovimientoInput = {
     empresaId: number
@@ -26358,7 +29836,44 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UnidadAtencionTorreonCreateWithoutMovimientosInput = {
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteTorreonFerroCreateNestedManyWithoutUnidadInput
+  }
+
+  export type UnidadAtencionTorreonUncheckedCreateWithoutMovimientosInput = {
+    id?: number
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incidentes?: IncidenteTorreonFerroUncheckedCreateNestedManyWithoutUnidadInput
+  }
+
+  export type UnidadAtencionTorreonCreateOrConnectWithoutMovimientosInput = {
+    where: UnidadAtencionTorreonWhereUniqueInput
+    create: XOR<UnidadAtencionTorreonCreateWithoutMovimientosInput, UnidadAtencionTorreonUncheckedCreateWithoutMovimientosInput>
+  }
+
   export type IncidenteTorreonFerroCreateWithoutMovimientoInput = {
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -26371,12 +29886,15 @@ export namespace Prisma {
     fechaResolucion?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutIncidentesInput
     rondasBloqueadas?: RondaTorreonMovimientoCreateNestedManyWithoutBloqueadoPorIncidenteInput
     fotos?: IncidenteTorreonFotoCreateNestedManyWithoutIncidenteInput
   }
 
   export type IncidenteTorreonFerroUncheckedCreateWithoutMovimientoInput = {
     id?: number
+    unidadId?: number | null
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -26475,6 +29993,48 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"RondaTorreonMovimiento"> | Date | string
   }
 
+  export type UnidadAtencionTorreonUpsertWithoutMovimientosInput = {
+    update: XOR<UnidadAtencionTorreonUpdateWithoutMovimientosInput, UnidadAtencionTorreonUncheckedUpdateWithoutMovimientosInput>
+    create: XOR<UnidadAtencionTorreonCreateWithoutMovimientosInput, UnidadAtencionTorreonUncheckedCreateWithoutMovimientosInput>
+    where?: UnidadAtencionTorreonWhereInput
+  }
+
+  export type UnidadAtencionTorreonUpdateToOneWithWhereWithoutMovimientosInput = {
+    where?: UnidadAtencionTorreonWhereInput
+    data: XOR<UnidadAtencionTorreonUpdateWithoutMovimientosInput, UnidadAtencionTorreonUncheckedUpdateWithoutMovimientosInput>
+  }
+
+  export type UnidadAtencionTorreonUpdateWithoutMovimientosInput = {
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteTorreonFerroUpdateManyWithoutUnidadNestedInput
+  }
+
+  export type UnidadAtencionTorreonUncheckedUpdateWithoutMovimientosInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incidentes?: IncidenteTorreonFerroUncheckedUpdateManyWithoutUnidadNestedInput
+  }
+
   export type IncidenteTorreonFerroUpsertWithWhereUniqueWithoutMovimientoInput = {
     where: IncidenteTorreonFerroWhereUniqueInput
     update: XOR<IncidenteTorreonFerroUpdateWithoutMovimientoInput, IncidenteTorreonFerroUncheckedUpdateWithoutMovimientoInput>
@@ -26497,6 +30057,8 @@ export namespace Prisma {
     NOT?: IncidenteTorreonFerroScalarWhereInput | IncidenteTorreonFerroScalarWhereInput[]
     id?: IntFilter<"IncidenteTorreonFerro"> | number
     movimientoId?: IntFilter<"IncidenteTorreonFerro"> | number
+    unidadId?: IntNullableFilter<"IncidenteTorreonFerro"> | number | null
+    confirmadoPorRol?: StringNullableFilter<"IncidenteTorreonFerro"> | string | null
     creadoPorId?: IntFilter<"IncidenteTorreonFerro"> | number
     resueltoPorId?: IntNullableFilter<"IncidenteTorreonFerro"> | number | null
     estado?: EnumEstadoIncidenteTorreonFilter<"IncidenteTorreonFerro"> | $Enums.EstadoIncidenteTorreon
@@ -26542,6 +30104,226 @@ export namespace Prisma {
     tomadaAt?: DateTimeFilter<"MovimientoTorreonFoto"> | Date | string
     createdAt?: DateTimeFilter<"MovimientoTorreonFoto"> | Date | string
     updatedAt?: DateTimeFilter<"MovimientoTorreonFoto"> | Date | string
+  }
+
+  export type MovimientoTorreonFerroCreateWithoutUnidadInput = {
+    clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
+    empresaId: number
+    creadoPorId: number
+    clienteId?: number | null
+    supervisorId?: number | null
+    coordinadorId?: number | null
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    locomotiveNumber: number
+    prioridad?: $Enums.PrioridadTorreon
+    tipoMovimiento?: $Enums.TipoMovimientoTorreon | null
+    estado?: $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    instrucciones?: string | null
+    posicionChimenea?: $Enums.PosicionChimeneaTorreon | null
+    finalizado?: boolean
+    direccionEmpuje?: $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: string | null
+    localidadNombreSnapshot?: string | null
+    viaOrigenNombreSnapshot?: string | null
+    viaDestinoNombreSnapshot?: string | null
+    seccionOrigenNombreSnapshot?: string | null
+    seccionDestinoNombreSnapshot?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    rondas?: RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput
+    incidentes?: IncidenteTorreonFerroCreateNestedManyWithoutMovimientoInput
+    fotos?: MovimientoTorreonFotoCreateNestedManyWithoutMovimientoInput
+  }
+
+  export type MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput = {
+    id?: number
+    clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
+    empresaId: number
+    creadoPorId: number
+    clienteId?: number | null
+    supervisorId?: number | null
+    coordinadorId?: number | null
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    locomotiveNumber: number
+    prioridad?: $Enums.PrioridadTorreon
+    tipoMovimiento?: $Enums.TipoMovimientoTorreon | null
+    estado?: $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    instrucciones?: string | null
+    posicionChimenea?: $Enums.PosicionChimeneaTorreon | null
+    finalizado?: boolean
+    direccionEmpuje?: $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: string | null
+    localidadNombreSnapshot?: string | null
+    viaOrigenNombreSnapshot?: string | null
+    viaDestinoNombreSnapshot?: string | null
+    seccionOrigenNombreSnapshot?: string | null
+    seccionDestinoNombreSnapshot?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    rondas?: RondaTorreonMovimientoUncheckedCreateNestedManyWithoutMovimientoInput
+    incidentes?: IncidenteTorreonFerroUncheckedCreateNestedManyWithoutMovimientoInput
+    fotos?: MovimientoTorreonFotoUncheckedCreateNestedManyWithoutMovimientoInput
+  }
+
+  export type MovimientoTorreonFerroCreateOrConnectWithoutUnidadInput = {
+    where: MovimientoTorreonFerroWhereUniqueInput
+    create: XOR<MovimientoTorreonFerroCreateWithoutUnidadInput, MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput>
+  }
+
+  export type MovimientoTorreonFerroCreateManyUnidadInputEnvelope = {
+    data: MovimientoTorreonFerroCreateManyUnidadInput | MovimientoTorreonFerroCreateManyUnidadInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type IncidenteTorreonFerroCreateWithoutUnidadInput = {
+    confirmadoPorRol?: string | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    movimiento: MovimientoTorreonFerroCreateNestedOneWithoutIncidentesInput
+    rondasBloqueadas?: RondaTorreonMovimientoCreateNestedManyWithoutBloqueadoPorIncidenteInput
+    fotos?: IncidenteTorreonFotoCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput = {
+    id?: number
+    movimientoId: number
+    confirmadoPorRol?: string | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    rondasBloqueadas?: RondaTorreonMovimientoUncheckedCreateNestedManyWithoutBloqueadoPorIncidenteInput
+    fotos?: IncidenteTorreonFotoUncheckedCreateNestedManyWithoutIncidenteInput
+  }
+
+  export type IncidenteTorreonFerroCreateOrConnectWithoutUnidadInput = {
+    where: IncidenteTorreonFerroWhereUniqueInput
+    create: XOR<IncidenteTorreonFerroCreateWithoutUnidadInput, IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput>
+  }
+
+  export type IncidenteTorreonFerroCreateManyUnidadInputEnvelope = {
+    data: IncidenteTorreonFerroCreateManyUnidadInput | IncidenteTorreonFerroCreateManyUnidadInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type MovimientoTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput = {
+    where: MovimientoTorreonFerroWhereUniqueInput
+    update: XOR<MovimientoTorreonFerroUpdateWithoutUnidadInput, MovimientoTorreonFerroUncheckedUpdateWithoutUnidadInput>
+    create: XOR<MovimientoTorreonFerroCreateWithoutUnidadInput, MovimientoTorreonFerroUncheckedCreateWithoutUnidadInput>
+  }
+
+  export type MovimientoTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput = {
+    where: MovimientoTorreonFerroWhereUniqueInput
+    data: XOR<MovimientoTorreonFerroUpdateWithoutUnidadInput, MovimientoTorreonFerroUncheckedUpdateWithoutUnidadInput>
+  }
+
+  export type MovimientoTorreonFerroUpdateManyWithWhereWithoutUnidadInput = {
+    where: MovimientoTorreonFerroScalarWhereInput
+    data: XOR<MovimientoTorreonFerroUpdateManyMutationInput, MovimientoTorreonFerroUncheckedUpdateManyWithoutUnidadInput>
+  }
+
+  export type MovimientoTorreonFerroScalarWhereInput = {
+    AND?: MovimientoTorreonFerroScalarWhereInput | MovimientoTorreonFerroScalarWhereInput[]
+    OR?: MovimientoTorreonFerroScalarWhereInput[]
+    NOT?: MovimientoTorreonFerroScalarWhereInput | MovimientoTorreonFerroScalarWhereInput[]
+    id?: IntFilter<"MovimientoTorreonFerro"> | number
+    clientRequestId?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    loteCapturaId?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    unidadId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    locomotoraRemolque?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    polo?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
+    creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
+    clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    supervisorId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    coordinadorId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    operadorId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    localidadId?: IntFilter<"MovimientoTorreonFerro"> | number
+    viaOrigenId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    viaDestinoId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    seccionOrigenId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    seccionDestinoId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
+    locomotiveNumber?: IntFilter<"MovimientoTorreonFerro"> | number
+    prioridad?: EnumPrioridadTorreonFilter<"MovimientoTorreonFerro"> | $Enums.PrioridadTorreon
+    tipoMovimiento?: EnumTipoMovimientoTorreonNullableFilter<"MovimientoTorreonFerro"> | $Enums.TipoMovimientoTorreon | null
+    estado?: EnumEstadoMovimientoTorreonFilter<"MovimientoTorreonFerro"> | $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
+    fechaInicio?: DateTimeNullableFilter<"MovimientoTorreonFerro"> | Date | string | null
+    fechaFin?: DateTimeNullableFilter<"MovimientoTorreonFerro"> | Date | string | null
+    fechaPausa?: DateTimeNullableFilter<"MovimientoTorreonFerro"> | Date | string | null
+    instrucciones?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    posicionChimenea?: EnumPosicionChimeneaTorreonNullableFilter<"MovimientoTorreonFerro"> | $Enums.PosicionChimeneaTorreon | null
+    finalizado?: BoolFilter<"MovimientoTorreonFerro"> | boolean
+    direccionEmpuje?: EnumDireccionEmpujeTorreonNullableFilter<"MovimientoTorreonFerro"> | $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: EnumPosicionCabinaTorreonNullableFilter<"MovimientoTorreonFerro"> | $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    localidadNombreSnapshot?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    viaOrigenNombreSnapshot?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    viaDestinoNombreSnapshot?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    seccionOrigenNombreSnapshot?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    seccionDestinoNombreSnapshot?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    createdAt?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
+    updatedAt?: DateTimeFilter<"MovimientoTorreonFerro"> | Date | string
+  }
+
+  export type IncidenteTorreonFerroUpsertWithWhereUniqueWithoutUnidadInput = {
+    where: IncidenteTorreonFerroWhereUniqueInput
+    update: XOR<IncidenteTorreonFerroUpdateWithoutUnidadInput, IncidenteTorreonFerroUncheckedUpdateWithoutUnidadInput>
+    create: XOR<IncidenteTorreonFerroCreateWithoutUnidadInput, IncidenteTorreonFerroUncheckedCreateWithoutUnidadInput>
+  }
+
+  export type IncidenteTorreonFerroUpdateWithWhereUniqueWithoutUnidadInput = {
+    where: IncidenteTorreonFerroWhereUniqueInput
+    data: XOR<IncidenteTorreonFerroUpdateWithoutUnidadInput, IncidenteTorreonFerroUncheckedUpdateWithoutUnidadInput>
+  }
+
+  export type IncidenteTorreonFerroUpdateManyWithWhereWithoutUnidadInput = {
+    where: IncidenteTorreonFerroScalarWhereInput
+    data: XOR<IncidenteTorreonFerroUpdateManyMutationInput, IncidenteTorreonFerroUncheckedUpdateManyWithoutUnidadInput>
   }
 
   export type RondaTorreonMovimientoCreateWithoutRondaInput = {
@@ -26631,6 +30413,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCreateWithoutRondasInput = {
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -26663,6 +30448,7 @@ export namespace Prisma {
     seccionDestinoNombreSnapshot?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutMovimientosInput
     incidentes?: IncidenteTorreonFerroCreateNestedManyWithoutMovimientoInput
     fotos?: MovimientoTorreonFotoCreateNestedManyWithoutMovimientoInput
   }
@@ -26670,6 +30456,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroUncheckedCreateWithoutRondasInput = {
     id?: number
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    unidadId?: number | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -26712,6 +30502,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroCreateWithoutRondasBloqueadasInput = {
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -26725,12 +30516,15 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     movimiento: MovimientoTorreonFerroCreateNestedOneWithoutIncidentesInput
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutIncidentesInput
     fotos?: IncidenteTorreonFotoCreateNestedManyWithoutIncidenteInput
   }
 
   export type IncidenteTorreonFerroUncheckedCreateWithoutRondasBloqueadasInput = {
     id?: number
     movimientoId: number
+    unidadId?: number | null
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -26796,6 +30590,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUpdateWithoutRondasInput = {
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26828,6 +30625,7 @@ export namespace Prisma {
     seccionDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutMovimientosNestedInput
     incidentes?: IncidenteTorreonFerroUpdateManyWithoutMovimientoNestedInput
     fotos?: MovimientoTorreonFotoUpdateManyWithoutMovimientoNestedInput
   }
@@ -26835,6 +30633,10 @@ export namespace Prisma {
   export type MovimientoTorreonFerroUncheckedUpdateWithoutRondasInput = {
     id?: IntFieldUpdateOperationsInput | number
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26883,6 +30685,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroUpdateWithoutRondasBloqueadasInput = {
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -26896,12 +30699,15 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     movimiento?: MovimientoTorreonFerroUpdateOneRequiredWithoutIncidentesNestedInput
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutIncidentesNestedInput
     fotos?: IncidenteTorreonFotoUpdateManyWithoutIncidenteNestedInput
   }
 
   export type IncidenteTorreonFerroUncheckedUpdateWithoutRondasBloqueadasInput = {
     id?: IntFieldUpdateOperationsInput | number
     movimientoId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -26919,6 +30725,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCreateWithoutIncidentesInput = {
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -26952,12 +30761,17 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     rondas?: RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutMovimientosInput
     fotos?: MovimientoTorreonFotoCreateNestedManyWithoutMovimientoInput
   }
 
   export type MovimientoTorreonFerroUncheckedCreateWithoutIncidentesInput = {
     id?: number
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    unidadId?: number | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -26997,6 +30811,42 @@ export namespace Prisma {
   export type MovimientoTorreonFerroCreateOrConnectWithoutIncidentesInput = {
     where: MovimientoTorreonFerroWhereUniqueInput
     create: XOR<MovimientoTorreonFerroCreateWithoutIncidentesInput, MovimientoTorreonFerroUncheckedCreateWithoutIncidentesInput>
+  }
+
+  export type UnidadAtencionTorreonCreateWithoutIncidentesInput = {
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    movimientos?: MovimientoTorreonFerroCreateNestedManyWithoutUnidadInput
+  }
+
+  export type UnidadAtencionTorreonUncheckedCreateWithoutIncidentesInput = {
+    id?: number
+    localidadId: number
+    modalidad?: string
+    estado?: string
+    operadorId?: number | null
+    ordenManual?: number | null
+    fechaRecepcion?: Date | string
+    fechaHabilitacion?: Date | string | null
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    movimientos?: MovimientoTorreonFerroUncheckedCreateNestedManyWithoutUnidadInput
+  }
+
+  export type UnidadAtencionTorreonCreateOrConnectWithoutIncidentesInput = {
+    where: UnidadAtencionTorreonWhereUniqueInput
+    create: XOR<UnidadAtencionTorreonCreateWithoutIncidentesInput, UnidadAtencionTorreonUncheckedCreateWithoutIncidentesInput>
   }
 
   export type RondaTorreonMovimientoCreateWithoutBloqueadoPorIncidenteInput = {
@@ -27088,6 +30938,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUpdateWithoutIncidentesInput = {
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -27121,12 +30974,17 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rondas?: RondaTorreonMovimientoUpdateManyWithoutMovimientoNestedInput
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutMovimientosNestedInput
     fotos?: MovimientoTorreonFotoUpdateManyWithoutMovimientoNestedInput
   }
 
   export type MovimientoTorreonFerroUncheckedUpdateWithoutIncidentesInput = {
     id?: IntFieldUpdateOperationsInput | number
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -27161,6 +31019,48 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rondas?: RondaTorreonMovimientoUncheckedUpdateManyWithoutMovimientoNestedInput
     fotos?: MovimientoTorreonFotoUncheckedUpdateManyWithoutMovimientoNestedInput
+  }
+
+  export type UnidadAtencionTorreonUpsertWithoutIncidentesInput = {
+    update: XOR<UnidadAtencionTorreonUpdateWithoutIncidentesInput, UnidadAtencionTorreonUncheckedUpdateWithoutIncidentesInput>
+    create: XOR<UnidadAtencionTorreonCreateWithoutIncidentesInput, UnidadAtencionTorreonUncheckedCreateWithoutIncidentesInput>
+    where?: UnidadAtencionTorreonWhereInput
+  }
+
+  export type UnidadAtencionTorreonUpdateToOneWithWhereWithoutIncidentesInput = {
+    where?: UnidadAtencionTorreonWhereInput
+    data: XOR<UnidadAtencionTorreonUpdateWithoutIncidentesInput, UnidadAtencionTorreonUncheckedUpdateWithoutIncidentesInput>
+  }
+
+  export type UnidadAtencionTorreonUpdateWithoutIncidentesInput = {
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimientos?: MovimientoTorreonFerroUpdateManyWithoutUnidadNestedInput
+  }
+
+  export type UnidadAtencionTorreonUncheckedUpdateWithoutIncidentesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    localidadId?: IntFieldUpdateOperationsInput | number
+    modalidad?: StringFieldUpdateOperationsInput | string
+    estado?: StringFieldUpdateOperationsInput | string
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    ordenManual?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaRecepcion?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaHabilitacion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimientos?: MovimientoTorreonFerroUncheckedUpdateManyWithoutUnidadNestedInput
   }
 
   export type RondaTorreonMovimientoUpsertWithWhereUniqueWithoutBloqueadoPorIncidenteInput = {
@@ -27213,6 +31113,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroCreateWithoutFotosInput = {
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -27246,12 +31149,17 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     rondas?: RondaTorreonMovimientoCreateNestedManyWithoutMovimientoInput
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutMovimientosInput
     incidentes?: IncidenteTorreonFerroCreateNestedManyWithoutMovimientoInput
   }
 
   export type MovimientoTorreonFerroUncheckedCreateWithoutFotosInput = {
     id?: number
     clientRequestId?: string | null
+    loteCapturaId?: string | null
+    unidadId?: number | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -27306,6 +31214,9 @@ export namespace Prisma {
 
   export type MovimientoTorreonFerroUpdateWithoutFotosInput = {
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -27339,12 +31250,17 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     rondas?: RondaTorreonMovimientoUpdateManyWithoutMovimientoNestedInput
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutMovimientosNestedInput
     incidentes?: IncidenteTorreonFerroUpdateManyWithoutMovimientoNestedInput
   }
 
   export type MovimientoTorreonFerroUncheckedUpdateWithoutFotosInput = {
     id?: IntFieldUpdateOperationsInput | number
     clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -27382,6 +31298,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroCreateWithoutFotosInput = {
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -27395,12 +31312,15 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     movimiento: MovimientoTorreonFerroCreateNestedOneWithoutIncidentesInput
+    unidad?: UnidadAtencionTorreonCreateNestedOneWithoutIncidentesInput
     rondasBloqueadas?: RondaTorreonMovimientoCreateNestedManyWithoutBloqueadoPorIncidenteInput
   }
 
   export type IncidenteTorreonFerroUncheckedCreateWithoutFotosInput = {
     id?: number
     movimientoId: number
+    unidadId?: number | null
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -27433,6 +31353,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroUpdateWithoutFotosInput = {
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -27446,12 +31367,15 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     movimiento?: MovimientoTorreonFerroUpdateOneRequiredWithoutIncidentesNestedInput
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutIncidentesNestedInput
     rondasBloqueadas?: RondaTorreonMovimientoUpdateManyWithoutBloqueadoPorIncidenteNestedInput
   }
 
   export type IncidenteTorreonFerroUncheckedUpdateWithoutFotosInput = {
     id?: IntFieldUpdateOperationsInput | number
     movimientoId?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -28332,6 +32256,8 @@ export namespace Prisma {
 
   export type IncidenteTorreonFerroCreateManyMovimientoInput = {
     id?: number
+    unidadId?: number | null
+    confirmadoPorRol?: string | null
     creadoPorId: number
     resueltoPorId?: number | null
     estado?: $Enums.EstadoIncidenteTorreon
@@ -28410,6 +32336,7 @@ export namespace Prisma {
   }
 
   export type IncidenteTorreonFerroUpdateWithoutMovimientoInput = {
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -28422,12 +32349,15 @@ export namespace Prisma {
     fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unidad?: UnidadAtencionTorreonUpdateOneWithoutIncidentesNestedInput
     rondasBloqueadas?: RondaTorreonMovimientoUpdateManyWithoutBloqueadoPorIncidenteNestedInput
     fotos?: IncidenteTorreonFotoUpdateManyWithoutIncidenteNestedInput
   }
 
   export type IncidenteTorreonFerroUncheckedUpdateWithoutMovimientoInput = {
     id?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -28446,6 +32376,8 @@ export namespace Prisma {
 
   export type IncidenteTorreonFerroUncheckedUpdateManyWithoutMovimientoInput = {
     id?: IntFieldUpdateOperationsInput | number
+    unidadId?: NullableIntFieldUpdateOperationsInput | number | null
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
     creadoPorId?: IntFieldUpdateOperationsInput | number
     resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
     estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
@@ -28494,6 +32426,246 @@ export namespace Prisma {
     tomadaPorId?: IntFieldUpdateOperationsInput | number
     comentario?: NullableStringFieldUpdateOperationsInput | string | null
     tomadaAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MovimientoTorreonFerroCreateManyUnidadInput = {
+    id?: number
+    clientRequestId?: string | null
+    loteCapturaId?: string | null
+    locomotoraRemolque?: number | null
+    polo?: string | null
+    empresaId: number
+    creadoPorId: number
+    clienteId?: number | null
+    supervisorId?: number | null
+    coordinadorId?: number | null
+    operadorId?: number | null
+    localidadId: number
+    viaOrigenId?: number | null
+    viaDestinoId?: number | null
+    seccionOrigenId?: number | null
+    seccionDestinoId?: number | null
+    locomotiveNumber: number
+    prioridad?: $Enums.PrioridadTorreon
+    tipoMovimiento?: $Enums.TipoMovimientoTorreon | null
+    estado?: $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: Date | string
+    fechaInicio?: Date | string | null
+    fechaFin?: Date | string | null
+    fechaPausa?: Date | string | null
+    instrucciones?: string | null
+    posicionChimenea?: $Enums.PosicionChimeneaTorreon | null
+    finalizado?: boolean
+    direccionEmpuje?: $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: string | null
+    localidadNombreSnapshot?: string | null
+    viaOrigenNombreSnapshot?: string | null
+    viaDestinoNombreSnapshot?: string | null
+    seccionOrigenNombreSnapshot?: string | null
+    seccionDestinoNombreSnapshot?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IncidenteTorreonFerroCreateManyUnidadInput = {
+    id?: number
+    movimientoId: number
+    confirmadoPorRol?: string | null
+    creadoPorId: number
+    resueltoPorId?: number | null
+    estado?: $Enums.EstadoIncidenteTorreon
+    motivo: string
+    solucion?: string | null
+    localidadId: number
+    viaBloqueadaId?: number | null
+    seccionBloqueadaId?: number | null
+    fechaInicio?: Date | string
+    fechaResolucion?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type MovimientoTorreonFerroUpdateWithoutUnidadInput = {
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    clienteId?: NullableIntFieldUpdateOperationsInput | number | null
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotiveNumber?: IntFieldUpdateOperationsInput | number
+    prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
+    tipoMovimiento?: NullableEnumTipoMovimientoTorreonFieldUpdateOperationsInput | $Enums.TipoMovimientoTorreon | null
+    estado?: EnumEstadoMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    posicionChimenea?: NullableEnumPosicionChimeneaTorreonFieldUpdateOperationsInput | $Enums.PosicionChimeneaTorreon | null
+    finalizado?: BoolFieldUpdateOperationsInput | boolean
+    direccionEmpuje?: NullableEnumDireccionEmpujeTorreonFieldUpdateOperationsInput | $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: NullableEnumPosicionCabinaTorreonFieldUpdateOperationsInput | $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    viaOrigenNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    rondas?: RondaTorreonMovimientoUpdateManyWithoutMovimientoNestedInput
+    incidentes?: IncidenteTorreonFerroUpdateManyWithoutMovimientoNestedInput
+    fotos?: MovimientoTorreonFotoUpdateManyWithoutMovimientoNestedInput
+  }
+
+  export type MovimientoTorreonFerroUncheckedUpdateWithoutUnidadInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    clienteId?: NullableIntFieldUpdateOperationsInput | number | null
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotiveNumber?: IntFieldUpdateOperationsInput | number
+    prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
+    tipoMovimiento?: NullableEnumTipoMovimientoTorreonFieldUpdateOperationsInput | $Enums.TipoMovimientoTorreon | null
+    estado?: EnumEstadoMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    posicionChimenea?: NullableEnumPosicionChimeneaTorreonFieldUpdateOperationsInput | $Enums.PosicionChimeneaTorreon | null
+    finalizado?: BoolFieldUpdateOperationsInput | boolean
+    direccionEmpuje?: NullableEnumDireccionEmpujeTorreonFieldUpdateOperationsInput | $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: NullableEnumPosicionCabinaTorreonFieldUpdateOperationsInput | $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    viaOrigenNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    rondas?: RondaTorreonMovimientoUncheckedUpdateManyWithoutMovimientoNestedInput
+    incidentes?: IncidenteTorreonFerroUncheckedUpdateManyWithoutMovimientoNestedInput
+    fotos?: MovimientoTorreonFotoUncheckedUpdateManyWithoutMovimientoNestedInput
+  }
+
+  export type MovimientoTorreonFerroUncheckedUpdateManyWithoutUnidadInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    clientRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
+    locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
+    polo?: NullableStringFieldUpdateOperationsInput | string | null
+    empresaId?: IntFieldUpdateOperationsInput | number
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    clienteId?: NullableIntFieldUpdateOperationsInput | number | null
+    supervisorId?: NullableIntFieldUpdateOperationsInput | number | null
+    coordinadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    operadorId?: NullableIntFieldUpdateOperationsInput | number | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    viaDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionOrigenId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionDestinoId?: NullableIntFieldUpdateOperationsInput | number | null
+    locomotiveNumber?: IntFieldUpdateOperationsInput | number
+    prioridad?: EnumPrioridadTorreonFieldUpdateOperationsInput | $Enums.PrioridadTorreon
+    tipoMovimiento?: NullableEnumTipoMovimientoTorreonFieldUpdateOperationsInput | $Enums.TipoMovimientoTorreon | null
+    estado?: EnumEstadoMovimientoTorreonFieldUpdateOperationsInput | $Enums.EstadoMovimientoTorreon
+    fechaSolicitud?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaInicio?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaFin?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaPausa?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    instrucciones?: NullableStringFieldUpdateOperationsInput | string | null
+    posicionChimenea?: NullableEnumPosicionChimeneaTorreonFieldUpdateOperationsInput | $Enums.PosicionChimeneaTorreon | null
+    finalizado?: BoolFieldUpdateOperationsInput | boolean
+    direccionEmpuje?: NullableEnumDireccionEmpujeTorreonFieldUpdateOperationsInput | $Enums.DireccionEmpujeTorreon | null
+    posicionCabina?: NullableEnumPosicionCabinaTorreonFieldUpdateOperationsInput | $Enums.PosicionCabinaTorreon | null
+    empresaNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    viaOrigenNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    viaDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionOrigenNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    seccionDestinoNombreSnapshot?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IncidenteTorreonFerroUpdateWithoutUnidadInput = {
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimiento?: MovimientoTorreonFerroUpdateOneRequiredWithoutIncidentesNestedInput
+    rondasBloqueadas?: RondaTorreonMovimientoUpdateManyWithoutBloqueadoPorIncidenteNestedInput
+    fotos?: IncidenteTorreonFotoUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteTorreonFerroUncheckedUpdateWithoutUnidadInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    movimientoId?: IntFieldUpdateOperationsInput | number
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    rondasBloqueadas?: RondaTorreonMovimientoUncheckedUpdateManyWithoutBloqueadoPorIncidenteNestedInput
+    fotos?: IncidenteTorreonFotoUncheckedUpdateManyWithoutIncidenteNestedInput
+  }
+
+  export type IncidenteTorreonFerroUncheckedUpdateManyWithoutUnidadInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    movimientoId?: IntFieldUpdateOperationsInput | number
+    confirmadoPorRol?: NullableStringFieldUpdateOperationsInput | string | null
+    creadoPorId?: IntFieldUpdateOperationsInput | number
+    resueltoPorId?: NullableIntFieldUpdateOperationsInput | number | null
+    estado?: EnumEstadoIncidenteTorreonFieldUpdateOperationsInput | $Enums.EstadoIncidenteTorreon
+    motivo?: StringFieldUpdateOperationsInput | string
+    solucion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidadId?: IntFieldUpdateOperationsInput | number
+    viaBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    seccionBloqueadaId?: NullableIntFieldUpdateOperationsInput | number | null
+    fechaInicio?: DateTimeFieldUpdateOperationsInput | Date | string
+    fechaResolucion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

@@ -1,6 +1,33 @@
 import { prisma } from '../../lib/prisma';
 import { prismaTorreon } from '../../lib/servicePrisma';
 
+/** Resolve catalogue IDs and names in the authoritative locality before accepting a batch. */
+export async function prepareNaturalCreate(body: Record<string, any>) {
+  const result = { ...body };
+  const locality = await prisma.localidad.findUnique({ where: { id: Number(body.localidadId) } });
+  const name = String(locality?.nombre ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+  if (name !== 'TORREON') throw Object.assign(new Error('Esta cola corresponde a movimientos naturales de Torreón'), { status: 403 });
+  const company = await prisma.empresa.findUnique({ where: { id: Number(body.empresaId) } });
+  if (!company) throw Object.assign(new Error('Empresa no encontrada'), { status: 400 });
+  result.localidadNombreSnapshot = locality!.nombre;
+  result.empresaNombreSnapshot = company.nombre;
+  for (const side of ['Origen', 'Destino'] as const) {
+    const viaId = Number(body[`via${side}Id`]);
+    if (!Number.isSafeInteger(viaId) || viaId <= 0) throw Object.assign(new Error('Cada solicitud requiere vía de origen y destino'), { status: 400 });
+    const via = await prisma.via.findUnique({ where: { id: viaId }, include: { secciones: true } });
+    if (!via || via.localidadId !== Number(body.localidadId)) throw Object.assign(new Error('La vía no pertenece a Torreón'), { status: 403 });
+    const rawSection = body[`seccion${side}Id`];
+    const sectionId = rawSection == null ? null : Number(rawSection);
+    if (sectionId != null && (!Number.isSafeInteger(sectionId) || sectionId <= 0)) throw Object.assign(new Error('Sección inválida'), { status: 400 });
+    const section = sectionId == null ? null : via.secciones.find(s => s.id === sectionId);
+    if (sectionId != null && !section) throw Object.assign(new Error('La sección no pertenece a la vía seleccionada'), { status: 403 });
+    if (via.secciones.length && !section) throw Object.assign(new Error(`Selecciona la sección de ${side.toLowerCase()}`), { status: 400 });
+    result[`via${side}NombreSnapshot`] = via.nombre;
+    result[`seccion${side}NombreSnapshot`] = section ? section.nombre ?? String(section.numero) : undefined;
+  }
+  return result;
+}
+
 export async function prepareNaturalEdit(id: number, body: Record<string, any>) {
   const movement = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id } });
   if (!movement) throw Object.assign(new Error('Movimiento no encontrado'), { status: 404 });

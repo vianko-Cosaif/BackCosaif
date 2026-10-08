@@ -10,9 +10,11 @@ import { DomainError } from "../../utils/domainError";
 import { guardarFotoTorreon } from "../../utils/imagenesTorreon";
 import { IncidenteModel } from "../incidentes/incidente.model";
 import { crearIncidenteMovimientoSchema } from "../incidentes/incidente.schemas";
-import { RondaModel } from "../rondas/ronda.model";
+import { ColaNaturalModel, auditNatural, lockNaturalLocality, type NaturalActor } from "../cola/cola.model";
 import {
   createMovimientoSchema,
+  createLoteSchema,
+  validarCondicionesNaturales,
   editMovimientoSchema,
   finalizarMovimientoSchema,
   fotoInputSchema,
@@ -21,6 +23,7 @@ import {
   reanudarMovimientoSchema,
 } from "./movimiento.schemas";
 import { z } from "zod";
+import { createHash } from "crypto";
 
 type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
@@ -32,6 +35,7 @@ const MAX_FOTOS_MOVIMIENTO: Record<TipoFotoMovimientoTorreon, number> = {
 };
 
 const includeMovimientoDetalle = {
+  unidad: { include: { movimientos: { orderBy: { id: "asc" as const } }, incidentes: true } },
   rondas: {
     include: {
       ronda: true,
@@ -54,6 +58,7 @@ const includeMovimientoDetalle = {
 };
 
 const buildMovimientoListInclude = (includeFotos: boolean) => ({
+  unidad: { include: { movimientos: { orderBy: { id: "asc" as const } }, incidentes: true } },
   rondas: {
     include: {
       ronda: true,
@@ -99,6 +104,18 @@ const compact = <T extends Record<string, unknown>>(data: T): T => {
 const isMovimientoCerrado = (estado: EstadoMovimientoTorreon) => (
   estado === EstadoMovimientoTorreon.CONCLUIDO || estado === EstadoMovimientoTorreon.CANCELADO
 );
+
+const requestFingerprint = (input: Record<string, unknown>) => createHash('sha256').update(JSON.stringify([
+  'empresaId', 'localidadId', 'creadoPorId', 'clienteId', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId',
+  'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'polo',
+  'posicionCabina', 'posicionChimenea', 'direccionEmpuje', 'instrucciones',
+].map(key => [key, input[key] ?? null]))).digest('hex');
+
+async function validateRetry(tx: Tx, movement: Prisma.MovimientoTorreonFerroGetPayload<{}>, input: z.infer<typeof createMovimientoSchema>) {
+  const receipt = await tx.bitacoraNaturalTorreon.findFirst({ where: { movimientoId: movement.id, accion: 'SOLICITAR' }, orderBy: { id: 'asc' } });
+  const original = (receipt?.datos as { requestFingerprint?: string } | null)?.requestFingerprint ?? requestFingerprint(movement);
+  if (original !== requestFingerprint(input)) throw new DomainError(409, 'Este identificador de envío ya fue utilizado con otros datos; actualiza la captura');
+}
 
 async function getMovimientoOrThrow(tx: Tx | PrismaClient, movimientoId: number) {
   const movimiento = await tx.movimientoTorreonFerro.findUnique({ where: { id: movimientoId } });
@@ -161,7 +178,7 @@ async function createMovimientoFotos(
           orden,
           url: archivo.url,
           storageKey: archivo.storageKey,
-          tomadaPorId: foto.tomadaPorId ?? actorFallbackId,
+          tomadaPorId: actorFallbackId,
           comentario: foto.comentario,
           tomadaAt: foto.tomadaAt ?? new Date(),
         },
@@ -205,60 +222,40 @@ export class MovimientoModel {
     return getMovimientoDetalle(id);
   }
 
-  static async crear(input: z.infer<typeof createMovimientoSchema>) {
-    if (input.clientRequestId) {
-      const existing = await prismaTorreon.movimientoTorreonFerro.findUnique({
-        where: { clientRequestId: input.clientRequestId },
-        include: includeMovimientoDetalle,
-      });
-      if (existing) return existing;
-    }
-
-    const movimientoId = await prismaTorreon.$transaction(async (tx) => {
-      const movimiento = await tx.movimientoTorreonFerro.create({
-        data: compact({
-          clientRequestId: input.clientRequestId,
-          empresaId: input.empresaId,
-          creadoPorId: input.creadoPorId,
-          clienteId: input.clienteId,
-          supervisorId: input.supervisorId,
-          coordinadorId: input.coordinadorId,
-          operadorId: input.operadorId,
-          localidadId: input.localidadId,
-          viaOrigenId: input.viaOrigenId,
-          viaDestinoId: input.viaDestinoId,
-          seccionOrigenId: input.seccionOrigenId,
-          seccionDestinoId: input.seccionDestinoId,
-          locomotiveNumber: input.locomotiveNumber,
-          prioridad: input.prioridad,
-          tipoMovimiento: input.tipoMovimiento,
-          estado: input.operadorId ? EstadoMovimientoTorreon.ASIGNADO : EstadoMovimientoTorreon.SOLICITADO,
-          instrucciones: input.instrucciones,
-          posicionChimenea: input.posicionChimenea,
-          posicionCabina: input.posicionCabina,
-          direccionEmpuje: input.direccionEmpuje,
-          empresaNombreSnapshot: input.empresaNombreSnapshot,
-          localidadNombreSnapshot: input.localidadNombreSnapshot,
-          viaOrigenNombreSnapshot: input.viaOrigenNombreSnapshot,
-          viaDestinoNombreSnapshot: input.viaDestinoNombreSnapshot,
-          seccionOrigenNombreSnapshot: input.seccionOrigenNombreSnapshot,
-          seccionDestinoNombreSnapshot: input.seccionDestinoNombreSnapshot,
-        }),
-      });
-
-      const incidenteBloqueante = await IncidenteModel.findIncidenteBloqueante(tx, movimiento);
-      await RondaModel.insertarMovimiento(
-        tx,
-        movimiento,
-        incidenteBloqueante?.origen === "NATURAL" ? incidenteBloqueante.id : null,
-        Boolean(incidenteBloqueante)
-      );
-      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
-
-      return movimiento.id;
+  static async crearTx(tx: Tx, input: z.infer<typeof createMovimientoSchema>, loteCapturaId?: string, actor?: NaturalActor) {
+    const error = validarCondicionesNaturales(input);
+    if (error) throw new DomainError(400, error);
+    const { prioridad: _priority, operadorId: _operator, ...data } = input;
+    const movement = await tx.movimientoTorreonFerro.create({ data: { ...data, prioridad: 'BAJA', estado: 'SOLICITADO', loteCapturaId } });
+    const unit = await ColaNaturalModel.asegurarUnidad(tx, movement);
+    await auditNatural(tx, unit, actor ?? { id: input.creadoPorId }, 'SOLICITAR', { loteCapturaId: loteCapturaId ?? null, requestFingerprint: requestFingerprint(input) }, movement.id);
+    return movement.id;
+  }
+  static async crear(input: z.infer<typeof createMovimientoSchema>, actor?: NaturalActor) {
+    const id = await prismaTorreon.$transaction(async tx => {
+      await lockNaturalLocality(tx, input.localidadId);
+      if (input.clientRequestId) {
+        const existing = await tx.movimientoTorreonFerro.findUnique({ where: { clientRequestId: input.clientRequestId } });
+        if (existing) { await validateRetry(tx, existing, input); return existing.id; }
+      }
+      return this.crearTx(tx, input, undefined, actor);
     });
-
-    return getMovimientoDetalle(movimientoId);
+    return getMovimientoDetalle(id);
+  }
+  static async crearLote(input: z.infer<typeof createLoteSchema>, actor?: NaturalActor) {
+    const ids = await prismaTorreon.$transaction(async tx => {
+      await lockNaturalLocality(tx, input.movimientos[0].localidadId);
+      const existing = await tx.movimientoTorreonFerro.findMany({ where: { loteCapturaId: input.clientRequestId }, orderBy: { id: 'asc' } });
+      if (existing.length) {
+        if (existing.length !== input.movimientos.length) throw new DomainError(409, 'Este envío ya contiene un número distinto de solicitudes');
+        for (let i = 0; i < existing.length; i++) await validateRetry(tx, existing[i], input.movimientos[i]);
+        return existing.map(m => m.id);
+      }
+      const result: number[] = [];
+      for (let i = 0; i < input.movimientos.length; i++) result.push(await this.crearTx(tx, { ...input.movimientos[i], clientRequestId: `${input.clientRequestId}:${i + 1}` }, input.clientRequestId, actor));
+      return result;
+    });
+    return Promise.all(ids.map(getMovimientoDetalle));
   }
 
   static async obtenerEdicion(id: number) {
@@ -275,12 +272,14 @@ export class MovimientoModel {
         viaOrigen: m.viaOrigenId ? { id: m.viaOrigenId, nombre: m.viaOrigenNombreSnapshot ?? '' } : null,
         viaDestino: m.viaDestinoId ? { id: m.viaDestinoId, nombre: m.viaDestinoNombreSnapshot ?? '' } : null,
       },
-      editableKeys: ['instrucciones', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId', 'tipoMovimiento', 'posicionCabina', 'posicionChimenea', 'direccionEmpuje'],
+      editableKeys: ['instrucciones', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId', 'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'polo', 'posicionCabina', 'posicionChimenea', 'direccionEmpuje'],
     };
   }
 
-  static async editar(id: number, input: z.infer<typeof editMovimientoSchema>) {
+  static async editar(id: number, input: z.infer<typeof editMovimientoSchema>, actor?: NaturalActor) {
     await prismaTorreon.$transaction(async (tx) => {
+      const initial = await getMovimientoOrThrow(tx, id);
+      await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede editarse en estado ${movimiento.estado}`);
@@ -289,86 +288,45 @@ export class MovimientoModel {
         where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt }, data: input,
       });
       if (changed.count !== 1) throw new DomainError(409, 'El movimiento cambió mientras lo editabas. Actualiza e intenta de nuevo.');
-      if (input.prioridad && input.prioridad !== movimiento.prioridad) {
-        await tx.rondaTorreonMovimiento.updateMany({
-          where: { movimientoId: id, estado: { in: ["PENDIENTE", "BLOQUEADO"] } },
-          data: { prioridad: input.prioridad },
-        });
-      }
-      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
+      const merged = { ...movimiento, ...input };
+      if (!merged.viaOrigenId || !merged.viaDestinoId) throw new DomainError(400, 'Cada solicitud requiere vía de origen y destino');
+      const error = validarCondicionesNaturales(merged);
+      if (error) throw new DomainError(400, error);
+      const unit = await ColaNaturalModel.asegurarUnidad(tx, movimiento);
+      await auditNatural(tx, unit, actor ?? { id: movimiento.creadoPorId }, 'EDITAR_SOLICITUD', { cambios: input }, id);
     });
     return getMovimientoDetalle(id);
   }
 
-  static async iniciar(id: number, input: z.infer<typeof iniciarMovimientoSchema>) {
-    const movimientoId = await prismaTorreon.$transaction(async (tx) => {
-      const movimiento = await getMovimientoOrThrow(tx, id);
-
-      if (
-        movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO &&
-        movimiento.operadorId === (input.operadorId ?? movimiento.operadorId)
-      ) {
-        return id;
+  static async iniciar(id: number, input: z.infer<typeof iniciarMovimientoSchema>, actor?: NaturalActor) {
+    return this.ejecutarUnidad(id, input, false, actor ?? { id: input.iniciadoPorId });
+  }
+  static async ejecutarUnidad(id: number, input: { operadorId?: number; fotos: FotoInput[]; fotosPorMovimiento?: { movimientoId: number; fotos: FotoInput[] }[] }, reanudar: boolean, actor: NaturalActor) {
+    await prismaTorreon.$transaction(async tx => {
+      const initial = await getMovimientoOrThrow(tx, id);
+      await lockNaturalLocality(tx, initial.localidadId);
+      const unit = await ColaNaturalModel.asegurarUnidad(tx, await getMovimientoOrThrow(tx, id));
+      const operator = actor.id;
+      if (input.operadorId && input.operadorId !== operator) throw new DomainError(403, 'La ejecución corresponde al maquinista autenticado');
+      if (!await ColaNaturalModel.exigirTurno(tx, unit, operator, reanudar)) return;
+      const now = new Date();
+      if (!reanudar && unit.modalidad === 'CONJUNTO' && unit.movimientos.some(m => !isMovimientoCerrado(m.estado) && !input.fotosPorMovimiento?.some(f => f.movimientoId === m.id))) throw new DomainError(400, 'El conjunto requiere evidencia de inicio identificada por solicitud');
+      for (const movement of unit.movimientos.filter(m => !isMovimientoCerrado(m.estado))) {
+        const fotos = input.fotosPorMovimiento?.find(f => f.movimientoId === movement.id)?.fotos ?? input.fotos;
+        if (!reanudar && !fotos.length) throw new DomainError(400, `El movimiento #${movement.id} requiere evidencia de inicio`);
+        await createMovimientoFotos(tx, movement.id, reanudar ? TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO : TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO, fotos, actor.id);
+        await tx.movimientoTorreonFerro.update({ where: { id: movement.id }, data: { estado: 'EN_PROCESO', operadorId: operator, fechaInicio: movement.fechaInicio ?? now, fechaPausa: null } });
+        await auditNatural(tx, unit, actor, reanudar ? 'REANUDAR' : 'INICIAR', { operadorId: operator }, movement.id);
       }
-      if (movimiento.estado === EstadoMovimientoTorreon.EN_PROCESO) {
-        throw new DomainError(409, "Movimiento ya esta en proceso por otro maquinista", {
-          operadorId: movimiento.operadorId,
-        });
-      }
-      if (isMovimientoCerrado(movimiento.estado)) {
-        throw new DomainError(409, `Movimiento no puede iniciar en estado ${movimiento.estado}`);
-      }
-
-      const incidenteDelMovimiento = await IncidenteModel.obtenerActivoDeMovimiento(tx, id);
-      if (incidenteDelMovimiento) {
-        throw new DomainError(409, "Movimiento bloqueado por incidente abierto", {
-          incidenteId: incidenteDelMovimiento.id,
-        });
-      }
-
-      const incidenteBloqueante = await IncidenteModel.findIncidenteBloqueante(tx, movimiento);
-      if (incidenteBloqueante) {
-        await RondaModel.marcarMovimientoBloqueado(
-          tx,
-          id,
-          incidenteBloqueante.origen === "NATURAL" ? incidenteBloqueante.id : null
-        );
-        await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
-        throw new DomainError(409, "La ruta del movimiento esta bloqueada por incidente abierto", {
-          incidenteId: incidenteBloqueante.id,
-        });
-      }
-
-      await createMovimientoFotos(
-        tx,
-        id,
-        TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO,
-        input.fotos,
-        input.iniciadoPorId
-      );
-
-      const fechaInicio = movimiento.fechaInicio ?? input.fechaInicio ?? new Date();
-      await tx.movimientoTorreonFerro.update({
-        where: { id },
-        data: {
-          estado: EstadoMovimientoTorreon.EN_PROCESO,
-          operadorId: input.operadorId ?? movimiento.operadorId,
-          supervisorId: input.supervisorId ?? movimiento.supervisorId,
-          coordinadorId: input.coordinadorId ?? movimiento.coordinadorId,
-          fechaInicio,
-          fechaPausa: null,
-        },
-      });
-
-      await RondaModel.marcarMovimientoActivo(tx, id, fechaInicio);
-      return id;
+      await tx.unidadAtencionTorreon.update({ where: { id: unit.id }, data: { estado: 'EN_PROCESO', operadorId: operator, fechaInicio: unit.fechaInicio ?? now } });
     });
-
-    return getMovimientoDetalle(movimientoId);
+    return getMovimientoDetalle(id);
   }
 
-  static async cancelar(id: number, razon: string) {
+  static async cancelar(id: number, razon: string, actor?: NaturalActor) {
     await prismaTorreon.$transaction(async tx => {
+      const initial = await getMovimientoOrThrow(tx, id);
+      await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
       if (movimiento.estado === EstadoMovimientoTorreon.CANCELADO) return;
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
@@ -381,162 +339,77 @@ export class MovimientoModel {
           instrucciones: `${movimiento.instrucciones ?? ''}\nCANCELADO: ${razon}`.trim() },
       });
       if (result.count !== 1) throw new DomainError(409, 'El movimiento cambió. Actualiza e intenta de nuevo.');
-      await RondaModel.marcarMovimientoCancelado(tx, id, fechaFin);
-      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
+      const unit = await ColaNaturalModel.asegurarUnidad(tx, movimiento);
+      const remaining = await tx.movimientoTorreonFerro.count({ where: { unidadId: unit.id, estado: { notIn: ['CONCLUIDO', 'CANCELADO'] } } });
+      if (!remaining) await tx.unidadAtencionTorreon.update({ where: { id: unit.id }, data: { estado: 'CANCELADA', fechaFin } });
+      await auditNatural(tx, unit, actor ?? { id: movimiento.creadoPorId }, 'CANCELAR_SOLICITUD', { razon }, id);
     }, { isolationLevel: 'Serializable' });
     return getMovimientoDetalle(id);
   }
 
-  static async registrarFotos(id: number, input: z.infer<typeof registrarFotosMovimientoSchema>) {
+  static async registrarFotos(id: number, input: z.infer<typeof registrarFotosMovimientoSchema>, actor?: NaturalActor) {
     await prismaTorreon.$transaction(async (tx) => {
-      await getMovimientoOrThrow(tx, id);
+      const initial = await getMovimientoOrThrow(tx, id);
+      await lockNaturalLocality(tx, initial.localidadId);
+      const movement = await getMovimientoOrThrow(tx, id);
+      if (actor && movement.operadorId !== actor.id) throw new DomainError(403, 'Solo el maquinista asignado registra evidencia');
+      if (!['EN_PROCESO', 'DETENIDO'].includes(movement.estado)) throw new DomainError(409, 'La evidencia adicional corresponde a una maniobra iniciada');
       await createMovimientoFotos(
         tx,
         id,
         input.tipo as TipoFotoMovimientoTorreon,
         input.fotos,
-        input.tomadaPorId
+        actor?.id ?? input.tomadaPorId
       );
+      const unit = await ColaNaturalModel.asegurarUnidad(tx, movement);
+      await auditNatural(tx, unit, actor ?? { id: input.tomadaPorId }, 'REGISTRAR_EVIDENCIA', { tipo: input.tipo, cantidad: input.fotos.length }, id);
     });
 
     return getMovimientoDetalle(id);
   }
 
-  static async finalizar(id: number, input: z.infer<typeof finalizarMovimientoSchema>) {
-    const movimientoId = await prismaTorreon.$transaction(async (tx) => {
-      const movimiento = await getMovimientoOrThrow(tx, id);
-      if (movimiento.estado === EstadoMovimientoTorreon.CONCLUIDO) return id;
-      if (movimiento.estado !== EstadoMovimientoTorreon.EN_PROCESO) {
-        throw new DomainError(409, `Movimiento debe estar EN_PROCESO para finalizar. Estado actual: ${movimiento.estado}`);
+  static async finalizar(id: number, input: z.infer<typeof finalizarMovimientoSchema>, actor?: NaturalActor) {
+    const performer = actor ?? { id: input.finalizadoPorId };
+    await prismaTorreon.$transaction(async tx => {
+      const initial = await getMovimientoOrThrow(tx, id);
+      await lockNaturalLocality(tx, initial.localidadId);
+      const movement = await getMovimientoOrThrow(tx, id);
+      if (movement.estado === 'CONCLUIDO') return;
+      const unit = await ColaNaturalModel.asegurarUnidad(tx, movement);
+      if (unit.estado !== 'EN_PROCESO' || unit.operadorId !== performer.id) throw new DomainError(409, 'Solo el maquinista asignado puede finalizar una maniobra en proceso');
+      if (await ColaNaturalModel.bloqueante(tx, unit)) throw new DomainError(409, 'No puedes finalizar con impedimentos abiertos');
+      const fechaFin = new Date();
+      for (const member of unit.movimientos.filter(m => !isMovimientoCerrado(m.estado))) {
+        if (unit.modalidad === 'CONJUNTO' && !input.fotosPorMovimiento?.some(f => f.movimientoId === member.id)) throw new DomainError(400, 'El conjunto requiere evidencia de finalización identificada por solicitud');
+        const fotos = input.fotosPorMovimiento?.find(f => f.movimientoId === member.id)?.fotos ?? input.fotos;
+        if (!fotos.length) throw new DomainError(400, `El movimiento #${member.id} requiere evidencia de finalización`);
+        await createMovimientoFotos(tx, member.id, TipoFotoMovimientoTorreon.FIN_MOVIMIENTO, fotos, performer.id);
+        await tx.movimientoTorreonFerro.update({ where: { id: member.id }, data: { estado: 'CONCLUIDO', finalizado: true, fechaFin } });
+        await auditNatural(tx, unit, performer, 'FINALIZAR', { resultado: 'CONCLUIDO' }, member.id);
       }
-
-      const incidenteAbierto = await IncidenteModel.obtenerActivoDeMovimiento(tx, id);
-      if (incidenteAbierto) {
-        throw new DomainError(409, "No se puede finalizar con incidente abierto", {
-          incidenteId: incidenteAbierto.id,
-        });
-      }
-
-      await createMovimientoFotos(
-        tx,
-        id,
-        TipoFotoMovimientoTorreon.FIN_MOVIMIENTO,
-        input.fotos,
-        input.finalizadoPorId
-      );
-
-      const fechaFin = input.fechaFin ?? new Date();
-      await tx.movimientoTorreonFerro.update({
-        where: { id },
-        data: {
-          estado: EstadoMovimientoTorreon.CONCLUIDO,
-          finalizado: true,
-          fechaFin,
-        },
-      });
-
-      await RondaModel.marcarMovimientoConcluido(tx, id, fechaFin);
-      await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
-      return id;
+      await tx.unidadAtencionTorreon.update({ where: { id: unit.id }, data: { estado: 'CONCLUIDA', fechaFin } });
     });
-
-    return getMovimientoDetalle(movimientoId);
+    return getMovimientoDetalle(id);
   }
-
-  static async detenerConIncidente(id: number, input: z.infer<typeof crearIncidenteMovimientoSchema>) {
-    const result = await prismaTorreon.$transaction(async (tx) => {
-      const movimiento = await getMovimientoOrThrow(tx, id);
-      if (isMovimientoCerrado(movimiento.estado)) {
-        throw new DomainError(409, `Movimiento no puede detenerse en estado ${movimiento.estado}`);
-      }
-
-      const incidente = await IncidenteModel.crearParaMovimiento(tx, movimiento, input);
-
-      await tx.movimientoTorreonFerro.update({
-        where: { id },
-        data: {
-          estado: EstadoMovimientoTorreon.DETENIDO,
-          fechaPausa: new Date(),
-        },
-      });
-
-      return { movimientoId: id, incidenteId: incidente.id };
+  static async detenerConIncidente(id: number, input: z.infer<typeof crearIncidenteMovimientoSchema>, actor?: NaturalActor) {
+    const result = await prismaTorreon.$transaction(async tx => {
+      const initial = await getMovimientoOrThrow(tx, id);
+      await lockNaturalLocality(tx, initial.localidadId);
+      const movement = await getMovimientoOrThrow(tx, id);
+      const unit = await ColaNaturalModel.asegurarUnidad(tx, movement);
+      if (unit.estado !== 'EN_PROCESO' && unit.estado !== 'DETENIDA') throw new DomainError(409, 'Solo una maniobra iniciada puede reportar un incidente');
+      if (unit.operadorId !== input.creadoPorId) throw new DomainError(403, 'El incidente corresponde al maquinista asignado');
+      const incident = await IncidenteModel.crearParaMovimiento(tx, movement, input);
+      await tx.incidenteTorreonFerro.update({ where: { id: incident.id }, data: { unidadId: unit.id } });
+      await tx.movimientoTorreonFerro.updateMany({ where: { unidadId: unit.id, estado: { notIn: ['CONCLUIDO', 'CANCELADO'] } }, data: { estado: 'DETENIDO', fechaPausa: new Date() } });
+      await tx.unidadAtencionTorreon.update({ where: { id: unit.id }, data: { estado: 'DETENIDA', fechaHabilitacion: null } });
+      await auditNatural(tx, unit, actor ?? { id: input.creadoPorId }, 'REPORTAR_INCIDENTE', { movimientoIds: unit.movimientos.map(m => m.id), motivo: input.motivo }, id, incident.id);
+      return incident.id;
     });
-
-    return {
-      movimiento: await getMovimientoDetalle(result.movimientoId),
-      incidenteId: result.incidenteId,
-    };
+    return { movimiento: await getMovimientoDetalle(id), incidenteId: result };
   }
-
-  static async reanudar(id: number, input: z.infer<typeof reanudarMovimientoSchema>) {
-    const movimientoId = await prismaTorreon.$transaction(async (tx) => {
-      const movimiento = await getMovimientoOrThrow(tx, id);
-      if (movimiento.estado !== EstadoMovimientoTorreon.DETENIDO) {
-        throw new DomainError(409, `Movimiento debe estar DETENIDO para reanudar. Estado actual: ${movimiento.estado}`);
-      }
-
-      const incidente = input.incidenteId
-        ? await tx.incidenteTorreonFerro.findUnique({ where: { id: input.incidenteId } })
-        : await IncidenteModel.obtenerActivoDeMovimiento(tx, id);
-
-      if (!incidente) throw new DomainError(404, "Incidente activo no encontrado para reanudar");
-      if (incidente.movimientoId !== id) {
-        throw new DomainError(409, "El incidente no pertenece al movimiento");
-      }
-
-      if (incidente.estado === EstadoIncidenteTorreon.ABIERTO) {
-        if (!input.resueltoPorId || !input.solucion) {
-          throw new DomainError(400, "Reanudar requiere resueltoPorId y solucion para resolver el incidente");
-        }
-
-        await IncidenteModel.resolverTx(tx, incidente.id, {
-          resueltoPorId: input.resueltoPorId,
-          solucion: input.solucion,
-          fechaResolucion: input.fechaResolucion,
-        });
-      }
-
-      const stillBlocked = await IncidenteModel.findIncidenteBloqueante(tx, movimiento, incidente.id);
-      if (stillBlocked) {
-        await RondaModel.marcarMovimientoBloqueado(
-          tx,
-          id,
-          stillBlocked.origen === "NATURAL" ? stillBlocked.id : null
-        );
-        await RondaModel.recalcularBloqueosLocalidad(tx, movimiento.localidadId);
-        throw new DomainError(409, "El movimiento sigue bloqueado por otro incidente abierto", {
-          incidenteId: stillBlocked.id,
-        });
-      }
-
-      if (input.fotos.length) {
-        const actorId = input.resueltoPorId ?? input.operadorId;
-        if (!actorId) throw new DomainError(400, "Las capturas de reanudacion requieren actor");
-        await createMovimientoFotos(
-          tx,
-          id,
-          TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO,
-          input.fotos,
-          actorId
-        );
-      }
-
-      const fechaInicio = movimiento.fechaInicio ?? new Date();
-      await tx.movimientoTorreonFerro.update({
-        where: { id },
-        data: {
-          estado: EstadoMovimientoTorreon.EN_PROCESO,
-          operadorId: input.operadorId ?? movimiento.operadorId,
-          fechaPausa: null,
-          fechaInicio,
-        },
-      });
-
-      await RondaModel.marcarMovimientoActivo(tx, id, fechaInicio);
-      return id;
-    });
-
-    return getMovimientoDetalle(movimientoId);
+  static async reanudar(id: number, input: z.infer<typeof reanudarMovimientoSchema>, actor?: NaturalActor) {
+    if (!input.operadorId && !actor?.id) throw new DomainError(400, 'La reanudación requiere maquinista');
+    return this.ejecutarUnidad(id, input, true, actor ?? { id: input.operadorId! });
   }
 }

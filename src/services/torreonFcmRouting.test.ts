@@ -41,6 +41,9 @@ const naturalCerrado = resolverAudienciaFcmTorreon('incidente_cerrado_manual');
 assert.equal(naturalCerrado?.audience, 'OPERACION_NATURAL');
 
 assert.equal(resolverAudienciaFcmTorreon('torreon_ronda_orden'), null);
+for (const tipo of ['torreon_unidad_asignada', 'torreon_reanudacion_disponible']) {
+  assert.deepEqual(resolverAudienciaFcmTorreon(tipo)?.roles, [Rol.MAQUINISTA]);
+}
 
 console.log('Torreon FCM routing tests passed');
 

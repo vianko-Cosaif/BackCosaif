@@ -17,13 +17,13 @@ export function canClientUseTorreonPath(role: string, method: string, rest: stri
   }
   if (["GET", "HEAD"].includes(verb)) {
     return incident || (kind === "NATURAL"
-      ? /^\/(movimientos|rondas)(?:\/|$)/.test(path)
+      ? /^\/(movimientos|rondas|cola)(?:\/|$)/.test(path)
       : /^\/arrastres(?:\/|$)/.test(path) || path === "/catalogos/arrastre");
   }
   if (["PATCH", "PUT", "POST"].includes(verb) && /^\/incidentes\/\d+\/(resolver|cerrar)$/.test(path)) return true;
   if (kind === "NATURAL") {
-    return (verb === "POST" && path === "/movimientos")
-      || (verb === "PATCH" && (path === "/rondas/movimientos/orden" || path === "/rondas/intercambiar-movimientos" || /^\/movimientos\/\d+(?:\/(?:edicion|cancelar))?$/.test(path)));
+    return (verb === "POST" && ["/movimientos", "/movimientos/lote"].includes(path))
+      || (verb === "PATCH" && (/^\/movimientos\/\d+(?:\/(?:edicion|cancelar))?$/.test(path)));
   }
   return (verb === "POST" && path === "/arrastres")
     || (verb === "PATCH" && /^\/arrastres\/(?:orden-solicitudes|\d+(?:\/cancelar|\/vagones\/(?:orden|\d+))?)$/.test(path))

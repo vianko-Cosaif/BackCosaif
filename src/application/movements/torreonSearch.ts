@@ -60,7 +60,7 @@ function torreonEstadoVisible(row: TorreonSearchRow) {
   const estado = String(row.estado ?? '').toUpperCase();
   const ronda = Array.isArray(row.rondas) ? toTorreonRecord(row.rondas[0]) : {};
   const estadoRonda = String(ronda.estado ?? '').toUpperCase();
-  if (estadoRonda === 'BLOQUEADO') return 'ESPERA';
+  if (!row.unidad && estadoRonda === 'BLOQUEADO') return 'ESPERA';
   return estado || 'SOLICITADO';
 }
 
@@ -152,8 +152,9 @@ function mapTorreonMovimientoParaCosaif(row: TorreonSearchRow) {
     finalizado: TORREON_MOVIMIENTO_CERRADOS.has(String(row.estado ?? '').toUpperCase()),
     estado,
     estadoOriginalTorreon: row.estado,
+    unidad: row.unidad ?? null,
     ronda:
-      toPositiveInt(rondaItem.id) || toPositiveInt(ronda.id)
+      !row.unidad && (toPositiveInt(rondaItem.id) || toPositiveInt(ronda.id))
         ? {
             id: toPositiveInt(rondaItem.id) ?? toPositiveInt(ronda.id),
             rondaId: toPositiveInt(rondaItem.rondaId) ?? toPositiveInt(ronda.id),
