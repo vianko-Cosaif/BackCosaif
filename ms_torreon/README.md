@@ -40,14 +40,14 @@ movimientos/movimiento.model.ts
 
 incidentes/incidente.model.ts
 - Crear incidente ABIERTO con minimo 1 foto y maximo 4.
-- Resolver incidente y reencolar primero el movimiento ligado.
+- Resolver incidente y conservar la posición original del movimiento ligado.
 - Cerrar incidente cancelando el movimiento ligado.
 - Buscar incidentes que bloquean una via/seccion.
 - Al abrir/resolver, afecta rondas mediante RondaModel.
 
 rondas/ronda.model.ts
-- Crear/reutilizar ronda activa.
-- Insertar movimiento con orden/prioridad.
+- Mantener una sola cola activa por localidad en la tabla de rondas para compatibilidad.
+- Encolar movimientos por fecha de solicitud e ID, sin turnos por empresa ni prioridad.
 - Marcar movimiento ACTIVO, CONCLUIDO o BLOQUEADO.
 - Bloquear/desbloquear movimientos por incidente abierto/resuelto.
 ```
@@ -104,13 +104,16 @@ GET    /api/rondas
 GET    /api/rondas/:id
 ```
 
+Las rutas heredadas para intercambiar o reordenar movimientos responden `409`: el orden
+de la cola de naturales se determina por la llegada de cada solicitud.
+
 Reglas:
 
 ```txt
 Crear movimiento:
 - Requiere empresa_id, creado_por_id, localidad_id, locomotora y al menos una via/seccion.
-- Crea o reutiliza ronda activa.
-- Inserta el movimiento en ronda_torreon_movimiento.
+- Crea o reutiliza la cola activa de la localidad.
+- Inserta el movimiento al final de ronda_torreon_movimiento; las solicitudes se atienden por llegada.
 - Si la via/seccion ya tiene incidente ABIERTO, entra a ronda como BLOQUEADO.
 
 Iniciar movimiento:

@@ -376,7 +376,6 @@ export class IncidenteModel {
       });
     }
     await RondaModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
-    await RondaModel.promoverMovimientoPrimero(tx, incidente.movimientoId);
     await ArrastreModel.recalcularBloqueosLocalidad(tx, incidente.localidadId);
     return tx.incidenteTorreonFerro.findUnique({ where: { id: incidenteId } });
   }

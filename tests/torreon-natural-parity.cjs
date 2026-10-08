@@ -1,17 +1,6 @@
 const assert = require('node:assert/strict');
 const { loader, invoke } = require('./support/load-ts.cjs');
-const clean = x => JSON.parse(JSON.stringify(x));
 async function main() {
-  const plan = loader()('ms_torreon/src/modules/rondas/naturalRoundPlan.ts').naturalRoundPlan;
-  const row = (id, empresaId, prioridad = 'BAJA', estado = 'PENDIENTE') => ({ id, empresaId, prioridad, estado });
-  assert.deepEqual(clean(plan([row(1,1), row(2,1), row(3,2), row(4,3), row(5,4), row(6,2)]).map(xs => xs.map(x => x.id))), [[1,3,4,5],[2,6]], 'Una baja por empresa, sin corte artificial de tres');
-  assert.deepEqual(clean(plan([row(1,1), row(2,2,'ALTA'), row(3,2,'ALTA'), row(4,1)]).map(xs => xs.map(x => x.id))), [[2,3],[1],[4]], 'Altas primero y bajas por turnos');
-  assert.deepEqual(clean(plan([row(1,1), row(2,2), row(3,2), row(4,1)]).map(xs => xs.map(x => x.id))), [[1,2],[4,3]], 'Alternancia entre rondas');
-  for (const group of plan(Array.from({length:120}, (_,i) => row(i,i%7)))) assert.equal(new Set(group.map(x=>x.empresaId)).size,group.length);
-
-  const stable=[{...row(1,1),round:1},{...row(3,1),round:2},{...row(4,2),round:2}];
-  assert.deepEqual(clean(plan(stable,x=>x.round).map(xs=>xs.map(x=>x.id))),[[1],[4,3]], 'No adelanta otra empresa cuando termina un movimiento en R1');
-
   let state='SOLICITADO', updateCount=1, data, recalculated=0, cancelled=0;
   const movement=()=>({id:7,empresaId:3,localidadId:2,estado:state,updatedAt:new Date(0),viaOrigenId:8,viaDestinoId:9,seccionOrigenId:10,seccionDestinoId:11});
   const table={findUnique:async()=>movement(),updateMany:async args=>{data=args;return {count:updateCount}}};
@@ -87,32 +76,38 @@ async function main() {
   assert.equal((await helpers.prepareNaturalEdit(7,{instrucciones:'Sin sección'})).seccionOrigenId,null);
   await assert.rejects(()=>helpers.prepareNaturalEdit(7,{viaOrigenId:9,instrucciones:'[META ORIGEN:2]'}),e=>e.status===400);
 
-  const pending=(id,empresaId=3,localidadId=2,estado='PENDIENTE')=>({id,empresaId,estado,orden:id,ordenManual:null,prioridad:'BAJA',fechaAsignado:new Date(id),ronda:{localidadId,estado:'ABIERTA'},movimiento:{id,fechaSolicitud:new Date(id),estado:'SOLICITADO'}});
-  let pair=[pending(1),pending(3)], writes=[], normalized=0;
-  const all=[pair[0],pending(2,4),pair[1]];
-  const swapTx={rondaTorreonMovimiento:{findMany:async args=>args.include.ronda?pair:all,aggregate:async()=>({_max:{orden:3}}),update:async args=>{writes.push(args);return args}}};
-  const rounds=loader({'ms_torreon/src/db/prisma':{prismaTorreon:{$transaction:async fn=>fn(swapTx)}}})('ms_torreon/src/modules/rondas/ronda.model.ts').RondaModel;
-  rounds.normalizarRondasActivas=async()=>{normalized++};
-  await rounds.intercambiar({rondaAId:1,rondaBId:3,empresaId:3});
-  assert.deepEqual(writes.filter(x=>x.data.ordenManual).map(x=>[x.where.id,x.data.ordenManual]),[[3,1],[2,2],[1,3]],'Intercambiar movimientos propios conserva la posición de otra empresa');
-  assert.equal(normalized,1);
-  writes=[]; pair[1].ronda.localidadId=1;
-  await assert.rejects(()=>rounds.intercambiar({rondaAId:1,rondaBId:3,empresaId:3}),/localidades/);
-  pair[1].ronda.localidadId=2; pair[1].empresaId=4;
-  await assert.rejects(()=>rounds.intercambiar({rondaAId:1,rondaBId:3,empresaId:3}),/tu empresa/);
-  pair[1].empresaId=3;pair[1].prioridad='ALTA';
-  await assert.rejects(()=>rounds.intercambiar({rondaAId:1,rondaBId:3,empresaId:3}),/prioridad/);
-  pair[1].prioridad='BAJA';pair[1].movimiento.estado='EN_PROCESO';
-  await assert.rejects(()=>rounds.intercambiar({rondaAId:1,rondaBId:3,empresaId:3}),/pendientes/);
-  assert.equal(writes.length,0);
-  let insertedRound, createdRound;
-  const activeRounds=[{id:10,numeroRonda:1,movimientos:[{empresaId:3,prioridad:'BAJA'}]},{id:20,numeroRonda:2,movimientos:[{empresaId:3,prioridad:'BAJA'}]}];
-  const insertTx={rondaTorreon:{findMany:async()=>activeRounds,create:async({data})=>{createdRound=data;return{id:30,...data}}},rondaTorreonMovimiento:{create:async({data})=>{insertedRound=data.rondaId;return data}}};
-  rounds.getOrCreateActiveRonda=async()=>activeRounds[1];rounds.resolveOrdenRonda=async()=>1;
-  await rounds.insertarMovimiento(insertTx,{id:7,empresaId:4,localidadId:2,prioridad:'BAJA'});
-  assert.equal(insertedRound,10,'Una empresa nueva entra al primer turno disponible');
-  await rounds.insertarMovimiento(insertTx,{id:8,empresaId:3,localidadId:2,prioridad:'BAJA'});
-  assert.equal(insertedRound,30);assert.equal(createdRound.numeroRonda,3,'Una solicitud se agrega después del último turno de su empresa');
-  console.log('PASS Torreón natural parity: company rounds, priority, edit states, concurrent start, route scope, snapshots, ownership');
+  const rounds=loader({'ms_torreon/src/db/prisma':{prismaTorreon:{}}})('ms_torreon/src/modules/rondas/ronda.model.ts').RondaModel;
+  const roundRows=[{id:10,numeroRonda:1,estado:'ABIERTA'},{id:20,numeroRonda:2,estado:'ABIERTA'}];
+  const queued=(id,fechaSolicitud,rondaId,empresaId,prioridad,estado,ordenManual=null)=>({
+    id,rondaId,empresaId,prioridad,estado,orden:id,ordenManual,fechaAsignado:new Date(id),
+    movimiento:{id,fechaSolicitud:new Date(fechaSolicitud),estado:'SOLICITADO'},
+  });
+  const queue=[
+    queued(14,'2026-10-08T10:04:00Z',10,4,'ALTA','ACTIVO'),
+    queued(12,'2026-10-08T10:02:00Z',20,3,'BAJA','BLOQUEADO',0),
+    queued(11,'2026-10-08T10:01:00Z',10,3,'BAJA','PENDIENTE',1),
+    queued(13,'2026-10-08T10:03:00Z',20,4,'ALTA','PENDIENTE'),
+  ];
+  const updated=[],roundUpdates=[];
+  const queueTx={
+    rondaTorreon:{findMany:async()=>roundRows,updateMany:async args=>roundUpdates.push(args),update:async args=>roundUpdates.push(args)},
+    rondaTorreonMovimiento:{findMany:async()=>queue,findFirst:async()=>({orden:14}),updateMany:async()=>({count:4}),update:async args=>updated.push(args)},
+  };
+  const normalized=await rounds.normalizarRondasActivas(queueTx,2);
+  assert.equal(normalized.rondasActivas,1,'Solo queda una cola activa por localidad');
+  assert.deepEqual(updated.map(x=>[x.where.id,x.data.rondaId,x.data.orden]),[[11,10,1],[12,10,2],[13,10,3],[14,10,4]],'Orden de llegada sin prioridad, estado ni empresa');
+  assert.ok(updated.every(x=>x.data.ordenManual===null));
+  assert.equal(roundUpdates.find(x=>x.where.id===10).data.estado,'EN_PROCESO');
+  assert.deepEqual(roundUpdates.find(x=>x.where.id?.in).where.id.in,[20]);
+
+  let inserted;
+  const insertTx={rondaTorreonMovimiento:{create:async({data})=>{inserted=data;return data}}};
+  rounds.getOrCreateActiveRonda=async()=>roundRows[0];
+  rounds.resolveOrdenRonda=async()=>5;
+  await rounds.insertarMovimiento(insertTx,{id:15,empresaId:3,localidadId:2,prioridad:'ALTA'});
+  assert.deepEqual([inserted.rondaId,inserted.orden],[10,5],'La siguiente solicitud entra al final de la misma cola');
+  await assert.rejects(()=>rounds.intercambiar({rondaAId:11,rondaBId:12}),/orden(a|e) por llegada/);
+  await assert.rejects(()=>rounds.reordenarMovimiento({rondaMovimientoId:11,orden:1}),/orden(a|e) por llegada/);
+  console.log('PASS Torreón natural parity: FIFO queue, edit states, route scope, snapshots, ownership');
 }
 main().catch(error=>{console.error(error);process.exitCode=1});

@@ -55,14 +55,7 @@ export async function expireNaturalIncident(id: number, now = new Date()) {
         seccionOrigenNombreSnapshot: original.seccionOrigenNombreSnapshot, seccionDestinoNombreSnapshot: original.seccionDestinoNombreSnapshot,
       } });
       nuevoMovimientoId = next.id;
-      const slot = await tx.rondaTorreonMovimiento.findFirst({
-        where: { movimientoId: original.id, estado: { in: ['PENDIENTE', 'ACTIVO', 'BLOQUEADO'] }, ronda: { estado: { in: ['ABIERTA', 'EN_PROCESO'] } } },
-        orderBy: { id: 'desc' },
-      });
-      if (slot) await tx.rondaTorreonMovimiento.update({ where: { id: slot.id }, data: {
-        movimientoId: next.id, estado: 'PENDIENTE', fechaInicio: null, fechaFin: null, bloqueadoPorIncidenteId: null,
-      } });
-      else await RondaModel.insertarMovimiento(tx, next);
+      await RondaModel.insertarMovimiento(tx, next);
     }
     const outcome = nuevoMovimientoId ? `Reprogramado en movimiento #${nuevoMovimientoId}.` : `Cancelado tras ${attempts} incidentes en la misma solicitud.`;
     await tx.movimientoTorreonFerro.update({ where: { id: original.id }, data: {
@@ -70,7 +63,7 @@ export async function expireNaturalIncident(id: number, now = new Date()) {
       instrucciones: [original.instrucciones, `Incidente #${id} no resuelto. ${outcome}`].filter(Boolean).join(' | '),
     } });
     await tx.incidenteTorreonFerro.update({ where: { id }, data: { solucion: `${AUTO_CLOSE_PREFIX} ${outcome}` } });
-    if (!nuevoMovimientoId) await RondaModel.marcarMovimientoCancelado(tx, original.id, now);
+    await RondaModel.marcarMovimientoCancelado(tx, original.id, now);
     await RondaModel.recalcularBloqueosLocalidad(tx, original.localidadId);
     await ArrastreModel.recalcularBloqueosLocalidad(tx, original.localidadId);
     return { changed: true, nuevoMovimientoId };
