@@ -544,6 +544,13 @@ const RESPONSABLE_FIELDS = [
   { id: "operadorId", detail: "operador" },
 ] as const;
 
+function responsableFieldsFor(source: Record<string, unknown>) {
+  // Natural requests retain their real creator; resolving a name does not assign responsibility.
+  return source.locomotiveNumber != null
+    ? [...RESPONSABLE_FIELDS, { id: "creadoPorId", detail: "creadoPor" }]
+    : RESPONSABLE_FIELDS;
+}
+
 function collectResponsableIds(value: unknown, ids: Set<number>, depth = 0) {
   if (depth > 8 || value == null) return;
   if (Array.isArray(value)) {
@@ -553,7 +560,7 @@ function collectResponsableIds(value: unknown, ids: Set<number>, depth = 0) {
   if (typeof value !== "object") return;
 
   const source = value as Record<string, unknown>;
-  RESPONSABLE_FIELDS.forEach((field) => {
+  responsableFieldsFor(source).forEach((field) => {
     const id = positiveInt(source[field.id]);
     if (id) ids.add(id);
   });
@@ -574,7 +581,7 @@ function decorateResponsables(
     Object.entries(source).map(([key, child]) => [key, decorateResponsables(child, users, depth + 1)])
   ) as Record<string, unknown>;
 
-  RESPONSABLE_FIELDS.forEach((field) => {
+  responsableFieldsFor(source).forEach((field) => {
     const id = positiveInt(source[field.id]);
     if (id) decorated[field.detail] = users.get(id) ?? { id, nombre: `Usuario #${id}`, rol: "" };
   });

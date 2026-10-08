@@ -58,6 +58,13 @@ async function main() {
 
   let handler;
   const calls = [];
+  const userLookups = [];
+  const names = [
+    { id: 7, nombre: 'Solicitante Torreón', rol: 'CLIENTE' },
+    { id: 11, nombre: 'Coordinadora Torreón', rol: 'COORDINADOR' },
+    { id: 12, nombre: 'Supervisor Torreón', rol: 'SUPERVISOR' },
+    { id: 13, nombre: 'Maquinista Torreón', rol: 'MAQUINISTA' },
+  ];
   let responseData = { id: 701, empresaId: 3, localidadId: 2 };
   const routeLoad = loader({
     express: { Router: () => ({ use() {}, all(_path, fn) { handler = fn; } }) },
@@ -68,7 +75,7 @@ async function main() {
     'src/services/torreonMs/torreonMsClient': { proxyToTorreonMs: async (path, options) => { calls.push({path, ...options}); return { status: 201, data: responseData }; } },
     'src/services/NotificadorFCM': { NotificadorFCM: {} },
     'src/realtime/realtimeHub': { publishRealtimeEvent() {} },
-    'src/lib/prisma': { prisma: { token: { findFirst: async () => ({ usuarioId: 5 }) }, usuario: { findMany: async () => [] } } },
+    'src/lib/prisma': { prisma: { token: { findFirst: async () => ({ usuarioId: 5 }) }, usuario: { findMany: async ({ where }) => { userLookups.push(where.id.in); return names.filter(person => where.id.in.includes(person.id)); } } } },
     'src/services/torreonMs/prepareNaturalEdit': { prepareNaturalCreate: async body => body, prepareNaturalEdit: async (_id, body) => body, enrichNaturalEdit: async body => body },
     'src/services/torreonFcmRouting': { resolverAudienciaFcmTorreon() {} },
     'src/lib/servicePrisma': { prismaTorreon: {} },
@@ -89,6 +96,27 @@ async function main() {
   assert.equal(detail.body.unidad.totalIntegrantes, 2);
   assert.deepEqual(Array.from(detail.body.unidad.movimientos, m => m.id), [701]);
   assert.deepEqual(Array.from(detail.body.unidad.incidentes, i => i.id), [91]);
+
+  // Names are resolved after company redaction, from stored IDs rather than the viewing user.
+  const natural = { id: 701, empresaId: 3, localidadId: 2, locomotiveNumber: 120,
+    creadoPorId: 7, coordinadorId: 11, supervisorId: 12, operadorId: 13 };
+  responseData = [{ id: 20, localidadId: 2, modalidad: 'CONJUNTO', operadorId: 13, movimientos: [natural] }];
+  const queue = await invoke(handler, { user: user('CLIENTE'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/cola?localidadId=2' });
+  const member = queue.body[0].movimientos[0];
+  assert.equal(member.creadoPor.nombre, 'Solicitante Torreón');
+  assert.equal(member.coordinador.nombre, 'Coordinadora Torreón');
+  assert.equal(member.supervisor.nombre, 'Supervisor Torreón');
+  assert.equal(member.operador.nombre, 'Maquinista Torreón');
+  assert.equal(queue.body[0].operador.nombre, 'Maquinista Torreón');
+  assert.equal(queue.body[0].movimientos.length, 1);
+  responseData = { ...natural, unidad: { id: 20, localidadId: 2, modalidad: 'CONJUNTO', movimientos: [natural,
+    { ...natural, id: 702, empresaId: 4, creadoPorId: 99 }] } };
+  const namedDetail = await invoke(handler, { user: user('CLIENTE'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/701' });
+  assert.equal(namedDetail.body.unidad.movimientos.length, 1);
+  assert.equal(userLookups.at(-1).includes(99), false, 'No name lookup for another company creator');
+  responseData = { ...natural, creadoPorId: 88 };
+  const unknownCreator = await invoke(handler, { user: user('CLIENTE'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/701' });
+  assert.equal(unknownCreator.body.creadoPor.nombre, 'Usuario #88', 'An unavailable creator is not replaced by a coordinator or viewer');
   console.log('PASS Torreón clients: natural creation reaches service; company/locality and actor verified; domains separated; operational actions denied');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
