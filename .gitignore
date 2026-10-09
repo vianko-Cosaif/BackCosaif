@@ -43,3 +43,5 @@ logs/empresa-controller-errors.log
 /logs
 logs/empresa-controller-errors.log
 logs/login-access.log
+logs/login-access.log
+logs/auth-errors.log

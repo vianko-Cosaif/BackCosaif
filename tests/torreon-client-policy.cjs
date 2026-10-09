@@ -89,6 +89,9 @@ async function main() {
   for (const [role, path] of [['CLIENTE','/arrastres'],['ARRASTRE_TORREON','/movimientos']]) {
     assert.equal((await invoke(handler, { user: user(role), method: 'POST', baseUrl: '/torreon', originalUrl: '/torreon' + path, body: {} })).statusCode, 403);
   }
+  for (const [method, path] of [['POST', '/cola/9/reanudar'], ['PATCH', '/movimientos/701/reanudar'], ['PATCH', '/incidentes/91/resolver?tipo=NATURAL']]) {
+    assert.equal((await invoke(handler, { user: user('MAQUINISTA'), method, baseUrl: '/torreon', originalUrl: '/torreon' + path })).statusCode, 403);
+  }
   assert.equal(calls.length, 1);
   const group = { id: 20, localidadId: 2, modalidad: 'CONJUNTO', movimientos: [{ id: 701, empresaId: 3, localidadId: 2 }, { id: 702, empresaId: 4, localidadId: 2 }], incidentes: [{ id: 91, movimientoId: 701 }, { id: 92, movimientoId: 702 }] };
   responseData = { id: 701, empresaId: 3, localidadId: 2, unidad: group };

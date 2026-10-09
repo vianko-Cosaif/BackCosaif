@@ -267,8 +267,7 @@ function isAllowedMaquinistaNaturalMutation(method: string, rest: string) {
   const verb = method.toUpperCase();
   const path = rest.split("?")[0];
   if (verb === "GET") return true;
-  if (verb === "POST" && /^\/cola\/\d+\/(?:iniciar|reanudar|finalizar)$/.test(path)) return true;
-  if (verb === "PATCH" && /^\/movimientos\/\d+\/reanudar$/.test(path)) return true;
+  if (verb === "POST" && /^\/cola\/\d+\/(?:iniciar|finalizar)$/.test(path)) return true;
   if (verb === "POST" && /^\/movimientos\/\d+\/iniciar$/.test(path)) return true;
   if (verb === "PATCH" && /^\/movimientos\/\d+\/finalizar$/.test(path)) return true;
   if (verb === "POST" && /^\/movimientos\/\d+\/fotos$/.test(path)) return true;

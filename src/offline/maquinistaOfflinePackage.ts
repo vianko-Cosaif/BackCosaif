@@ -8,6 +8,7 @@ import type { AuthenticatedUser } from "../types/auth";
 import { prisma } from "../lib/prisma";
 
 import { prismaTorreon } from '../lib/servicePrisma';
+import { isTorreonNaturalSnapshotUnitAvailable } from './torreonNaturalSnapshotPolicy';
 
 export type MaquinistaOfflineProfile =
   | "GDL_NATURAL"
@@ -229,14 +230,20 @@ async function loadGdlNatural(localidadId: number) {
 }
 
 async function loadTorreonNatural(localidadId: number) {
-  const units = await prismaTorreon.unidadAtencionTorreon.findMany({
-    where: { localidadId, estado: { notIn: ['CONCLUIDA', 'CANCELADA'] }, movimientos: { some: {} } },
-    include: {
-      movimientos: { include: { incidentes: true }, orderBy: { id: 'asc' } },
-      incidentes: true,
-    },
-  });
-  return units.sort((a: any, b: any) => {
+  const [units, incidents] = await Promise.all([
+    prismaTorreon.unidadAtencionTorreon.findMany({
+      where: { localidadId, estado: { in: ['PENDIENTE', 'EN_PROCESO', 'LISTA_REANUDAR'] }, movimientos: { some: {} } },
+      include: {
+        movimientos: { include: { incidentes: true }, orderBy: { id: 'asc' } },
+        incidentes: true,
+      },
+    }),
+    prismaTorreon.incidenteTorreonFerro.findMany({
+      where: { localidadId, estado: 'ABIERTO' },
+      select: { estado: true, unidadId: true, movimientoId: true, viaBloqueadaId: true, seccionBloqueadaId: true },
+    }),
+  ]);
+  return units.filter((unit: any) => isTorreonNaturalSnapshotUnitAvailable(unit, incidents)).sort((a: any, b: any) => {
     const rank = (u: any) => u.fechaHabilitacion ? 0 : u.ordenManual != null ? 1 : 2;
     return rank(a) - rank(b) || (a.fechaHabilitacion && b.fechaHabilitacion
       ? new Date(a.fechaHabilitacion).getTime() - new Date(b.fechaHabilitacion).getTime()

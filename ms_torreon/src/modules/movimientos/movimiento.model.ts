@@ -299,14 +299,16 @@ export class MovimientoModel {
   }
 
   static async iniciar(id: number, input: z.infer<typeof iniciarMovimientoSchema>, actor?: NaturalActor) {
-    return this.ejecutarUnidad(id, input, false, actor ?? { id: input.iniciadoPorId });
+    return this.ejecutarUnidad(id, input, actor ?? { id: input.iniciadoPorId });
   }
-  static async ejecutarUnidad(id: number, input: { operadorId?: number; fotos: FotoInput[]; fotosPorMovimiento?: { movimientoId: number; fotos: FotoInput[] }[] }, reanudar: boolean, actor: NaturalActor) {
+  private static async ejecutarUnidad(id: number, input: { operadorId?: number; fotos: FotoInput[]; fotosPorMovimiento?: { movimientoId: number; fotos: FotoInput[] }[] }, actor: NaturalActor) {
     await prismaTorreon.$transaction(async tx => {
       const initial = await getMovimientoOrThrow(tx, id);
       await lockNaturalLocality(tx, initial.localidadId);
       const unit = await ColaNaturalModel.asegurarUnidad(tx, await getMovimientoOrThrow(tx, id));
       const operator = actor.id;
+      // Only external incident confirmation can put a paused unit back into the ready queue.
+      const reanudar = unit.estado === 'LISTA_REANUDAR';
       if (input.operadorId && input.operadorId !== operator) throw new DomainError(403, 'La ejecución corresponde al maquinista autenticado');
       if (!await ColaNaturalModel.exigirTurno(tx, unit, operator, reanudar)) return;
       const now = new Date();
@@ -408,8 +410,7 @@ export class MovimientoModel {
     });
     return { movimiento: await getMovimientoDetalle(id), incidenteId: result };
   }
-  static async reanudar(id: number, input: z.infer<typeof reanudarMovimientoSchema>, actor?: NaturalActor) {
-    if (!input.operadorId && !actor?.id) throw new DomainError(400, 'La reanudación requiere maquinista');
-    return this.ejecutarUnidad(id, input, true, actor ?? { id: input.operadorId! });
+  static async reanudar(_id: number, _input: z.infer<typeof reanudarMovimientoSchema>, _actor?: NaturalActor): Promise<never> {
+    throw new DomainError(403, 'La reanudación requiere solución externa del incidente. Cuando esté habilitada, toma la unidad con Iniciar.');
   }
 }

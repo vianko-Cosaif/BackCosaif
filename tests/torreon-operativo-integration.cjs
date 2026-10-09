@@ -113,15 +113,16 @@ async function main() {
   assert.deepEqual(group.movimientos.map(m => m.fechaInicio.toISOString()), originalStarts);
   assert.equal(group.operadorId, driver.id);
   assert.equal((await next(driver.id)).id, other.id, 'A resumption never interrupts the current job');
-  await assert.rejects(() => moves.reanudar(group.movimientos[0].id, { fotos: [] }, driver), e => e.status === 409);
+  await assert.rejects(() => moves.reanudar(group.movimientos[0].id, { fotos: [] }, driver), e => e.status === 403);
+  await assert.rejects(() => moves.iniciar(group.movimientos[0].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: driver.id }), driver), e => e.status === 409);
   await moves.finalizar(other.movimientos[0].id, finish(other), driver);
   assert.equal((await next(driver.id)).id, group.id, 'Ready group is the next job before ordinary pending work');
   await assert.rejects(() => moves.iniciar(created[3].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: driver.id, fotos: [photo] }), driver), e => e.status === 409);
-  await moves.reanudar(group.movimientos[0].id, { fotos: [] }, driver);
+  await moves.iniciar(group.movimientos[0].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: driver.id }), driver);
   for (let i = 0; i < 4; i++) {
     const reported = await report(0);
     await solve(reported.incidenteId);
-    await moves.reanudar(group.movimientos[0].id, { fotos: [] }, driver);
+    await moves.iniciar(group.movimientos[0].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: driver.id }), driver);
   }
   await assert.rejects(() => incidents.cerrar(firstIncident.incidenteId, { solucion: 'Cancelar por tiempo', resueltoPorId: dispatch.id }, 'NATURAL'), e => e.status === 409);
   group = await unit(group.id);
@@ -165,7 +166,7 @@ async function main() {
   assert.equal((await nextExtra()).id, readyB.id, 'Resumptions use habilitation FIFO before even manually prioritized pending work');
   for (const ready of [readyB, readyA]) {
     assert.equal((await nextExtra()).id, ready.id);
-    await moves.reanudar(ready.movimientos[0].id, { fotos: [] }, drivers[0]);
+    await moves.iniciar(ready.movimientos[0].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: drivers[0].id }), drivers[0]);
     await moves.finalizar(ready.movimientos[0].id, finish(await unit(ready.id)), drivers[0]);
   }
   await queue.asignar(extra[2].unidadId, drivers[2].id, dispatch);
@@ -184,8 +185,8 @@ async function main() {
   await queue.asignar(extra[2].unidadId, reassigned.id, dispatch);
   assert.equal((await unit(extra[2].unidadId)).operadorId, reassigned.id);
   assert.equal((await unit(extra[2].unidadId)).movimientos[0].operadorId, reassigned.id);
-  await assert.rejects(() => moves.reanudar(extra[2].id, { fotos: [] }, drivers[2]), e => e.status === 409);
-  await moves.reanudar(extra[2].id, { fotos: [] }, reassigned);
+  await assert.rejects(() => moves.iniciar(extra[2].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: drivers[2].id }), drivers[2]), e => e.status === 409);
+  await moves.iniciar(extra[2].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: reassigned.id }), reassigned);
   await moves.finalizar(extra[2].id, finish(await unit(extra[2].unidadId)), reassigned);
   if (fs.existsSync(baselinePath)) assert.deepEqual(await legacySnapshot(), JSON.parse(fs.readFileSync(baselinePath)), 'All historical data and rounds stay unchanged after new operations');
   console.log('PASS Torreón integration: atomic 1–5 capture, retry identity, FIFO/manual order, explicit groups, per-request evidence, all-member pause, persistent incidents, all-impediment solution, next resumption without interruption, original IDs/history, individual completion and concurrent claims');

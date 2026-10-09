@@ -14,6 +14,7 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
     if ((req.method === 'GET' || req.method === 'HEAD') && !/^\/(?:cola\/\d+|incidentes\/\d+\/fotos)/.test(req.path)) return next();
     const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : (req.body = {});
     const path = req.path.replace(/\/+$/, '');
+    if (/^\/(?:cola|movimientos)\/\d+\/reanudar$/.test(path)) return res.status(403).json({ error: 'La reanudación se habilita mediante solución externa del incidente; la unidad disponible se toma con Iniciar' });
     if (req.method === 'PATCH' && /^\/movimientos\/\d+(?:\/edicion)?$/.test(path) && !hasPermission(auth, PERMISSIONS.MOVEMENTS_EDIT)) return deny();
     if (path.startsWith('/rondas/') && !hasPermission(auth, PERMISSIONS.ROUNDS_EDIT)) return deny();
     if (/^\/movimientos\/\d+\/cancelar$/.test(path) && !auth.permissions.includes(PERMISSIONS.MOVEMENTS_CANCEL)) return deny();

@@ -30,7 +30,10 @@ async function main() {
   for (const role of ['COORDINADOR', 'SUPERVISOR', 'ADMINISTRADOR']) assert.equal((await prioritize(role)).allowed, true);
   for (const role of ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR', 'MAQUINISTA']) assert.equal((await prioritize(role)).statusCode, 403);
   for (const role of ['CLIENTE', 'COORDINADOR', 'SUPERVISOR']) assert.equal((await invoke(scoped, { user: user(role), method: 'POST', path: '/cola/9/iniciar' })).statusCode, 403);
-  assert.equal((await invoke(scoped, { user: user('MAQUINISTA'), method: 'POST', path: '/cola/9/reanudar' })).allowed, true);
+  for (const [method, path] of [['POST', '/cola/9/reanudar'], ['PATCH', '/movimientos/7/reanudar']]) {
+    assert.equal((await invoke(scoped, { user: user('MAQUINISTA'), method, path })).statusCode, 403);
+  }
+  assert.equal((await invoke(scoped, { user: user('MAQUINISTA'), method: 'POST', path: '/cola/9/iniciar' })).allowed, true);
   const assign = { user: user('SUPERVISOR'), method: 'PATCH', path: '/cola/9/asignar', body: { operadorId: 42 } };
   assert.equal((await invoke(scoped, assign)).allowed, true); assert.equal(assign.body.operadorId, 42);
   assert.equal((await invoke(scoped, { user: user('ADMINISTRADOR'), method: 'PATCH', path: '/rondas/intercambiar-movimientos' })).statusCode, 409);

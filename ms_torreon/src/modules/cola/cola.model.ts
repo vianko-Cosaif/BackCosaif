@@ -68,8 +68,13 @@ export class ColaNaturalModel {
     }
     return result.sort(compareNaturalUnits).map((row, i) => ({ ...row, posicion: i + 1 }));
   }
-  static listar(localidadId: number, empresaId?: number, historial = false) {
-    return prismaTorreon.$transaction(tx => this.listarTx(tx, localidadId, empresaId, historial));
+  static listar(localidadId: number, empresaId?: number, historial = false, actor?: NaturalActor) {
+    return prismaTorreon.$transaction(async tx => {
+      const rows = await this.listarTx(tx, localidadId, empresaId, historial);
+      return actor?.rol === 'MAQUINISTA' && !historial
+        ? rows.filter(unit => unit.estado !== 'DETENIDA' && unit.incidenteBloqueanteId === null)
+        : rows;
+    });
   }
   static historial(id: number) {
     return prismaTorreon.$transaction(async tx => {
@@ -81,15 +86,17 @@ export class ColaNaturalModel {
   }
   static async siguienteTx(tx: Tx, localidadId: number, operadorId: number) {
     const rows = await this.listarTx(tx, localidadId);
-    return rows.find(u => u.estado === 'EN_PROCESO' && u.operadorId === operadorId)
-      ?? rows.find(u => u.disponible && (u.operadorId === operadorId || u.operadorId === null));
+    const current = rows.find(u => u.estado === 'EN_PROCESO' && u.operadorId === operadorId);
+    if (current) return current.incidenteBloqueanteId === null ? current : null;
+    return rows.find(u => u.disponible && (u.operadorId === operadorId || u.operadorId === null));
   }
   static async exigirTurno(tx: Tx, unit: NaturalUnit, operadorId: number, reanudar: boolean) {
     if (unit.operadorId && unit.operadorId !== operadorId) throw new DomainError(409, 'Unidad asignada a otro maquinista');
-    if (unit.estado === 'EN_PROCESO' && unit.operadorId === operadorId) return false;
-    if (unit.estado !== (reanudar ? 'LISTA_REANUDAR' : 'PENDIENTE')) throw new DomainError(409, reanudar ? 'La unidad todavía no está habilitada para reanudar' : 'La unidad no está pendiente de inicio');
+    const inProgress = unit.estado === 'EN_PROCESO' && unit.operadorId === operadorId;
+    if (!inProgress && unit.estado !== (reanudar ? 'LISTA_REANUDAR' : 'PENDIENTE')) throw new DomainError(409, reanudar ? 'La unidad todavía no está habilitada para reanudar' : 'La unidad no está pendiente de inicio');
     const blocking = await this.bloqueante(tx, unit);
     if (blocking) throw new DomainError(409, 'La unidad sigue bloqueada por un incidente abierto', { incidenteId: blocking.id });
+    if (inProgress) return false;
     const next = await this.siguienteTx(tx, unit.localidadId, operadorId);
     if (!next || next.id !== unit.id) throw new DomainError(409, 'Actualiza la cola: debes atender primero la siguiente unidad asignada', { unidadId: next?.id });
     return true;

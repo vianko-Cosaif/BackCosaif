@@ -7,7 +7,7 @@ import { actorNatural } from './cola.actor';
 import { ColaNaturalModel, type NaturalActor } from './cola.model';
 import { NATURAL_DISPATCH_ROLES } from './cola.policy';
 import { MovimientoModel } from '../movimientos/movimiento.model';
-import { iniciarMovimientoSchema, finalizarMovimientoSchema, reanudarMovimientoSchema } from '../movimientos/movimiento.schemas';
+import { iniciarMovimientoSchema, finalizarMovimientoSchema } from '../movimientos/movimiento.schemas';
 
 export const colaRouter = Router();
 const idSchema = z.coerce.number().int().positive();
@@ -16,7 +16,8 @@ const querySchema = z.object({ localidadId: idSchema, empresaId: idSchema.option
 const dispatcher = (actor: NaturalActor) => { if (!NATURAL_DISPATCH_ROLES.has(actor.rol ?? '')) throw new DomainError(403, 'Solo coordinación o supervisión puede ordenar, agrupar y asignar'); };
 colaRouter.get('/', asyncHandler(async (req, res) => {
   const q = querySchema.parse(req.query);
-  res.json(await ColaNaturalModel.listar(q.localidadId, q.empresaId, q.historial === 'true'));
+  const actor = req.headers['x-user-rol'] === 'MAQUINISTA' ? actorNatural(req) : undefined;
+  res.json(await ColaNaturalModel.listar(q.localidadId, q.empresaId, q.historial === 'true', actor));
 }));
 colaRouter.get('/siguiente', asyncHandler(async (req, res) => {
   const q = querySchema.parse(req.query);
@@ -39,7 +40,10 @@ colaRouter.get('/:id/historial', asyncHandler(async (req, res) => {
   const id = idSchema.parse(req.params.id);
   res.json(await ColaNaturalModel.historial(id));
 }));
-for (const action of ['iniciar', 'reanudar', 'finalizar'] as const) {
+colaRouter.post('/:id/reanudar', asyncHandler(async () => {
+  throw new DomainError(403, 'La reanudación requiere solución externa del incidente. Cuando esté habilitada, toma la unidad con Iniciar.');
+}));
+for (const action of ['iniciar', 'finalizar'] as const) {
   colaRouter.post(`/:id/${action}`, asyncHandler(async (req, res) => {
     const actor = actorNatural(req);
     if (actor.rol !== 'MAQUINISTA') throw new DomainError(403, 'La ejecución corresponde al maquinista');
@@ -48,7 +52,6 @@ for (const action of ['iniciar', 'reanudar', 'finalizar'] as const) {
     if (!movement) throw new DomainError(404, 'Unidad no encontrada');
     const body = { ...req.body, operadorId: actor.id, iniciadoPorId: actor.id, finalizadoPorId: actor.id };
     const result = action === 'iniciar' ? await MovimientoModel.iniciar(movement.id, iniciarMovimientoSchema.parse(body), actor)
-      : action === 'reanudar' ? await MovimientoModel.reanudar(movement.id, reanudarMovimientoSchema.parse(body), actor)
       : await MovimientoModel.finalizar(movement.id, finalizarMovimientoSchema.parse(body), actor);
     res.json(result);
   }));
