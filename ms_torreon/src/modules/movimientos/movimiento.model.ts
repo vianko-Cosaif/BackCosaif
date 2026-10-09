@@ -312,10 +312,8 @@ export class MovimientoModel {
       if (input.operadorId && input.operadorId !== operator) throw new DomainError(403, 'La ejecución corresponde al maquinista autenticado');
       if (!await ColaNaturalModel.exigirTurno(tx, unit, operator, reanudar)) return;
       const now = new Date();
-      if (!reanudar && unit.modalidad === 'CONJUNTO' && unit.movimientos.some(m => !isMovimientoCerrado(m.estado) && !input.fotosPorMovimiento?.some(f => f.movimientoId === m.id))) throw new DomainError(400, 'El conjunto requiere evidencia de inicio identificada por solicitud');
       for (const movement of unit.movimientos.filter(m => !isMovimientoCerrado(m.estado))) {
         const fotos = input.fotosPorMovimiento?.find(f => f.movimientoId === movement.id)?.fotos ?? input.fotos;
-        if (!reanudar && !fotos.length) throw new DomainError(400, `El movimiento #${movement.id} requiere evidencia de inicio`);
         await createMovimientoFotos(tx, movement.id, reanudar ? TipoFotoMovimientoTorreon.PROCESO_MOVIMIENTO : TipoFotoMovimientoTorreon.ANTES_MOVIMIENTO, fotos, actor.id);
         await tx.movimientoTorreonFerro.update({ where: { id: movement.id }, data: { estado: 'EN_PROCESO', operadorId: operator, fechaInicio: movement.fechaInicio ?? now, fechaPausa: null } });
         await auditNatural(tx, unit, actor, reanudar ? 'REANUDAR' : 'INICIAR', { operadorId: operator }, movement.id);
@@ -382,9 +380,7 @@ export class MovimientoModel {
       if (await ColaNaturalModel.bloqueante(tx, unit)) throw new DomainError(409, 'No puedes finalizar con impedimentos abiertos');
       const fechaFin = new Date();
       for (const member of unit.movimientos.filter(m => !isMovimientoCerrado(m.estado))) {
-        if (unit.modalidad === 'CONJUNTO' && !input.fotosPorMovimiento?.some(f => f.movimientoId === member.id)) throw new DomainError(400, 'El conjunto requiere evidencia de finalización identificada por solicitud');
         const fotos = input.fotosPorMovimiento?.find(f => f.movimientoId === member.id)?.fotos ?? input.fotos;
-        if (!fotos.length) throw new DomainError(400, `El movimiento #${member.id} requiere evidencia de finalización`);
         await createMovimientoFotos(tx, member.id, TipoFotoMovimientoTorreon.FIN_MOVIMIENTO, fotos, performer.id);
         await tx.movimientoTorreonFerro.update({ where: { id: member.id }, data: { estado: 'CONCLUIDO', finalizado: true, fechaFin } });
         await auditNatural(tx, unit, performer, 'FINALIZAR', { resultado: 'CONCLUIDO' }, member.id);

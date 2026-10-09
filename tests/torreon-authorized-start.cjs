@@ -148,11 +148,26 @@ async function main() {
   const coordinationList = await invoke(listRoute.handler, { headers: { 'x-user-id': 10, 'x-user-rol': 'COORDINADOR' }, query: { localidadId: '2' } });
   assert.equal(coordinationList.body[0].id, 9, 'Service monitoring still includes incidents');
 
-  units[0].estado = 'CONCLUIDA';
+  units[0].estado = 'EN_PROCESO';
+  await moves.finalizar(1, { finalizadoPorId: driver.id, fotos: [] }, driver);
+  assert.equal(units[0].estado, 'CONCLUIDA', 'The whole group finishes without asking for photographs');
+  assert.ok(movements.slice(0, 2).every(m => m.estado === 'CONCLUIDO' && m.fechaFin));
+  assert.equal(photos.length, 0);
   units[1].estado = 'PENDIENTE'; movements[3].estado = 'SOLICITADO';
-  await assert.rejects(() => moves.iniciar(4, start(), driver), e => e.status === 400);
-  await moves.iniciar(4, start(driver.id, { fotos: [{ url: 'https://example.invalid/start.jpg' }] }), driver);
-  assert.equal(photos[0].tipo, 'ANTES_MOVIMIENTO', 'Fresh starts retain their original required evidence');
+  await moves.iniciar(4, start(), driver);
+  assert.equal(units[1].estado, 'EN_PROCESO', 'A new individual request starts without photographs');
+  await moves.finalizar(4, { finalizadoPorId: driver.id, fotos: [] }, driver);
+  assert.equal(units[1].estado, 'CONCLUIDA');
+  assert.equal(photos.length, 0, 'Start and finish do not invent photo records');
+  units[0].estado = 'PENDIENTE';
+  movements.slice(0, 2).forEach(m => { m.estado = 'SOLICITADO'; m.fechaInicio = null; });
+  await moves.iniciar(1, start(), driver);
+  assert.equal(units[0].estado, 'EN_PROCESO', 'A fresh group also starts without photographs');
+  assert.ok(movements.slice(0, 2).every(m => m.estado === 'EN_PROCESO'));
+  await moves.finalizar(1, { finalizadoPorId: driver.id, fotos: [], fotosPorMovimiento: [{ movimientoId: 1, fotos: [{ url: 'https://example.invalid/optional.jpg' }] }] }, driver);
+  assert.equal(photos.length, 1, 'Explicit optional evidence is still stored for its request');
+  assert.equal(photos[0].movimientoId, 1);
+  assert.equal(photos[0].tipo, 'FIN_MOVIMIENTO');
   console.log('PASS Torreón authorized start: whole-group removal, external readiness, all incident/resource blockers, resume priority without interruption, single start action, preserved history/evidence and denied manual resume');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -21,8 +21,8 @@ const dispatch = { id: 10, rol: 'SUPERVISOR' }, driver = { id: 42, rol: 'MAQUINI
 const row = (number, index = 0) => ({ empresaId: 3, localidadId: 20261008, creadoPorId: client.id, clienteId: client.id,
   locomotiveNumber: number, viaOrigenId: 11 + index * 10, viaDestinoId: 12 + index * 10,
   tipoMovimiento: 'MD_TRABAJANDO', polo: 'NORTE', posicionCabina: 'DENTRO', posicionChimenea: 'Sin_Solicitar', direccionEmpuje: 'Sin_Solicitar' });
-const finish = unit => schemas.finalizarMovimientoSchema.parse({ finalizadoPorId: driver.id, fotosPorMovimiento: unit.movimientos.map(m => ({ movimientoId: m.id, fotos: [photo] })) });
-const start = (unit, operator = driver.id) => schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: operator, fotosPorMovimiento: unit.movimientos.map(m => ({ movimientoId: m.id, fotos: [photo] })) });
+const finish = unit => schemas.finalizarMovimientoSchema.parse({ finalizadoPorId: driver.id });
+const start = (unit, operator = driver.id) => schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: operator });
 const next = operator => db.$transaction(tx => queue.siguienteTx(tx, 20261008, operator));
 const unit = id => db.$transaction(tx => queue.obtenerTx(tx, id));
 async function legacySnapshot() {
@@ -83,12 +83,11 @@ async function main() {
   await queue.asignar(group.id, driver.id, dispatch);
   group = await unit(group.id);
   await assert.rejects(() => moves.iniciar(created[0].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: driver.id, fotos: [photo] }), driver), e => e.status === 409);
-  await assert.rejects(() => moves.iniciar(group.movimientos[0].id, schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: driver.id, fotos: [photo] }), driver), e => e.status === 400);
   await Promise.all([moves.iniciar(group.movimientos[0].id, start(group), driver), moves.iniciar(group.movimientos[0].id, start(group), driver)]);
   group = await unit(group.id);
   assert.equal(group.estado, 'EN_PROCESO');
   assert.ok(group.movimientos.every(m => m.estado === 'EN_PROCESO'));
-  assert.equal(await db.movimientoTorreonFoto.count({ where: { movimientoId: { in: group.movimientos.map(m => m.id) } } }), 2, 'Repeated start has no duplicate evidence');
+  assert.equal(await db.movimientoTorreonFoto.count({ where: { movimientoId: { in: group.movimientos.map(m => m.id) } } }), 0, 'Starting a group does not require or invent photographs');
   const originalStarts = group.movimientos.map(m => m.fechaInicio.toISOString());
   const report = index => moves.detenerConIncidente(group.movimientos[index].id, { creadoPorId: driver.id, motivo: `Problema en locomotora ${group.movimientos[index].locomotiveNumber}`, fotos: [photo] }, driver);
   const firstIncident = await report(0), secondIncident = await report(1);
@@ -133,6 +132,7 @@ async function main() {
   group = await unit(group.id);
   assert.equal(group.estado, 'CONCLUIDA');
   assert.ok(group.movimientos.every(m => m.estado === 'CONCLUIDO' && m.finalizado && m.fechaFin));
+  assert.equal(await db.movimientoTorreonFoto.count({ where: { movimientoId: { in: group.movimientos.map(m => m.id) } } }), 0, 'Finishing a group does not require photographs either');
   const trace = await db.bitacoraNaturalTorreon.findMany({ where: { unidadId: group.id } });
   for (const action of ['FORMAR_CONJUNTO', 'PRIORIZAR', 'ASIGNAR', 'INICIAR', 'REPORTAR_INCIDENTE', 'CONFIRMAR_SOLUCION', 'HABILITAR_REANUDACION', 'REANUDAR', 'FINALIZAR']) assert.ok(trace.some(e => e.accion === action), action);
   assert.equal(trace.filter(e => e.accion === 'FINALIZAR').length, 2, 'Independent completion record for every original request');
