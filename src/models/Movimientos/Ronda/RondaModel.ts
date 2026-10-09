@@ -12,6 +12,14 @@ import { resolverAudienciaFcmMovimiento } from "../../../services/serviceFcmRout
 
 type Tx = Prisma.TransactionClient;
 
+const MOVIMIENTO_TERMINADO: Prisma.MovimientoWhereInput = {
+  OR: [{ finalizado: true }, { estado: { in: ['CONCLUIDO', 'CANCELADO'] } }],
+};
+const MOVIMIENTO_PENDIENTE: Prisma.MovimientoWhereInput = {
+  OR: [{ finalizado: false }, { finalizado: null }],
+  estado: { notIn: ['CONCLUIDO', 'CANCELADO'] },
+};
+
 // ================== HOLD 10 MIN (INCIDENTE CERRADO/NO RESUELTO, SOLO 1 VEZ) ==================
 const HOLD10M_MS = 10 * 60 * 1000;
 const _hold10m = new Map<number, number>();     // movimientoId -> expiresAt
@@ -267,6 +275,7 @@ export class RondaModel {
     try {
       await this.cerrarMovimientosEnProcesoConFechaFin(tx, localidadId);
       await this.cerrarMovimientosEnProcesoPorTimeout(tx, localidadId);
+      await this.asegurarCierreRondasTerminadas(localidadId, tx);
     } catch (error: any) {
       movimientoError.error('Error al normalizar movimientos EN_PROCESO', {
         localidadId,
@@ -275,6 +284,14 @@ export class RondaModel {
         errStack: error?.stack,
       });
     }
+  }
+
+  private static async asegurarCierreRondasTerminadas(localidadId: number, tx: Tx = prisma) {
+    const residual = await tx.ronda.findFirst({
+      where: { localidadId, concluido: false, movimiento: MOVIMIENTO_TERMINADO },
+      select: { id: true },
+    });
+    if (residual) await this.recomponerRondasLocalidad(localidadId, tx);
   }
 
   // ---------- HELPERS CRUD RONDA ----------
@@ -430,7 +447,7 @@ export class RondaModel {
   private static async eliminarRondasCompletadas(tx: Tx, localidadId: number) {
     const active = await tx.ronda.groupBy({
       by: ['rondaNumero'],
-      where: { localidadId, concluido: false, movimiento: { finalizado: false, estado: { in: ['SOLICITADO', 'EN_PROCESO', 'DETENIDO'] } } },
+      where: { localidadId, concluido: false, movimiento: MOVIMIENTO_PENDIENTE },
     });
     await tx.ronda.deleteMany({ where: { localidadId, concluido: false, rondaNumero: { notIn: active.map(row => row.rondaNumero) } } });
   }
@@ -575,6 +592,13 @@ export class RondaModel {
         }
       }
     }
+    // Un movimiento terminado deja su slot activo aunque comparta ronda con pendientes.
+    await tx.ronda.updateMany({
+      where: { localidadId, concluido: false, movimiento: MOVIMIENTO_TERMINADO },
+      data: { concluido: true, updatedAt: new Date() },
+    });
+    await this.eliminarRondasConcluidasCompletas(localidadId, tx);
+
     // 0) Limpiar duplicadas (no borrar concluidas aquÃ­)
     await this.eliminarRondasHuerfanasYDuplicadas(tx, localidadId);
 
@@ -1099,7 +1123,7 @@ export class RondaModel {
 
       // 1. Traer TODA la R1
       const r1 = await tx.ronda.findMany({
-        where: { localidadId, concluido: false, rondaNumero: 1 },
+        where: { localidadId, concluido: false, rondaNumero: 1, movimiento: MOVIMIENTO_PENDIENTE },
         include: {
           movimiento: {
             select: {
@@ -1161,7 +1185,7 @@ export class RondaModel {
 
       // 3. Si en R1 no hay nada "libre para mÃ­", buscar en todo lo demÃ¡s
       const resto = await tx.ronda.findMany({
-        where: { localidadId, concluido: false },
+        where: { localidadId, concluido: false, movimiento: MOVIMIENTO_PENDIENTE },
         include: {
           movimiento: {
             select: {
@@ -1227,6 +1251,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     where: {
       localidadId,
       concluido: false,
+      movimiento: MOVIMIENTO_PENDIENTE,
     },
       include: {
         movimiento: {
@@ -1254,6 +1279,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
       where: {
         localidadId,
         concluido: false,
+        movimiento: MOVIMIENTO_PENDIENTE,
       },
       include: {
         movimiento: {
@@ -1468,6 +1494,7 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   static async obtenerRondasPorLocalidad(localidadId: number) {
     try {
+      await this.asegurarCierreRondasTerminadas(localidadId);
       await this.eliminarRondasConcluidasCompletas(localidadId);
       return await prisma.ronda.findMany({
         where: { localidadId },
@@ -1491,14 +1518,15 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   static async obtenerRondasPorLocalidadConEstado(localidadId: number, concluido: boolean) {
     try {
+      await this.asegurarCierreRondasTerminadas(localidadId);
       await this.eliminarRondasConcluidasCompletas(localidadId);
       return await prisma.ronda.findMany({
-        where: { localidadId, concluido },
+        where: { localidadId, concluido, ...(!concluido && { movimiento: MOVIMIENTO_PENDIENTE }) },
         include: {
           empresa: true,
           movimiento: {
             select: {
-              id: true, locomotiveNumber: true, createdAt: true, estado: true, lavado: true, torno: true, prioridad: true,
+              id: true, locomotiveNumber: true, createdAt: true, estado: true, finalizado: true, lavado: true, torno: true, prioridad: true,
               instrucciones: true,
               viaOrigen: { select: { nombre: true } }, viaDestino: { select: { nombre: true } },
             },
@@ -1514,8 +1542,9 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
 
   static async obtenerSiguienteEnRonda(localidadId: number) {
     try {
+      await this.asegurarCierreRondasTerminadas(localidadId);
       return await prisma.ronda.findFirst({
-        where: { localidadId, concluido: false },
+        where: { localidadId, concluido: false, movimiento: MOVIMIENTO_PENDIENTE },
         include: {
           empresa: true,
           movimiento: {
@@ -1648,4 +1677,3 @@ static async siguienteInteligente(localidadId: number, userId?: number) {
     }
   }
 }
-

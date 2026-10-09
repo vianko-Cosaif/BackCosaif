@@ -46,7 +46,7 @@
     "dev:worker:reports": "ts-node --files src/workers/reports.ts",
     "migrate:performance": "node scripts/security-migrate.cjs --version=performance-20260908 --target=main",
     "test:performance": "node tests/performance-regressions.cjs",
-    "test:performance:integration": "node tests/performance-integration.cjs && node tests/round-integration.cjs && node tests/report-worker-smoke.cjs",
+    "test:performance:integration": "node tests/performance-integration.cjs && node tests/round-integration.cjs && node tests/round-terminal-integration.cjs && node tests/report-worker-smoke.cjs",
     "benchmark:performance": "node tests/performance-benchmark.cjs"
   },
   "overrides": {

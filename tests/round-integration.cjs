@@ -4,7 +4,7 @@ const admin=process.env.SECURITY_TEST_DB_ADMIN_URL;
 if(!admin||new URL(admin).hostname!=='127.0.0.1'||new URL(admin).port!=='55439')throw new Error('Requires isolated SECURITY_TEST_DB_ADMIN_URL on 127.0.0.1:55439');
 const url=new URL(admin);url.pathname='/security_main';const db=new(require('@prisma/client').PrismaClient)({datasources:{db:{url:url.toString()}}});
 const roundFile='src/models/Movimientos/Ronda/RondaModel.ts';
-const mock={'src/lib/prisma':{prisma:db},'src/models/Movimientos/movimiento.logger':{movimientoError:logger},'src/utils/logger':{logger}};
+const mock={'src/lib/prisma':{prisma:db},'src/models/Movimientos/movimiento.logger':{movimientoError:logger},'src/utils/logger':{logger},'src/services/fcmCompat':{sendMulticastCompat:async()=>{throw new Error('Unexpected notification in round cleanup');}}};
 const extra='module.exports.holdForTest = id => _hold10m.set(id, Date.now()+600000);';
 async function main(){
  const tag='ROUND-TEST-'+crypto.randomUUID();

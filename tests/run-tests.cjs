@@ -18,7 +18,7 @@ for (const file of files) {
   if (result.status) { console.error(`FAIL ${file}\n${result.stdout}\n${result.stderr}`); process.exit(result.status || 1); }
   console.log(`PASS ${file}`);
 }
-for (const file of ['tests/admin-operation.cjs', 'tests/security-regressions.cjs', 'tests/idempotency-regressions.cjs', 'tests/pdf-regressions.cjs', 'tests/outbox-dispatch-regressions.cjs', 'tests/fcm-delivery-regressions.cjs', 'tests/fcm-retry-regressions.cjs', 'tests/fcm-operation-regressions.cjs', 'tests/notification-audience.cjs', 'tests/pending-movement-reminders.cjs', 'tests/performance-regressions.cjs', 'tests/torreon-performance.cjs', 'tests/torreon-client-policy.cjs', 'tests/torreon-natural-parity.cjs', 'tests/torreon-incident-lifecycle.cjs', 'tests/torreon-incident-expiry.cjs']) {
+for (const file of ['tests/admin-operation.cjs', 'tests/security-regressions.cjs', 'tests/idempotency-regressions.cjs', 'tests/pdf-regressions.cjs', 'tests/outbox-dispatch-regressions.cjs', 'tests/fcm-delivery-regressions.cjs', 'tests/fcm-retry-regressions.cjs', 'tests/fcm-operation-regressions.cjs', 'tests/notification-audience.cjs', 'tests/pending-movement-reminders.cjs', 'tests/performance-regressions.cjs', 'tests/movement-terminal-writes.cjs', 'tests/torreon-performance.cjs', 'tests/torreon-client-policy.cjs', 'tests/torreon-natural-parity.cjs', 'tests/torreon-incident-lifecycle.cjs', 'tests/torreon-incident-expiry.cjs']) {
   const result = spawnSync(process.execPath, [file], { stdio: 'inherit' });
   if (result.error || result.status !== 0) process.exit(result.status || 1);
 }

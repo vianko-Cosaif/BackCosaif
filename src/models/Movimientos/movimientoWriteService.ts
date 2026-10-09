@@ -1,4 +1,4 @@
-import { Rol } from '@prisma/client';
+import { Prisma, Rol } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { NotificadorFCM } from '../../services/NotificadorFCM';
 import { RondaModel } from './Ronda/RondaModel';
@@ -42,6 +42,23 @@ async function notificarMovimientoBestEffort(
 }
 
 export class MovimientoWriteService {
+  private static async cerrarRondaDeMovimiento(
+    movimiento: { id: number; localidadId: number; ronda?: { id: number; concluido?: boolean | null } | null },
+    tx: Prisma.TransactionClient
+  ) {
+    if (!movimiento.ronda) return { ronda: null, colaReparada: false };
+    const estabaActiva = movimiento.ronda.concluido !== true;
+    if (movimiento.ronda.concluido !== true) {
+      await tx.ronda.update({
+        where: { id: movimiento.ronda.id },
+        data: { concluido: true, updatedAt: new Date() },
+      });
+    }
+    await RondaModel.recomponerRondasLocalidad(movimiento.localidadId, tx);
+    const ronda = await tx.ronda.findUnique({ where: { movimientoId: movimiento.id } });
+    return { ronda, colaReparada: estabaActiva || !ronda };
+  }
+
   private static async assertMovimientoNoBloqueadoPorIncidente(id: number) {
     const movimiento = await prisma.movimiento.findUnique({
       where: { id },
@@ -140,12 +157,28 @@ export class MovimientoWriteService {
 
   static async cancelarMovimiento(id: number, razonCancelacion: string, usuarioId?: number) {
     try {
-      const movimientoCancelado = await prisma.$transaction(async (tx) => {
+      const resultado = await prisma.$transaction(async (tx) => {
         const original = await tx.movimiento.findUnique({
           where: { id },
           include: { ronda: true, empresa: true, localidad: true },
         });
         if (!original) throw new Error(`No se encontró movimiento con id ${id}`);
+
+        if (original.finalizado || ['CANCELADO', 'CONCLUIDO'].includes(original.estado)) {
+          const terminado = original.finalizado ? original : await tx.movimiento.update({
+            where: { id },
+            data: {
+              finalizado: true,
+              fechaFin: original.fechaFin ?? new Date(),
+              updatedAt: new Date(),
+              incidenteGlobal: false,
+            },
+            include: { ronda: true },
+          });
+          const cierre = await this.cerrarRondaDeMovimiento(terminado, tx);
+          terminado.ronda = cierre.ronda;
+          return { movimiento: terminado, estadoCambiado: false, colaReparada: cierre.colaReparada };
+        }
 
         const cancelado = await tx.movimiento.update({
           where: { id },
@@ -160,10 +193,8 @@ export class MovimientoWriteService {
           include: { ronda: true },
         });
 
-        if (original.ronda) {
-          await tx.ronda.update({ where: { id: original.ronda.id }, data: { concluido: true } });
-          await RondaModel.recomponerRondasLocalidad(original.localidadId, tx);
-        }
+        const cierre = await this.cerrarRondaDeMovimiento(cancelado, tx);
+        cancelado.ronda = cierre.ronda;
 
         movimientoError.info('Movimiento cancelado', {
           movimientoId: id,
@@ -174,14 +205,18 @@ export class MovimientoWriteService {
           teniaRonda: !!original.ronda,
         });
 
-        return cancelado;
+        return { movimiento: cancelado, estadoCambiado: true, colaReparada: cierre.colaReparada };
       });
 
-      await notificarMovimientoBestEffort('movimiento_cancelado', movimientoCancelado.id, () =>
-        notificarMovimientoCancelado(movimientoCancelado.id, razonCancelacion)
-      );
+      const movimientoCancelado = resultado.movimiento;
+      if (resultado.colaReparada && !resultado.estadoCambiado) publishMovimientoEstadoEvent(movimientoCancelado);
+      if (resultado.estadoCambiado) {
+        await notificarMovimientoBestEffort('movimiento_cancelado', movimientoCancelado.id, () =>
+          notificarMovimientoCancelado(movimientoCancelado.id, razonCancelacion)
+        );
+      }
       await RondaModel.siguienteInteligente(movimientoCancelado.localidadId);
-      publishMovimientoEstadoEvent(movimientoCancelado);
+      if (resultado.estadoCambiado) publishMovimientoEstadoEvent(movimientoCancelado);
       return movimientoCancelado;
     } catch (error: any) {
       movimientoError.error('Error al cancelar movimiento', {
@@ -364,16 +399,43 @@ export class MovimientoWriteService {
       }
 
       if (String(movimientoActual.estado) === nuevoEstado) {
+        const cierreTerminado = movimientoActual.finalizado || ['CANCELADO', 'CONCLUIDO'].includes(nuevoEstado);
+        if (cierreTerminado) {
+          const resultado = await prisma.$transaction(async (tx) => {
+            const actual = await tx.movimiento.findUnique({ where: { id }, include: { ronda: true } });
+            if (!actual) throw new Error(`No se encontró movimiento con id ${id}`);
+            const terminal = ['CANCELADO', 'CONCLUIDO'].includes(actual.estado);
+            if (!actual.finalizado && !terminal && actual.estado !== nuevoEstado) {
+              throw new Error('El estado del movimiento cambió durante la operación');
+            }
+            const data: any = actual.finalizado ? {} : { updatedAt: new Date() };
+            if (!actual.finalizado && terminal) {
+              Object.assign(data, {
+                finalizado: true,
+                fechaFin: actual.fechaFin ?? opciones.fechaFin ?? new Date(),
+                incidenteGlobal: false,
+              });
+            } else if (!actual.finalizado && nuevoEstado === 'EN_PROCESO' && maquinistaId) {
+              data.operadorId = maquinistaId;
+            }
+            const terminado = Object.keys(data).length ? await tx.movimiento.update({
+              where: { id }, data, include: { ronda: true },
+            }) : actual;
+            const cierre = actual.finalizado || terminal
+              ? await this.cerrarRondaDeMovimiento(terminado, tx)
+              : { ronda: terminado.ronda, colaReparada: false };
+            terminado.ronda = cierre.ronda;
+            return { movimiento: terminado, colaReparada: cierre.colaReparada };
+          });
+          if (resultado.colaReparada) publishMovimientoEstadoEvent(resultado.movimiento);
+          return resultado.movimiento;
+        }
         const data: any = { updatedAt: new Date() };
         if (nuevoEstado === 'EN_PROCESO' && maquinistaId) {
           data.operadorId = maquinistaId;
         }
 
-        const movimientoIdempotente = await prisma.movimiento.update({
-          where: { id },
-          data,
-          include: { ronda: true },
-        });
+        const movimientoIdempotente = await prisma.movimiento.update({ where: { id }, data, include: { ronda: true } });
 
         movimientoError.info('Estado de movimiento sin cambios', {
           movimientoId: id,
@@ -456,9 +518,9 @@ export class MovimientoWriteService {
           include: { ronda: true },
         });
 
-        if (movimientoActual.ronda && (nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO')) {
-          await tx.ronda.update({ where: { id: movimientoActual.ronda.id }, data: { concluido: true } });
-          await RondaModel.recomponerRondasLocalidad(movimientoActual.localidadId, tx);
+        if (nuevoEstado === 'CONCLUIDO' || nuevoEstado === 'CANCELADO') {
+          const cierre = await this.cerrarRondaDeMovimiento(updated, tx);
+          updated.ronda = cierre.ronda;
         }
 
         return updated;
@@ -1053,13 +1115,27 @@ export class MovimientoWriteService {
 
   static async finalizarMovimiento(id: number) {
     try {
-      const movimiento = await prisma.$transaction(async (tx) => {
+      const resultado = await prisma.$transaction(async (tx) => {
         const actual = await tx.movimiento.findUnique({
           where: { id },
           include: { ronda: true },
         });
         if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
-        if (actual.finalizado) return actual;
+        if (actual.finalizado || ['CANCELADO', 'CONCLUIDO'].includes(actual.estado)) {
+          const terminado = actual.finalizado ? actual : await tx.movimiento.update({
+            where: { id },
+            data: {
+              finalizado: true,
+              fechaFin: actual.fechaFin ?? new Date(),
+              updatedAt: new Date(),
+              incidenteGlobal: false,
+            },
+            include: { ronda: true },
+          });
+          const cierre = await this.cerrarRondaDeMovimiento(terminado, tx);
+          terminado.ronda = cierre.ronda;
+          return { movimiento: terminado, estadoCambiado: false, colaReparada: cierre.colaReparada };
+        }
 
         const result = await tx.movimiento.update({
           where: { id },
@@ -1067,19 +1143,21 @@ export class MovimientoWriteService {
           include: { ronda: true },
         });
 
-        if (result.ronda) {
-          await tx.ronda.update({ where: { id: result.ronda.id }, data: { concluido: true, updatedAt: new Date() } });
-          await RondaModel.recomponerRondasLocalidad(result.localidadId, tx);
-        }
+        const cierre = await this.cerrarRondaDeMovimiento(result, tx);
+        result.ronda = cierre.ronda;
 
-        return result;
+        return { movimiento: result, estadoCambiado: true, colaReparada: cierre.colaReparada };
       });
 
-      await notificarMovimientoBestEffort('movimiento_concluido', movimiento.id, () =>
-        notificarMovimientoFinalizado(movimiento.id)
-      );
+      const movimiento = resultado.movimiento;
+      if (resultado.colaReparada && !resultado.estadoCambiado) publishMovimientoEstadoEvent(movimiento);
+      if (resultado.estadoCambiado) {
+        await notificarMovimientoBestEffort('movimiento_concluido', movimiento.id, () =>
+          notificarMovimientoFinalizado(movimiento.id)
+        );
+      }
       await RondaModel.siguienteInteligente(movimiento.localidadId);
-      publishMovimientoEstadoEvent(movimiento);
+      if (resultado.estadoCambiado) publishMovimientoEstadoEvent(movimiento);
       return movimiento;
     } catch (error: any) {
       movimientoError.error('Error al finalizar movimiento', {
