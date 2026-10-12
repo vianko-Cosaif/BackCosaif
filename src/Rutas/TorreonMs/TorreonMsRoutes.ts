@@ -1,4 +1,4 @@
-import { canClientUseTorreonPath, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
+import { canClientUseTorreonPath, isSharedTorreonNaturalRead, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
 import { registerJob } from '../../jobs/durableJobs';
 import { requireTorreonScope } from '../../auth/torreonScope';
 import { Router } from "express";
@@ -440,7 +440,7 @@ function applyListScope(rest: string, user?: AuthenticatedUser, generalLocalityQ
   // `alcance` es una señal interna del gateway; no se reenvía al microservicio.
   params.delete("alcance");
 
-  if (generalLocalityQueue && ["/arrastres", "/rondas"].includes(path) && localidadId) {
+  if (generalLocalityQueue && localidadId) {
     params.delete("empresaId");
     params.set("localidadId", String(localidadId));
   }
@@ -525,7 +525,8 @@ function filterDataForUser(data: unknown, user?: AuthenticatedUser, generalLocal
   return isItemVisibleForUser(source, user, generalLocalityQueue) ? data : null;
 }
 
-function redactClientNaturalGroups(data: unknown, user?: AuthenticatedUser): any {
+function redactClientNaturalGroups(data: unknown, user?: AuthenticatedUser, sharedNaturalRead = false): any {
+  if (sharedNaturalRead) return data;
   if (!['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(userRole(user))) return data;
   if (Array.isArray(data)) return data.map(value => redactClientNaturalGroups(value, user));
   if (!data || typeof data !== 'object') return data;
@@ -1208,8 +1209,21 @@ router.all("/*", async (req, res) => {
     });
   }
   const domainRest = scopeTorreonClientPath(role, originalRest || "/");
+  let naturalUnitState: string | undefined;
+  const auditUnitId = normalizeProxyPath(domainRest).match(/^\/cola\/(\d+)\/historial$/)?.[1];
+  if (auditUnitId && req.method.toUpperCase() === "GET" && torreonClientKind(role) === "NATURAL" && readLocalidadId(user) === 2) {
+    try {
+      const unit = await prismaTorreon.unidadAtencionTorreon.findUnique({ where: { id: Number(auditUnitId) }, select: { estado: true, localidadId: true } });
+      if (!unit) return res.status(404).json({ error: "Unidad no encontrada" });
+      if (unit.localidadId !== readLocalidadId(user)) return res.status(403).json({ error: "Unidad fuera de tu localidad" });
+      naturalUnitState = unit.estado;
+    } catch {
+      return res.status(500).json({ error: "No se pudo validar el alcance del historial" });
+    }
+  }
+  const sharedNaturalRead = isSharedTorreonNaturalRead(role, req.method, domainRest, readLocalidadId(user), naturalUnitState);
   const generalLocalityQueue = req.method.toUpperCase() === "GET"
-    && isGeneralLocalityQueueList(domainRest, user);
+    && (sharedNaturalRead || isGeneralLocalityQueueList(domainRest, user));
   const scopedRest = ["GET", "HEAD"].includes(req.method.toUpperCase())
     ? applyListScope(domainRest, user, generalLocalityQueue)
     : domainRest;
@@ -1305,7 +1319,7 @@ router.all("/*", async (req, res) => {
       const filtered = filterDataForUser(result.data, user, generalLocalityQueue, naturalSearch);
       if (filtered == null) return res.status(403).json({ error: "No autorizado para este recurso" });
       const completed = await completarResponsablesFaltantes(filtered, user);
-      let visible = redactClientNaturalGroups(completed, user);
+      let visible = redactClientNaturalGroups(completed, user, sharedNaturalRead);
       if (naturalResponse) visible = await enrichNaturalSections(visible);
       if (naturalEdit && scopedRest.split("?")[0].endsWith("/edicion")) visible = await enrichNaturalEdit(visible, true);
       return res.status(result.status).send(await enrichTorreonResponsables(visible));

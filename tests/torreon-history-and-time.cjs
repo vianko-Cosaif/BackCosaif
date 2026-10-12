@@ -29,7 +29,7 @@ async function main() {
   assert.equal(enriched[1].tiempoActivoSegundos, 10, 'Another member cannot borrow the first member resume event');
 
   const client = rol => ({ id: 7, rol, empresa: { id: 3 }, localidad: { id: 2 } });
-  let unit = { id: 9, localidadId: 2, movimientos: [{ id: 101, empresaId: 3, localidadId: 2 }, { id: 102, empresaId: 4, localidadId: 2 }] };
+  let unit = { id: 9, localidadId: 2, estado: 'PENDIENTE', movimientos: [{ id: 101, empresaId: 3, localidadId: 2 }, { id: 102, empresaId: 4, localidadId: 2 }] };
   const scope = loader({ 'src/lib/prisma': { prisma: {} }, 'src/lib/servicePrisma': { prismaTorreon: {
     unidadAtencionTorreon: { findMany: async () => [unit] },
   } } })('src/auth/torreonScope.ts').requireTorreonScope;
@@ -38,11 +38,11 @@ async function main() {
     assert.equal((await invoke(scope, { user: client(role), method: 'PATCH', path: '/cola/9/asignar', body: { operadorId: 7 } })).statusCode, 403);
   }
   unit = { ...unit, movimientos: [{ id: 102, empresaId: 4, localidadId: 2 }] };
-  assert.equal((await invoke(scope, { user: client('CLIENTE'), method: 'GET', path: '/cola/9/historial' })).statusCode, 403);
+  assert.equal((await invoke(scope, { user: client('CLIENTE'), method: 'GET', path: '/cola/9/historial' })).allowed, true, 'The yard board includes other companies');
   unit = { ...unit, movimientos: [{ id: 101, empresaId: 3, localidadId: 8 }] };
   assert.equal((await invoke(scope, { user: client('CLIENTE'), method: 'GET', path: '/cola/9/historial' })).statusCode, 403);
 
-  unit = { id: 9, localidadId: 2, movimientos: [{ id: 101, empresaId: 3 }, { id: 102, empresaId: 4 }] };
+  unit = { id: 9, localidadId: 2, estado: 'PENDIENTE', movimientos: [{ id: 101, empresaId: 3 }, { id: 102, empresaId: 4 }] };
   const history = [
     { id: 1, unidadId: 1, movimientoId: 101, accion: 'SOLICITAR', datos: { empresaId: 3 } },
     { id: 2, unidadId: 2, movimientoId: 102, accion: 'SOLICITAR', datos: { secreto: 'otra empresa' } },
@@ -72,15 +72,26 @@ async function main() {
     express: { Router: () => ({ get: (path, handler) => routes.push({ path, handler }), post() {}, patch() {} }) },
     'ms_torreon/src/db/prisma': { prismaTorreon: {} },
     'ms_torreon/src/modules/movimientos/movimiento.model': { MovimientoModel: {} },
-    'ms_torreon/src/modules/cola/cola.model': { ColaNaturalModel: { historial: (id, company) => model.historial(id, company) } },
+    'ms_torreon/src/modules/cola/cola.model': { ColaNaturalModel: { historial: (id, company, locality, currentOnly) => model.historial(id, company, locality, currentOnly) } },
   })('ms_torreon/src/modules/cola/cola.routes.ts');
   const historyRoute = routes.find(route => route.path === '/:id/historial');
   await assert.rejects(() => invoke(historyRoute.handler, { headers: { 'x-user-rol': 'CLIENTE' }, params: { id: '9' } }), error => error.status === 403);
   const serviceOwn = await invoke(historyRoute.handler, { headers: { 'x-user-rol': 'CLIENTE' }, params: { id: '9' }, query: { empresaId: '3' } });
   assert.equal(JSON.stringify(serviceOwn.body).includes('otra empresa'), false);
+  const serviceShared = await invoke(historyRoute.handler, { headers: { 'x-user-rol': 'CLIENTE' }, params: { id: '9' }, query: { localidadId: '2' } });
+  assert.deepEqual(serviceShared.body, history, 'The shared yard read preserves coordinator history');
+  await assert.rejects(() => invoke(historyRoute.handler, { headers: { 'x-user-rol': 'CLIENTE' }, params: { id: '9' }, query: { localidadId: '8' } }), error => error.status === 403);
   const serviceDriver = await invoke(historyRoute.handler, { headers: { 'x-user-rol': 'MAQUINISTA' }, params: { id: '9' } });
   assert.deepEqual(serviceDriver.body, history);
+  unit.estado = 'CONCLUIDA';
+  await assert.rejects(() => invoke(historyRoute.handler, { headers: { 'x-user-rol': 'CLIENTE' }, params: { id: '9' }, query: { localidadId: '2', historial: 'false' } }), error => error.status === 403);
+  const closedOwn = await invoke(historyRoute.handler, { headers: { 'x-user-rol': 'CLIENTE' }, params: { id: '9' }, query: { empresaId: '3', localidadId: '2' } });
+  assert.equal(JSON.stringify(closedOwn.body).includes('otra empresa'), false);
+  for (const role of ['COORDINADOR', 'SUPERVISOR']) {
+    const closedAll = await invoke(historyRoute.handler, { headers: { 'x-user-rol': role }, params: { id: '9' }, query: { localidadId: '2' } });
+    assert.deepEqual(closedAll.body, history);
+  }
 
-  console.log('PASS Torreón history and clocks: mixed-company access with redaction, full operator history, grouped/repeated pauses, stopped/finished/legacy clocks and one batched audit read');
+  console.log('PASS Torreón history and clocks: shared yard history, private company projection, locality validation, grouped/repeated pauses and batched audit reads');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

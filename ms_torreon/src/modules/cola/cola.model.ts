@@ -83,9 +83,11 @@ export class ColaNaturalModel {
         : rows;
     });
   }
-  static historial(id: number, empresaId?: number) {
+  static historial(id: number, empresaId?: number, localidadId?: number, sharedCurrentOnly = false) {
     return prismaTorreon.$transaction(async tx => {
       const unit = await this.obtenerTx(tx, id);
+      if (localidadId && unit.localidadId !== localidadId) throw new DomainError(403, 'La unidad está fuera de tu localidad');
+      if (sharedCurrentOnly && closed.has(unit.estado)) throw new DomainError(403, 'El historial concluido del cliente se limita a su empresa');
       const visible = unit.movimientos.filter(m => !empresaId || m.empresaId === empresaId);
       if (empresaId && !visible.length) throw new DomainError(403, 'La unidad no contiene solicitudes de tu empresa');
       const formation = await tx.bitacoraNaturalTorreon.findFirst({ where: { unidadId: id, accion: 'FORMAR_CONJUNTO' } });

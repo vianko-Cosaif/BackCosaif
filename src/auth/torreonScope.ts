@@ -4,6 +4,7 @@ import { prismaTorreon } from '../lib/servicePrisma';
 import { buildAuthorizationProfile, hasPermission, PERMISSIONS } from './accessPolicy';
 import { resourceFitsAuthorizationScope } from './resourceScope';
 import type { AuthenticatedUser } from '../types/auth';
+import { isSharedTorreonNaturalRead } from './torreonClientPolicy';
 
 export const requireTorreonScope: RequestHandler = (req, res, next) => {
   void (async () => {
@@ -14,6 +15,7 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
     if ((req.method === 'GET' || req.method === 'HEAD') && !/^\/(?:cola\/\d+|incidentes\/\d+\/fotos)/.test(req.path)) return next();
     const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : (req.body = {});
     const path = req.path.replace(/\/+$/, '');
+    let sharedNaturalRead = isSharedTorreonNaturalRead(user.rol, req.method, path, user.localidad?.id);
     if (/^\/(?:cola|movimientos)\/\d+\/reanudar$/.test(path)) return res.status(403).json({ error: 'La reanudación se habilita mediante solución externa del incidente; la unidad disponible se toma con Iniciar' });
     if (req.method === 'PATCH' && /^\/movimientos\/\d+(?:\/edicion)?$/.test(path) && !hasPermission(auth, PERMISSIONS.MOVEMENTS_EDIT)) return deny();
     if (path.startsWith('/rondas/') && !hasPermission(auth, PERMISSIONS.ROUNDS_EDIT)) return deny();
@@ -38,10 +40,12 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
       const ids: number[] = [...new Set<number>(unitIds.map(Number))];
       const units = await prismaTorreon.unidadAtencionTorreon.findMany({ where: { id: { in: ids } }, include: { movimientos: { select: { empresaId: true, localidadId: true } } } });
       if (units.length !== ids.length) return res.status(404).json({ error: 'Unidad no encontrada' });
+      sharedNaturalRead = isSharedTorreonNaturalRead(user.rol, req.method, path, user.localidad?.id, units[0].estado);
+      if (sharedNaturalRead && units.some((unit: { localidadId: number }) => unit.localidadId !== user.localidad?.id)) return deny();
       const clientHistory = (req.method === 'GET' || req.method === 'HEAD')
         && /^\/cola\/\d+\/historial$/.test(path)
         && ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(user.rol);
-      if (clientHistory) {
+      if (clientHistory && !sharedNaturalRead) {
         // A mixed-company unit is readable through the client's own members.
         // The gateway fixes empresaId from the session and the service projects its history.
         const own = units.flatMap((u: { movimientos: { empresaId: number; localidadId: number }[] }) => u.movimientos)
@@ -108,7 +112,9 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
       resources.push(scope);
       body.empresaId = scope.empresaId; body.localidadId = scope.localidadId;
     }
-    if (resources.some(row => !resourceFitsAuthorizationScope(auth, row))) return deny();
+    if (resources.some(row => sharedNaturalRead
+      ? row.localidadId !== user.localidad?.id
+      : !resourceFitsAuthorizationScope(auth, row))) return deny();
     if (new Set(resources.map(row => row.localidadId)).size > 1) return deny();
     if (path.startsWith('/rondas/') && ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(user.rol)) {
       if (!user.empresa?.id || resources.some(row => row.empresaId !== user.empresa?.id)) return deny();

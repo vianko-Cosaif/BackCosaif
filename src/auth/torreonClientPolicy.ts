@@ -3,6 +3,16 @@ export function torreonClientKind(role?: string | null): "NATURAL" | "ARRASTRE" 
   return ["CLIENTE", "CLIENTE_ADMIN", "CLIENTE_COOR"].includes(role ?? "") ? "NATURAL" : null;
 }
 
+/** Current operations are shared; closed client history remains company scoped. */
+export function isSharedTorreonNaturalRead(role: string, method: string, rest: string, localidadId?: number | null, unitState?: string | null) {
+  if (torreonClientKind(role) !== "NATURAL" || method.toUpperCase() !== "GET" || localidadId !== 2) return false;
+  const [rawPath, query = ""] = rest.split("?");
+  const path = `/${rawPath.replace(/^\/+|\/+$/g, "")}`;
+  if (path === "/cola") return new URLSearchParams(query).get("historial") !== "true";
+  return /^\/cola\/\d+\/historial$/.test(path)
+    && ["PENDIENTE", "DETENIDA", "EN_PROCESO", "LISTA_REANUDAR"].includes(unitState ?? "");
+}
+
 /** This separates domains; company/locality and resource state are checked separately. */
 export function canClientUseTorreonPath(role: string, method: string, rest: string) {
   const kind = torreonClientKind(role);
