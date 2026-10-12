@@ -120,6 +120,39 @@ async function main() {
   responseData = { ...natural, creadoPorId: 88 };
   const unknownCreator = await invoke(handler, { user: user('CLIENTE'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/701' });
   assert.equal(unknownCreator.body.creadoPor.nombre, 'Usuario #88', 'An unavailable creator is not replaced by a coordinator or viewer');
-  console.log('PASS Torreón clients: natural creation reaches service; company/locality and actor verified; domains separated; operational actions denied');
+  responseData = [];
+  for (const role of roles) {
+    for (const suffix of ['historial', 'historial/']) {
+      for (const method of ['GET', 'HEAD']) {
+        await invoke(handler, { user: user(role), method, baseUrl: '/torreon', originalUrl: `/torreon/cola/9/${suffix}?empresaId=4` });
+        const historyUrl = new URL(calls.at(-1).path, 'http://synthetic.invalid');
+        assert.equal(historyUrl.searchParams.get('empresaId'), '3', 'History company scope always comes from the session');
+      }
+    }
+  }
+  const pagination = { total: 126, page: 2, pageSize: 20, totalPages: 7, hasNextPage: true, hasPreviousPage: true };
+  for (const role of roles) {
+    responseData = { data: [{ id: 701, empresaId: 3, localidadId: 2 }], meta: pagination };
+    const result = await invoke(handler, { user: user(role), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/buscar/?empresaId=4&localidadId=99&page=2&pageSize=20' });
+    const searchUrl = new URL(calls.at(-1).path, 'http://synthetic.invalid');
+    assert.equal(searchUrl.searchParams.get('empresaId'), '3');
+    if (role === 'CLIENTE') assert.equal(searchUrl.searchParams.get('localidadId'), '2');
+    assert.equal(result.body.meta.total, 126, 'Natural search preserves the SQL total, not page length');
+    assert.equal(result.body.meta.totalPages, 7);
+    assert.equal(result.body.meta.page, 2);
+  }
+  responseData = { data: [{ id: 701, empresaId: 3, localidadId: 2 }, { id: 702, empresaId: 4, localidadId: 2 }], meta: pagination };
+  const dispatchSearch = await invoke(handler, { user: user('COORDINADOR'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/buscar?localidadId=99' });
+  const dispatchUrl = new URL(calls.at(-1).path, 'http://synthetic.invalid');
+  assert.equal(dispatchUrl.searchParams.get('localidadId'), '2');
+  assert.equal(dispatchUrl.searchParams.has('empresaId'), false, 'Coordination can search all companies in its yard');
+  assert.equal(dispatchSearch.body.data.length, 2); assert.equal(dispatchSearch.body.meta.total, 126);
+  const foreignPage = await invoke(handler, { user: user('CLIENTE'), method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/buscar?localidadId=2' });
+  assert.equal(foreignPage.statusCode, 403, 'An unexpected foreign row must not expose the untrusted total');
+  assert.equal(foreignPage.body.meta, undefined);
+  const beforeMissingScope = calls.length;
+  const missingScope = await invoke(handler, { user: { ...user('CLIENTE'), empresa: undefined }, method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/buscar?localidadId=2' });
+  assert.equal(missingScope.statusCode, 403); assert.equal(calls.length, beforeMissingScope);
+  console.log('PASS Torreón clients: natural creation reaches service; company/locality and actor verified; domains separated; operational actions denied; history scope cannot be forged');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

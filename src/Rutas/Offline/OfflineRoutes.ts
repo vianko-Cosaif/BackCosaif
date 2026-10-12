@@ -7,6 +7,7 @@ import { requirePermission } from "../../auth/authorize";
 import {
   createMaquinistaOfflinePackage,
   getMaquinistaOfflinePackageFile,
+  getMaquinistaOfflineScope,
 } from "../../offline/maquinistaOfflinePackage";
 
 const router = Router();
@@ -16,12 +17,17 @@ router.use('/maquinista', requirePermission(PERMISSIONS.OFFLINE_MAQUINISTA_READ)
 router.get("/maquinista/availability", (req, res) => {
   const user = req.user as AuthenticatedUser;
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  res.status(200).json({
-    ok: true,
-    authenticated: true,
-    userId: user.id,
-    serverTime: new Date().toISOString(),
-  });
+  try {
+    // Connectivity and authenticated scope only; this does not validate a cached snapshot.
+    res.status(200).json({
+      ok: true,
+      authenticated: true,
+      ...getMaquinistaOfflineScope(user),
+      serverTime: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(Number(error?.status) || 500).json({ error: error?.message ?? "No se pudo verificar el acceso offline" });
+  }
 });
 
 router.post("/maquinista/manifest", async (req, res) => {

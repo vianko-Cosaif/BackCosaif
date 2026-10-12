@@ -20,7 +20,7 @@ const photo = { url: 'https://example.invalid/synthetic-evidence.jpg' };
 const dispatch = { id: 10, rol: 'SUPERVISOR' }, driver = { id: 42, rol: 'MAQUINISTA' }, client = { id: 7, rol: 'CLIENTE' };
 const row = (number, index = 0) => ({ empresaId: 3, localidadId: 20261008, creadoPorId: client.id, clienteId: client.id,
   locomotiveNumber: number, viaOrigenId: 11 + index * 10, viaDestinoId: 12 + index * 10,
-  tipoMovimiento: 'MD_TRABAJANDO', polo: 'NORTE', posicionCabina: 'DENTRO', posicionChimenea: 'Sin_Solicitar', direccionEmpuje: 'Sin_Solicitar' });
+  tipoMovimiento: 'MD_TRABAJANDO', poloOrigen: 'NORTE', poloDestino: 'SUR', direccionEmpuje: 'Sin_Solicitar' });
 const finish = unit => schemas.finalizarMovimientoSchema.parse({ finalizadoPorId: driver.id });
 const start = (unit, operator = driver.id) => schemas.iniciarMovimientoSchema.parse({ iniciadoPorId: operator });
 const next = operator => db.$transaction(tx => queue.siguienteTx(tx, 20261008, operator));
@@ -29,7 +29,7 @@ async function legacySnapshot() {
   const result = {};
   for (const table of ['movimiento_torreon_ferro', 'incidente_torreon_ferro', 'movimiento_torreon_foto', 'incidente_torreon_foto', 'ronda_torreon', 'ronda_torreon_movimiento']) {
     const rows = await db.$queryRawUnsafe(`SELECT to_jsonb(t) AS row FROM ${table} t WHERE id >= 900001 AND id <= 900020 ORDER BY id`);
-    result[table] = rows.map(({ row }) => { delete row.unidad_id; delete row.confirmado_por_rol; delete row.lote_captura_id; delete row.locomotora_remolque; delete row.polo; return row; });
+    result[table] = rows.map(({ row }) => { delete row.unidad_id; delete row.confirmado_por_rol; delete row.lote_captura_id; delete row.locomotora_remolque; delete row.polo; delete row.polo_origen; delete row.polo_destino; return row; });
   }
   return result;
 }
@@ -61,6 +61,7 @@ async function main() {
     const migrated = await db.movimientoTorreonFerro.findMany({ where: { id: { gte: 900001, lte: 900006 } }, include: { unidad: true }, orderBy: { id: 'asc' } });
     assert.deepEqual(migrated.map(m => m.unidad.estado), ['PENDIENTE', 'EN_PROCESO', 'DETENIDA', 'LISTA_REANUDAR', 'CONCLUIDA', 'CANCELADA']);
     assert.equal(new Set(migrated.map(m => m.unidadId)).size, 6, 'Migration never invents groups');
+    assert.ok(migrated.every(m => m.poloOrigen === null && m.poloDestino === null), 'Migration never infers historical poles');
     console.log('PASS migration: original data preserved; open pauses remain stopped; solved pauses become ready');
   }
   assert.equal(await db.movimientoTorreonFerro.count({ where: { localidadId: 20261008 } }), 0, 'Use a fresh disposable database for each integration run');
@@ -68,6 +69,7 @@ async function main() {
   const created = await moves.crearLote(payload, client);
   assert.equal(new Set(created.map(m => m.unidadId)).size, 5);
   assert.equal(created[1].locomotoraRemolque, 800);
+  assert.ok(created.every(m => m.poloOrigen === 'NORTE' && m.poloDestino === 'SUR'));
   assert.deepEqual((await moves.crearLote(payload, client)).map(m => m.id), created.map(m => m.id));
   await assert.rejects(() => moves.crearLote({ ...payload, movimientos: payload.movimientos.map((r, i) => i === 1 ? { ...r, locomotiveNumber: 999 } : r) }, client), e => e.status === 409);
   for (const count of [0, 6]) assert.throws(() => schemas.createLoteSchema.parse({ ...payload, movimientos: Array(count).fill(payload.movimientos[0]) }));

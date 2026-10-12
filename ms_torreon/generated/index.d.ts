@@ -2766,6 +2766,8 @@ export namespace Prisma {
     unidadId: number | null
     locomotoraRemolque: number | null
     polo: string | null
+    poloOrigen: string | null
+    poloDestino: string | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2807,6 +2809,8 @@ export namespace Prisma {
     unidadId: number | null
     locomotoraRemolque: number | null
     polo: string | null
+    poloOrigen: string | null
+    poloDestino: string | null
     empresaId: number | null
     creadoPorId: number | null
     clienteId: number | null
@@ -2848,6 +2852,8 @@ export namespace Prisma {
     unidadId: number
     locomotoraRemolque: number
     polo: number
+    poloOrigen: number
+    poloDestino: number
     empresaId: number
     creadoPorId: number
     clienteId: number
@@ -2927,6 +2933,8 @@ export namespace Prisma {
     unidadId?: true
     locomotoraRemolque?: true
     polo?: true
+    poloOrigen?: true
+    poloDestino?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -2968,6 +2976,8 @@ export namespace Prisma {
     unidadId?: true
     locomotoraRemolque?: true
     polo?: true
+    poloOrigen?: true
+    poloDestino?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -3009,6 +3019,8 @@ export namespace Prisma {
     unidadId?: true
     locomotoraRemolque?: true
     polo?: true
+    poloOrigen?: true
+    poloDestino?: true
     empresaId?: true
     creadoPorId?: true
     clienteId?: true
@@ -3137,6 +3149,8 @@ export namespace Prisma {
     unidadId: number | null
     locomotoraRemolque: number | null
     polo: string | null
+    poloOrigen: string | null
+    poloDestino: string | null
     empresaId: number
     creadoPorId: number
     clienteId: number | null
@@ -3197,6 +3211,8 @@ export namespace Prisma {
     unidadId?: boolean
     locomotoraRemolque?: boolean
     polo?: boolean
+    poloOrigen?: boolean
+    poloDestino?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3243,6 +3259,8 @@ export namespace Prisma {
     unidadId?: boolean
     locomotoraRemolque?: boolean
     polo?: boolean
+    poloOrigen?: boolean
+    poloDestino?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3285,6 +3303,8 @@ export namespace Prisma {
     unidadId?: boolean
     locomotoraRemolque?: boolean
     polo?: boolean
+    poloOrigen?: boolean
+    poloDestino?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3327,6 +3347,8 @@ export namespace Prisma {
     unidadId?: boolean
     locomotoraRemolque?: boolean
     polo?: boolean
+    poloOrigen?: boolean
+    poloDestino?: boolean
     empresaId?: boolean
     creadoPorId?: boolean
     clienteId?: boolean
@@ -3361,7 +3383,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type MovimientoTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientRequestId" | "loteCapturaId" | "unidadId" | "locomotoraRemolque" | "polo" | "empresaId" | "creadoPorId" | "clienteId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "locomotiveNumber" | "prioridad" | "tipoMovimiento" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "instrucciones" | "posicionChimenea" | "finalizado" | "direccionEmpuje" | "posicionCabina" | "empresaNombreSnapshot" | "localidadNombreSnapshot" | "viaOrigenNombreSnapshot" | "viaDestinoNombreSnapshot" | "seccionOrigenNombreSnapshot" | "seccionDestinoNombreSnapshot" | "createdAt" | "updatedAt", ExtArgs["result"]["movimientoTorreonFerro"]>
+  export type MovimientoTorreonFerroOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "clientRequestId" | "loteCapturaId" | "unidadId" | "locomotoraRemolque" | "polo" | "poloOrigen" | "poloDestino" | "empresaId" | "creadoPorId" | "clienteId" | "supervisorId" | "coordinadorId" | "operadorId" | "localidadId" | "viaOrigenId" | "viaDestinoId" | "seccionOrigenId" | "seccionDestinoId" | "locomotiveNumber" | "prioridad" | "tipoMovimiento" | "estado" | "fechaSolicitud" | "fechaInicio" | "fechaFin" | "fechaPausa" | "instrucciones" | "posicionChimenea" | "finalizado" | "direccionEmpuje" | "posicionCabina" | "empresaNombreSnapshot" | "localidadNombreSnapshot" | "viaOrigenNombreSnapshot" | "viaDestinoNombreSnapshot" | "seccionOrigenNombreSnapshot" | "seccionDestinoNombreSnapshot" | "createdAt" | "updatedAt", ExtArgs["result"]["movimientoTorreonFerro"]>
   export type MovimientoTorreonFerroInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     rondas?: boolean | MovimientoTorreonFerro$rondasArgs<ExtArgs>
     unidad?: boolean | MovimientoTorreonFerro$unidadArgs<ExtArgs>
@@ -3391,6 +3413,8 @@ export namespace Prisma {
       unidadId: number | null
       locomotoraRemolque: number | null
       polo: string | null
+      poloOrigen: string | null
+      poloDestino: string | null
       empresaId: number
       creadoPorId: number
       clienteId: number | null
@@ -3856,6 +3880,8 @@ export namespace Prisma {
     readonly unidadId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly locomotoraRemolque: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly polo: FieldRef<"MovimientoTorreonFerro", 'String'>
+    readonly poloOrigen: FieldRef<"MovimientoTorreonFerro", 'String'>
+    readonly poloDestino: FieldRef<"MovimientoTorreonFerro", 'String'>
     readonly empresaId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly creadoPorId: FieldRef<"MovimientoTorreonFerro", 'Int'>
     readonly clienteId: FieldRef<"MovimientoTorreonFerro", 'Int'>
@@ -22500,6 +22526,8 @@ export namespace Prisma {
     unidadId: 'unidadId',
     locomotoraRemolque: 'locomotoraRemolque',
     polo: 'polo',
+    poloOrigen: 'poloOrigen',
+    poloDestino: 'poloDestino',
     empresaId: 'empresaId',
     creadoPorId: 'creadoPorId',
     clienteId: 'clienteId',
@@ -23159,6 +23187,8 @@ export namespace Prisma {
     unidadId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
     locomotoraRemolque?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
     polo?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    poloOrigen?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    poloDestino?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
@@ -23204,6 +23234,8 @@ export namespace Prisma {
     unidadId?: SortOrderInput | SortOrder
     locomotoraRemolque?: SortOrderInput | SortOrder
     polo?: SortOrderInput | SortOrder
+    poloOrigen?: SortOrderInput | SortOrder
+    poloDestino?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrderInput | SortOrder
@@ -23252,6 +23284,8 @@ export namespace Prisma {
     unidadId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
     locomotoraRemolque?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
     polo?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    poloOrigen?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    poloDestino?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
@@ -23297,6 +23331,8 @@ export namespace Prisma {
     unidadId?: SortOrderInput | SortOrder
     locomotoraRemolque?: SortOrderInput | SortOrder
     polo?: SortOrderInput | SortOrder
+    poloOrigen?: SortOrderInput | SortOrder
+    poloDestino?: SortOrderInput | SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrderInput | SortOrder
@@ -23346,6 +23382,8 @@ export namespace Prisma {
     unidadId?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
     locomotoraRemolque?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
     polo?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
+    poloOrigen?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
+    poloDestino?: StringNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntWithAggregatesFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableWithAggregatesFilter<"MovimientoTorreonFerro"> | number | null
@@ -24791,6 +24829,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -24836,6 +24876,8 @@ export namespace Prisma {
     unidadId?: number | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -24878,6 +24920,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -24923,6 +24967,8 @@ export namespace Prisma {
     unidadId?: NullableIntFieldUpdateOperationsInput | number | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -24967,6 +25013,8 @@ export namespace Prisma {
     unidadId?: number | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -25006,6 +25054,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -25047,6 +25097,8 @@ export namespace Prisma {
     unidadId?: NullableIntFieldUpdateOperationsInput | number | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -26794,6 +26846,8 @@ export namespace Prisma {
     unidadId?: SortOrder
     locomotoraRemolque?: SortOrder
     polo?: SortOrder
+    poloOrigen?: SortOrder
+    poloDestino?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -26853,6 +26907,8 @@ export namespace Prisma {
     unidadId?: SortOrder
     locomotoraRemolque?: SortOrder
     polo?: SortOrder
+    poloOrigen?: SortOrder
+    poloDestino?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -26894,6 +26950,8 @@ export namespace Prisma {
     unidadId?: SortOrder
     locomotoraRemolque?: SortOrder
     polo?: SortOrder
+    poloOrigen?: SortOrder
+    poloDestino?: SortOrder
     empresaId?: SortOrder
     creadoPorId?: SortOrder
     clienteId?: SortOrder
@@ -30111,6 +30169,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -30154,6 +30214,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -30276,6 +30338,8 @@ export namespace Prisma {
     unidadId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
     locomotoraRemolque?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
     polo?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    poloOrigen?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
+    poloDestino?: StringNullableFilter<"MovimientoTorreonFerro"> | string | null
     empresaId?: IntFilter<"MovimientoTorreonFerro"> | number
     creadoPorId?: IntFilter<"MovimientoTorreonFerro"> | number
     clienteId?: IntNullableFilter<"MovimientoTorreonFerro"> | number | null
@@ -30416,6 +30480,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -30460,6 +30526,8 @@ export namespace Prisma {
     unidadId?: number | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -30593,6 +30661,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -30637,6 +30707,8 @@ export namespace Prisma {
     unidadId?: NullableIntFieldUpdateOperationsInput | number | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -30728,6 +30800,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -30772,6 +30846,8 @@ export namespace Prisma {
     unidadId?: number | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -30941,6 +31017,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -30985,6 +31063,8 @@ export namespace Prisma {
     unidadId?: NullableIntFieldUpdateOperationsInput | number | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -31116,6 +31196,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -31160,6 +31242,8 @@ export namespace Prisma {
     unidadId?: number | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -31217,6 +31301,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -31261,6 +31347,8 @@ export namespace Prisma {
     unidadId?: NullableIntFieldUpdateOperationsInput | number | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -32436,6 +32524,8 @@ export namespace Prisma {
     loteCapturaId?: string | null
     locomotoraRemolque?: number | null
     polo?: string | null
+    poloOrigen?: string | null
+    poloDestino?: string | null
     empresaId: number
     creadoPorId: number
     clienteId?: number | null
@@ -32493,6 +32583,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -32536,6 +32628,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null
@@ -32579,6 +32673,8 @@ export namespace Prisma {
     loteCapturaId?: NullableStringFieldUpdateOperationsInput | string | null
     locomotoraRemolque?: NullableIntFieldUpdateOperationsInput | number | null
     polo?: NullableStringFieldUpdateOperationsInput | string | null
+    poloOrigen?: NullableStringFieldUpdateOperationsInput | string | null
+    poloDestino?: NullableStringFieldUpdateOperationsInput | string | null
     empresaId?: IntFieldUpdateOperationsInput | number
     creadoPorId?: IntFieldUpdateOperationsInput | number
     clienteId?: NullableIntFieldUpdateOperationsInput | number | null

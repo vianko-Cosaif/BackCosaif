@@ -13,6 +13,7 @@ import { resolverAudienciaFcmTorreon } from "../../services/torreonFcmRouting";
 
 import { prismaTorreon } from '../../lib/servicePrisma';
 import { prepareNaturalCreate, prepareNaturalEdit, enrichNaturalEdit } from '../../services/torreonMs/prepareNaturalEdit';
+import { enrichNaturalSections } from '../../services/torreonMs/naturalSections';
 
 const router = Router();
 
@@ -427,8 +428,10 @@ function isGeneralLocalityQueueList(rest: string, user?: AuthenticatedUser) {
 
 function applyListScope(rest: string, user?: AuthenticatedUser, generalLocalityQueue = false) {
   const role = userRole(user);
-  const [path, query = ""] = rest.split("?");
-  if (!["/arrastres", "/movimientos", "/incidentes", "/rondas", "/cola", "/cola/siguiente", "/catalogos/arrastre"].includes(path)) return rest;
+  const [rawPath, query = ""] = rest.split("?");
+  const path = rawPath.replace(/\/+$/, '') || '/';
+  if (!["/arrastres", "/movimientos", "/movimientos/buscar", "/incidentes", "/rondas", "/cola", "/cola/siguiente", "/catalogos/arrastre"].includes(path)
+    && !/^\/cola\/\d+\/historial$/.test(path)) return rest;
 
   const params = new URLSearchParams(query);
   const empresaId = readEmpresaId(user);
@@ -502,17 +505,19 @@ function isItemVisibleForUser(item: any, user?: AuthenticatedUser, generalLocali
   return false;
 }
 
-function filterDataForUser(data: unknown, user?: AuthenticatedUser, generalLocalityQueue = false) {
+function filterDataForUser(data: unknown, user?: AuthenticatedUser, generalLocalityQueue = false, preserveScopedPagination = false) {
   if (Array.isArray(data)) return data.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
   if (!data || typeof data !== "object") return data;
 
   const source = data as Record<string, unknown>;
   if (Array.isArray(source.data)) {
     const rows = source.data.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
+    if (preserveScopedPagination) return rows.length === source.data.length ? source : null;
     return { ...source, data: rows, meta: source.meta ? { ...(source.meta as object), total: rows.length } : source.meta };
   }
   if (Array.isArray(source.items)) {
     const rows = source.items.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
+    if (preserveScopedPagination) return rows.length === source.items.length ? source : null;
     return { ...source, items: rows, meta: source.meta ? { ...(source.meta as object), total: rows.length } : source.meta };
   }
 
@@ -1205,9 +1210,14 @@ router.all("/*", async (req, res) => {
   const domainRest = scopeTorreonClientPath(role, originalRest || "/");
   const generalLocalityQueue = req.method.toUpperCase() === "GET"
     && isGeneralLocalityQueueList(domainRest, user);
-  const scopedRest = req.method.toUpperCase() === "GET"
+  const scopedRest = ["GET", "HEAD"].includes(req.method.toUpperCase())
     ? applyListScope(domainRest, user, generalLocalityQueue)
     : domainRest;
+  const naturalSearch = normalizeProxyPath(scopedRest) === '/movimientos/buscar';
+  if (naturalSearch && ((isReadonlyClient(user) && !readEmpresaId(user))
+    || ((CLIENT_LOCAL_ROLES.has(role) || LOCAL_OPERATION_ROLES.has(role)) && !readLocalidadId(user)))) {
+    return res.status(403).json({ error: 'La búsqueda requiere el alcance de tu sesión' });
+  }
 
   if (
     req.method.toUpperCase() === "GET" &&
@@ -1286,17 +1296,24 @@ router.all("/*", async (req, res) => {
         ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
       },
     });
+    const naturalResponse = /^\/(?:movimientos|cola)(?:\/|$)/.test(normalizeProxyPath(scopedRest));
 
     if (req.method.toUpperCase() === "GET") {
       if (/^\/cola\/\d+\/historial(?:\?|$)/.test(scopedRest)) return res.status(result.status).send(result.data);
-      const filtered = filterDataForUser(result.data, user, generalLocalityQueue);
+      // Search counts are calculated after company/locality filtering in SQL.
+      // Fail closed on an unexpected out-of-scope row instead of returning its total.
+      const filtered = filterDataForUser(result.data, user, generalLocalityQueue, naturalSearch);
       if (filtered == null) return res.status(403).json({ error: "No autorizado para este recurso" });
-      const completed = await completarResponsablesFaltantes(naturalEdit && scopedRest.split("?")[0].endsWith("/edicion") ? await enrichNaturalEdit(filtered) : filtered, user);
-      return res.status(result.status).send(await enrichTorreonResponsables(redactClientNaturalGroups(completed, user)));
+      const completed = await completarResponsablesFaltantes(filtered, user);
+      let visible = redactClientNaturalGroups(completed, user);
+      if (naturalResponse) visible = await enrichNaturalSections(visible);
+      if (naturalEdit && scopedRest.split("?")[0].endsWith("/edicion")) visible = await enrichNaturalEdit(visible, true);
+      return res.status(result.status).send(await enrichTorreonResponsables(visible));
     }
 
     // Notifications and reconciliation are consumed from the transactional service outbox.
-    return res.status(result.status).send(await enrichTorreonResponsables(redactClientNaturalGroups(result.data, user)));
+    const visible = redactClientNaturalGroups(result.data, user);
+    return res.status(result.status).send(await enrichTorreonResponsables(naturalResponse ? await enrichNaturalSections(visible) : visible));
   } catch (error: any) {
     const status = Number(error?.status) || 502;
     return res.status(status).json({
@@ -1337,7 +1354,7 @@ registerJob('torreon.event', async ({ table, row, previous, action }) => {
     data = round.movimiento;
     rest = '/rondas/movimientos/orden';
   } else if (table === 'movimiento_torreon_ferro') {
-    const editFields = ['locomotive_number', 'prioridad', 'tipo_movimiento', 'instrucciones', 'via_origen_id', 'via_destino_id', 'seccion_origen_id', 'seccion_destino_id', 'locomotora_remolque', 'polo', 'posicion_cabina', 'posicion_chimenea', 'direccion_empuje'];
+    const editFields = ['locomotive_number', 'prioridad', 'tipo_movimiento', 'instrucciones', 'via_origen_id', 'via_destino_id', 'seccion_origen_id', 'seccion_destino_id', 'locomotora_remolque', 'polo', 'polo_origen', 'polo_destino', 'posicion_cabina', 'posicion_chimenea', 'direccion_empuje'];
     const edited = action !== 'INSERT' && !stateChanged && editFields.some(key => row[key] !== previous?.[key]);
     if (action !== 'INSERT' && !edited && (!stateChanged || !['EN_PROCESO', 'CONCLUIDO', 'CANCELADO'].includes(state))) return;
     data = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id } });

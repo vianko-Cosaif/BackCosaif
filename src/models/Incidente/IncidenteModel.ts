@@ -18,6 +18,7 @@ import { prisma } from '../../lib/prisma';
 import { Incidente, EstadoIncidente, Prisma, Ronda } from '@prisma/client';
 import { incidenteError } from './incidente.logger';
 import { RondaModel } from '../Movimientos/Ronda/RondaModel';
+import { instruccionesConResultadoIncidente, instruccionesParaNuevoIntento } from '../Movimientos/movimiento.instructions';
 import { NotificadorFCM } from '../../services/NotificadorFCM'; // <-- ajusta la ruta si difiere en tu proyecto
 import {
   publishMovimientoCreadoEvent,
@@ -495,20 +496,6 @@ export class IncidenteModel {
     _unref(timer);
     void scan();
   }
-  private static appendMovimientoComentario(base: string | null | undefined, comentario: string) {
-    const limpio = String(base ?? '').trim();
-    if (limpio.includes(comentario)) return limpio;
-    return limpio ? `${limpio} | ${comentario}` : comentario;
-  }
-
-  private static limpiarComentariosIncidente(base: string | null | undefined) {
-    return String(base ?? '')
-      .split('|')
-      .map((segmento) => segmento.trim())
-      .filter((segmento) => segmento && !/^Incidente\s+#\d+/i.test(segmento))
-      .join(' | ');
-  }
-
   private static comentarioIncidenteNoResuelto(incidenteId: number, movimientoId: number) {
     return `Incidente #${incidenteId} no resuelto para movimiento #${movimientoId}`;
   }
@@ -575,7 +562,7 @@ export class IncidenteModel {
           const result = savedOutcome[0].result;
           const comment = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
           if (result.cancelado) return this.completeCancelledReprogramming(result, incidente, rid, this.MAX_INCIDENTES_POR_LOCOMOTORA, comment, new Date(incidente.fechaFin ?? Date.now()));
-          return this.completeReprogramming(result, incidente, rid, comment);
+          return this.completeReprogramming(result, incidente, rid);
         }
         if (incidente.movimiento.finalizado) {
           trace('info', 'Reprogramación omitida: movimiento original ya quedó histórico', {
@@ -601,9 +588,8 @@ export class IncidenteModel {
 
         if (totalIncidentesCadena >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
           const ahora = new Date();
-          const comentarioBase = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
           const comentarioCancelacion =
-            `${comentarioBase}. Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${incidente.movimiento.locomotiveNumber}.`;
+            `Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud.`;
 
           const resultado = await prisma.$transaction(async (tx) => {
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(64091::int, ${incidenteId}::int)::text`;
@@ -625,7 +611,7 @@ export class IncidenteModel {
                 fechaPausa: null,
                 updatedAt: ahora,
                 incidenteGlobal: false,
-                instrucciones: this.appendMovimientoComentario(original.instrucciones, comentarioCancelacion),
+                instrucciones: instruccionesConResultadoIncidente(original.instrucciones, comentarioCancelacion),
               },
             });
 
@@ -668,7 +654,6 @@ export class IncidenteModel {
         }
 
         const ahora = new Date();
-        const comentarioBase = this.comentarioIncidenteNoResuelto(incidenteId, movimientoId);
 
         const resultado = await prisma.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT pg_advisory_xact_lock(64091::int, ${incidenteId}::int)::text`;
@@ -682,7 +667,7 @@ export class IncidenteModel {
           if (!original) throw new Error(`No se encontró movimiento con id ${movimientoId}`);
           if (original.finalizado) return { skipped: true };
 
-          const instruccionesBase = this.limpiarComentariosIncidente(original.instrucciones);
+          const instruccionesBase = instruccionesParaNuevoIntento(original.instrucciones);
 
           const nuevoMovimiento = await tx.movimiento.create({
             data: {
@@ -719,9 +704,9 @@ export class IncidenteModel {
               fechaFin: ahora,
               updatedAt: ahora,
               incidenteGlobal: false,
-              instrucciones: this.appendMovimientoComentario(
+              instrucciones: instruccionesConResultadoIncidente(
                 original.instrucciones,
-                `${comentarioBase}. Reprogramado en movimiento #${nuevoMovimiento.id}.`
+                `No realizado por incidente. Reprogramado en movimiento #${nuevoMovimiento.id}.`
               ),
             },
           });
@@ -742,6 +727,8 @@ export class IncidenteModel {
             });
           }
 
+          await tx.ronda.deleteMany({ where: { movimientoId: original.id } });
+
           const outcome = {
             originalMovimientoId: original.id,
             nuevoMovimientoId: nuevoMovimiento.id,
@@ -756,7 +743,7 @@ export class IncidenteModel {
         });
 
         if (resultado.skipped) return resultado;
-        return this.completeReprogramming(resultado, incidente, rid, comentarioBase);
+        return this.completeReprogramming(resultado, incidente, rid);
       },
       { rid, incidenteId }
     );
@@ -820,7 +807,7 @@ export class IncidenteModel {
 
           return resultado;
   }
-  private static async completeReprogramming(resultado: any, incidente: any, rid: string, comentarioBase: string) {
+  private static async completeReprogramming(resultado: any, incidente: any, rid: string) {
     const incidenteId = incidente.id;
         if (!resultado.reutilizoRonda && !await prisma.ronda.findFirst({ where: { movimientoId: resultado.nuevoMovimientoId, concluido: false } })) {
           await traceSpan(
@@ -836,24 +823,26 @@ export class IncidenteModel {
           );
         }
 
-        const rondaFinal = await prisma.ronda.findFirst({
-          where: { movimientoId: resultado.nuevoMovimientoId, concluido: false },
-          select: { rondaNumero: true, orden: true },
-        });
-
-        const comentarioNuevoMovimiento = rondaFinal
-          ? `${comentarioBase}. Movimiento reprogramado en ronda ${rondaFinal.rondaNumero}, posición ${rondaFinal.orden}.`
-          : `${comentarioBase}. Movimiento reprogramado.`;
-
-        await prisma.movimiento.update({
+        // Retries resume from the saved outcome. Do not append round/position comments:
+        // those positions change, and each retry used to grow the operator's instructions.
+        const nuevo = await prisma.movimiento.findUnique({
           where: { id: resultado.nuevoMovimientoId },
-          data: {
-            instrucciones: this.appendMovimientoComentario(
-              await prisma.movimiento.findUnique({ where: { id: resultado.nuevoMovimientoId }, select: { instrucciones: true } }).then((m) => m?.instrucciones),
-              comentarioNuevoMovimiento
-            ),
-          },
+          select: { instrucciones: true, finalizado: true, estado: true },
         });
+        if (nuevo && !nuevo.finalizado && !['CONCLUIDO', 'CANCELADO'].includes(nuevo.estado)) {
+          const instrucciones = instruccionesParaNuevoIntento(nuevo.instrucciones);
+          if (instrucciones !== nuevo.instrucciones) {
+            await prisma.movimiento.updateMany({
+              where: {
+                id: resultado.nuevoMovimientoId,
+                instrucciones: nuevo.instrucciones,
+                OR: [{ finalizado: false }, { finalizado: null }],
+                estado: { notIn: ['CONCLUIDO', 'CANCELADO'] },
+              },
+              data: { instrucciones },
+            });
+          }
+        }
 
         await bestEffort(
           'RondaModel.siguienteInteligente(reprogramado)',
@@ -1681,7 +1670,7 @@ export class IncidenteModel {
         if (!movimiento.finalizado && totalIncidentesCadena >= this.MAX_INCIDENTES_POR_LOCOMOTORA) {
           const ahora = new Date();
           const comentarioCancelacion =
-            `Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud para la locomotora #${movimiento.locomotiveNumber}.`;
+            `Cancelado tras ${totalIncidentesCadena} incidentes en la misma solicitud.`;
 
           await prisma.$transaction(async (tx) => {
             await tx.movimiento.update({
@@ -1693,7 +1682,7 @@ export class IncidenteModel {
                 fechaPausa: null,
                 updatedAt: ahora,
                 incidenteGlobal: false,
-                instrucciones: this.appendMovimientoComentario(movimiento.instrucciones, comentarioCancelacion),
+                instrucciones: instruccionesConResultadoIncidente(movimiento.instrucciones, comentarioCancelacion),
               },
             });
 

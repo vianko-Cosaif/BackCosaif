@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 const idSchema = z.coerce.number().int().positive();
+const poloPatioSchema = (side: "salida" | "llegada") => z.enum(["NORTE", "SUR"], {
+  errorMap: () => ({ message: `Selecciona el polo de ${side}: Norte o Sur` }),
+});
 
 export const fotoInputSchema = z.object({
   url: z.string().trim().min(1).optional(),
@@ -46,6 +49,8 @@ export const createMovimientoSchema = z.object({
   locomotiveNumber: idSchema,
   locomotoraRemolque: idSchema.optional(),
   polo: z.enum(["Sin_Solicitar", "NORTE", "SUR"]).optional(),
+  poloOrigen: poloPatioSchema("salida"),
+  poloDestino: poloPatioSchema("llegada"),
   prioridad: z.enum(["BAJA", "ALTA"]).default("BAJA"),
   tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
   instrucciones: z.string().min(1).optional(),
@@ -69,11 +74,16 @@ export const createLoteSchema = z.object({
   movimientos: z.array(createMovimientoSchema).min(1).max(5),
 }).refine(data => new Set(data.movimientos.map(m => m.localidadId)).size === 1, "El envío debe pertenecer a una sola localidad");
 
-export function validarCondicionesNaturales(data: { tipoMovimiento?: string | null; locomotiveNumber: number; locomotoraRemolque?: number | null; direccionEmpuje?: string | null; polo?: string | null; posicionCabina?: string | null; posicionChimenea?: string | null }) {
+export function validarCondicionesNaturales(data: { tipoMovimiento?: string | null; locomotiveNumber: number; locomotoraRemolque?: number | null; direccionEmpuje?: string | null; polo?: string | null; poloOrigen?: string | null; poloDestino?: string | null; posicionCabina?: string | null; posicionChimenea?: string | null }, { requireBothPoles = true }: { requireBothPoles?: boolean } = {}) {
   if (!data.tipoMovimiento) return "Indica el tipo de movimiento";
   if (data.tipoMovimiento === "REMOLCADA" && (!data.locomotoraRemolque || !["EMPUJAR", "JALAR"].includes(data.direccionEmpuje ?? ""))) return "La solicitud remolcada requiere máquina de remolque y Empujar/Jalar";
   if (data.tipoMovimiento === "REMOLCADA" && data.locomotoraRemolque === data.locomotiveNumber) return "La locomotora remolcada y la máquina que remolca deben ser distintas";
-  if (!["NORTE", "SUR"].includes(data.polo ?? "") && !["DENTRO", "AFUERA"].includes(data.posicionChimenea ?? "")) return "Selecciona polo o posición de chimenea, conforme a las reglas de Cosaif";
+  for (const [key, label] of [["poloOrigen", "salida"], ["poloDestino", "llegada"]] as const) {
+    // Legacy rows have no recorded endpoints. Editing unrelated data must not invent them.
+    if ((requireBothPoles || data[key] != null) && !["NORTE", "SUR"].includes(data[key] ?? "")) {
+      return `Selecciona el polo de ${label}: Norte o Sur`;
+    }
+  }
   return null;
 }
 
@@ -89,6 +99,8 @@ export const editMovimientoSchema = z.object({
   locomotiveNumber: idSchema.optional(),
   locomotoraRemolque: idSchema.nullable().optional(),
   polo: z.enum(["Sin_Solicitar", "NORTE", "SUR"]).optional(),
+  poloOrigen: poloPatioSchema("salida").optional(),
+  poloDestino: poloPatioSchema("llegada").optional(),
   prioridad: z.enum(["BAJA", "ALTA"]).optional(),
   tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
   instrucciones: z.string().trim().max(2000).nullable().optional(),

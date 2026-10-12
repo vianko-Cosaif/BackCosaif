@@ -448,3 +448,778 @@
   module: 'Movimientos/Incidente',
   timestamp: '2026-05-11 11:38:20'
 }
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  exception: true,
+  date: 'Sun Oct 11 2026 21:22:42 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 67349,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 106430464,
+      heapTotal: 60522496,
+      heapUsed: 35441368,
+      external: 2628632,
+      arrayBuffers: 36068
+    }
+  },
+  os: {
+    loadavg: [ 2.4052734375, 4.58056640625, 5.31591796875 ],
+    uptime: 2034574
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-10-11 21:22:42'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  exception: true,
+  date: 'Sun Oct 11 2026 21:23:11 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 67377,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 89669632,
+      heapTotal: 59473920,
+      heapUsed: 27444424,
+      external: 2628620,
+      arrayBuffers: 36056
+    }
+  },
+  os: {
+    loadavg: [ 2.57177734375, 4.4248046875, 5.234375 ],
+    uptime: 2034603
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-10-11 21:23:11'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  exception: true,
+  date: 'Sun Oct 11 2026 21:24:28 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 67501,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 107134976,
+      heapTotal: 61145088,
+      heapUsed: 26245088,
+      external: 2628634,
+      arrayBuffers: 36070
+    }
+  },
+  os: {
+    loadavg: [ 3.33642578125, 4.25244140625, 5.09912109375 ],
+    uptime: 2034680
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-10-11 21:24:28'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  exception: true,
+  date: 'Sun Oct 11 2026 21:26:52 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 67851,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 107282432,
+      heapTotal: 61292544,
+      heapUsed: 29438720,
+      external: 2628630,
+      arrayBuffers: 36066
+    }
+  },
+  os: {
+    loadavg: [ 3.42626953125, 3.896484375, 4.81298828125 ],
+    uptime: 2034824
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-10-11 21:26:52'
+}
+{
+  error: Error: ⨯ Unable to compile TypeScript:
+  src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.
+  
+      at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)
+      at Module._compile (node:internal/modules/cjs/loader:1529:14)
+      at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)
+      at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)
+      at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+      at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)
+      at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)
+      at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)
+      at Module.load (node:internal/modules/cjs/loader:1275:32)
+      at Function.Module._load (node:internal/modules/cjs/loader:1096:12),
+  level: 'error',
+  message: 'uncaughtException: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  stack: 'Error: ⨯ Unable to compile TypeScript:\n' +
+    `src/models/Movimientos/movimiento.instructions.ts(1,10): error TS2305: Module '"./movimiento.meta"' has no exported member 'normalizarMetaInstrucciones'.\n` +
+    '\n' +
+    '    at Object.<anonymous> (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts:1:7)\n' +
+    '    at Module._compile (node:internal/modules/cjs/loader:1529:14)\n' +
+    '    at Module._compile (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js:568:25)\n' +
+    '    at Module.m._compile (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:69:33)\n' +
+    '    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)\n' +
+    '    at require.extensions..jsx.require.extensions..js (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:114:20)\n' +
+    '    at require.extensions.<computed> (/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js:71:20)\n' +
+    '    at Object.nodeDevHook [as .ts] (/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js:63:13)\n' +
+    '    at Module.load (node:internal/modules/cjs/loader:1275:32)\n' +
+    '    at Function.Module._load (node:internal/modules/cjs/loader:1096:12)',
+  exception: true,
+  date: 'Sun Oct 11 2026 21:30:11 GMT-0600 (Central Standard Time)',
+  process: {
+    pid: 68985,
+    uid: 501,
+    gid: 20,
+    cwd: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2',
+    execPath: '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+    version: 'v20.19.4',
+    argv: [
+      '/Users/viankodesarrollo/.nvm/versions/node/v20.19.4/bin/node',
+      'index.ts'
+    ],
+    memoryUsage: {
+      rss: 89767936,
+      heapTotal: 59719680,
+      heapUsed: 27755728,
+      external: 2628624,
+      arrayBuffers: 36060
+    }
+  },
+  os: {
+    loadavg: [ 3.87646484375, 3.8828125, 4.61474609375 ],
+    uptime: 2035023
+  },
+  trace: [
+    {
+      column: 7,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/src/models/Movimientos/movimiento.instructions.ts',
+      function: null,
+      line: 1,
+      method: null,
+      native: false
+    },
+    {
+      column: 14,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._compile',
+      line: 1529,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 25,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/source-map-support/source-map-support.js',
+      function: 'Module._compile',
+      line: 568,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 33,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'Module.m._compile',
+      line: 69,
+      method: '_compile',
+      native: false
+    },
+    {
+      column: 10,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._extensions..js',
+      line: 1613,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions..jsx.require.extensions..js',
+      line: 114,
+      method: '.js',
+      native: false
+    },
+    {
+      column: 20,
+      file: '/private/var/folders/s6/bsstrx1d1rv915q0lcsyvw180000gn/T/ts-node-dev-hook-31301555608911125.js',
+      function: 'require.extensions.<computed>',
+      line: 71,
+      method: '<computed>',
+      native: false
+    },
+    {
+      column: 13,
+      file: '/Users/viankodesarrollo/Desktop/Sistemas/eco/BackCosaif2/node_modules/ts-node-dev/lib/hook.js',
+      function: 'Object.nodeDevHook [as .ts]',
+      line: 63,
+      method: 'ts]',
+      native: false
+    },
+    {
+      column: 32,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module.load',
+      line: 1275,
+      method: 'load',
+      native: false
+    },
+    {
+      column: 12,
+      file: 'node:internal/modules/cjs/loader',
+      function: 'Module._load',
+      line: 1096,
+      method: '_load',
+      native: false
+    }
+  ],
+  service: 'IncidenteModel',
+  module: 'Movimientos/Incidente',
+  timestamp: '2026-10-11 21:30:11'
+}

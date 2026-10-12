@@ -24,6 +24,8 @@ import {
 } from "./movimiento.schemas";
 import { z } from "zod";
 import { createHash } from "crypto";
+import { naturalSearchSql, type NaturalSearchQuery } from './naturalSearch.query';
+import { enriquecerTiemposNaturales } from '../cola/cola.time';
 
 type Tx = Prisma.TransactionClient;
 type FotoInput = z.infer<typeof fotoInputSchema>;
@@ -107,7 +109,7 @@ const isMovimientoCerrado = (estado: EstadoMovimientoTorreon) => (
 
 const requestFingerprint = (input: Record<string, unknown>) => createHash('sha256').update(JSON.stringify([
   'empresaId', 'localidadId', 'creadoPorId', 'clienteId', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId',
-  'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'polo',
+  'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'polo', 'poloOrigen', 'poloDestino',
   'posicionCabina', 'posicionChimenea', 'direccionEmpuje', 'instrucciones',
 ].map(key => [key, input[key] ?? null]))).digest('hex');
 
@@ -129,7 +131,7 @@ async function getMovimientoDetalle(movimientoId: number) {
     include: includeMovimientoDetalle,
   });
   if (!movimiento) throw new DomainError(404, "Movimiento no encontrado");
-  return movimiento;
+  return (await enriquecerTiemposNaturales(prismaTorreon, [movimiento]))[0];
 }
 
 async function createMovimientoFotos(
@@ -188,6 +190,31 @@ async function createMovimientoFotos(
 }
 
 export class MovimientoModel {
+  static async buscar(query: NaturalSearchQuery) {
+    const sql = naturalSearchSql(query);
+    return prismaTorreon.$transaction(async tx => {
+      const [{ total }] = await tx.$queryRaw<{ total: number }[]>(sql.count);
+      const ids = (await tx.$queryRaw<{ id: number }[]>(sql.ids)).map(row => row.id);
+      const rows = ids.length ? await tx.movimientoTorreonFerro.findMany({
+        where: { id: { in: ids }, localidadId: query.localidadId, ...(query.empresaId ? { empresaId: query.empresaId } : {}) },
+        include: buildMovimientoListInclude(false),
+      }) : [];
+      const timed = await enriquecerTiemposNaturales(tx, rows);
+      const byId = new Map(timed.map(row => [row.id, row]));
+      const data = ids.flatMap(id => {
+        const row = byId.get(id);
+        if (!row) return [];
+        if (!query.empresaId || !row.unidad) return [row];
+        const members = row.unidad.movimientos.filter(m => m.empresaId === query.empresaId);
+        return [{ ...row, unidad: { ...row.unidad, totalIntegrantes: row.unidad.movimientos.length,
+          movimientos: members, incidentes: row.unidad.incidentes.filter(i => members.some(m => m.id === i.movimientoId)) } }];
+      });
+      return { data, meta: { total, page: query.page, pageSize: query.pageSize,
+        totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+        hasNextPage: query.page * query.pageSize < total, hasPreviousPage: query.page > 1, source: 'torreon' } };
+    }, { isolationLevel: 'RepeatableRead' });
+  }
+
   static async listar(query: MovimientoListQuery) {
     const vista = String(query.vista || "").toUpperCase();
     const closedStatuses = [EstadoMovimientoTorreon.CONCLUIDO, EstadoMovimientoTorreon.CANCELADO];
@@ -272,7 +299,7 @@ export class MovimientoModel {
         viaOrigen: m.viaOrigenId ? { id: m.viaOrigenId, nombre: m.viaOrigenNombreSnapshot ?? '' } : null,
         viaDestino: m.viaDestinoId ? { id: m.viaDestinoId, nombre: m.viaDestinoNombreSnapshot ?? '' } : null,
       },
-      editableKeys: ['instrucciones', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId', 'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'polo', 'posicionCabina', 'posicionChimenea', 'direccionEmpuje'],
+      editableKeys: ['instrucciones', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId', 'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'poloOrigen', 'poloDestino', 'direccionEmpuje'],
     };
   }
 
@@ -284,14 +311,14 @@ export class MovimientoModel {
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede editarse en estado ${movimiento.estado}`);
       }
+      const merged = { ...movimiento, ...input };
+      if (!merged.viaOrigenId || !merged.viaDestinoId) throw new DomainError(400, 'Cada solicitud requiere vía de origen y destino');
+      const error = validarCondicionesNaturales(merged, { requireBothPoles: false });
+      if (error) throw new DomainError(400, error);
       const changed = await tx.movimientoTorreonFerro.updateMany({
         where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt }, data: input,
       });
       if (changed.count !== 1) throw new DomainError(409, 'El movimiento cambió mientras lo editabas. Actualiza e intenta de nuevo.');
-      const merged = { ...movimiento, ...input };
-      if (!merged.viaOrigenId || !merged.viaDestinoId) throw new DomainError(400, 'Cada solicitud requiere vía de origen y destino');
-      const error = validarCondicionesNaturales(merged);
-      if (error) throw new DomainError(400, error);
       const unit = await ColaNaturalModel.asegurarUnidad(tx, movimiento);
       await auditNatural(tx, unit, actor ?? { id: movimiento.creadoPorId }, 'EDITAR_SOLICITUD', { cambios: input }, id);
     });

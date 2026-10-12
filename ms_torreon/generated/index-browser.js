@@ -128,6 +128,8 @@ exports.Prisma.MovimientoTorreonFerroScalarFieldEnum = {
   unidadId: 'unidadId',
   locomotoraRemolque: 'locomotoraRemolque',
   polo: 'polo',
+  poloOrigen: 'poloOrigen',
+  poloDestino: 'poloDestino',
   empresaId: 'empresaId',
   creadoPorId: 'creadoPorId',
   clienteId: 'clienteId',

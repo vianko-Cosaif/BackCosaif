@@ -38,7 +38,7 @@ async function main() {
         (clause.seccionBloqueadaId != null && i.seccionBloqueadaId === clause.seccionBloqueadaId))) ?? null,
       update: async ({ where, data }) => Object.assign(incidents.find(i => i.id === where.id), data),
     },
-    bitacoraNaturalTorreon: { create: async ({ data }) => { audit.push(data); return data; } },
+    bitacoraNaturalTorreon: { create: async ({ data }) => { audit.push(data); return data; }, findMany: async () => audit },
     movimientoTorreonFoto: {
       count: async ({ where }) => photos.filter(p => p.movimientoId === where.movimientoId && p.tipo === where.tipo).length,
       findFirst: async () => null,

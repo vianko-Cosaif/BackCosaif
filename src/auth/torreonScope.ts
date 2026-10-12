@@ -38,7 +38,17 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
       const ids: number[] = [...new Set<number>(unitIds.map(Number))];
       const units = await prismaTorreon.unidadAtencionTorreon.findMany({ where: { id: { in: ids } }, include: { movimientos: { select: { empresaId: true, localidadId: true } } } });
       if (units.length !== ids.length) return res.status(404).json({ error: 'Unidad no encontrada' });
-      resources.push(...units.flatMap((u: any) => u.movimientos));
+      const clientHistory = (req.method === 'GET' || req.method === 'HEAD')
+        && /^\/cola\/\d+\/historial$/.test(path)
+        && ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(user.rol);
+      if (clientHistory) {
+        // A mixed-company unit is readable through the client's own members.
+        // The gateway fixes empresaId from the session and the service projects its history.
+        const own = units.flatMap((u: { movimientos: { empresaId: number; localidadId: number }[] }) => u.movimientos)
+          .filter((m: { empresaId: number; localidadId: number }) => m.empresaId === user.empresa?.id);
+        if (!own.length) return deny();
+        resources.push(...own);
+      } else resources.push(...units.flatMap((u: { movimientos: { empresaId: number; localidadId: number }[] }) => u.movimientos));
       if (path.endsWith('/asignar')) {
         const operator = await prisma.usuario.findUnique({ where: { id: Number(body.operadorId) }, select: { rol: true, localidadId: true, activo: true } });
         if (!operator?.activo || operator.rol !== 'MAQUINISTA' || operator.localidadId !== units[0].localidadId) return res.status(400).json({ error: 'Selecciona un maquinista activo de esta localidad' });

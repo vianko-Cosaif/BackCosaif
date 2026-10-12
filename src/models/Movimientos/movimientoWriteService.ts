@@ -15,6 +15,7 @@ import {
 } from './movimiento.notifications';
 import { EDITABLE_KEYS, ESTADOS_EDITABLES, diff, EditableMovimientoInput, getMaquinistaId, pickEditable } from './movimiento.shared';
 import { publishMovimientoCreadoEvent, publishMovimientoEstadoEvent, publishRondaReordenadaEvent } from '../../realtime/realtimeHub';
+import { normalizarMetaInstrucciones } from './movimiento.meta';
 
 function stripTornoAgendadoMeta(instrucciones?: string | null) {
   const clean = String(instrucciones ?? '')
@@ -240,6 +241,14 @@ export class MovimientoWriteService {
     if (!actual) throw new Error(`Movimiento ${id} no encontrado`);
     if (actual.finalizado || !ESTADOS_EDITABLES.has(actual.estado as any)) {
       throw new Error(`Movimiento no editable en estado ${actual.estado}`);
+    }
+
+    if (updateData.instrucciones !== undefined || updateData.viaDestinoId !== undefined) {
+      updateData.instrucciones = normalizarMetaInstrucciones(
+        updateData.instrucciones !== undefined ? updateData.instrucciones : actual.instrucciones,
+        { viaDestinoId: updateData.viaDestinoId !== undefined ? updateData.viaDestinoId : actual.viaDestinoId ?? undefined },
+        actual.instrucciones
+      );
     }
 
     const localidadId = actual.localidadId;
@@ -582,6 +591,7 @@ export class MovimientoWriteService {
     viaOrigenId?: number;
     viaDestinoId?: number;
     numeroSeccion?: number;
+    liberarOrigen?: boolean;
     locomotiveNumber: number;
     prioridad?: 'BAJA' | 'ALTA';
     tipoMovimiento?: 'MD_TRABAJANDO' | 'REMOLCADA';
@@ -601,6 +611,13 @@ export class MovimientoWriteService {
   }) {
     try {
       const movData: any = { ...data };
+      movData.instrucciones = normalizarMetaInstrucciones(movData.instrucciones, {
+        viaDestinoId: movData.viaDestinoId,
+        numeroSeccion: movData.numeroSeccion,
+        liberarOrigen: movData.liberarOrigen,
+      });
+      delete movData.numeroSeccion;
+      delete movData.liberarOrigen;
 
       if (movData.maquinistaId && !movData.operadorId) movData.operadorId = movData.maquinistaId;
       delete movData.maquinistaId;
@@ -772,6 +789,7 @@ export class MovimientoWriteService {
       viaOrigenId?: number;
       viaDestinoId?: number;
       numeroSeccion?: number;
+      liberarOrigen?: boolean;
       locomotiveNumber?: number;
       lavado?: boolean;
       torno?: boolean;
@@ -794,11 +812,27 @@ export class MovimientoWriteService {
       const { movUpd, requiereReorg } = await prisma.$transaction(async (tx) => {
         const actual = await tx.movimiento.findUnique({
           where: { id },
-          select: { prioridad: true, estado: true, empresaId: true, localidadId: true, ronda: true },
+          select: { prioridad: true, estado: true, empresaId: true, localidadId: true, ronda: true, instrucciones: true, viaDestinoId: true },
         });
         if (!actual) throw new Error(`No se encontró movimiento con id ${id}`);
 
         const updateData: any = { ...data };
+        if (
+          updateData.instrucciones !== undefined || updateData.viaDestinoId !== undefined ||
+          updateData.numeroSeccion !== undefined || updateData.liberarOrigen !== undefined
+        ) {
+          updateData.instrucciones = normalizarMetaInstrucciones(
+            updateData.instrucciones !== undefined ? updateData.instrucciones : actual.instrucciones,
+            {
+              viaDestinoId: updateData.viaDestinoId !== undefined ? updateData.viaDestinoId : actual.viaDestinoId ?? undefined,
+              numeroSeccion: updateData.numeroSeccion,
+              liberarOrigen: updateData.liberarOrigen,
+            },
+            actual.instrucciones
+          );
+        }
+        delete updateData.numeroSeccion;
+        delete updateData.liberarOrigen;
         if (updateData.maquinistaId && !updateData.operadorId) {
           updateData.operadorId = updateData.maquinistaId;
         }

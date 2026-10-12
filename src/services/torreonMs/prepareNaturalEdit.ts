@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { prismaTorreon } from '../../lib/servicePrisma';
+import { enrichNaturalSections, naturalSectionLabel } from './naturalSections';
 
 /** Resolve catalogue IDs and names in the authoritative locality before accepting a batch. */
 export async function prepareNaturalCreate(body: Record<string, any>) {
@@ -23,7 +24,8 @@ export async function prepareNaturalCreate(body: Record<string, any>) {
     if (sectionId != null && !section) throw Object.assign(new Error('La sección no pertenece a la vía seleccionada'), { status: 403 });
     if (via.secciones.length && !section) throw Object.assign(new Error(`Selecciona la sección de ${side.toLowerCase()}`), { status: 400 });
     result[`via${side}NombreSnapshot`] = via.nombre;
-    result[`seccion${side}NombreSnapshot`] = section ? section.nombre ?? String(section.numero) : undefined;
+    result[`seccion${side}NombreSnapshot`] = section ? naturalSectionLabel(section) : undefined;
+    delete result[`seccion${side}Numero`];
   }
   return result;
 }
@@ -44,8 +46,6 @@ export async function prepareNaturalEdit(id: number, body: Record<string, any>) 
         const section = await prisma.seccionVia.findUnique({ where: { viaId_numero: { viaId, numero } } });
         if (!section) throw Object.assign(new Error('La sección no pertenece a la vía seleccionada'), { status: 400 });
         body[`seccion${side}Id`] = section.id;
-      } else if (!(`seccion${side}Id` in body)) {
-        body[`seccion${side}Id`] = null;
       }
     }
   }
@@ -56,6 +56,7 @@ export async function prepareNaturalEdit(id: number, body: Record<string, any>) 
     const viaName = `via${side}NombreSnapshot`;
     const sectionName = `seccion${side}NombreSnapshot`;
     delete result[viaName]; delete result[sectionName];
+    delete result[`seccion${side}Numero`];
     if (!(viaKey in body) && !(sectionKey in body)) continue;
     const viaId = viaKey in body ? body[viaKey] : movement[viaKey];
     if (viaId != null && (!Number.isSafeInteger(viaId) || viaId <= 0)) throw Object.assign(new Error('Vía inválida'), { status: 400 });
@@ -67,21 +68,20 @@ export async function prepareNaturalEdit(id: number, body: Record<string, any>) 
     const section = sectionId == null ? null : await prisma.seccionVia.findUnique({ where: { id: sectionId } });
     if (sectionId != null && (!section || section.viaId !== viaId)) throw Object.assign(new Error('La sección no pertenece a la vía seleccionada'), { status: 403 });
     result[sectionKey] = sectionId;
-    result[sectionName] = section ? section.nombre ?? String(section.numero) : null;
+    result[sectionName] = section ? naturalSectionLabel(section) : null;
   }
   return result;
 }
 
 /** Expose canonical section numbers to the shared web/mobile form. */
-export async function enrichNaturalEdit(value: any) {
+export async function enrichNaturalEdit(value: any, catalogueResolved = false) {
   if (!value?.movimiento || !Array.isArray(value.editableKeys)) return value;
-  const movement = { ...value.movimiento };
+  const movement = catalogueResolved ? { ...value.movimiento } : await enrichNaturalSections(value.movimiento);
   let instructions = String(movement.instrucciones ?? '').replace(/\[META (?:ORIGEN|DESTINO):\d+\]/gi, '').trim();
   const tags: string[] = [];
   for (const side of ['Origen', 'Destino'] as const) {
-    const id = movement[`seccion${side}Id`];
-    const section = id ? await prisma.seccionVia.findUnique({ where: { id } }) : null;
-    if (section && section.viaId === movement[`via${side}Id`]) tags.push(`[META ${side === 'Origen' ? 'ORIGEN' : 'DESTINO'}:${section.numero}]`);
+    const number = movement[`seccion${side}Numero`];
+    if (number) tags.push(`[META ${side === 'Origen' ? 'ORIGEN' : 'DESTINO'}:${number}]`);
   }
   movement.instrucciones = [...tags, instructions].filter(Boolean).join(' ');
   return { ...value, movimiento: movement };

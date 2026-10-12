@@ -7,7 +7,7 @@ export function startRoundMaintenance() {
   const scan = async () => {
     const localities = await prisma.localidad.findMany({
       where: { OR: [
-        { rondas: { some: { concluido: false } } },
+        { rondas: { some: {} } },
         { movimientos: { some: { estado: 'EN_PROCESO', finalizado: false } } },
       ] }, select: { id: true },
     });

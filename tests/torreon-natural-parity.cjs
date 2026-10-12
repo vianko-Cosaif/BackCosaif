@@ -17,11 +17,11 @@ async function main() {
   await assert.rejects(() => helpers.prepareNaturalEdit(7, { seccionDestinoId: 10 }), e => e.status === 403);
   assert.equal((await helpers.prepareNaturalEdit(7, { viaDestinoId: 12 })).seccionDestinoId, null);
   const schema = loader()('ms_torreon/src/modules/movimientos/movimiento.schemas.ts');
-  const base = { creadoPorId: 7, empresaId: 3, localidadId: 2, locomotiveNumber: 120, viaOrigenId: 8, viaDestinoId: 9, tipoMovimiento: 'REMOLCADA', polo: 'NORTE' };
+  const base = { creadoPorId: 7, empresaId: 3, localidadId: 2, locomotiveNumber: 120, viaOrigenId: 8, viaDestinoId: 9, tipoMovimiento: 'REMOLCADA', poloOrigen: 'NORTE', poloDestino: 'SUR' };
   assert.match(schema.validarCondicionesNaturales(base), /remolque/);
   assert.ok(schema.validarCondicionesNaturales({ ...base, locomotoraRemolque: 120, direccionEmpuje: 'JALAR' }));
   assert.equal(schema.validarCondicionesNaturales({ ...base, locomotoraRemolque: 800, direccionEmpuje: 'JALAR' }), null);
-  assert.ok(schema.validarCondicionesNaturales({ ...base, tipoMovimiento: 'MD_TRABAJANDO', polo: 'Sin_Solicitar', posicionCabina: 'DENTRO' }), 'Cabin alone never replaces existing pole/chimney rules');
+  assert.ok(schema.validarCondicionesNaturales({ ...base, tipoMovimiento: 'MD_TRABAJANDO', poloOrigen: undefined, polo: 'NORTE', posicionCabina: 'DENTRO' }), 'Cada polo es obligatorio; los datos anteriores no lo reemplazan');
   for (const route of [{ viaOrigenId: undefined }, { viaDestinoId: undefined }, { tipoMovimiento: undefined }]) assert.throws(() => schema.createMovimientoSchema.parse({ ...base, ...route }));
   const user = role => ({ id: 7, rol: role, empresa: { id: 3 }, localidad: { id: 2 } });
   const scoped = loader({ 'src/lib/prisma': { prisma: { usuario: { findUnique: async () => ({ rol: 'MAQUINISTA', localidadId: 2, activo: true }) } } },
@@ -42,6 +42,6 @@ async function main() {
     assert.equal((await invoke(scoped, req)).allowed, true); assert.equal(req.body.movimientos[0].creadoPorId, 7);
     assert.equal((await invoke(scoped, { ...req, body: { movimientos: [{ empresaId: 4, localidadId: 2 }] } })).statusCode, 403);
   }
-  console.log('PASS Torreón natural scope: catalogue and sections, canonical labels, original orientation, tow identity, dispatcher vs driver roles, batch ownership and retired round mutations');
+  console.log('PASS Torreón natural scope: catalogue and sections, canonical labels, independent required poles, tow identity, dispatcher vs driver roles, batch ownership and retired round mutations');
 }
 main().catch(e => { console.error(e); process.exitCode = 1; });

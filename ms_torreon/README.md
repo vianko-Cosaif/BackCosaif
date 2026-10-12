@@ -1,170 +1,161 @@
 # ms_torreon
 
-Microservicio para movimientos naturales de Torreon.
+Microservicio de movimientos naturales y arrastres de Torreón. Este documento
+explica el flujo natural vigente. Guadalajara y los otros servicios conservan
+sus reglas y sus tablas.
 
-## DB base
+## Cola de movimientos naturales
 
-Tablas iniciales:
+Cada solicitud conserva su ID, solicitante, locomotora, instrucciones, fotos e
+incidentes. La unidad de atención determina qué solicitudes se ejecutan juntas:
+una solicitud individual o un conjunto formado explícitamente por coordinación,
+supervisión o administración. Capturar de 1 a 5 solicitudes en un lote no las agrupa.
 
-```txt
-movimiento_torreon_ferro
-ronda_torreon
-ronda_torreon_movimiento
-incidente_torreon_ferro
-movimiento_torreon_foto
-incidente_torreon_foto
+- Una solicitud requiere vías de origen y destino, sus secciones cuando existen,
+  tipo de movimiento, polo de salida y polo de llegada independientes (Norte/Sur).
+  Remolcada requiere otra locomotora
+  y Empujar/Jalar; esa máquina no crea otra solicitud.
+- El cliente crea, consulta y edita las solicitudes pendientes de su empresa;
+  puede cancelar sus propias solicitudes antes de iniciar.
+- Coordinación/supervisión prioriza, forma conjuntos y asigna un maquinista activo
+  de Torreón. Puede agrupar solicitudes de empresas diferentes.
+- La cola atiende primero unidades habilitadas por solución de incidente, en orden
+  de habilitación; luego prioridades manuales y después solicitudes por recepción.
+- Cada maquinista atiende una sola unidad a la vez. Una unidad que se habilita
+  no interrumpe su trabajo actual.
+- El maquinista completa la inspección 360 en la app y usa **Iniciar**. Inicio y
+  finalización no exigen fotos. Un conjunto inicia y finaliza todos sus miembros
+  abiertos; los miembros cancelados o concluidos conservan su estado.
+
+Estados de unidad: `PENDIENTE`, `EN_PROCESO`, `DETENIDA`, `LISTA_REANUDAR`,
+`CONCLUIDA`, `CANCELADA`. Se guardan en `unidad_atencion_torreon`. La tabla
+`bitacora_natural_torreon` registra actor, rol, fecha y transición. Las rondas
+históricas permanecen consultables; sus mutaciones operativas devuelven `409`.
+
+## Incidentes y continuidad
+
+El maquinista asignado puede reportar un incidente de una maniobra iniciada con
+motivo y de 1 a 4 fotos. El reporte detiene toda la unidad. La unidad detenida o
+bloqueada por un recurso sale de la lista y del paquete offline del maquinista;
+coordinación, supervisión y los clientes conservan su consulta según alcance.
+
+Cliente, cliente administrador, cliente coordinador, coordinación, supervisión o
+administración pueden confirmar la solución dentro de su alcance. Cuando todos
+los impedimentos propios y de vías/secciones están resueltos, la unidad pasa a
+`LISTA_REANUDAR`. Los movimientos siguen `DETENIDO` hasta que el maquinista vuelva
+a usar **Iniciar**. Se conservan el grupo, IDs, fecha de inicio original y evidencias.
+El maquinista no confirma soluciones ni dispone de una acción manual de reanudar.
+Las rutas heredadas de reanudación devuelven `403`.
+
+Los incidentes naturales no vencen, no cancelan solicitudes por tiempo o por número
+de reportes, y no generan solicitudes de reemplazo. Cerrar un incidente natural
+para cancelar la maniobra devuelve `409`. Estas reglas no cambian Arrastres.
+
+## Tiempos e historial
+
+Los campos `poloOrigen` y `poloDestino` se conservan por solicitud en cola, detalle,
+búsquedas, lotes y paquetes offline. Capturar exige ambos; editar permite modificar
+uno sin cambiar el otro. Los históricos con `null` se muestran como «No registrado»:
+no se copia el antiguo `polo` ni se deduce desde instrucciones. Editar solamente
+indicaciones conserva esos valores desconocidos y las secciones seleccionadas.
+
+La cola y las respuestas enriquecidas de movimientos incluyen:
+
+- `tiempoActivoSegundos`: ejecución acumulada, descontando todas las pausas y la
+  espera entre solución y el siguiente inicio físico.
+- `tiempoTotalSegundos`: tiempo desde el primer inicio hasta fin o el cálculo actual.
+- `tiempoCalculadoEn`: fecha ISO de cálculo. Solo en `EN_PROCESO` el cliente puede
+  avanzar el tiempo activo a partir de esta referencia.
+- `tiempoActivoEstimado`: verdadero si un registro histórico sin bitácora de
+  reanudación requirió usar la fecha de solución como aproximación.
+
+Los reportes de cualquier integrante detienen el reloj de todo el conjunto.
+Pausas superpuestas no se descuentan dos veces. La conclusión fija el tiempo final.
+
+`GET /cola/:id/historial` devuelve la bitácora por orden de fecha e ID. Para clientes,
+el gateway fija `empresaId` desde la sesión: permite consultar conjuntos que
+contengan solicitudes propias y oculta solicitudes, incidentes y datos de otras
+empresas. Las transiciones compartidas se conservan sin revelar esos datos.
+El personal operativo autorizado conserva el historial completo.
+
+## Endpoints
+
+A través del gateway autenticado `/torreon`; el microservicio los monta bajo `/api`.
+El actor y rol provienen de la sesión y de los encabezados firmados del gateway.
+
+```text
+POST  /movimientos
+POST  /movimientos/lote                  { clientRequestId, movimientos: [1..5] }
+GET   /movimientos
+GET   /movimientos/buscar
+GET   /movimientos/:id
+GET   /movimientos/:id/edicion
+PATCH /movimientos/:id/edicion
+PATCH /movimientos/:id/cancelar           { razon }
+GET   /cola                             ?localidadId=&historial=true|false
+GET   /cola/siguiente                    ?localidadId=
+PATCH /cola/priorizar                    { unidadIds, enConjunto }
+PATCH /cola/:id/asignar                  { operadorId }
+POST  /cola/:id/iniciar                  {}
+POST  /cola/:id/finalizar                {}
+GET   /cola/:id/historial
+POST  /movimientos/:id/incidentes        { motivo, fotos }
+PATCH /incidentes/:id/resolver?tipo=NATURAL { solucion }
+GET   /incidentes/:id/fotos/:fotoId?tipo=NATURAL
 ```
 
-Incidentes:
+También existen `POST /movimientos/:id/iniciar` y
+`PATCH /movimientos/:id/finalizar`. En conjuntos operan la unidad completa.
+El servidor valida turno, asignación e impedimentos al ejecutar cada acción.
+Las transiciones requieren conexión; el paquete offline permite consultar la cola
+válida y no habilita transiciones locales que el servidor no haya autorizado.
 
-```txt
-ABIERTO
-RESUELTO
-```
+`GET /movimientos/buscar` exige `localidadId` y admite `empresaId`, `vista=ACTIVOS|PASADOS`,
+`estados` separados por coma, `q`, `locomotiveNumber`, `locomotivePrefix`, `prioridad`,
+`fechaCampo=solicitud|inicio|fin|creacion`, `fechaDesde`/`fechaHasta` ISO, `sortBy`,
+`sortDir=asc|desc`, `page` y `pageSize` (1–100). Devuelve `{ data, meta }` con total
+global y páginas reales. Los filtros y el orden se aplican antes de paginar, bajo
+una misma lectura de la base. Los detenidos siguen activos; pasados contiene solo
+concluidos y cancelados. El gateway fija empresa/localidad según la sesión.
 
-Un incidente `ABIERTO` bloquea la via o seccion registrada en `incidente_torreon_ferro`.
-Los movimientos de la ronda que tengan que pasar por ese recurso quedan `BLOQUEADO` en
-`ronda_torreon_movimiento` hasta que el incidente pase a `RESUELTO`.
+## Evidencia opcional y obligatoria
 
-No hay estados `CERRADO` ni `CANCELADO` para incidente.
-
-## Modelos de dominio
-
-```txt
-movimientos/movimiento.model.ts
-- Crear movimiento.
-- Iniciar con captura ANTES_MOVIMIENTO.
-- Registrar fotos de proceso.
-- Finalizar con captura FIN_MOVIMIENTO.
-- Detener/reanudar como transiciones del movimiento, delegando incidente y ronda.
-
-incidentes/incidente.model.ts
-- Crear incidente ABIERTO con minimo 1 foto y maximo 4.
-- Resolver incidente y conservar la posición original del movimiento ligado.
-- Cerrar incidente cancelando el movimiento ligado.
-- Buscar incidentes que bloquean una via/seccion.
-- Al abrir/resolver, afecta rondas mediante RondaModel.
-
-rondas/ronda.model.ts
-- Mantener una sola cola activa por localidad en la tabla de rondas para compatibilidad.
-- Encolar movimientos por fecha de solicitud e ID, sin turnos por empresa ni prioridad.
-- Marcar movimiento ACTIVO, CONCLUIDO o BLOQUEADO.
-- Bloquear/desbloquear movimientos por incidente abierto/resuelto.
-```
-
-Fotos:
-
-```txt
-movimiento_torreon_foto.tipo:
-ANTES_MOVIMIENTO
-PROCESO_MOVIMIENTO
-FIN_MOVIMIENTO
-```
-
-El movimiento debe registrar evidencia al iniciar y al terminar. Si durante el proceso
-se toma evidencia adicional, se guarda como `PROCESO_MOVIMIENTO`.
-
-El incidente guarda sus fotos en `incidente_torreon_foto` con `orden` unico por incidente.
-La API debe validar que el incidente tenga sus 4 evidencias requeridas antes de permitir
-el flujo que corresponda.
-
-Las capturas reales se reciben como `dataUrl`, `base64` o `contenidoBase64`.
-El micro las optimiza con la misma regla de incidentes del back principal
-(maximo 1920x1080, JPEG calidad 85) y las guarda bajo `uploads/incidentes`
-en carpetas `YYYY/MM/DD`. La ruta relativa queda en `url` y `storageKey`
-de las tablas de Torreon. Si se envia una `url` ya existente, se conserva como
-referencia externa.
-
-## Scripts
-
-```bash
-npm run ms:torreon
-npm run build:torreon
-npm run prisma:torreon:generate
-npm run prisma:torreon:push
-```
-
-## Endpoints operativos
-
-Todos bajo `/api` y firmados con HMAC.
-
-```txt
-POST   /api/movimientos
-GET    /api/movimientos
-GET    /api/movimientos/:id
-POST   /api/movimientos/:id/iniciar
-POST   /api/movimientos/:id/fotos
-PATCH  /api/movimientos/:id/finalizar
-POST   /api/movimientos/:id/detener
-POST   /api/movimientos/:id/incidentes
-PATCH  /api/movimientos/:id/reanudar
-PATCH  /api/incidentes/:id/resolver
-PATCH  /api/incidentes/:id/cerrar
-GET    /api/rondas
-GET    /api/rondas/:id
-```
-
-Las rutas heredadas para intercambiar o reordenar movimientos responden `409`: el orden
-de la cola de naturales se determina por la llegada de cada solicitud.
-
-Reglas:
-
-```txt
-Crear movimiento:
-- Requiere empresa_id, creado_por_id, localidad_id, locomotora y al menos una via/seccion.
-- Crea o reutiliza la cola activa de la localidad.
-- Inserta el movimiento al final de ronda_torreon_movimiento; las solicitudes se atienden por llegada.
-- Si la via/seccion ya tiene incidente ABIERTO, entra a ronda como BLOQUEADO.
-
-Iniciar movimiento:
-- Requiere minimo 1 captura.
-- Guarda captura como ANTES_MOVIMIENTO.
-- Rechaza si la ruta esta bloqueada por incidente ABIERTO.
-- Cambia movimiento a EN_PROCESO y detalle de ronda a ACTIVO.
-
-Capturas durante proceso:
-- POST /api/movimientos/:id/fotos con tipo PROCESO_MOVIMIENTO.
-
-Finalizar movimiento:
-- Requiere minimo 1 captura.
-- Guarda captura como FIN_MOVIMIENTO.
-- Rechaza si hay incidente ABIERTO del movimiento.
-- Cambia movimiento a CONCLUIDO y detalle de ronda a CONCLUIDO.
-
-Detener movimiento:
-- Crea incidente_torreon_ferro ABIERTO.
-- Requiere minimo 1 captura del incidente y permite maximo 4.
-- Usa via/seccion enviada o, si no viene, toma destino del movimiento.
-- Cambia movimiento a DETENIDO.
-- Bloquea movimientos de rondas activas que usen esa via/seccion.
-
-Resolver incidente:
-- Cambia incidente a RESUELTO.
-- Desbloquea movimientos bloqueados por ese incidente.
-- Regresa el movimiento ligado a SOLICITADO y lo coloca primero en la cola disponible.
-
-Cerrar incidente:
-- Registra el incidente como RESUELTO con la auditoria de cierre.
-- Cambia el movimiento o arrastre ligado a CANCELADO y lo retira de la cola activa.
-
-Reanudar movimiento:
-- Requiere que el movimiento este DETENIDO.
-- Si el incidente sigue ABIERTO, lo resuelve con solucion y resuelto_por_id.
-- Cambia movimiento a EN_PROCESO y detalle de ronda a ACTIVO.
-```
-
-Payload de captura:
+Inicio/final permiten `fotos`, `capturas` o `fotosPorMovimiento`, sin exigirlas.
+`POST /movimientos/:id/fotos` permite agregar de 1 a 4 fotos por etapa a una maniobra
+iniciada (`ANTES_MOVIMIENTO`, `PROCESO_MOVIMIENTO` o `FIN_MOVIMIENTO`). Un incidente
+sí requiere de 1 a 4 fotos. La evidencia pertenece siempre a su solicitud/incidente.
 
 ```json
-{
-  "dataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
-  "tomadaPorId": 10,
-  "comentario": "opcional"
-}
+{ "dataUrl": "data:image/jpeg;base64,...", "comentario": "opcional" }
 ```
 
-Tambien se acepta `{ "base64": "...", "mimeType": "image/jpeg" }` o una
-`url` ya existente. Los endpoints aceptan `fotos` o `capturas` como arreglo.
+Se acepta también `base64` con `mimeType`, `contenidoBase64` o una URL existente.
+El servidor optimiza las capturas y guarda `url` y `storageKey`; la identidad del
+fotógrafo se toma del actor autenticado.
+
+## Instalación y comprobación
+
+```sh
+npm run prisma:torreon:generate
+npm run build:torreon
+npm run ms:torreon
+npm run migrate:torreon:operativo          # vista previa, sin aplicar
+npm run migrate:torreon:operativo -- --check
+```
+
+La activación y migraciones están descritas en
+[`migrations/torreon-operativo-20261008/README.txt`](../migrations/torreon-operativo-20261008/README.txt).
+Los polos separados requieren además la migración aditiva
+[`torreon-polos-20261012`](../migrations/torreon-polos-20261012/README.txt), antes de
+reiniciar gateway/workers/microservicio con el nuevo cliente Prisma. Desplegar API
+antes de web/APK. Preparar los archivos o generar el cliente no aplica la migración.
+No sustituir las migraciones por `db push`: el outbox necesita sus triggers.
+Las pruebas aisladas relevantes se incluyen en `npm test`. La prueba de integración
+`tests/torreon-operativo-integration.cjs` exige una base desechable nombrada
+`torreon_operativo_test` (con sufijo opcional), nunca una base operativa.
+`tests/torreon-search-integration.cjs` usa exclusivamente una base local vacía
+`torreon_search_test` (con sufijo opcional) mediante `TORREON_TEST_DATABASE_URL`;
+comprueba búsquedas y páginas posteriores a 100 registros, fechas y aislamiento.
 
 ## Seguridad entre servicios
 

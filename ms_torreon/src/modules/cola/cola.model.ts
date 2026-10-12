@@ -2,6 +2,8 @@ import { Prisma } from '../../../generated';
 import { prismaTorreon } from '../../db/prisma';
 import { DomainError } from '../../utils/domainError';
 import { compareNaturalUnits } from './cola.policy';
+import { proyectarHistorialNatural } from './cola.history';
+import { enriquecerTiemposNaturales } from './cola.time';
 
 type Tx = Prisma.TransactionClient;
 export type NaturalActor = { id: number; rol?: string };
@@ -59,10 +61,15 @@ export class ColaNaturalModel {
       localidadId, estado: historial ? { in: [...closed] } : { notIn: [...closed] },
       movimientos: { some: empresaId ? { empresaId } : {} },
     }, include: unidadInclude });
+    const timed = await enriquecerTiemposNaturales(tx, rows.flatMap(unit => unit.movimientos.map(m => ({ ...m, unidad: unit }))));
+    const timesById = new Map(timed.map(m => [m.id, m]));
     const result = [];
     for (const row of rows) {
       const blocking = closed.has(row.estado) ? null : await this.bloqueante(tx, row);
-      const movimientos = empresaId ? row.movimientos.filter(m => m.empresaId === empresaId) : row.movimientos;
+      const movimientos = (empresaId ? row.movimientos.filter(m => m.empresaId === empresaId) : row.movimientos).map(m => {
+        const { unidad: _unit, ...movement } = timesById.get(m.id)!;
+        return movement;
+      });
       const incidentes = empresaId ? row.incidentes.filter(i => movimientos.some(m => m.id === i.movimientoId)) : row.incidentes;
       result.push({ ...row, movimientos, incidentes, totalIntegrantes: row.movimientos.length, disponible: ['PENDIENTE', 'LISTA_REANUDAR'].includes(row.estado) && !blocking, incidenteBloqueanteId: blocking?.id ?? null });
     }
@@ -76,12 +83,15 @@ export class ColaNaturalModel {
         : rows;
     });
   }
-  static historial(id: number) {
+  static historial(id: number, empresaId?: number) {
     return prismaTorreon.$transaction(async tx => {
       const unit = await this.obtenerTx(tx, id);
+      const visible = unit.movimientos.filter(m => !empresaId || m.empresaId === empresaId);
+      if (empresaId && !visible.length) throw new DomainError(403, 'La unidad no contiene solicitudes de tu empresa');
       const formation = await tx.bitacoraNaturalTorreon.findFirst({ where: { unidadId: id, accion: 'FORMAR_CONJUNTO' } });
       const origins = (formation?.datos as { unidadesOrigen?: number[] } | null)?.unidadesOrigen ?? [];
-      return tx.bitacoraNaturalTorreon.findMany({ where: { OR: [{ unidadId: { in: [id, ...origins] } }, { movimientoId: { in: unit.movimientos.map(m => m.id) } }] }, orderBy: [{ fecha: 'asc' }, { id: 'asc' }] });
+      const rows = await tx.bitacoraNaturalTorreon.findMany({ where: { OR: [{ unidadId: { in: [id, ...origins] } }, { movimientoId: { in: unit.movimientos.map(m => m.id) } }] }, orderBy: [{ fecha: 'asc' }, { id: 'asc' }] });
+      return empresaId ? proyectarHistorialNatural(rows, id, visible.map(m => m.id)) : rows;
     });
   }
   static async siguienteTx(tx: Tx, localidadId: number, operadorId: number) {

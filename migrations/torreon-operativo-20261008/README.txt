@@ -1,4 +1,4 @@
-Torreón: modelo operativo natural, versión 1.1 del 7 de octubre de 2026
+Torreón: modelo operativo natural, flujo vigente de octubre de 2026
 
 ALCANCE
 Solo movimientos naturales del microservicio Torreón y sus pantallas web/móviles.
@@ -17,8 +17,12 @@ REGLAS IMPLEMENTADAS
   solicitud conserva su ID, evidencia y registro de conclusión.
 - Los incidentes no vencen, no cancelan después de tres reportes y no crean
   solicitudes de reemplazo. La unidad detenida queda fuera de la cola disponible.
-- Confirmar todas las soluciones habilita LISTA_REANUDAR; el maquinista registra
-  la reanudación. Nunca interrumpe el trabajo que ya tiene en curso.
+- Cliente, coordinación o supervisión confirma la solución dentro de su alcance.
+  Confirmar todas las soluciones habilita LISTA_REANUDAR; el maquinista vuelve a
+  usar Iniciar. No puede resolver incidentes ni usar una acción manual de reanudar.
+  Nunca interrumpe el trabajo que ya tiene en curso.
+- Inicio y finalización no requieren fotos. La app muestra inspección 360 antes
+  del inicio; los reportes de incidente sí requieren de 1 a 4 fotos.
 - La bitácora registra actor, rol, fecha y acciones. Los avisos de asignación
   y reanudación se envían al maquinista asignado.
 
@@ -48,7 +52,7 @@ Si ya está aplicada, verificarla con el mismo runner; no modificar su SQL.
 La migración es aditiva: conserva IDs, campos originales, fotos e incidentes.
 Crea una unidad individual por solicitud histórica; no infiere conjuntos.
 Una pausa histórica sin impedimentos abiertos queda lista para reanudar; sus
-movimientos siguen detenidos hasta que el maquinista registre la reanudación.
+movimientos siguen detenidos hasta que el maquinista vuelva a usar Iniciar.
 Una pausa con impedimentos abiertos conserva su estado detenido.
 Los clientes antiguos no deben seguir usando mutaciones de rondas Torreón o
 cierres por tiempo: esas operaciones devuelven un conflicto explícito.
@@ -59,11 +63,10 @@ GET   /cola                  ?localidadId=&historial=true|false
 GET   /cola/siguiente         ?localidadId=
 PATCH /cola/priorizar         { unidadIds: [...], enConjunto: true|false }
 PATCH /cola/:id/asignar       { operadorId }
-POST  /cola/:id/iniciar       { fotosPorMovimiento: [{ movimientoId, fotos }] }
+POST  /cola/:id/iniciar       {}
 POST  /movimientos/:id/incidentes  { motivo, fotos }
 PATCH /incidentes/:id/resolver?tipo=NATURAL  { solucion }
-POST  /cola/:id/reanudar      {}
-POST  /cola/:id/finalizar     { fotosPorMovimiento: [{ movimientoId, fotos }] }
+POST  /cola/:id/finalizar     {}
 GET   /cola/:id/historial
 GET   /incidentes/:id/fotos/:fotoId?tipo=NATURAL
 
@@ -71,6 +74,11 @@ El actor y rol proceden de la sesión. Origen/destino y secciones se verifican
 contra el catálogo principal de Torreón. El servidor decide turno y asignación.
 Inicio, pausa, reanudación y cierre requieren conexión para validar el turno;
 las reglas y el paquete offline de Guadalajara conservan su implementación.
+Las rutas antiguas /cola/:id/reanudar y /movimientos/:id/reanudar devuelven 403.
+La cola/detalle incluye tiempoActivoSegundos, tiempoTotalSegundos, tiempoCalculadoEn
+y tiempoActivoEstimado; las pausas se descuentan con la bitácora. El historial
+de conjuntos multiempresa conserva para clientes solo sus solicitudes y
+transiciones compartidas sin datos de otras empresas.
 
 VALIDACIÓN REAL CON BASE DESECHABLE
 tests/torreon-operativo-integration.cjs exige un nombre de base exclusivo de

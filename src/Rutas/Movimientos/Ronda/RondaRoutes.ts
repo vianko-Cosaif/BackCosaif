@@ -1,3 +1,4 @@
+import { presentarInstruccionesMovimiento } from '../../../middlewares/movementInstructions';
 /**
  * @file RondaRoutes.ts
  * @author Isaac
@@ -37,6 +38,7 @@ const router = Router();
 // 🔐 Protección JWT para todas las rutas
 // ---------------------------------------------------------------------------
 router.use(authenticateAccess);
+router.use(presentarInstruccionesMovimiento);
 
 // ---------------------------------------------------------------------------
 // ➕ Crear / insertar en rondas

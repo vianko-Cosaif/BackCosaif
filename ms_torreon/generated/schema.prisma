@@ -104,6 +104,8 @@ model MovimientoTorreonFerro {
   unidadId           Int?    @map("unidad_id")
   locomotoraRemolque Int?    @map("locomotora_remolque")
   polo               String?
+  poloOrigen         String? @map("polo_origen")
+  poloDestino        String? @map("polo_destino")
   empresaId          Int     @map("empresa_id")
   creadoPorId        Int     @map("creado_por_id")
   clienteId          Int?    @map("cliente_id")

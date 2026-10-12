@@ -13,6 +13,7 @@ import {
 } from "./movimiento.schemas";
 import { actorNatural, driverNatural } from "../cola/cola.actor";
 import { MovimientoModel } from "./movimiento.model";
+import { naturalSearchQuery } from './naturalSearch.query';
 
 const parseIdParam = (req: Request) => Number(req.params.id);
 
@@ -31,6 +32,10 @@ const optionalBoolean = (value: unknown) => {
 };
 
 export class MovimientoController {
+  static async buscar(req: Request, res: Response) {
+    return res.json(await MovimientoModel.buscar(naturalSearchQuery.parse(req.query)));
+  }
+
   static async listar(req: Request, res: Response) {
     const data = await MovimientoModel.listar({
       localidadId: optionalNumber(req.query.localidadId),

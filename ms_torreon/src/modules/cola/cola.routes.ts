@@ -38,7 +38,11 @@ colaRouter.patch('/:id/asignar', asyncHandler(async (req, res) => {
 }));
 colaRouter.get('/:id/historial', asyncHandler(async (req, res) => {
   const id = idSchema.parse(req.params.id);
-  res.json(await ColaNaturalModel.historial(id));
+  const empresaId = req.query.empresaId == null ? undefined : idSchema.parse(req.query.empresaId);
+  if (['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(String(req.headers['x-user-rol'])) && !empresaId) {
+    throw new DomainError(403, 'El historial de cliente requiere el alcance de su empresa');
+  }
+  res.json(await ColaNaturalModel.historial(id, empresaId));
 }));
 colaRouter.post('/:id/reanudar', asyncHandler(async () => {
   throw new DomainError(403, 'La reanudación requiere solución externa del incidente. Cuando esté habilitada, toma la unidad con Iniciar.');

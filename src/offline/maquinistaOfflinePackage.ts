@@ -9,6 +9,7 @@ import { prisma } from "../lib/prisma";
 
 import { prismaTorreon } from '../lib/servicePrisma';
 import { isTorreonNaturalSnapshotUnitAvailable } from './torreonNaturalSnapshotPolicy';
+import { enrichNaturalSections } from '../services/torreonMs/naturalSections';
 
 export type MaquinistaOfflineProfile =
   | "GDL_NATURAL"
@@ -99,6 +100,16 @@ function resolveProfile(user: AuthenticatedUser): MaquinistaOfflineProfile {
   const error = new Error("El paquete offline solicitado no corresponde a un maquinista");
   (error as any).status = 403;
   throw error;
+}
+
+export function getMaquinistaOfflineScope(user: AuthenticatedUser) {
+  const localidadId = positiveInt(user.localidad?.id);
+  if (!localidadId) {
+    const error = new Error("El usuario no tiene una localidad válida");
+    (error as any).status = 409;
+    throw error;
+  }
+  return { userId: user.id, localidadId, profile: resolveProfile(user), schemaVersion: SCHEMA_VERSION };
 }
 
 const commonSnapshotSchema = `
@@ -211,7 +222,12 @@ async function loadGdlNatural(localidadId: number) {
     where: {
       localidadId,
       concluido: false,
-      movimiento: { estado: { in: [...ACTIVE_GDL_STATES] } },
+      movimiento: {
+        localidadId,
+        estado: { in: [...ACTIVE_GDL_STATES] },
+        OR: [{ finalizado: false }, { finalizado: null }],
+        fechaFin: null,
+      },
     },
     include: {
       empresa: true,
@@ -333,7 +349,7 @@ async function snapshotSql(
       }
     }
   } else if (profile === "TORREON_NATURAL") {
-    const units = await loadTorreonNatural(localidadId);
+    const units = await enrichNaturalSections(await loadTorreonNatural(localidadId));
     statements.push('CREATE TABLE units (id INTEGER PRIMARY KEY, state TEXT NOT NULL, mode TEXT NOT NULL, operator_id INTEGER, position INTEGER NOT NULL, payload_json TEXT NOT NULL);');
     for (let index = 0; index < units.length; index++) {
       const unit = units[index];
@@ -343,7 +359,8 @@ async function snapshotSql(
         statements.push(`INSERT OR REPLACE INTO movements VALUES ${values(
           movement.id, null, 'torreon', movement.empresaId, movement.empresaNombreSnapshot,
           movement.locomotiveNumber, movement.estado, null, movement.prioridad, null, null,
-          movement.viaOrigenNombreSnapshot, movement.viaDestinoNombreSnapshot,
+          [movement.viaOrigenNombreSnapshot, movement.seccionOrigenNombreSnapshot].filter(Boolean).join(' · '),
+          [movement.viaDestinoNombreSnapshot, movement.seccionDestinoNombreSnapshot].filter(Boolean).join(' · '),
           movement.fechaSolicitud, movement.fechaInicio, movement.fechaFin, movement.operadorId,
           JSON.stringify(payload)
         )};`);
@@ -482,22 +499,21 @@ const snapshotDataVersion = (source: string, createdAt: string, expiresAt: strin
 const snapshotEtag = (
   userId: number,
   profile: MaquinistaOfflineProfile,
-  dataVersion: string
-) => `"maquinista-${SCHEMA_VERSION}-${userId}-${profile}-${dataVersion}"`;
+  dataVersion: string,
+  validatedAtMs: number
+) => {
+  // A GDL snapshot expires locally even when its rows never change. Renew it at
+  // least once per validity window instead of answering 304 indefinitely.
+  const validity = profile === "GDL_NATURAL" ? `-${Math.floor(validatedAtMs / SNAPSHOT_VALIDITY_MS)}` : "";
+  return `"maquinista-${SCHEMA_VERSION}-${userId}-${profile}${validity}-${dataVersion}"`;
+};
 
 export async function createMaquinistaOfflinePackage(
   user: AuthenticatedUser,
   knownEtag?: string | null
 ): Promise<MaquinistaOfflinePackageResult> {
   await cleanupExpiredPackages();
-  const localidadId = positiveInt(user.localidad?.id);
-  if (!localidadId) {
-    const error = new Error("El usuario no tiene una localidad válida");
-    (error as any).status = 409;
-    throw error;
-  }
-
-  const profile = resolveProfile(user);
+  const { localidadId, profile } = getMaquinistaOfflineScope(user);
   const packageId = randomUUID();
   const directory = path.join(PACKAGE_ROOT, packageId);
   const snapshotPath = path.join(directory, "snapshot.db");
@@ -509,7 +525,7 @@ export async function createMaquinistaOfflinePackage(
   try {
     const snapshotSource = await snapshotSql(profile, user, createdAt, expiresAt);
     const dataVersion = snapshotDataVersion(snapshotSource, createdAt, expiresAt);
-    const etag = snapshotEtag(user.id, profile, dataVersion);
+    const etag = snapshotEtag(user.id, profile, dataVersion, Date.parse(createdAt));
     if (knownEtag === etag) {
       await fs.rm(directory, { recursive: true, force: true }).catch(() => {});
       return { notModified: true, etag };
@@ -576,6 +592,12 @@ export function getMaquinistaOfflinePackageFile(
   }
   if (entry.ownerId !== user.id) {
     const error = new Error("El paquete offline pertenece a otro usuario");
+    (error as any).status = 403;
+    throw error;
+  }
+  if (entry.manifest.localidadId !== positiveInt(user.localidad?.id)
+    || entry.manifest.profile !== resolveProfile(user)) {
+    const error = new Error("El paquete offline no corresponde a tu localidad o perfil actual");
     (error as any).status = 403;
     throw error;
   }
