@@ -1,6 +1,7 @@
 Centro en salida y llegada de movimientos naturales de Torreón
 
-Estado: preparada; no aplicada a ninguna base de datos.
+Estado: aplicada y verificada en el sandbox 76.13.100.184 el 2026-10-13.
+En otros entornos, comprobar el registro de migraciones con --check.
 
 Requiere torreon-operativo-20261008 y torreon-polos-20261012.
 Amplía los dos CHECK existentes para admitir NORTE, CENTRO y SUR.
