@@ -74,7 +74,7 @@ export const createLoteSchema = z.object({
   movimientos: z.array(createMovimientoSchema).min(1).max(5),
 }).refine(data => new Set(data.movimientos.map(m => m.localidadId)).size === 1, "El envío debe pertenecer a una sola localidad");
 
-export function validarCondicionesNaturales(data: { tipoMovimiento?: string | null; locomotiveNumber: number; locomotoraRemolque?: number | null; direccionEmpuje?: string | null; polo?: string | null; poloOrigen?: string | null; poloDestino?: string | null; posicionCabina?: string | null; posicionChimenea?: string | null }, { requireBothPoles = true }: { requireBothPoles?: boolean } = {}) {
+export function validarCondicionesNaturales(data: { tipoMovimiento?: string | null; locomotiveNumber: number; locomotoraRemolque?: number | null; direccionEmpuje?: string | null; polo?: string | null; poloOrigen?: string | null; poloDestino?: string | null; seccionOrigenId?: number | null; seccionDestinoId?: number | null; posicionCabina?: string | null; posicionChimenea?: string | null }, { requireBothPoles = true }: { requireBothPoles?: boolean } = {}) {
   if (!data.tipoMovimiento) return "Indica el tipo de movimiento";
   if (data.tipoMovimiento === "REMOLCADA" && (!data.locomotoraRemolque || !["EMPUJAR", "JALAR"].includes(data.direccionEmpuje ?? ""))) return "La solicitud remolcada requiere máquina de remolque y Empujar/Jalar";
   if (data.tipoMovimiento === "REMOLCADA" && data.locomotoraRemolque === data.locomotiveNumber) return "La locomotora remolcada y la máquina que remolca deben ser distintas";
@@ -83,6 +83,8 @@ export function validarCondicionesNaturales(data: { tipoMovimiento?: string | nu
     if ((requireBothPoles || data[key] != null) && !["NORTE", "CENTRO", "SUR"].includes(data[key] ?? "")) {
       return `Selecciona el polo de ${label}: Norte, Centro o Sur`;
     }
+    const sectionKey = key === 'poloOrigen' ? 'seccionOrigenId' : 'seccionDestinoId';
+    if (data[key] === 'CENTRO' && !data[sectionKey]) return `Selecciona la sección de ${label} para el polo Centro`;
   }
   return null;
 }

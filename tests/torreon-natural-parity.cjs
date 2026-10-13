@@ -11,7 +11,12 @@ async function main() {
   assert.equal(create.viaOrigenNombreSnapshot, 'Vía 8'); assert.equal(create.seccionOrigenNombreSnapshot, 'Sección 2'); assert.equal(create.localidadNombreSnapshot, 'Torreón');
   await assert.rejects(() => helpers.prepareNaturalCreate({ ...input, localidadId: 1 }), e => e.status === 403);
   await assert.rejects(() => helpers.prepareNaturalCreate({ ...input, viaDestinoId: 99 }), e => e.status === 403);
-  await assert.rejects(() => helpers.prepareNaturalCreate({ ...input, seccionOrigenId: undefined }), e => e.status === 400);
+  for (const poloOrigen of ['NORTE', 'SUR']) {
+    const optional = await helpers.prepareNaturalCreate({ ...input, poloOrigen, seccionOrigenId: undefined });
+    assert.equal(optional.seccionOrigenNombreSnapshot, undefined);
+  }
+  await assert.rejects(() => helpers.prepareNaturalCreate({ ...input, poloOrigen: 'CENTRO', seccionOrigenId: undefined }), e => e.status === 400);
+  assert.equal((await helpers.prepareNaturalCreate({ ...input, poloOrigen: 'CENTRO' })).seccionOrigenId, 10);
   await assert.rejects(() => helpers.prepareNaturalCreate({ ...input, seccionOrigenId: 11 }), e => e.status === 403);
   await assert.rejects(() => helpers.prepareNaturalEdit(7, { viaDestinoId: 99 }), e => e.status === 403);
   await assert.rejects(() => helpers.prepareNaturalEdit(7, { seccionDestinoId: 10 }), e => e.status === 403);

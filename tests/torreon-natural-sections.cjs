@@ -55,8 +55,18 @@ async function main() {
   assert.equal(naturalSectionLabel(sections[2]), 'Sección 3');
   assert.equal(naturalSectionLabel({ numero: 1, nombre: 'Sección 1 · Patio' }), 'Sección 1 · Patio');
   for (const [body, status] of [[{ seccionOrigenId: 82 }, 403], [{ seccionOrigenId: 999 }, 403],
-    [{ seccionOrigenId: null }, 400], [{ viaOrigenId: 20, seccionOrigenId: 91 }, 403]]) {
+    [{ seccionOrigenId: null, poloOrigen: 'CENTRO' }, 400], [{ viaOrigenId: 20, seccionOrigenId: 91 }, 403]]) {
     await assert.rejects(() => prepareNaturalCreate({ ...movement, ...body }), error => error.status === status);
+  }
+  for (const side of ['Origen', 'Destino']) {
+    for (const polo of ['NORTE', 'SUR']) {
+      const optional = await prepareNaturalCreate({ ...movement, [`polo${side}`]: polo, [`seccion${side}Id`]: undefined });
+      assert.equal(optional[`seccion${side}NombreSnapshot`], undefined);
+      const cleared = await prepareNaturalEdit(7, { [`polo${side}`]: polo, [`seccion${side}Id`]: null });
+      assert.equal(cleared[`seccion${side}Id`], null);
+      await assert.rejects(() => prepareNaturalEdit(7, { [`polo${side}`]: 'CENTRO', [`seccion${side}Id`]: null }), error => error.status === 400);
+    }
+    assert.equal((await prepareNaturalEdit(7, { [`polo${side}`]: 'CENTRO' }))[`seccion${side}Id`], movement[`seccion${side}Id`]);
   }
   const noteEdit = await prepareNaturalEdit(7, { instrucciones: 'Nueva indicación sin etiquetas' });
   assert.equal('seccionOrigenId' in noteEdit, false, 'Editing instructions keeps the existing origin');
@@ -66,6 +76,7 @@ async function main() {
   assert.equal('seccionOrigenNumero' in changed, false);
   assert.equal((await prepareNaturalEdit(7, { viaDestinoId: 12 })).seccionDestinoId, null);
   assert.equal((await prepareNaturalEdit(7, { instrucciones: '[META ORIGEN:1] Cambiar' })).seccionOrigenId, 81);
+  assert.equal((await prepareNaturalEdit(7, { poloOrigen: 'NORTE', seccionOrigenId: null, instrucciones: '[META ORIGEN:1] Cambiar' })).seccionOrigenId, null, 'Explicit optional section clearing wins over legacy metadata');
   await assert.rejects(() => prepareNaturalEdit(7, { seccionOrigenId: 82 }), error => error.status === 403);
 
   lookups.length = 0;

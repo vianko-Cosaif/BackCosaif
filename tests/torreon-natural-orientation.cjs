@@ -20,6 +20,11 @@ async function main() {
     assert.equal(parsed.seccionOrigenId, 81);
     assert.equal(parsed.seccionDestinoId, 93);
   }
+  for (const side of ['Origen', 'Destino']) {
+    const sectionKey = `seccion${side}Id`;
+    for (const polo of ['NORTE', 'SUR']) assert.equal(schemas.validarCondicionesNaturales({ ...request, [`polo${side}`]: polo, [sectionKey]: undefined }), null);
+    assert.match(schemas.validarCondicionesNaturales({ ...request, [`polo${side}`]: 'CENTRO', [sectionKey]: undefined }), /sección.*Centro/);
+  }
   for (const field of ['poloOrigen', 'poloDestino']) for (const invalid of [undefined, null, '', 'Sin_Solicitar', 'ESTE', 1]) {
     const input = { ...request, [field]: invalid, polo: 'NORTE', posicionChimenea: 'DENTRO', posicionCabina: 'AFUERA' };
     const parsed = schemas.createMovimientoSchema.safeParse(input);

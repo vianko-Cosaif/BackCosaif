@@ -22,7 +22,7 @@ export async function prepareNaturalCreate(body: Record<string, any>) {
     if (sectionId != null && (!Number.isSafeInteger(sectionId) || sectionId <= 0)) throw Object.assign(new Error('Sección inválida'), { status: 400 });
     const section = sectionId == null ? null : via.secciones.find(s => s.id === sectionId);
     if (sectionId != null && !section) throw Object.assign(new Error('La sección no pertenece a la vía seleccionada'), { status: 403 });
-    if (via.secciones.length && !section) throw Object.assign(new Error(`Selecciona la sección de ${side.toLowerCase()}`), { status: 400 });
+    if (body[`polo${side}`] === 'CENTRO' && !section) throw Object.assign(new Error(`Selecciona la sección de ${side.toLowerCase()} para el polo Centro`), { status: 400 });
     result[`via${side}NombreSnapshot`] = via.nombre;
     result[`seccion${side}NombreSnapshot`] = section ? naturalSectionLabel(section) : undefined;
     delete result[`seccion${side}Numero`];
@@ -37,6 +37,7 @@ export async function prepareNaturalEdit(id: number, body: Record<string, any>) 
   // Both shared forms encode section numbers in these tags, not database IDs.
   if (typeof body.instrucciones === 'string') {
     for (const side of ['Origen', 'Destino'] as const) {
+      if (`seccion${side}Id` in body) continue;
       const tag = side === 'Origen' ? 'ORIGEN' : 'DESTINO';
       const match = body.instrucciones.match(new RegExp(`\\[META ${tag}:(\\d+)\\]`, 'i'));
       const viaId = `via${side}Id` in body ? body[`via${side}Id`] : movement[`via${side}Id`];
@@ -57,7 +58,8 @@ export async function prepareNaturalEdit(id: number, body: Record<string, any>) 
     const sectionName = `seccion${side}NombreSnapshot`;
     delete result[viaName]; delete result[sectionName];
     delete result[`seccion${side}Numero`];
-    if (!(viaKey in body) && !(sectionKey in body)) continue;
+    const poloKey = `polo${side}` as const;
+    if (!(viaKey in body) && !(sectionKey in body) && !(poloKey in body)) continue;
     const viaId = viaKey in body ? body[viaKey] : movement[viaKey];
     if (viaId != null && (!Number.isSafeInteger(viaId) || viaId <= 0)) throw Object.assign(new Error('Vía inválida'), { status: 400 });
     const via = viaId == null ? null : await prisma.via.findUnique({ where: { id: viaId } });
@@ -67,6 +69,8 @@ export async function prepareNaturalEdit(id: number, body: Record<string, any>) 
     if (sectionId != null && (!Number.isSafeInteger(sectionId) || sectionId <= 0)) throw Object.assign(new Error('Sección inválida'), { status: 400 });
     const section = sectionId == null ? null : await prisma.seccionVia.findUnique({ where: { id: sectionId } });
     if (sectionId != null && (!section || section.viaId !== viaId)) throw Object.assign(new Error('La sección no pertenece a la vía seleccionada'), { status: 403 });
+    const polo = poloKey in body ? body[poloKey] : movement[poloKey];
+    if (polo === 'CENTRO' && !section) throw Object.assign(new Error(`Selecciona la sección de ${side.toLowerCase()} para el polo Centro`), { status: 400 });
     result[sectionKey] = sectionId;
     result[sectionName] = section ? naturalSectionLabel(section) : null;
   }
