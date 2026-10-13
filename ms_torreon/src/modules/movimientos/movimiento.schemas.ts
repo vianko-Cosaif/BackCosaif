@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 const idSchema = z.coerce.number().int().positive();
-const poloPatioSchema = (side: "salida" | "llegada") => z.enum(["NORTE", "SUR"], {
-  errorMap: () => ({ message: `Selecciona el polo de ${side}: Norte o Sur` }),
+const poloPatioSchema = (side: "salida" | "llegada") => z.enum(["NORTE", "CENTRO", "SUR"], {
+  errorMap: () => ({ message: `Selecciona el polo de ${side}: Norte, Centro o Sur` }),
 });
 
 export const fotoInputSchema = z.object({
@@ -80,8 +80,8 @@ export function validarCondicionesNaturales(data: { tipoMovimiento?: string | nu
   if (data.tipoMovimiento === "REMOLCADA" && data.locomotoraRemolque === data.locomotiveNumber) return "La locomotora remolcada y la máquina que remolca deben ser distintas";
   for (const [key, label] of [["poloOrigen", "salida"], ["poloDestino", "llegada"]] as const) {
     // Legacy rows have no recorded endpoints. Editing unrelated data must not invent them.
-    if ((requireBothPoles || data[key] != null) && !["NORTE", "SUR"].includes(data[key] ?? "")) {
-      return `Selecciona el polo de ${label}: Norte o Sur`;
+    if ((requireBothPoles || data[key] != null) && !["NORTE", "CENTRO", "SUR"].includes(data[key] ?? "")) {
+      return `Selecciona el polo de ${label}: Norte, Centro o Sur`;
     }
   }
   return null;

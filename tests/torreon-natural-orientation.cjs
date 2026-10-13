@@ -11,7 +11,7 @@ async function main() {
     viaOrigenId: 8, viaDestinoId: 9, seccionOrigenId: 81, seccionDestinoId: 93,
     tipoMovimiento: 'MD_TRABAJANDO', poloOrigen: 'NORTE', poloDestino: 'SUR',
   };
-  for (const poloOrigen of ['NORTE', 'SUR']) for (const poloDestino of ['NORTE', 'SUR']) {
+  for (const poloOrigen of ['NORTE', 'CENTRO', 'SUR']) for (const poloDestino of ['NORTE', 'CENTRO', 'SUR']) {
     const parsed = schemas.createMovimientoSchema.parse({ ...request, poloOrigen, poloDestino });
     assert.equal(schemas.validarCondicionesNaturales(parsed), null);
     assert.equal(parsed.posicionCabina, undefined);
@@ -63,9 +63,9 @@ async function main() {
       auditNatural: async (_tx, _unit, _actor, accion, datos, movimientoId) => { audit.push({ accion, datos, movimientoId }); },
     },
   })('ms_torreon/src/modules/movimientos/movimiento.model.ts').MovimientoModel;
-  const input = schemas.createMovimientoSchema.parse({ ...request, clientRequestId: 'poles-asymmetric-01' });
+  const input = schemas.createMovimientoSchema.parse({ ...request, poloOrigen: 'CENTRO', clientRequestId: 'poles-asymmetric-01' });
   const created = await model.crear(input);
-  assert.equal(created.poloOrigen, 'NORTE'); assert.equal(created.poloDestino, 'SUR');
+  assert.equal(created.poloOrigen, 'CENTRO'); assert.equal(created.poloDestino, 'SUR');
   assert.equal(created.polo, null);
   assert.equal((await model.crear(input)).id, created.id, 'An identical retry reuses its request');
   for (const changed of [{ poloOrigen: 'SUR' }, { poloDestino: 'NORTE' }]) {
@@ -73,11 +73,11 @@ async function main() {
       'Changing either endpoint with the same key must conflict');
   }
   const edited = await model.editar(created.id, schemas.editMovimientoSchema.parse({ instrucciones: 'Sólo cambiar indicaciones' }));
-  assert.equal(edited.poloOrigen, 'NORTE'); assert.equal(edited.poloDestino, 'SUR');
+  assert.equal(edited.poloOrigen, 'CENTRO'); assert.equal(edited.poloDestino, 'SUR');
   assert.equal(edited.seccionOrigenId, 81); assert.equal(edited.seccionDestinoId, 93);
   assert.deepEqual(writes.at(-1), { instrucciones: 'Sólo cambiar indicaciones' });
-  await model.editar(created.id, schemas.editMovimientoSchema.parse({ poloDestino: 'NORTE' }));
-  assert.equal(rows[0].poloOrigen, 'NORTE'); assert.equal(rows[0].poloDestino, 'NORTE');
+  await model.editar(created.id, schemas.editMovimientoSchema.parse({ poloDestino: 'CENTRO' }));
+  assert.equal(rows[0].poloOrigen, 'CENTRO'); assert.equal(rows[0].poloDestino, 'CENTRO');
   assert.equal(rows[0].seccionDestinoId, 93);
   const context = await model.obtenerEdicion(created.id);
   assert.equal(context.editableKeys.includes('poloOrigen'), true);
@@ -94,9 +94,9 @@ async function main() {
   assert.equal(partial.poloDestino, 'NORTE'); assert.equal(partial.polo, 'SUR');
   await assert.rejects(() => model.crearTx(tx, { ...input, poloOrigen: undefined }), error => error.status === 400,
     'The model also enforces both poles if called without the controller');
-  const batch = schemas.createLoteSchema.parse({ clientRequestId: 'poles-batch-0001', movimientos: [request, { ...request, locomotiveNumber: 122, poloOrigen: 'SUR', poloDestino: 'NORTE' }] });
+  const batch = schemas.createLoteSchema.parse({ clientRequestId: 'poles-batch-0001', movimientos: [request, { ...request, locomotiveNumber: 122, poloOrigen: 'CENTRO', poloDestino: 'NORTE' }] });
   const group = await model.crearLote(batch);
-  assert.deepEqual(clean(group.map(row => [row.poloOrigen, row.poloDestino])), [['NORTE', 'SUR'], ['SUR', 'NORTE']]);
+  assert.deepEqual(clean(group.map(row => [row.poloOrigen, row.poloDestino])), [['NORTE', 'SUR'], ['CENTRO', 'NORTE']]);
   assert.deepEqual(clean((await model.crearLote(batch)).map(row => row.id)), clean(group.map(row => row.id)));
   await assert.rejects(() => model.crearLote({ ...batch, movimientos: [{ ...batch.movimientos[0], poloDestino: 'NORTE' }, batch.movimientos[1]] }), error => error.status === 409);
 
@@ -108,6 +108,10 @@ async function main() {
   assert.equal(preview.status, 0); assert.match(preview.stdout, /sha256/);
   const wrongTarget = spawnSync(process.execPath, ['scripts/security-migrate.cjs', '--version=torreon-polos-20261012', '--target=main'], { encoding: 'utf8' });
   assert.notEqual(wrongTarget.status, 0, 'The migration runner rejects the Guadalajara/main target before connecting');
+  const centroPreview = spawnSync(process.execPath, ['scripts/security-migrate.cjs', '--version=torreon-polo-centro-20261013', '--target=torreon'], { encoding: 'utf8' });
+  assert.equal(centroPreview.status, 0); assert.match(centroPreview.stdout, /sha256/);
+  const centroWrongTarget = spawnSync(process.execPath, ['scripts/security-migrate.cjs', '--version=torreon-polo-centro-20261013', '--target=main'], { encoding: 'utf8' });
+  assert.notEqual(centroWrongTarget.status, 0, 'Centro is restricted to Torreón');
   console.log('PASS Torreón poles: independent origin/destination, asymmetry persisted, partial/legacy edits, section preservation, batch/retry fingerprints and additive Torreón-only migration preview');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
