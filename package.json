@@ -14,7 +14,7 @@
     "prisma:torno:push": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js db push --schema msTorno/prisma/schema.prisma",
     "prisma:torno:generate": "DOTENV_CONFIG_PATH=msTorno/.env.torno node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema msTorno/prisma/schema.prisma",
     "predev:comercial": "npm run prisma:comercial:generate",
-    "dev:comercial": "ts-node-dev --project msComercial/tsconfig.json msComercial/src/index.ts",
+    "dev:comercial": "node --watch ./node_modules/ts-node/dist/bin.js --project msComercial/tsconfig.json msComercial/src/index.ts",
     "prebuild:comercial": "npm run prisma:comercial:generate",
     "build:comercial": "tsc -p msComercial/tsconfig.json && cp msComercial/configureDatabase.cjs msComercial/dist/configureDatabase.cjs",
     "pretest:comercial": "npm run prisma:comercial:generate",
