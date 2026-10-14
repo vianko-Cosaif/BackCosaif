@@ -103,7 +103,7 @@ async function main() {
   let responseData = { id: 701, empresaId: 3, localidadId: 2 };
   let auditUnit = { id: 9, estado: 'PENDIENTE', localidadId: 2 };
   const routeLoad = loader({
-    express: { Router: () => ({ use() {}, all(_path, fn) { handler = fn; } }) },
+    express: { Router: () => ({ use() {}, get() {}, all(_path, fn) { handler = fn; } }) },
     'src/jobs/durableJobs': { registerJob() {} },
     'src/auth/authenticateAccess': { authenticateAccess() {} },
     'src/auth/torreonScope': { requireTorreonScope() {} },

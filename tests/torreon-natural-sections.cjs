@@ -104,7 +104,7 @@ async function main() {
   let handler;
   const forwarded = [];
   loader({ ...mocks,
-    express: { Router: () => ({ use() {}, all(_path, callback) { handler = callback; } }) },
+    express: { Router: () => ({ use() {}, get() {}, all(_path, callback) { handler = callback; } }) },
     'src/jobs/durableJobs': { registerJob() {} },
     'src/auth/authenticateAccess': { authenticateAccess() {} },
     'src/auth/torreonScope': { requireTorreonScope() {} },

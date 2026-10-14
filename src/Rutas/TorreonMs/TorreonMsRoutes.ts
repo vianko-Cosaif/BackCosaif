@@ -14,6 +14,7 @@ import { resolverAudienciaFcmTorreon } from "../../services/torreonFcmRouting";
 import { prismaTorreon } from '../../lib/servicePrisma';
 import { prepareNaturalCreate, prepareNaturalEdit, enrichNaturalEdit } from '../../services/torreonMs/prepareNaturalEdit';
 import { enrichNaturalSections } from '../../services/torreonMs/naturalSections';
+import { listarMaquinistasNaturales } from './naturalOperators.controller';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ const ALLOWED_ROLES = new Set([
 
 router.use(authenticateAccess, requireTorreonScope);
 router.use(idempotentMutation);
+router.get('/cola/maquinistas', listarMaquinistasNaturales);
 
 function userRole(user?: AuthenticatedUser) {
   return String(user?.rol ?? "")
