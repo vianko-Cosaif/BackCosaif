@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 const idSchema = z.coerce.number().int().positive();
+const poloPatioSchema = (side: "salida" | "llegada") => z.enum(["NORTE", "CENTRO", "SUR"], {
+  errorMap: () => ({ message: `Selecciona el polo de ${side}: Norte, Centro o Sur` }),
+});
 
 export const fotoInputSchema = z.object({
   url: z.string().trim().min(1).optional(),
@@ -24,6 +27,7 @@ export const fotoInputSchema = z.object({
 
 const withCapturas = z.object({
   fotos: z.array(fotoInputSchema).optional(),
+  fotosPorMovimiento: z.array(z.object({ movimientoId: idSchema, fotos: z.array(fotoInputSchema).min(1).max(4) })).optional(),
   capturas: z.array(fotoInputSchema).optional(),
 });
 
@@ -43,6 +47,10 @@ export const createMovimientoSchema = z.object({
   seccionOrigenId: idSchema.optional(),
   seccionDestinoId: idSchema.optional(),
   locomotiveNumber: idSchema,
+  locomotoraRemolque: idSchema.optional(),
+  polo: z.enum(["Sin_Solicitar", "NORTE", "SUR"]).optional(),
+  poloOrigen: poloPatioSchema("salida"),
+  poloDestino: poloPatioSchema("llegada"),
   prioridad: z.enum(["BAJA", "ALTA"]).default("BAJA"),
   tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
   instrucciones: z.string().min(1).optional(),
@@ -56,10 +64,30 @@ export const createMovimientoSchema = z.object({
   seccionOrigenNombreSnapshot: z.string().min(1).optional(),
   seccionDestinoNombreSnapshot: z.string().min(1).optional(),
 }).refine((data) => (
-  Boolean(data.viaOrigenId || data.viaDestinoId || data.seccionOrigenId || data.seccionDestinoId)
+  Boolean(data.viaOrigenId && data.viaDestinoId && data.tipoMovimiento)
 ), {
-  message: "Debe especificar al menos una via o seccion origen/destino",
+  message: "Cada solicitud requiere vía de origen, vía de destino y tipo de movimiento",
 });
+
+export const createLoteSchema = z.object({
+  clientRequestId: z.string().trim().min(8).max(100),
+  movimientos: z.array(createMovimientoSchema).min(1).max(5),
+}).refine(data => new Set(data.movimientos.map(m => m.localidadId)).size === 1, "El envío debe pertenecer a una sola localidad");
+
+export function validarCondicionesNaturales(data: { tipoMovimiento?: string | null; locomotiveNumber: number; locomotoraRemolque?: number | null; direccionEmpuje?: string | null; polo?: string | null; poloOrigen?: string | null; poloDestino?: string | null; seccionOrigenId?: number | null; seccionDestinoId?: number | null; posicionCabina?: string | null; posicionChimenea?: string | null }, { requireBothPoles = true }: { requireBothPoles?: boolean } = {}) {
+  if (!data.tipoMovimiento) return "Indica el tipo de movimiento";
+  if (data.tipoMovimiento === "REMOLCADA" && (!data.locomotoraRemolque || !["EMPUJAR", "JALAR"].includes(data.direccionEmpuje ?? ""))) return "La solicitud remolcada requiere máquina de remolque y Empujar/Jalar";
+  if (data.tipoMovimiento === "REMOLCADA" && data.locomotoraRemolque === data.locomotiveNumber) return "La locomotora remolcada y la máquina que remolca deben ser distintas";
+  for (const [key, label] of [["poloOrigen", "salida"], ["poloDestino", "llegada"]] as const) {
+    // Legacy rows have no recorded endpoints. Editing unrelated data must not invent them.
+    if ((requireBothPoles || data[key] != null) && !["NORTE", "CENTRO", "SUR"].includes(data[key] ?? "")) {
+      return `Selecciona el polo de ${label}: Norte, Centro o Sur`;
+    }
+    const sectionKey = key === 'poloOrigen' ? 'seccionOrigenId' : 'seccionDestinoId';
+    if (data[key] === 'CENTRO' && !data[sectionKey]) return `Selecciona la sección de ${label} para el polo Centro`;
+  }
+  return null;
+}
 
 export const editMovimientoSchema = z.object({
   viaOrigenId: idSchema.nullable().optional(),
@@ -71,6 +99,10 @@ export const editMovimientoSchema = z.object({
   seccionOrigenNombreSnapshot: z.string().nullable().optional(),
   seccionDestinoNombreSnapshot: z.string().nullable().optional(),
   locomotiveNumber: idSchema.optional(),
+  locomotoraRemolque: idSchema.nullable().optional(),
+  polo: z.enum(["Sin_Solicitar", "NORTE", "SUR"]).optional(),
+  poloOrigen: poloPatioSchema("salida").optional(),
+  poloDestino: poloPatioSchema("llegada").optional(),
   prioridad: z.enum(["BAJA", "ALTA"]).optional(),
   tipoMovimiento: z.enum(["MD_TRABAJANDO", "REMOLCADA"]).optional(),
   instrucciones: z.string().trim().max(2000).nullable().optional(),

@@ -3,7 +3,7 @@
 # Archivos subidos
 uploads/
 
-node_modules/
+node_modules
 
 .env
 .env.torno
@@ -14,8 +14,10 @@ dist
 logs/
 *.log
 .private/
-msTorno/generated/
+msTorno/generated
 msComercial/generated/
 ms_torreon/generated/query_engine-windows.dll.node
 ms_torreon/.env.torreon
 msComercial/.env.comercial
+
+msTorno/.env.example

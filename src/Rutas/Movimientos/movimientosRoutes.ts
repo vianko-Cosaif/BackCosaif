@@ -1,3 +1,4 @@
+import { presentarInstruccionesMovimiento } from '../../middlewares/movementInstructions';
 import { listCompact } from './movementQueryController';
 /**
  * @file movimientos.routes.ts
@@ -53,6 +54,7 @@ const router = Router();
  *  - 500 Internal Server Error
  */
 router.use(authenticateAccess);
+router.use(presentarInstruccionesMovimiento);
 router.use(idempotentMutation);
 router.get('/listado', requirePermission(PERMISSIONS.MOVEMENTS_READ), enforceQueryScope, listCompact);
 router.get(

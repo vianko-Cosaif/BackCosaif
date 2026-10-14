@@ -8,6 +8,7 @@ const users = [
   { id: 5, rol: 'CLIENTE_COOR', empresaId: 100, localidadId: 20, fcmTokens: [{ token: 'selected-yard', localidadId: 10 }, { token: 'other-device', localidadId: 20 }] },
   { id: 6, rol: 'CLIENTE_COOR', empresaId: 100, localidadId: null, fcmTokens: [{ token: 'unscoped', localidadId: null }] },
   { id: 7, rol: 'MAQUINISTA', empresaId: null, localidadId: 10, fcmTokens: [{ token: 'driver', localidadId: 10 }] },
+  { id: 8, rol: 'MAQUINISTA', empresaId: null, localidadId: 10, fcmTokens: [{ token: 'other-driver', localidadId: 10 }] },
 ];
 let query;
 const load = loader({ 'src/lib/prisma': { prisma: { usuario: { findMany: async q => { query = q; return users; } } } } });
@@ -28,6 +29,13 @@ const { tokensAudienciaOperacion, uniqueTokensFromUsers } = load('src/services/f
   assert.equal(realtimeNotificationRoles({ type: 'movimiento.incidente' }).includes('MAQUINISTA'), true);
   assert.deepEqual(Array.from((await tokensAudienciaOperacion({ ...params, tipo: 'movimiento_iniciado' })).tokens).sort(), ['correct', 'legacy-yard', 'other-company', 'selected-yard']);
   assert.equal((await tokensAudienciaOperacion({ ...params, tipo: 'nuevo_incidente' })).tokens.includes('other-company'), false);
+  for (const tipo of ['torreon_unidad_asignada', 'torreon_reanudacion_disponible']) {
+    const assigned = { ...params, tipo, roles: ['MAQUINISTA'], usuarioIds: [7] };
+    assert.deepEqual(Array.from((await tokensAudienciaOperacion(assigned)).tokens), ['driver']);
+    assert.equal((await tokensAudienciaOperacion({ ...assigned, usuarioIds: [] })).tokens.length, 0);
+    assert.equal((await tokensAudienciaOperacion({ ...assigned, localidadId: 20 })).tokens.length, 0);
+  }
+  assert.deepEqual(Array.from((await tokensAudienciaOperacion({ ...params, tipo: 'movimiento_iniciado', roles: ['MAQUINISTA'], usuarioIds: [7] })).tokens).sort(), ['driver', 'other-driver'], 'Existing broadcasts retain their audience');
   const { canReceivePatioStart, patioStartNotice } = load('src/services/patioNotificationPolicy.ts');
   const started = { type: 'movimiento.estado', estado: 'EN_PROCESO', localidadId: 10, movimientoId: 1, snapshot: { private: true }, descripcion: 'private detail' };
   assert.equal(canReceivePatioStart('CLIENTE', 10, started), true);

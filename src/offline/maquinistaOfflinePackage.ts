@@ -8,6 +8,8 @@ import type { AuthenticatedUser } from "../types/auth";
 import { prisma } from "../lib/prisma";
 
 import { prismaTorreon } from '../lib/servicePrisma';
+import { isTorreonNaturalSnapshotUnitAvailable } from './torreonNaturalSnapshotPolicy';
+import { enrichNaturalSections } from '../services/torreonMs/naturalSections';
 
 export type MaquinistaOfflineProfile =
   | "GDL_NATURAL"
@@ -55,7 +57,6 @@ const PACKAGE_ROOT = path.join(os.tmpdir(), "cosaif-offline-maquinista");
 const packages = new Map<string, CachedPackage>();
 
 const ACTIVE_GDL_STATES = ["SOLICITADO", "EN_PROCESO", "DETENIDO"] as const;
-const ACTIVE_TORREON_ROUND_STATES = ["ABIERTA", "EN_PROCESO"] as const;
 const ACTIVE_ARRASTRE_STATES = ["SOLICITADO", "EN_PROCESO", "DETENIDO"] as const;
 
 const normalize = (value: unknown) => String(value ?? "")
@@ -99,6 +100,16 @@ function resolveProfile(user: AuthenticatedUser): MaquinistaOfflineProfile {
   const error = new Error("El paquete offline solicitado no corresponde a un maquinista");
   (error as any).status = 403;
   throw error;
+}
+
+export function getMaquinistaOfflineScope(user: AuthenticatedUser) {
+  const localidadId = positiveInt(user.localidad?.id);
+  if (!localidadId) {
+    const error = new Error("El usuario no tiene una localidad válida");
+    (error as any).status = 409;
+    throw error;
+  }
+  return { userId: user.id, localidadId, profile: resolveProfile(user), schemaVersion: SCHEMA_VERSION };
 }
 
 const commonSnapshotSchema = `
@@ -211,7 +222,12 @@ async function loadGdlNatural(localidadId: number) {
     where: {
       localidadId,
       concluido: false,
-      movimiento: { estado: { in: [...ACTIVE_GDL_STATES] } },
+      movimiento: {
+        localidadId,
+        estado: { in: [...ACTIVE_GDL_STATES] },
+        OR: [{ finalizado: false }, { finalizado: null }],
+        fechaFin: null,
+      },
     },
     include: {
       empresa: true,
@@ -230,16 +246,25 @@ async function loadGdlNatural(localidadId: number) {
 }
 
 async function loadTorreonNatural(localidadId: number) {
-  return prismaTorreon.rondaTorreon.findMany({
-    where: { localidadId, estado: { in: [...ACTIVE_TORREON_ROUND_STATES] } },
-    include: {
-      movimientos: {
-        include: { movimiento: { include: { incidentes: true } }, bloqueadoPorIncidente: true },
-        orderBy: { orden: "asc" },
+  const [units, incidents] = await Promise.all([
+    prismaTorreon.unidadAtencionTorreon.findMany({
+      where: { localidadId, estado: { in: ['PENDIENTE', 'EN_PROCESO', 'LISTA_REANUDAR'] }, movimientos: { some: {} } },
+      include: {
+        movimientos: { include: { incidentes: true }, orderBy: { id: 'asc' } },
+        incidentes: true,
       },
-    },
-    orderBy: [{ numeroRonda: "asc" }, { createdAt: "asc" }],
-    take: 100,
+    }),
+    prismaTorreon.incidenteTorreonFerro.findMany({
+      where: { localidadId, estado: 'ABIERTO' },
+      select: { estado: true, unidadId: true, movimientoId: true, viaBloqueadaId: true, seccionBloqueadaId: true },
+    }),
+  ]);
+  return units.filter((unit: any) => isTorreonNaturalSnapshotUnitAvailable(unit, incidents)).sort((a: any, b: any) => {
+    const rank = (u: any) => u.fechaHabilitacion ? 0 : u.ordenManual != null ? 1 : 2;
+    return rank(a) - rank(b) || (a.fechaHabilitacion && b.fechaHabilitacion
+      ? new Date(a.fechaHabilitacion).getTime() - new Date(b.fechaHabilitacion).getTime()
+      : a.ordenManual != null && b.ordenManual != null ? a.ordenManual - b.ordenManual
+      : new Date(a.fechaRecepcion).getTime() - new Date(b.fechaRecepcion).getTime()) || a.id - b.id;
   });
 }
 
@@ -324,52 +349,28 @@ async function snapshotSql(
       }
     }
   } else if (profile === "TORREON_NATURAL") {
-    const rounds = await loadTorreonNatural(localidadId);
-    for (const round of rounds) {
-      statements.push(`INSERT OR REPLACE INTO rounds VALUES ${values(
-        round.id,
-        round.numeroRonda,
-        round.estado,
-        round.localidadId,
-        round.fechaApertura,
-        JSON.stringify(toJsonSafe(round))
-      )};`);
-      for (const row of round.movimientos) {
-        const movement = toJsonSafe(row.movimiento);
+    const units = await enrichNaturalSections(await loadTorreonNatural(localidadId));
+    statements.push('CREATE TABLE units (id INTEGER PRIMARY KEY, state TEXT NOT NULL, mode TEXT NOT NULL, operator_id INTEGER, position INTEGER NOT NULL, payload_json TEXT NOT NULL);');
+    for (let index = 0; index < units.length; index++) {
+      const unit = units[index];
+      statements.push(`INSERT INTO units VALUES ${values(unit.id, unit.estado, unit.modalidad, unit.operadorId, index + 1, JSON.stringify(toJsonSafe(unit)))};`);
+      for (const movement of unit.movimientos) {
+        const payload = { ...toJsonSafe(movement), unidad: { ...toJsonSafe(unit), posicion: index + 1 }, source: 'torreon' };
         statements.push(`INSERT OR REPLACE INTO movements VALUES ${values(
-          row.movimiento.id,
-          round.id,
-          "torreon",
-          row.movimiento.empresaId,
-          row.movimiento.empresaNombreSnapshot,
-          row.movimiento.locomotiveNumber,
-          row.movimiento.estado,
-          row.estado,
-          row.movimiento.prioridad,
-          round.numeroRonda,
-          row.orden,
-          row.movimiento.viaOrigenNombreSnapshot,
-          row.movimiento.viaDestinoNombreSnapshot,
-          row.movimiento.fechaSolicitud,
-          row.movimiento.fechaInicio,
-          row.movimiento.fechaFin,
-          row.movimiento.operadorId,
-          JSON.stringify(movement)
+          movement.id, null, 'torreon', movement.empresaId, movement.empresaNombreSnapshot,
+          movement.locomotiveNumber, movement.estado, null, movement.prioridad, null, null,
+          [movement.viaOrigenNombreSnapshot, movement.seccionOrigenNombreSnapshot].filter(Boolean).join(' · '),
+          [movement.viaDestinoNombreSnapshot, movement.seccionDestinoNombreSnapshot].filter(Boolean).join(' · '),
+          movement.fechaSolicitud, movement.fechaInicio, movement.fechaFin, movement.operadorId,
+          JSON.stringify(payload)
         )};`);
-        for (const incident of row.movimiento.incidentes ?? []) {
-          if (incident.estado !== "ABIERTO") continue;
-          statements.push(`INSERT OR REPLACE INTO incidents VALUES ${values(
-            "torreon_natural",
-            incident.id,
-            row.movimiento.id,
-            null,
-            null,
-            incident.estado,
-            incident.motivo,
-            incident.fechaInicio,
-            JSON.stringify(toJsonSafe(incident))
-          )};`);
-        }
+      }
+      for (const incident of unit.incidentes ?? []) {
+        if (incident.estado !== 'ABIERTO') continue;
+        statements.push(`INSERT OR REPLACE INTO incidents VALUES ${values(
+          'torreon_natural', incident.id, incident.movimientoId, null, null, incident.estado,
+          incident.motivo, incident.fechaInicio, JSON.stringify(toJsonSafe(incident))
+        )};`);
       }
     }
   } else {
@@ -498,22 +499,21 @@ const snapshotDataVersion = (source: string, createdAt: string, expiresAt: strin
 const snapshotEtag = (
   userId: number,
   profile: MaquinistaOfflineProfile,
-  dataVersion: string
-) => `"maquinista-${SCHEMA_VERSION}-${userId}-${profile}-${dataVersion}"`;
+  dataVersion: string,
+  validatedAtMs: number
+) => {
+  // A GDL snapshot expires locally even when its rows never change. Renew it at
+  // least once per validity window instead of answering 304 indefinitely.
+  const validity = profile === "GDL_NATURAL" ? `-${Math.floor(validatedAtMs / SNAPSHOT_VALIDITY_MS)}` : "";
+  return `"maquinista-${SCHEMA_VERSION}-${userId}-${profile}${validity}-${dataVersion}"`;
+};
 
 export async function createMaquinistaOfflinePackage(
   user: AuthenticatedUser,
   knownEtag?: string | null
 ): Promise<MaquinistaOfflinePackageResult> {
   await cleanupExpiredPackages();
-  const localidadId = positiveInt(user.localidad?.id);
-  if (!localidadId) {
-    const error = new Error("El usuario no tiene una localidad válida");
-    (error as any).status = 409;
-    throw error;
-  }
-
-  const profile = resolveProfile(user);
+  const { localidadId, profile } = getMaquinistaOfflineScope(user);
   const packageId = randomUUID();
   const directory = path.join(PACKAGE_ROOT, packageId);
   const snapshotPath = path.join(directory, "snapshot.db");
@@ -525,7 +525,7 @@ export async function createMaquinistaOfflinePackage(
   try {
     const snapshotSource = await snapshotSql(profile, user, createdAt, expiresAt);
     const dataVersion = snapshotDataVersion(snapshotSource, createdAt, expiresAt);
-    const etag = snapshotEtag(user.id, profile, dataVersion);
+    const etag = snapshotEtag(user.id, profile, dataVersion, Date.parse(createdAt));
     if (knownEtag === etag) {
       await fs.rm(directory, { recursive: true, force: true }).catch(() => {});
       return { notModified: true, etag };
@@ -592,6 +592,12 @@ export function getMaquinistaOfflinePackageFile(
   }
   if (entry.ownerId !== user.id) {
     const error = new Error("El paquete offline pertenece a otro usuario");
+    (error as any).status = 403;
+    throw error;
+  }
+  if (entry.manifest.localidadId !== positiveInt(user.localidad?.id)
+    || entry.manifest.profile !== resolveProfile(user)) {
+    const error = new Error("El paquete offline no corresponde a tu localidad o perfil actual");
     (error as any).status = 403;
     throw error;
   }

@@ -22,6 +22,7 @@
     "test:comercial:excel": "ts-node src/reporteria/modelos/comercial-crm-excel.test.ts",
     "prisma:comercial:generate": "node scripts/prisma-comercial.cjs generate",
     "prisma:comercial:push": "node scripts/prisma-comercial.cjs push",
+    "migrate:torreon:operativo": "node scripts/security-migrate.cjs --version=torreon-operativo-20261008 --target=torreon",
     "ms:torreon": "ts-node-dev --project ms_torreon/tsconfig.json ms_torreon/src/index.ts",
     "build:torreon": "tsc -p ms_torreon/tsconfig.json",
     "test:realtime": "ts-node src/realtime/realtimeHub.permissions.test.ts",
@@ -45,7 +46,7 @@
     "dev:worker:reports": "ts-node --files src/workers/reports.ts",
     "migrate:performance": "node scripts/security-migrate.cjs --version=performance-20260908 --target=main",
     "test:performance": "node tests/performance-regressions.cjs",
-    "test:performance:integration": "node tests/performance-integration.cjs && node tests/round-integration.cjs && node tests/report-worker-smoke.cjs",
+    "test:performance:integration": "node tests/performance-integration.cjs && node tests/round-integration.cjs && node tests/round-terminal-integration.cjs && node tests/incident-instructions-integration.cjs && node tests/report-worker-smoke.cjs",
     "benchmark:performance": "node tests/performance-benchmark.cjs"
   },
   "overrides": {

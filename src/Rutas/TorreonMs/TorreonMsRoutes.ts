@@ -1,4 +1,4 @@
-import { canClientUseTorreonPath, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
+import { canClientUseTorreonPath, isSharedTorreonNaturalRead, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
 import { registerJob } from '../../jobs/durableJobs';
 import { requireTorreonScope } from '../../auth/torreonScope';
 import { Router } from "express";
@@ -12,7 +12,9 @@ import { prisma } from "../../lib/prisma";
 import { resolverAudienciaFcmTorreon } from "../../services/torreonFcmRouting";
 
 import { prismaTorreon } from '../../lib/servicePrisma';
-import { prepareNaturalEdit, enrichNaturalEdit } from '../../services/torreonMs/prepareNaturalEdit';
+import { prepareNaturalCreate, prepareNaturalEdit, enrichNaturalEdit } from '../../services/torreonMs/prepareNaturalEdit';
+import { enrichNaturalSections } from '../../services/torreonMs/naturalSections';
+import { listarMaquinistasNaturales } from './naturalOperators.controller';
 
 const router = Router();
 
@@ -29,6 +31,7 @@ const ALLOWED_ROLES = new Set([
 
 router.use(authenticateAccess, requireTorreonScope);
 router.use(idempotentMutation);
+router.get('/cola/maquinistas', listarMaquinistasNaturales);
 
 function userRole(user?: AuthenticatedUser) {
   return String(user?.rol ?? "")
@@ -267,6 +270,7 @@ function isAllowedMaquinistaNaturalMutation(method: string, rest: string) {
   const verb = method.toUpperCase();
   const path = rest.split("?")[0];
   if (verb === "GET") return true;
+  if (verb === "POST" && /^\/cola\/\d+\/(?:iniciar|finalizar)$/.test(path)) return true;
   if (verb === "POST" && /^\/movimientos\/\d+\/iniciar$/.test(path)) return true;
   if (verb === "PATCH" && /^\/movimientos\/\d+\/finalizar$/.test(path)) return true;
   if (verb === "POST" && /^\/movimientos\/\d+\/fotos$/.test(path)) return true;
@@ -289,7 +293,7 @@ function arrastreMutationDetailPath(method: string, rest: string) {
   return match ? `/arrastres/${match[1]}` : null;
 }
 
-async function withActorDefaults(method: string, rest: string, body: unknown, user?: AuthenticatedUser) {
+async function withActorDefaults(method: string, rest: string, body: unknown, user?: AuthenticatedUser): Promise<any> {
   if (!body || typeof body !== "object" || Array.isArray(body)) return body;
 
   const userId = positiveInt(user?.id);
@@ -324,6 +328,11 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
     };
   }
 
+  if (verb === "POST" && path === "/movimientos/lote") {
+    const movements = [];
+    for (const movement of source.movimientos as Record<string, unknown>[]) movements.push(await withActorDefaults('POST', '/movimientos', movement, user));
+    return { ...source, movimientos: movements };
+  }
   if (verb === "POST" && path === "/movimientos") {
     const payload = {
       ...source,
@@ -334,7 +343,7 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
     };
     const responsables = await resolverResponsablesTorreon(payload, user, "NATURAL");
     return {
-      ...payload,
+      ...await prepareNaturalCreate(payload),
       ...exigirResponsables(responsables, positiveInt(payload.localidadId)!),
     };
   }
@@ -365,7 +374,6 @@ async function withActorDefaults(method: string, rest: string, body: unknown, us
     return {
       ...source,
       operadorId: userId,
-      resueltoPorId: userId,
     };
   }
 
@@ -422,8 +430,10 @@ function isGeneralLocalityQueueList(rest: string, user?: AuthenticatedUser) {
 
 function applyListScope(rest: string, user?: AuthenticatedUser, generalLocalityQueue = false) {
   const role = userRole(user);
-  const [path, query = ""] = rest.split("?");
-  if (!["/arrastres", "/movimientos", "/incidentes", "/rondas", "/catalogos/arrastre"].includes(path)) return rest;
+  const [rawPath, query = ""] = rest.split("?");
+  const path = rawPath.replace(/\/+$/, '') || '/';
+  if (!["/arrastres", "/movimientos", "/movimientos/buscar", "/incidentes", "/rondas", "/cola", "/cola/siguiente", "/catalogos/arrastre"].includes(path)
+    && !/^\/cola\/\d+\/historial$/.test(path)) return rest;
 
   const params = new URLSearchParams(query);
   const empresaId = readEmpresaId(user);
@@ -432,7 +442,7 @@ function applyListScope(rest: string, user?: AuthenticatedUser, generalLocalityQ
   // `alcance` es una señal interna del gateway; no se reenvía al microservicio.
   params.delete("alcance");
 
-  if (generalLocalityQueue && ["/arrastres", "/rondas"].includes(path) && localidadId) {
+  if (generalLocalityQueue && localidadId) {
     params.delete("empresaId");
     params.set("localidadId", String(localidadId));
   }
@@ -476,6 +486,7 @@ function isItemVisibleForUser(item: any, user?: AuthenticatedUser, generalLocali
   const role = userRole(user);
   if (ADMIN_ROLES.has(role)) return true;
 
+  if (Array.isArray(item?.movimientos) && item.movimientos.length) return item.movimientos.every((m: any) => isItemVisibleForUser({ ...m, localidadId: item.localidadId }, user, generalLocalityQueue));
   const itemEmpresaId = positiveInt(item?.empresaId ?? item?.movimiento?.empresaId ?? item?.arrastre?.empresaId);
   const itemLocalidadId = positiveInt(item?.localidadId ?? item?.movimiento?.localidadId ?? item?.arrastre?.localidadId);
   const empresaId = readEmpresaId(user);
@@ -496,21 +507,42 @@ function isItemVisibleForUser(item: any, user?: AuthenticatedUser, generalLocali
   return false;
 }
 
-function filterDataForUser(data: unknown, user?: AuthenticatedUser, generalLocalityQueue = false) {
+function filterDataForUser(data: unknown, user?: AuthenticatedUser, generalLocalityQueue = false, preserveScopedPagination = false) {
   if (Array.isArray(data)) return data.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
   if (!data || typeof data !== "object") return data;
 
   const source = data as Record<string, unknown>;
   if (Array.isArray(source.data)) {
     const rows = source.data.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
+    if (preserveScopedPagination) return rows.length === source.data.length ? source : null;
     return { ...source, data: rows, meta: source.meta ? { ...(source.meta as object), total: rows.length } : source.meta };
   }
   if (Array.isArray(source.items)) {
     const rows = source.items.filter((item) => isItemVisibleForUser(item, user, generalLocalityQueue));
+    if (preserveScopedPagination) return rows.length === source.items.length ? source : null;
     return { ...source, items: rows, meta: source.meta ? { ...(source.meta as object), total: rows.length } : source.meta };
   }
 
+  if (source.vacio === true && source.source === 'torreon') return source;
   return isItemVisibleForUser(source, user, generalLocalityQueue) ? data : null;
+}
+
+function redactClientNaturalGroups(data: unknown, user?: AuthenticatedUser, sharedNaturalRead = false): any {
+  if (sharedNaturalRead) return data;
+  if (!['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(userRole(user))) return data;
+  if (Array.isArray(data)) return data.map(value => redactClientNaturalGroups(value, user));
+  if (!data || typeof data !== 'object') return data;
+  const source = data as Record<string, any>;
+  const result = { ...source };
+  if (source.modalidad && Array.isArray(source.movimientos)) {
+    result.totalIntegrantes = source.totalIntegrantes ?? source.movimientos.length;
+    result.movimientos = source.movimientos.filter((m: any) => isItemVisibleForUser(m, user));
+    if (Array.isArray(source.incidentes)) result.incidentes = source.incidentes.filter((i: any) => result.movimientos.some((m: any) => m.id === i.movimientoId));
+  }
+  for (const key of ['unidad', 'movimiento', 'data', 'items', 'movimientos', 'incidentes']) {
+    if (result[key] != null) result[key] = redactClientNaturalGroups(result[key], user);
+  }
+  return result;
 }
 
 const RESPONSABLE_FIELDS = [
@@ -518,6 +550,13 @@ const RESPONSABLE_FIELDS = [
   { id: "coordinadorId", detail: "coordinador" },
   { id: "operadorId", detail: "operador" },
 ] as const;
+
+function responsableFieldsFor(source: Record<string, unknown>) {
+  // Natural requests retain their real creator; resolving a name does not assign responsibility.
+  return source.locomotiveNumber != null
+    ? [...RESPONSABLE_FIELDS, { id: "creadoPorId", detail: "creadoPor" }]
+    : RESPONSABLE_FIELDS;
+}
 
 function collectResponsableIds(value: unknown, ids: Set<number>, depth = 0) {
   if (depth > 8 || value == null) return;
@@ -528,7 +567,7 @@ function collectResponsableIds(value: unknown, ids: Set<number>, depth = 0) {
   if (typeof value !== "object") return;
 
   const source = value as Record<string, unknown>;
-  RESPONSABLE_FIELDS.forEach((field) => {
+  responsableFieldsFor(source).forEach((field) => {
     const id = positiveInt(source[field.id]);
     if (id) ids.add(id);
   });
@@ -549,7 +588,7 @@ function decorateResponsables(
     Object.entries(source).map(([key, child]) => [key, decorateResponsables(child, users, depth + 1)])
   ) as Record<string, unknown>;
 
-  RESPONSABLE_FIELDS.forEach((field) => {
+  responsableFieldsFor(source).forEach((field) => {
     const id = positiveInt(source[field.id]);
     if (id) decorated[field.detail] = users.get(id) ?? { id, nombre: `Usuario #${id}`, rol: "" };
   });
@@ -1172,11 +1211,29 @@ router.all("/*", async (req, res) => {
     });
   }
   const domainRest = scopeTorreonClientPath(role, originalRest || "/");
+  let naturalUnitState: string | undefined;
+  const auditUnitId = normalizeProxyPath(domainRest).match(/^\/cola\/(\d+)\/historial$/)?.[1];
+  if (auditUnitId && req.method.toUpperCase() === "GET" && torreonClientKind(role) === "NATURAL" && readLocalidadId(user) === 2) {
+    try {
+      const unit = await prismaTorreon.unidadAtencionTorreon.findUnique({ where: { id: Number(auditUnitId) }, select: { estado: true, localidadId: true } });
+      if (!unit) return res.status(404).json({ error: "Unidad no encontrada" });
+      if (unit.localidadId !== readLocalidadId(user)) return res.status(403).json({ error: "Unidad fuera de tu localidad" });
+      naturalUnitState = unit.estado;
+    } catch {
+      return res.status(500).json({ error: "No se pudo validar el alcance del historial" });
+    }
+  }
+  const sharedNaturalRead = isSharedTorreonNaturalRead(role, req.method, domainRest, readLocalidadId(user), naturalUnitState);
   const generalLocalityQueue = req.method.toUpperCase() === "GET"
-    && isGeneralLocalityQueueList(domainRest, user);
-  const scopedRest = req.method.toUpperCase() === "GET"
+    && (sharedNaturalRead || isGeneralLocalityQueueList(domainRest, user));
+  const scopedRest = ["GET", "HEAD"].includes(req.method.toUpperCase())
     ? applyListScope(domainRest, user, generalLocalityQueue)
     : domainRest;
+  const naturalSearch = normalizeProxyPath(scopedRest) === '/movimientos/buscar';
+  if (naturalSearch && ((isReadonlyClient(user) && !readEmpresaId(user))
+    || ((CLIENT_LOCAL_ROLES.has(role) || LOCAL_OPERATION_ROLES.has(role)) && !readLocalidadId(user)))) {
+    return res.status(403).json({ error: 'La búsqueda requiere el alcance de tu sesión' });
+  }
 
   if (
     req.method.toUpperCase() === "GET" &&
@@ -1255,16 +1312,24 @@ router.all("/*", async (req, res) => {
         ...(user?.rol ? { "x-user-rol": String(user.rol) } : {}),
       },
     });
+    const naturalResponse = /^\/(?:movimientos|cola)(?:\/|$)/.test(normalizeProxyPath(scopedRest));
 
     if (req.method.toUpperCase() === "GET") {
-      const filtered = filterDataForUser(result.data, user, generalLocalityQueue);
+      if (/^\/cola\/\d+\/historial(?:\?|$)/.test(scopedRest)) return res.status(result.status).send(result.data);
+      // Search counts are calculated after company/locality filtering in SQL.
+      // Fail closed on an unexpected out-of-scope row instead of returning its total.
+      const filtered = filterDataForUser(result.data, user, generalLocalityQueue, naturalSearch);
       if (filtered == null) return res.status(403).json({ error: "No autorizado para este recurso" });
-      const completed = await completarResponsablesFaltantes(naturalEdit && scopedRest.split("?")[0].endsWith("/edicion") ? await enrichNaturalEdit(filtered) : filtered, user);
-      return res.status(result.status).send(await enrichTorreonResponsables(completed));
+      const completed = await completarResponsablesFaltantes(filtered, user);
+      let visible = redactClientNaturalGroups(completed, user, sharedNaturalRead);
+      if (naturalResponse) visible = await enrichNaturalSections(visible);
+      if (naturalEdit && scopedRest.split("?")[0].endsWith("/edicion")) visible = await enrichNaturalEdit(visible, true);
+      return res.status(result.status).send(await enrichTorreonResponsables(visible));
     }
 
     // Notifications and reconciliation are consumed from the transactional service outbox.
-    return res.status(result.status).send(await enrichTorreonResponsables(result.data));
+    const visible = redactClientNaturalGroups(result.data, user);
+    return res.status(result.status).send(await enrichTorreonResponsables(naturalResponse ? await enrichNaturalSections(visible) : visible));
   } catch (error: any) {
     const status = Number(error?.status) || 502;
     return res.status(status).json({
@@ -1281,14 +1346,31 @@ registerJob('torreon.event', async ({ table, row, previous, action }) => {
   let data: any;
   let rest: string;
   let method = 'PATCH';
-  if (table === 'ronda_torreon_movimiento') {
+  if (table === 'unidad_atencion_torreon') {
+    if (action === 'INSERT') return;
+    if (['estado', 'operador_id', 'orden_manual'].every(key => row[key] === previous?.[key])) return;
+    const unit = await prismaTorreon.unidadAtencionTorreon.findUnique({ where: { id }, include: { movimientos: true } });
+    if (!unit) return;
+    for (const movement of unit.movimientos) publishRealtimeEvent({ type: 'torreon.movimiento.estado', source: 'torreon', localidadId: unit.localidadId, empresaId: movement.empresaId, movimientoId: movement.id, entity: 'movimiento', entityId: movement.id, accion: 'cola_actualizada', estado: movement.estado });
+    const ready = state === 'LISTA_REANUDAR' && previous?.estado !== state && unit.estado === state;
+    const assigned = row.operador_id && row.operador_id !== previous?.operador_id && unit.operadorId === row.operador_id;
+    if ((ready || assigned) && unit.operadorId && !['EN_PROCESO', 'CONCLUIDA', 'CANCELADA'].includes(unit.estado) && unit.movimientos.length) {
+      const tipo = ready ? 'torreon_reanudacion_disponible' : 'torreon_unidad_asignada';
+      await NotificadorFCM.notificarOperacionTorreon({ tipo, titulo: ready ? 'Reanudación prioritaria · Torreón' : 'Trabajo asignado · Torreón',
+        mensaje: `${unit.modalidad === 'CONJUNTO' ? 'Conjunto' : 'Unidad'} #${unit.id}${ready ? ': será tu siguiente maniobra al concluir el trabajo en curso.' : ': consulta la cola vigente.'}`,
+        empresaId: unit.movimientos[0].empresaId, localidadId: unit.localidadId, usuarioIds: [unit.operadorId], roles: ['MAQUINISTA'], url: '/movimientos', tag: `torreon:unidad:${unit.id}`,
+        data: { source: 'torreon', unidadId: unit.id, movimientoId: unit.movimientos[0].id, localidadId: unit.localidadId, accion: tipo },
+      });
+    }
+    return;
+  } else if (table === 'ronda_torreon_movimiento') {
     if (action === 'INSERT' || ['orden', 'orden_manual', 'ronda_id', 'movimiento_id', 'estado', 'bloqueado_por_incidente_id'].every(key => row[key] === previous?.[key])) return;
     const round = await prismaTorreon.rondaTorreonMovimiento.findUnique({ where: { id }, include: { movimiento: true } });
     if (!round) return;
     data = round.movimiento;
     rest = '/rondas/movimientos/orden';
   } else if (table === 'movimiento_torreon_ferro') {
-    const editFields = ['locomotive_number', 'prioridad', 'tipo_movimiento', 'instrucciones', 'via_origen_id', 'via_destino_id', 'seccion_origen_id', 'seccion_destino_id', 'posicion_cabina', 'posicion_chimenea', 'direccion_empuje'];
+    const editFields = ['locomotive_number', 'prioridad', 'tipo_movimiento', 'instrucciones', 'via_origen_id', 'via_destino_id', 'seccion_origen_id', 'seccion_destino_id', 'locomotora_remolque', 'polo', 'polo_origen', 'polo_destino', 'posicion_cabina', 'posicion_chimenea', 'direccion_empuje'];
     const edited = action !== 'INSERT' && !stateChanged && editFields.some(key => row[key] !== previous?.[key]);
     if (action !== 'INSERT' && !edited && (!stateChanged || !['EN_PROCESO', 'CONCLUIDO', 'CANCELADO'].includes(state))) return;
     data = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id } });

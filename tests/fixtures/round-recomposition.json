@@ -154,11 +154,5 @@
     "order": 1,
     "completed": false,
     "locomotive": 1024
-  },
-  {
-    "round": 10,
-    "order": 8,
-    "completed": true,
-    "locomotive": 1030
   }
 ]

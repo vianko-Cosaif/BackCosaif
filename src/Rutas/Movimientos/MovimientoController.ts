@@ -30,7 +30,7 @@ import { RequestHandler } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { MovimientoModel } from '../../models/Movimientos';
-import { buildMetaTag, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
+import { normalizarMetaInstrucciones, parseMetaFromInstrucciones } from '../../models/Movimientos/movimiento.meta';
 import { movimientoControllerLogger as log } from './movimiento.controller.logger';
 import { readMovimientoPagination } from './movimiento.pagination';
 import {
@@ -428,21 +428,22 @@ static cancelarMovimiento: RequestHandler = async (req, res) => {
 
       // Deducción de intención sin tocar DB de Vías:
       const liberarOrigenFlag =
-        raw.liberarOrigen === true || /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
+        typeof raw.liberarOrigen === 'boolean'
+          ? raw.liberarOrigen
+          : /(^|\W)liberar(\W|$)/i.test(String(raw.instrucciones ?? ''));
 
-      const meta = buildMetaTag({
-        viaDestinoId: raw.viaDestinoId,            // se guarda como META (además de en DB si viene)
-        numeroSeccion: raw.numeroSeccion,          // solo META
-        liberarOrigen: liberarOrigenFlag,
-      });
-
-      // Inyectamos META al inicio de instrucciones
+      // Reemplazamos la etiqueta previa; reintentos del formulario no acumulan META.
       const data = {
         ...raw,
-        instrucciones: `${meta}${raw.instrucciones ?? ''}`.trim(),
+        instrucciones: normalizarMetaInstrucciones(raw.instrucciones, {
+          viaDestinoId: raw.viaDestinoId,
+          numeroSeccion: raw.numeroSeccion,
+          liberarOrigen: liberarOrigenFlag,
+        }),
       };
       // ¡OJO! NO borrar viaDestinoId (sí existe en el esquema y queremos persistirlo)
       delete (data as any).numeroSeccion;
+      delete (data as any).liberarOrigen;
       delete (data as any).agendado;
       delete (data as any).fechaProgramada;
       delete (data as any).fechaProgramacion;
@@ -1687,7 +1688,8 @@ static solicitarServicioYEncolarFrenteR1: RequestHandler = async (req, res) => {
           locomotiveNumber,
           empresaId,
           localidadId,
-          estados: estadosFinal,
+          // Torreón keeps stopped requests active; only explicit state filters apply here.
+          estados: estadosFiltrados,
           prioridad,
           ambito: ambitoFinal,
           fechaCampo: fechaCampoRaw as any,

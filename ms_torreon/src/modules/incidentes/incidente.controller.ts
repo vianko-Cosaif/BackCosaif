@@ -1,3 +1,5 @@
+import { NATURAL_SOLUTION_ROLES } from "../cola/cola.policy";
+import { DomainError } from "../../utils/domainError";
 import type { Request, Response } from "express";
 import { ok } from "../../utils/http";
 import { resolverIncidenteSchema } from "./incidente.schemas";
@@ -47,7 +49,9 @@ export class IncidenteController {
 
   static async resolver(req: Request, res: Response) {
     const id = Number(req.params.id);
-    const payload = resolverIncidenteSchema.parse(req.body);
+    const rol = String(req.headers['x-user-rol'] ?? '');
+    if (!NATURAL_SOLUTION_ROLES.has(rol) && String(req.query.tipo).toUpperCase() !== 'ARRASTRE') throw new DomainError(403, 'La solución requiere cliente, coordinación o supervisión');
+    const payload = resolverIncidenteSchema.parse({ ...req.body, resueltoPorId: Number(req.headers['x-user-id']), confirmadoPorRol: rol });
     const data = await IncidenteModel.resolver(
       id,
       payload,
@@ -58,7 +62,9 @@ export class IncidenteController {
 
   static async cerrar(req: Request, res: Response) {
     const id = Number(req.params.id);
-    const payload = resolverIncidenteSchema.parse(req.body);
+    const rol = String(req.headers['x-user-rol'] ?? '');
+    if (!NATURAL_SOLUTION_ROLES.has(rol) && String(req.query.tipo).toUpperCase() !== 'ARRASTRE') throw new DomainError(403, 'La solución requiere cliente, coordinación o supervisión');
+    const payload = resolverIncidenteSchema.parse({ ...req.body, resueltoPorId: Number(req.headers['x-user-id']), confirmadoPorRol: rol });
     const data = await IncidenteModel.cerrar(
       id,
       payload,

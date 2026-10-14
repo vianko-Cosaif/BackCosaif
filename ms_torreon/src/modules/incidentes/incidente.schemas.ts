@@ -25,6 +25,7 @@ export const crearIncidenteMovimientoSchema = withCapturas.extend({
 
 export const resolverIncidenteSchema = z.object({
   resueltoPorId: idSchema,
+  confirmadoPorRol: z.string().optional(),
   solucion: z.string().min(3),
   fechaResolucion: z.coerce.date().optional(),
 });
