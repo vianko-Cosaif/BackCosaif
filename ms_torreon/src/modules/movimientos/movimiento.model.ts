@@ -107,6 +107,41 @@ const isMovimientoCerrado = (estado: EstadoMovimientoTorreon) => (
   estado === EstadoMovimientoTorreon.CONCLUIDO || estado === EstadoMovimientoTorreon.CANCELADO
 );
 
+const naturalClientRoles = new Set(['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR']);
+const isNaturalClient = (actor?: NaturalActor) => naturalClientRoles.has(actor?.rol ?? '');
+type ClientMovement = {
+  estado: string;
+  fechaInicio: Date | null;
+  unidadId: number | null;
+  clienteId: number | null;
+  creadoPorId: number;
+};
+type ClientUnit = { estado: string; fechaInicio: Date | null };
+
+function requireClientOwnership(movement: ClientMovement, actor?: NaturalActor) {
+  if (isNaturalClient(actor) && movement.clienteId !== actor!.id && movement.creadoPorId !== actor!.id) {
+    throw new DomainError(403, 'Solo puedes editar o cancelar solicitudes propias');
+  }
+}
+
+function isPendingClientMovement(movement: ClientMovement, unit: ClientUnit | null | undefined) {
+  return ['SOLICITADO', 'ASIGNADO'].includes(movement.estado)
+    && !movement.fechaInicio
+    && (!movement.unidadId || Boolean(unit))
+    && (!unit || (unit.estado === 'PENDIENTE' && !unit.fechaInicio));
+}
+
+async function requirePendingClientMovement(tx: Tx, movement: ClientMovement, actor?: NaturalActor) {
+  if (!isNaturalClient(actor)) return;
+  requireClientOwnership(movement, actor);
+  const unit = movement.unidadId ? await tx.unidadAtencionTorreon.findUnique({
+    where: { id: movement.unidadId }, select: { estado: true, fechaInicio: true },
+  }) : null;
+  if (!isPendingClientMovement(movement, unit)) {
+    throw new DomainError(409, 'Solo puedes editar o cancelar solicitudes pendientes que no hayan iniciado');
+  }
+}
+
 const requestFingerprint = (input: Record<string, unknown>) => createHash('sha256').update(JSON.stringify([
   'empresaId', 'localidadId', 'creadoPorId', 'clienteId', 'locomotiveNumber', 'viaOrigenId', 'viaDestinoId',
   'seccionOrigenId', 'seccionDestinoId', 'tipoMovimiento', 'locomotoraRemolque', 'polo', 'poloOrigen', 'poloDestino',
@@ -285,10 +320,11 @@ export class MovimientoModel {
     return Promise.all(ids.map(getMovimientoDetalle));
   }
 
-  static async obtenerEdicion(id: number) {
+  static async obtenerEdicion(id: number, actor?: NaturalActor) {
     const m = await getMovimientoDetalle(id);
+    requireClientOwnership(m, actor);
     const estadosPermitidos = ['SOLICITADO', 'ASIGNADO'];
-    const editable = estadosPermitidos.includes(m.estado);
+    const editable = isNaturalClient(actor) ? isPendingClientMovement(m, m.unidad) : estadosPermitidos.includes(m.estado);
     return {
       empresaId: m.empresaId, localidadId: m.localidadId,
       editable, restricciones: { motivo: editable ? null : 'El movimiento ya inició o terminó', estadosPermitidos, mismaLocalidadParaVias: true },
@@ -308,6 +344,7 @@ export class MovimientoModel {
       const initial = await getMovimientoOrThrow(tx, id);
       await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
+      await requirePendingClientMovement(tx, movimiento, actor);
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede editarse en estado ${movimiento.estado}`);
       }
@@ -316,7 +353,7 @@ export class MovimientoModel {
       const error = validarCondicionesNaturales(merged, { requireBothPoles: false });
       if (error) throw new DomainError(400, error);
       const changed = await tx.movimientoTorreonFerro.updateMany({
-        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt }, data: input,
+        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt, ...(isNaturalClient(actor) ? { fechaInicio: null } : {}) }, data: input,
       });
       if (changed.count !== 1) throw new DomainError(409, 'El movimiento cambió mientras lo editabas. Actualiza e intenta de nuevo.');
       const unit = await ColaNaturalModel.asegurarUnidad(tx, movimiento);
@@ -355,13 +392,14 @@ export class MovimientoModel {
       const initial = await getMovimientoOrThrow(tx, id);
       await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
+      await requirePendingClientMovement(tx, movimiento, actor);
       if (movimiento.estado === EstadoMovimientoTorreon.CANCELADO) return;
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, 'Solo se pueden cancelar movimientos pendientes de iniciar');
       }
       const fechaFin = new Date();
       const result = await tx.movimientoTorreonFerro.updateMany({
-        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt },
+        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt, ...(isNaturalClient(actor) ? { fechaInicio: null } : {}) },
         data: { estado: EstadoMovimientoTorreon.CANCELADO, finalizado: true, fechaFin,
           instrucciones: `${movimiento.instrucciones ?? ''}\nCANCELADO: ${razon}`.trim() },
       });

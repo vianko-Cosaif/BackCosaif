@@ -65,7 +65,7 @@ export class MovimientoController {
   }
 
   static async obtenerEdicion(req: Request, res: Response) {
-    return res.json(await MovimientoModel.obtenerEdicion(parseIdParam(req)));
+    return res.json(await MovimientoModel.obtenerEdicion(parseIdParam(req), actorNatural(req)));
   }
 
   static async editar(req: Request, res: Response) {
