@@ -1,3 +1,5 @@
+import { operationalNotificationText } from '../../services/operationalNotificationText';
+import { operationalNotificationTiming } from '../../services/operationalNotificationTiming';
 import { canClientUseTorreonPath, isSharedTorreonNaturalRead, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
 import { registerJob } from '../../jobs/durableJobs';
 import { requireTorreonScope } from '../../auth/torreonScope';
@@ -848,7 +850,7 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
   }
 
   if (verb === 'PATCH' && /^\/movimientos\/\d+(?:\/edicion)?$/.test(path)) {
-    return { realtimeType: 'torreon.movimiento.estado' as const, fcmTipo: 'torreon_movimiento_editado', title: 'Movimiento actualizado', body: 'Se actualizaron los datos del movimiento', url: '/movimientos', sendFcm: false, accion: 'editar' };
+    return { realtimeType: 'torreon.movimiento.estado' as const, fcmTipo: 'torreon_movimiento_editado', title: 'Movimiento actualizado', body: 'Se actualizaron los datos del movimiento', url: '/movimientos', sendFcm: false, movimientoId, accion: 'editar' };
   }
 
   if (verb === "PATCH" && path === "/rondas/movimientos/orden") {
@@ -1105,7 +1107,8 @@ function inferTorreonOperation(method: string, rest: string, data: unknown): Tor
   return null;
 }
 
-async function dispatchTorreonSideEffects(method: string, rest: string, data: unknown, user?: AuthenticatedUser, requestBody?: any) {
+async function dispatchTorreonSideEffects(method: string, rest: string, data: unknown, user?: AuthenticatedUser, requestBody?: any, occurredAt?: unknown) {
+  const timing = operationalNotificationTiming(occurredAt);
   const operation = inferTorreonOperation(method, rest, data);
   if (!operation) return;
 
@@ -1125,11 +1128,14 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
     movimientoId,
   });
 
+  const text = operationalNotificationText({ title: operation.title, body: operation.body }, {
+    movimientoId, arrastreId, incidenteId: operation.incidenteId, localidadId, locomotiveNumber,
+  });
   const fcmRouting = resolverAudienciaFcmTorreon(operation.fcmTipo);
   publishRealtimeEvent({
-    recipientRoles: operation.sendFcm ? (fcmRouting?.roles ?? []) : [],
-    notificationTitle: operation.title,
-    notificationBody: operation.body,
+    recipientRoles: timing.notify && operation.sendFcm ? (fcmRouting?.roles ?? []) : [],
+    notificationTitle: timing.notify ? text.title : undefined,
+    notificationBody: timing.notify ? text.body : undefined,
     type: operation.realtimeType,
     source: "torreon",
     ...realtimeEntity,
@@ -1140,11 +1146,12 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
     arrastreId,
     vagonId: operation.vagonId ?? null,
     incidenteId: operation.incidenteId ?? null,
-    estado,
-    accion: operation.accion,
+    // Historical events refresh clients without overwriting current state with an old snapshot.
+    estado: timing.notify ? estado : undefined,
+    accion: timing.notify ? operation.accion : 'sincronizar',
     locomotiveNumber,
-    version: entity?.updatedAt ?? null,
-    snapshot: compactRealtimeSnapshot(entity) as Record<string, unknown> | null,
+    version: timing.notify ? entity?.updatedAt ?? null : undefined,
+    snapshot: timing.notify ? compactRealtimeSnapshot(entity) as Record<string, unknown> | null : undefined,
   });
 
   const affectsArrastreQueue =
@@ -1157,12 +1164,12 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
     });
   }
 
-  if (!operation.sendFcm || !fcmRouting) return;
+  if (!timing.notify || !operation.sendFcm || !fcmRouting) return;
 
     await NotificadorFCM.notificarOperacionTorreon({
       tipo: operation.fcmTipo,
-      titulo: operation.title,
-      mensaje: operation.body,
+      titulo: text.title,
+      mensaje: text.body,
       empresaId,
       localidadId,
       usuarioIds: [positiveInt(user?.id), positiveInt(entity?.creadoPorId), positiveInt(entity?.operadorId), positiveInt(entity?.clienteId)],
@@ -1170,6 +1177,8 @@ async function dispatchTorreonSideEffects(method: string, rest: string, data: un
       url: fcmRouting?.url ?? operation.url,
       tag: `torreon:${operation.fcmTipo}:${arrastreId ?? movimientoId ?? operation.incidenteId ?? Date.now()}`,
       data: {
+        occurredAt: timing.occurredAt,
+        expiresAt: timing.expiresAt,
         eventType: operation.realtimeType,
         audience: fcmRouting?.audience,
         source: "torreon",
@@ -1339,7 +1348,8 @@ router.all("/*", async (req, res) => {
   }
 });
 
-registerJob('torreon.event', async ({ table, row, previous, action }) => {
+registerJob('torreon.event', async ({ table, row, previous, action, occurredAt }) => {
+  const timing = operationalNotificationTiming(occurredAt);
   const id = Number(row.id);
   const state = row.estado;
   const stateChanged = state !== previous?.estado;
@@ -1351,15 +1361,15 @@ registerJob('torreon.event', async ({ table, row, previous, action }) => {
     if (['estado', 'operador_id', 'orden_manual'].every(key => row[key] === previous?.[key])) return;
     const unit = await prismaTorreon.unidadAtencionTorreon.findUnique({ where: { id }, include: { movimientos: true } });
     if (!unit) return;
-    for (const movement of unit.movimientos) publishRealtimeEvent({ type: 'torreon.movimiento.estado', source: 'torreon', localidadId: unit.localidadId, empresaId: movement.empresaId, movimientoId: movement.id, entity: 'movimiento', entityId: movement.id, accion: 'cola_actualizada', estado: movement.estado });
+    for (const movement of unit.movimientos) publishRealtimeEvent({ type: 'torreon.movimiento.estado', source: 'torreon', localidadId: unit.localidadId, empresaId: movement.empresaId, movimientoId: movement.id, entity: 'movimiento', entityId: movement.id, accion: 'cola_actualizada', estado: movement.estado, recipientRoles: [] });
     const ready = state === 'LISTA_REANUDAR' && previous?.estado !== state && unit.estado === state;
     const assigned = row.operador_id && row.operador_id !== previous?.operador_id && unit.operadorId === row.operador_id;
-    if ((ready || assigned) && unit.operadorId && !['EN_PROCESO', 'CONCLUIDA', 'CANCELADA'].includes(unit.estado) && unit.movimientos.length) {
+    if (timing.notify && (ready || assigned) && unit.operadorId && !['EN_PROCESO', 'CONCLUIDA', 'CANCELADA'].includes(unit.estado) && unit.movimientos.length) {
       const tipo = ready ? 'torreon_reanudacion_disponible' : 'torreon_unidad_asignada';
       await NotificadorFCM.notificarOperacionTorreon({ tipo, titulo: ready ? 'Reanudación prioritaria · Torreón' : 'Trabajo asignado · Torreón',
         mensaje: `${unit.modalidad === 'CONJUNTO' ? 'Conjunto' : 'Unidad'} #${unit.id}${ready ? ': será tu siguiente maniobra al concluir el trabajo en curso.' : ': consulta la cola vigente.'}`,
         empresaId: unit.movimientos[0].empresaId, localidadId: unit.localidadId, usuarioIds: [unit.operadorId], roles: ['MAQUINISTA'], url: '/movimientos', tag: `torreon:unidad:${unit.id}`,
-        data: { source: 'torreon', unidadId: unit.id, movimientoId: unit.movimientos[0].id, localidadId: unit.localidadId, accion: tipo },
+        data: { occurredAt: timing.occurredAt, expiresAt: timing.expiresAt, source: 'torreon', unidadId: unit.id, movimientoId: unit.movimientos[0].id, localidadId: unit.localidadId, accion: tipo },
       });
     }
     return;
@@ -1413,7 +1423,7 @@ registerJob('torreon.event', async ({ table, row, previous, action }) => {
       data.estado = 'CERRADO';
     }
   }
-  await dispatchTorreonSideEffects(method, rest, data);
+  await dispatchTorreonSideEffects(method, rest, data, undefined, undefined, occurredAt);
 });
 
 export default router;

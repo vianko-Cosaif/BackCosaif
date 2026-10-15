@@ -1,3 +1,4 @@
+import { operationalNotificationText } from './operationalNotificationText';
 import { logicalNotificationId } from './logicalNotificationId';
 import { isPatioStart, patioStartNotice } from './patioNotificationPolicy';
 import { resolverAudienciaFcmNatural } from './naturalFcmRouting';
@@ -25,7 +26,8 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
       .filter(([, value]) => value !== undefined && value !== null)
       .map(([key, value]) => [key, String(value)])
   );
-  if (isPatioStart(data)) {
+  const patioStart = isPatioStart(data);
+  if (patioStart) {
     data.notificationScope = 'patio';
     const notice = patioStartNotice(data);
     notification = { title: notice.notificationTitle, body: notice.notificationBody };
@@ -43,6 +45,11 @@ export async function sendMulticastCompat(message: MulticastMessageCompat) {
       `Movimiento #${data.movimientoId}`, data.localidadNombre || (data.localidadId ? `Patio ${data.localidadId}` : '')].filter(Boolean).join(' · ');
     notification = { title, body }; data.title = title; data.body = body;
   }
+  notification = operationalNotificationText(notification, patioStart ? {
+    movimientoId: data.movimientoId, localidadId: data.localidadId,
+    locomotiveNumber: data.locomotiveNumber || data.locomotora,
+  } : data);
+  data.title = String(notification.title ?? ''); data.body = String(notification.body ?? '');
   const jobKey = getDurableJobKey();
   const logicalId = logicalNotificationId(data);
   const eventId = logicalId || data.eventId || (jobKey

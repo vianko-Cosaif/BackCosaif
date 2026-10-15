@@ -3,18 +3,18 @@ import { enqueueJob } from './durableJobs';
 import { logger } from '../utils/logger';
 import { isTornoModuleEnabled } from '../config/tornoFeature';
 let running = false;
-const disabledDevelopmentServices = new Set<string>();
+// An unavailable service is retried independently; startup/transient failures
+// must never disable its outbox until the API restarts.
+const retries = new Map<string, { failures: number; nextAttemptAt: number }>();
 
-function skipUnavailableServiceInDevelopment(service: string, error: any): boolean {
-  if (process.env.NODE_ENV === 'production') return false;
-  if (!disabledDevelopmentServices.has(service)) {
-    disabledDevelopmentServices.add(service);
-    logger.warn('outbox:service_disabled_in_development', {
-      service,
-      message: error?.meta?.message || error?.message || 'No se pudo leer operational_outbox',
-    });
-  }
-  return true;
+function scheduleRetry(service: string, error: any) {
+  const failures = (retries.get(service)?.failures ?? 0) + 1;
+  const delayMs = Math.min(300_000, 5_000 * 2 ** Math.min(failures - 1, 6));
+  retries.set(service, { failures, nextAttemptAt: Date.now() + delayMs });
+  const details = { service, failures, retryAfterSeconds: delayMs / 1000,
+    code: typeof error?.code === 'string' ? error.code : 'unknown' };
+  if (process.env.NODE_ENV === 'production') logger.error('outbox:import_retry', details);
+  else logger.warn('outbox:import_retry', details);
 }
 
 export async function importServiceEvents() {
@@ -23,7 +23,7 @@ export async function importServiceEvents() {
   try {
     for (const [service, db] of [['torno', prismaTorno], ['torreon', prismaTorreon]] as const) {
       if (service === 'torno' && !isTornoModuleEnabled()) continue;
-      if (disabledDevelopmentServices.has(service)) continue;
+      if ((retries.get(service)?.nextAttemptAt ?? 0) > Date.now()) continue;
       try {
         await db.$transaction(async (tx: any) => {
           const events = await tx.$queryRawUnsafe('SELECT * FROM operational_outbox WHERE processed_at IS NULL ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 50');
@@ -35,10 +35,9 @@ export async function importServiceEvents() {
             await tx.$executeRaw`UPDATE operational_outbox SET processed_at = NOW() WHERE id = ${event.id}`;
           }
         }, { timeout: 30_000 });
+        if (retries.delete(service)) logger.info('outbox:import_recovered', { service });
       } catch (error: any) {
-        if (!skipUnavailableServiceInDevelopment(service, error)) {
-          logger.error('outbox:import_failed', { service, message: error.message });
-        }
+        scheduleRetry(service, error);
       }
     }
   } finally { running = false; }

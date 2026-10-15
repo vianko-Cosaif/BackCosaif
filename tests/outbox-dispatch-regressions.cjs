@@ -67,6 +67,19 @@ async function main() {
   assert.equal(events.at(-1).type,'torreon.movimiento.creado');
   assert.equal(events.at(-1).recipientRoles.length,0);
   assert.equal(notifications.length,beforeTimeout+1,'Closure plus retry generates just one notification');
-  console.log('Outbox: movement resume, incident IDs and queue order event delivery OK');
+
+  const beforeStale = notifications.length;
+  await dispatch({ table:'movimiento_torreon_ferro', action:'UPDATE', row:{id:71,estado:'EN_PROCESO'}, previous:{estado:'DETENIDO'}, occurredAt:new Date(Date.now()-3600000).toISOString() });
+  assert.equal(notifications.length,beforeStale,'Historical outbox events never send push');
+  assert.equal(events.at(-1).recipientRoles.length,0); assert.equal(events.at(-1).snapshot,undefined);
+  assert.equal(events.at(-1).estado,undefined); assert.equal(events.at(-1).accion,'sincronizar');
+  const recent = new Date(Date.now()-1000).toISOString();
+  await dispatch({ table:'movimiento_torreon_ferro', action:'UPDATE', row:{id:71,estado:'EN_PROCESO'}, previous:{estado:'DETENIDO'}, occurredAt:recent });
+  assert.equal(notifications.length,beforeStale+1,'Recent operational events still notify');
+  assert.equal(notifications.at(-1).data.occurredAt,recent);
+  assert.equal(Date.parse(notifications.at(-1).data.expiresAt),Date.parse(recent)+300000);
+  assert.match(events.at(-1).notificationBody,/Patio 20/);
+  assert.equal(events.at(-1).notificationBody,notifications.at(-1).mensaje);
+  console.log('Outbox: movement resume, incident IDs, historical refresh and fresh notification delivery OK');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
