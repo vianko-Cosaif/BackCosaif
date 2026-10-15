@@ -1,3 +1,4 @@
+import { shouldNotifyIncidentTimeout } from '../../services/operationalNotificationTiming';
 import { enqueueJob, registerJob, runJobsOnce, isDurableJobExecution } from '../../jobs/durableJobs';
 import { publicUserSelect } from '../../auth/publicUser';
 import { prisma } from '../../lib/prisma';
@@ -483,7 +484,8 @@ export class IncidenteModel {
     registerJob('incident.reprogram', async (payload) => {
       await this.reprogramarMovimientoPorIncidenteNoResuelto(Number(payload.incidenteId));
       const incident = await prisma.incidente.findUnique({ where: { id: Number(payload.incidenteId) } });
-      if (incident) await NotificadorFCM.notificarCambioEstado(incident, 'ABIERTO', 'incidente_timeout');
+      // Reprogramming above remains mandatory/idempotent; only the expired alert is omitted.
+      if (incident && shouldNotifyIncidentTimeout(incident)) await NotificadorFCM.notificarCambioEstado(incident, 'ABIERTO', 'incidente_timeout');
     });
     let scanning = false;
     const scan = async () => {
@@ -786,7 +788,7 @@ export class IncidenteModel {
               );
             }
 
-            await bestEffort(
+            if (shouldNotifyIncidentTimeout(incidente)) await bestEffort(
               'NotificadorFCM.notificarCancelacionMovimiento(limite_incidentes)',
               () =>
                 NotificadorFCM.notificarCancelacionMovimiento(
@@ -856,11 +858,14 @@ export class IncidenteModel {
         });
 
         if (nuevoMovimientoRealtime) {
-          publishMovimientoCreadoEvent(nuevoMovimientoRealtime);
-          publishMovimientoEstadoEvent({
-            ...nuevoMovimientoRealtime,
-            estadoAnterior: 'DETENIDO',
-          });
+          if (shouldNotifyIncidentTimeout(incidente)) {
+            publishMovimientoCreadoEvent(nuevoMovimientoRealtime);
+            publishMovimientoEstadoEvent({ ...nuevoMovimientoRealtime, estadoAnterior: 'DETENIDO' });
+          } else {
+            publishRealtimeEvent({ type: 'movimiento.estado', movimientoId: nuevoMovimientoRealtime.id,
+              empresaId: nuevoMovimientoRealtime.empresaId, localidadId: nuevoMovimientoRealtime.localidadId,
+              clienteId: nuevoMovimientoRealtime.clienteId, recipientRoles: [], accion: 'sincronizar' });
+          }
           publishRondaReordenadaEvent({
             id: nuevoMovimientoRealtime.ronda?.id ?? resultado.rondaId,
             movimientoId: nuevoMovimientoRealtime.id,
@@ -875,7 +880,7 @@ export class IncidenteModel {
           });
         }
 
-        await bestEffort(
+        if (shouldNotifyIncidentTimeout(incidente)) await bestEffort(
           'NotificadorFCM.notificarNuevoMovimiento(reprogramado)',
           () => NotificadorFCM.notificarNuevoMovimiento(resultado.nuevoMovimientoId),
           { rid, incidenteId, nuevoMovimientoId: resultado.nuevoMovimientoId }

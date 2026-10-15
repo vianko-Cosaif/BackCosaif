@@ -1,3 +1,4 @@
+import { operationalNotificationTiming } from '../../services/operationalNotificationTiming';
 import { registerJob } from '../../jobs/durableJobs';
 import { prismaTorno } from '../../lib/servicePrisma';
 import { requireTornoScope, filterTornoResponse } from '../../auth/tornoScope';
@@ -402,7 +403,7 @@ async function concludeMovimientoForStartedTorneado(data: unknown, body: unknown
   });
 }
 
-async function publishTornoStatusEventIfNeeded(method: string, rest: string, data: unknown) {
+async function publishTornoStatusEventIfNeeded(method: string, rest: string, data: unknown, notify = true) {
   const isStart = isStartTorneadoRequest(method, rest);
   const isConclude = isConcludeTorneadoRequest(method, rest);
   if (!isStart && !isConclude) return;
@@ -431,8 +432,9 @@ async function publishTornoStatusEventIfNeeded(method: string, rest: string, dat
     localidadId: movimiento.localidadId,
     clienteId: movimiento.clienteId,
     rondaId: getRondaServicioIdFromTornoStatusResponse(data, rest),
-    estado,
-    finalizado: isConclude,
+    estado: notify ? estado : undefined,
+    finalizado: notify ? isConclude : undefined,
+    ...(!notify ? { recipientRoles: [], accion: 'sincronizar' } : {}),
     locomotiveNumber: movimiento.locomotiveNumber,
     reason: isConclude ? "torno.concluido" : "torno.iniciado",
   });
@@ -890,7 +892,8 @@ router.all("/*", async (req, res) => {
   }
 });
 
-registerJob('torno.event', async ({ table, row, previous, action }) => {
+registerJob('torno.event', async ({ table, row, previous, action, occurredAt }) => {
+  const timing = operationalNotificationTiming(occurredAt);
   const id = Number(row.id);
   if (table === 'RondaServicio') {
     if (row.status === previous?.status) return;
@@ -900,11 +903,12 @@ registerJob('torno.event', async ({ table, row, previous, action }) => {
     const rest = `/rondas-servicio/${id}/${row.status === 'EN_PROCESO' ? 'iniciar' : 'concluir'}`;
     if (row.status === 'EN_PROCESO') await concludeMovimientoForStartedTorneado(data, {});
     if (['EN_PROCESO', 'CONCLUIDO'].includes(row.status)) {
-      await publishTornoStatusEventIfNeeded('POST', rest, data);
-      await notifyTornoServiceIfNeeded('POST', rest, {}, data);
+      await publishTornoStatusEventIfNeeded('POST', rest, data, timing.notify);
+      if (timing.notify) await notifyTornoServiceIfNeeded('POST', rest, {}, data);
     }
     return;
   }
+  if (!timing.notify) return;
   if (table === 'Cambio') return notifyCambioNavajaIfNeeded(action === 'INSERT' ? 'POST' : 'PATCH', action === 'INSERT' ? '/cambios-navaja' : `/cambios-navaja/${id}`, row, row);
   const child = table === 'IncidenteTornoHijo';
   const rest = child ? '/incidentes-hijos' : '/incidentes';

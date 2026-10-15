@@ -16,7 +16,7 @@ export function patioStartNotice(event: Record<string, any>) {
     estado: 'EN_PROCESO', notificationOnly: true, notificationScope: 'patio',
     recipientRoles: event.recipientRoles,
     notificationTitle: 'Movimiento iniciado en tu patio',
-    notificationBody: `${locomotive ? `Locomotora ${locomotive} · ` : ''}Movimiento #${event.movimientoId}. La operación del patio está en marcha.`,
+    notificationBody: `${locomotive ? `Locomotora ${locomotive} · ` : ''}Movimiento #${event.movimientoId}${event.localidadId ? ` · Patio ${event.localidadId}` : ''}. La operación del patio está en marcha.`,
   };
 }
 
