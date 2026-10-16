@@ -17,7 +17,9 @@ const tx = {
     updateMany: async ({ where, data }) => {
       const row = rows.get(where.id);
       if (compareConflict || !row || row.estado !== where.estado || row.updatedAt.getTime() !== where.updatedAt.getTime()
-        || ('fechaInicio' in where && row.fechaInicio !== where.fechaInicio)) return { count: 0 };
+        || ('fechaInicio' in where && row.fechaInicio !== where.fechaInicio)
+        || ('empresaId' in where && row.empresaId !== where.empresaId)
+        || ('localidadId' in where && row.localidadId !== where.localidadId)) return { count: 0 };
       writes.push({ where: clone(where), data: clone(data) });
       Object.assign(row, clone(data)); row.updatedAt = new Date(row.updatedAt.getTime() + 1);
       return { count: 1 };
@@ -63,7 +65,7 @@ async function rejected(action, actor, status) {
 }
 async function main() {
   for (const rol of roles) {
-    const actor = { id: 7, rol };
+    const actor = { id: 7, rol, empresaId: 3, localidadId: 2 };
     for (const ownership of [{ clienteId: 7, creadoPorId: 8 }, { clienteId: 8, creadoPorId: 7 }]) {
       reset(); Object.assign(rows.get(1), ownership);
       const sibling = clone(rows.get(2));
@@ -88,7 +90,8 @@ async function main() {
     }
     for (const action of ['editar', 'cancelar']) {
       reset(); rows.get(1).clienteId = 9; rows.get(1).creadoPorId = 10;
-      await rejected(action, actor, 403);
+      if (action === 'editar') await rejected(action, actor, 403);
+      else { await change(action, actor); assert.equal(rows.get(1).estado, 'CANCELADO', 'Another creator in the same company is cancelable'); }
       await assert.rejects(() => model.obtenerEdicion(1, actor), error => error.status === 403);
       for (const estado of ['EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO']) {
         reset(); rows.get(1).estado = estado;
@@ -108,15 +111,22 @@ async function main() {
         assert.equal((await model.obtenerEdicion(1, actor)).editable, false);
         await rejected(action, actor, 409);
       }
-      for (const race of ['state', 'date', 'unit', 'owner']) {
+      for (const race of ['state', 'date', 'unit', ...(action === 'editar' ? ['owner'] : ['company', 'locality'])]) {
         reset(); onLock = () => {
           if (race === 'state') rows.get(1).estado = 'EN_PROCESO';
           if (race === 'date') rows.get(1).fechaInicio = new Date(1);
           if (race === 'unit') { unit.estado = 'EN_PROCESO'; unit.fechaInicio = new Date(1); }
+          if (race === 'company') rows.get(1).empresaId = 4;
+          if (race === 'locality') rows.get(1).localidadId = 8;
           if (race === 'owner') { rows.get(1).clienteId = 9; rows.get(1).creadoPorId = 10; }
         };
-        await rejected(action, actor, race === 'owner' ? 403 : 409);
+        await rejected(action, actor, ['owner', 'company', 'locality'].includes(race) ? 403 : 409);
         assert.equal(locks, 1, 'The model rereads ownership and start state after the locality lock');
+      }
+      if (action === 'cancelar') {
+        for (const scope of [{ empresaId: 4 }, { localidadId: 8 }, { empresaId: undefined }, { localidadId: undefined }]) {
+          reset(); await rejected(action, { ...actor, ...scope }, 403);
+        }
       }
       reset(); compareConflict = true; await rejected(action, actor, 409);
       reset(); rows.get(1).estado = 'ASIGNADO'; await change(action, actor);
@@ -137,6 +147,6 @@ async function main() {
   })('ms_torreon/src/modules/movimientos/movimiento.controller.ts').MovimientoController;
   await invoke(controller.obtenerEdicion, { params: { id: '1' }, headers: { 'x-user-id': '7', 'x-user-rol': 'CLIENTE' } });
   assert.deepEqual(JSON.parse(JSON.stringify(received)), [1, { id: 7, rol: 'CLIENTE' }]);
-  console.log('PASS Torreón client actions: 3 client roles own requests only; pending/assigned before movement and group start; canceled retry409; locked state/owner races and CAS; individual group cancellation/audit; legacy partial edits; operational behavior preserved; controller forwards verified actor');
+  console.log('PASS Torreón client actions: 3 client roles edit own requests, cancel same-company/locality requests; pending/assigned before movement and group start; canceled retry409; locked state/owner races and CAS; individual group cancellation/audit; legacy partial edits; operational behavior preserved; controller forwards verified actor');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

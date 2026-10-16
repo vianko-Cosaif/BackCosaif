@@ -2,6 +2,8 @@ import { operationalNotificationText } from '../../services/operationalNotificat
 import { operationalNotificationTiming } from '../../services/operationalNotificationTiming';
 import { canClientUseTorreonPath, isSharedTorreonNaturalRead, scopeTorreonClientPath, torreonClientKind } from "../../auth/torreonClientPolicy";
 import { registerJob } from '../../jobs/durableJobs';
+import { buildAuthorizationProfile } from '../../auth/accessPolicy';
+import { resourceFitsAuthorizationScope } from '../../auth/resourceScope';
 import { requireTorreonScope } from '../../auth/torreonScope';
 import { Router } from "express";
 import { authenticateAccess } from "../../auth/authenticateAccess";
@@ -1312,6 +1314,24 @@ router.all("/*", async (req, res) => {
         : await withActorDefaults(req.method, scopedRest, req.body, user);
     const naturalEdit = scopedRest.split('?')[0].match(/^\/movimientos\/(\d+)(?:\/edicion)?$/);
     if (req.method === 'PATCH' && naturalEdit) proxiedBody = await prepareNaturalEdit(Number(naturalEdit[1]), readRecord(proxiedBody) ?? {});
+
+    if (req.method === 'PATCH' && /^\/movimientos\/\d+\/cancelar$/.test(normalizeProxyPath(scopedRest))) {
+      // This scope comes only from the JWT and travels inside the signed body.
+      const body = { ...(readRecord(proxiedBody) ?? {}) };
+      delete body._clientScope;
+      if (['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(role)) {
+        const movementId = Number(normalizeProxyPath(scopedRest).split('/')[2]);
+        const movement = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id: movementId }, select: { empresaId: true, localidadId: true } });
+        if (!movement) return res.status(404).json({ error: 'Movimiento no encontrado' });
+        const auth = req.authorization ?? buildAuthorizationProfile(user!);
+        if (!readEmpresaId(user) || movement.empresaId !== readEmpresaId(user) || !resourceFitsAuthorizationScope(auth, movement)) {
+          return res.status(403).json({ error: 'Movimiento fuera de tu empresa o alcance' });
+        }
+        // Company-scoped roles retain their existing access across yards.
+        body._clientScope = { empresaId: readEmpresaId(user), localidadId: movement.localidadId };
+      }
+      proxiedBody = body;
+    }
 
     const result = await proxyToTorreonMs(scopedRest, {
       method: req.method,

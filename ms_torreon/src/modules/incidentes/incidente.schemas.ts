@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { fotoInputSchema } from "../movimientos/movimiento.schemas";
+import { fotoIncidenteSchema } from "../movimientos/movimiento.schemas";
 
 const idSchema = z.coerce.number().int().positive();
 
 const withCapturas = z.object({
-  fotos: z.array(fotoInputSchema).optional(),
-  capturas: z.array(fotoInputSchema).optional(),
+  fotos: z.array(fotoIncidenteSchema).max(4).optional(),
+  capturas: z.array(fotoIncidenteSchema).max(4).optional(),
 });
 
 export const crearIncidenteMovimientoSchema = withCapturas.extend({
@@ -17,9 +17,7 @@ export const crearIncidenteMovimientoSchema = withCapturas.extend({
 }).transform((data) => ({
   ...data,
   fotos: data.fotos ?? data.capturas ?? [],
-})).refine((data) => data.fotos.length >= 1, {
-  message: "El incidente requiere minimo 1 captura",
-}).refine((data) => data.fotos.length <= 4, {
+})).refine((data) => data.fotos.length <= 4, {
   message: "El incidente permite maximo 4 capturas",
 });
 

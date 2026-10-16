@@ -39,7 +39,7 @@ export function iniciarServidorTorreon(): void {
       next();
     });
     app.use(express.json({
-      limit: "50mb",
+      limit: "60mb",
       verify: (req: RequestWithRawBody, _res, buf) => {
         req.rawBody = Buffer.from(buf);
       },

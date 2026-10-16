@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fotoInputSchema } from "../movimientos/movimiento.schemas";
+import { fotoInputSchema, fotoIncidenteSchema } from "../movimientos/movimiento.schemas";
 
 const idSchema = z.coerce.number().int().positive();
 const textRefSchema = z.union([z.string(), z.number()])
@@ -252,7 +252,9 @@ export const reordenarSolicitudesArrastreSchema = z.object({
   message: "El desplazamiento requiere una sola solicitud", path: ["arrastreIds"],
 });
 
-export const crearIncidenteArrastreSchema = withCapturas.extend({
+export const crearIncidenteArrastreSchema = z.object({
+  fotos: z.array(fotoIncidenteSchema).max(4).optional(),
+  capturas: z.array(fotoIncidenteSchema).max(4).optional(),
   creadoPorId: idSchema,
   motivo: z.string().trim().min(3),
   vagonId: idSchema.optional(),
@@ -263,9 +265,7 @@ export const crearIncidenteArrastreSchema = withCapturas.extend({
 }).transform((data) => ({
   ...data,
   fotos: data.fotos ?? data.capturas ?? [],
-})).refine((data) => data.fotos.length >= 1, {
-  message: "El incidente de arrastre requiere al menos 1 captura",
-}).refine((data) => data.fotos.length <= 4, {
+})).refine((data) => data.fotos.length <= 4, {
   message: "El incidente de arrastre permite maximo 4 capturas",
 });
 

@@ -103,11 +103,13 @@ export async function iniciarServidor(): Promise<void> {
       return authenticateAccess(req, res, next);
     });
     const largeBody = express.json({ limit: '50mb' });
+    // Four 10 MiB photos require about 54 MiB after JSON/base64 encoding.
+    const torreonImageBody = express.json({ limit: '60mb' });
     const normalBody = express.json({ limit: '1mb' });
     const imageConcurrency = concurrencyLimit(2);
     app.use((req, res, next) => {
       if (/^\/(incidentes|torno|torreon)(\/|$)/.test(req.path) && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
-        return imageConcurrency(req, res, error => error ? next(error) : largeBody(req, res, next));
+        return imageConcurrency(req, res, error => error ? next(error) : (/^\/torreon(?:\/|$)/.test(req.path) ? torreonImageBody : largeBody)(req, res, next));
       }
       return normalBody(req, res, next);
     });

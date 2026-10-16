@@ -1,3 +1,4 @@
+import { createIncidentWithEvidence, incidentImagePaths, saveIncidentImages, removeIncidentImages } from '../../services/incidentEvidence';
 import { shouldNotifyIncidentTimeout } from '../../services/operationalNotificationTiming';
 import { enqueueJob, registerJob, runJobsOnce, isDurableJobExecution } from '../../jobs/durableJobs';
 import { publicUserSelect } from '../../auth/publicUser';
@@ -1196,11 +1197,14 @@ export class IncidenteModel {
           imgs: data.imagenes?.length ?? 0,
         });
 
+        const preparedImages = data.imagenes?.length ? await saveIncidentImages(data.imagenes, id) : [];
+        let previousImages: string[] = [];
         const { incidenteActualizado, estadoAnterior } = await traceSpan(
           'prisma.$transaction(editarIncidente)',
           () =>
             prisma.$transaction(async (tx) => {
               trace('info', 'tx:load incidente', { rid, id });
+              await tx.$queryRaw`SELECT id FROM "Incidente" WHERE id = ${id} FOR UPDATE`;
 
               const actual = await tx.incidente.findUnique({
                 where: { id },
@@ -1211,37 +1215,12 @@ export class IncidenteModel {
               const updateData: any = {};
               if (data.descripcion !== undefined) updateData.descripcion = data.descripcion;
 
-              // reemplazo de imágenes
-              if (data.imagenes?.length) {
-                trace('info', 'tx:reemplazo imagenes:start', { rid, id, count: data.imagenes.length });
-
-                const anteriores = [actual.imagen1, actual.imagen2, actual.imagen3, actual.imagen4];
-                for (const ruta of anteriores) {
-                  if (!ruta) continue;
-                  try {
-                    await fs.unlink(path.join(IMAGEN_CONFIG.carpetaBase, ruta));
-                    TRACE_VERBOSE && trace('debug', 'unlink imagen anterior OK', { rid, ruta });
-                  } catch (err: any) {
-                    trace('warn', 'No se pudo eliminar imagen anterior', {
-                      rid,
-                      ruta,
-                      err: String(err?.message ?? err),
-                    });
-                  }
-                }
-
-                const rutas = await traceSpan(
-                  'procesarImagenes',
-                  () => IncidenteModel.procesarImagenes(data.imagenes as Buffer[], id),
-                  { rid, incidenteId: id }
-                );
-
-                updateData.imagen1 = rutas[0] ?? null;
-                updateData.imagen2 = rutas[1] ?? null;
-                updateData.imagen3 = rutas[2] ?? null;
-                updateData.imagen4 = rutas[3] ?? null;
-
-                trace('info', 'tx:reemplazo imagenes:done', { rid, id, rutasCount: rutas.length });
+              if (preparedImages.length) {
+                previousImages = incidentImagePaths(actual);
+                updateData.imagen1 = preparedImages[0] ?? null;
+                updateData.imagen2 = preparedImages[1] ?? null;
+                updateData.imagen3 = preparedImages[2] ?? null;
+                updateData.imagen4 = preparedImages[3] ?? null;
               }
 
               if (data.estado !== undefined && data.estado !== actual.estado) {
@@ -1289,6 +1268,9 @@ export class IncidenteModel {
             }),
           { rid, id }
         );
+        // If commit acknowledgement fails, preserve both batches for safe recovery.
+        // The DB now references the complete new batch. Only now retire old files.
+        if (preparedImages.length) await removeIncidentImages(previousImages);
 
         // ======= LÓGICA AL CERRAR =======
         if (data.estado === 'CERRADO') {
@@ -1346,48 +1328,8 @@ export class IncidenteModel {
 
   /* ======================= IMÁGENES ======================= */
 
-  private static async procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
-    const rid = _rid();
-    return traceSpan(
-      'procesarImagenes',
-      async () => {
-        const fecha = new Date();
-        const ano = fecha.getFullYear();
-        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-        const dia = String(fecha.getDate()).padStart(2, '0');
-
-        const carpetaDestino = path.join(IMAGEN_CONFIG.carpetaBase, String(ano), mes, dia);
-        await fs.mkdir(carpetaDestino, { recursive: true });
-
-        trace('info', 'procesarImagenes:mkdir', { rid, incidenteId, carpetaDestino });
-
-        const rutasGuardadas: string[] = [];
-        for (let i = 0; i < imagenes.length && i < 4; i++) {
-          const nombreArchivo = `incidente_${incidenteId}_imagen_${i + 1}_${Date.now()}.${IMAGEN_CONFIG.format}`;
-          const rutaCompleta = path.join(carpetaDestino, nombreArchivo);
-
-          TRACE_VERBOSE && trace('debug', 'sharp:start', { rid, incidenteId, idx: i + 1, rutaCompleta });
-
-          await sharp(imagenes[i])
-            .resize(IMAGEN_CONFIG.maxWidth, IMAGEN_CONFIG.maxHeight, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: IMAGEN_CONFIG.quality, progressive: true, mozjpeg: true })
-            .toFile(rutaCompleta);
-
-          rutasGuardadas.push(path.relative(IMAGEN_CONFIG.carpetaBase, rutaCompleta));
-          TRACE_VERBOSE && trace('debug', 'sharp:done', { rid, incidenteId, idx: i + 1 });
-        }
-
-        trace('info', 'Imágenes procesadas y guardadas', {
-          rid,
-          incidenteId,
-          cantidad: rutasGuardadas.length,
-          carpeta: carpetaDestino,
-        });
-
-        return rutasGuardadas;
-      },
-      { rid, incidenteId, count: imagenes?.length ?? 0 }
-    );
+  private static procesarImagenes(imagenes: Buffer[], incidenteId: number): Promise<string[]> {
+    return saveIncidentImages(imagenes, incidenteId);
   }
 
   /* ===== Reglas de reorganización por incidente (explícitas) ===== */
@@ -1622,50 +1564,12 @@ export class IncidenteModel {
         });
         if (!movimiento) throw new Error(`No se encontró movimiento con id ${data.movimientoId}`);
 
-        const incidenteExistente = await prisma.incidente.findFirst({
-          where: {
-            movimientoId: data.movimientoId,
-            usuarioId: data.usuarioId,
-            descripcion: data.descripcion,
-            estado: 'ABIERTO',
-          },
-          orderBy: { fechaInicio: 'desc' },
-        });
-        if (incidenteExistente) {
-          trace('info', 'crearIncidente:idempotente', {
-            rid,
-            incidenteId: incidenteExistente.id,
-            movimientoId: data.movimientoId,
-          });
-          return incidenteExistente;
-        }
-
-        const fechaInicioIncidente = new Date();
-
-        const nuevoIncidente = await prisma.incidente.create({
-          data: {
-            descripcion: data.descripcion,
-            movimientoId: data.movimientoId,
-            usuarioId: data.usuarioId,
-            estado: 'ABIERTO',
-            fechaInicio: fechaInicioIncidente,
-          },
-        });
-
-        let rutasImagenes: string[] = [];
-        if (data.imagenes?.length) {
-          rutasImagenes = await this.procesarImagenes(data.imagenes, nuevoIncidente.id);
-        }
-
-        const incidenteConImagenes = await prisma.incidente.update({
-          where: { id: nuevoIncidente.id },
-          data: {
-            imagen1: rutasImagenes[0] ?? null,
-            imagen2: rutasImagenes[1] ?? null,
-            imagen3: rutasImagenes[2] ?? null,
-            imagen4: rutasImagenes[3] ?? null,
-          },
-        });
+        const persisted = await createIncidentWithEvidence(prisma, data);
+        const nuevoIncidente = persisted.incidente;
+        const incidenteConImagenes = persisted.incidente;
+        const rutasImagenes = incidentImagePaths(persisted.incidente);
+        if (!persisted.isNew) return persisted.incidente;
+        const fechaInicioIncidente = nuevoIncidente.fechaInicio;
 
         const cadenaMovimientos = await this.obtenerCadenaMovimientos(data.movimientoId);
         const totalIncidentesCadena = await prisma.incidente.count({

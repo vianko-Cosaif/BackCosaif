@@ -115,12 +115,14 @@ type ClientMovement = {
   unidadId: number | null;
   clienteId: number | null;
   creadoPorId: number;
+  empresaId: number;
+  localidadId: number;
 };
 type ClientUnit = { estado: string; fechaInicio: Date | null };
 
 function requireClientOwnership(movement: ClientMovement, actor?: NaturalActor) {
   if (isNaturalClient(actor) && movement.clienteId !== actor!.id && movement.creadoPorId !== actor!.id) {
-    throw new DomainError(403, 'Solo puedes editar o cancelar solicitudes propias');
+    throw new DomainError(403, 'Solo puedes editar solicitudes propias');
   }
 }
 
@@ -131,9 +133,13 @@ function isPendingClientMovement(movement: ClientMovement, unit: ClientUnit | nu
     && (!unit || (unit.estado === 'PENDIENTE' && !unit.fechaInicio));
 }
 
-async function requirePendingClientMovement(tx: Tx, movement: ClientMovement, actor?: NaturalActor) {
+async function requirePendingClientMovement(tx: Tx, movement: ClientMovement, actor?: NaturalActor, action: 'editar' | 'cancelar' = 'editar') {
   if (!isNaturalClient(actor)) return;
-  requireClientOwnership(movement, actor);
+  if (action === 'cancelar') {
+    if (!actor?.empresaId || !actor.localidadId || movement.empresaId !== actor.empresaId || movement.localidadId !== actor.localidadId) {
+      throw new DomainError(403, 'Solo puedes cancelar solicitudes de tu empresa y localidad');
+    }
+  } else requireClientOwnership(movement, actor);
   const unit = movement.unidadId ? await tx.unidadAtencionTorreon.findUnique({
     where: { id: movement.unidadId }, select: { estado: true, fechaInicio: true },
   }) : null;
@@ -392,14 +398,14 @@ export class MovimientoModel {
       const initial = await getMovimientoOrThrow(tx, id);
       await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
-      await requirePendingClientMovement(tx, movimiento, actor);
+      await requirePendingClientMovement(tx, movimiento, actor, 'cancelar');
       if (movimiento.estado === EstadoMovimientoTorreon.CANCELADO) return;
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, 'Solo se pueden cancelar movimientos pendientes de iniciar');
       }
       const fechaFin = new Date();
       const result = await tx.movimientoTorreonFerro.updateMany({
-        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt, ...(isNaturalClient(actor) ? { fechaInicio: null } : {}) },
+        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt, ...(isNaturalClient(actor) ? { fechaInicio: null, empresaId: actor!.empresaId, localidadId: actor!.localidadId } : {}) },
         data: { estado: EstadoMovimientoTorreon.CANCELADO, finalizado: true, fechaFin,
           instrucciones: `${movimiento.instrucciones ?? ''}\nCANCELADO: ${razon}`.trim() },
       });
@@ -469,7 +475,9 @@ export class MovimientoModel {
       await auditNatural(tx, unit, actor ?? { id: input.creadoPorId }, 'REPORTAR_INCIDENTE', { movimientoIds: unit.movimientos.map(m => m.id), motivo: input.motivo }, id, incident.id);
       return incident.id;
     });
-    return { movimiento: await getMovimientoDetalle(id), incidenteId: result };
+    const movimiento = await getMovimientoDetalle(id);
+    const incidente = movimiento.incidentes.find(item => item.id === result);
+    return { movimiento, incidenteId: result, fotosGuardadas: incidente?.fotos.length ?? 0 };
   }
   static async reanudar(_id: number, _input: z.infer<typeof reanudarMovimientoSchema>, _actor?: NaturalActor): Promise<never> {
     throw new DomainError(403, 'La reanudación requiere solución externa del incidente. Cuando esté habilitada, toma la unidad con Iniciar.');

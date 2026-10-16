@@ -1,3 +1,4 @@
+import { incidentImagePaths } from '../../services/incidentEvidence';
 // src/controllers/IncidenteController.ts
 import { RequestHandler, ErrorRequestHandler } from 'express';
 import multer from 'multer';
@@ -180,10 +181,11 @@ export class IncidenteController {
         return res.status(201).json({ success: true, data: jsonSafe(nuevo) }); // fallback
       }
 
-      return res.status(201).json({ success: true, data: { id: typeof id === 'bigint' ? id.toString() : id } });
+      return res.status(201).json({ success: true, data: { id: typeof id === 'bigint' ? id.toString() : id, imagenesGuardadas: incidentImagePaths(nuevo).length, imagenes: incidentImagePaths(nuevo) } });
     } catch (error) {
       incidenteControllerLogger.error('crear', { ms: Date.now() - t0, body: req.body, error });
-      return res.status(500).json({ success: false, error: 'Error al crear incidente' });
+      const status = [400, 409].includes((error as any)?.status) ? (error as any).status : 500;
+      return res.status(status).json({ success: false, error: status === 500 ? 'Error al crear incidente' : (error as Error).message });
     }
   };
 
@@ -226,10 +228,11 @@ export class IncidenteController {
         (actualizado as any)?.data?.id ??
         id;
 
-      return res.json({ success: true, data: { id: typeof outId === 'bigint' ? outId.toString() : outId } });
+      return res.json({ success: true, data: { id: typeof outId === 'bigint' ? outId.toString() : outId, imagenesGuardadas: incidentImagePaths(actualizado).length, imagenes: incidentImagePaths(actualizado) } });
     } catch (error) {
       incidenteControllerLogger.error('editar', { id: req.params.id, error });
-      return res.status(500).json({ success: false, error: 'Error al editar incidente' });
+      const status = [400, 409].includes((error as any)?.status) ? (error as any).status : 500;
+      return res.status(status).json({ success: false, error: status === 500 ? 'Error al editar incidente' : (error as Error).message });
     }
   };
 

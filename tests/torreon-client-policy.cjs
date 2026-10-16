@@ -55,6 +55,15 @@ async function main() {
     resource = { empresaId: 4, localidadId: 2 };
     assert.equal((await invoke(editScope, req)).statusCode, 403, role + ' no puede editar otra empresa');
   }
+  for (const role of roles) {
+    const req = { user: user(role), method: 'PATCH', path: '/movimientos/701/cancelar', body: { _clientScope: { empresaId: 4, localidadId: 8 } } };
+    resource = { empresaId: 3, localidadId: 2, clienteId: 99, creadoPorId: 98 };
+    assert.equal((await invoke(editScope, req)).allowed, true, 'Cancellation does not require ownership');
+    for (const foreign of [{ empresaId: 4, localidadId: 2 }, { empresaId: 3, localidadId: 8 }]) {
+      resource = foreign;
+      assert.equal((await invoke(editScope, req)).statusCode, foreign.empresaId !== 3 || role === 'CLIENTE' ? 403 : 200);
+    }
+  }
   const editableStates = load('src/models/Movimientos/movimiento.shared.ts').ESTADOS_EDITABLES;
   for (const state of ['EN_PROCESO', 'DETENIDO', 'CONCLUIDO', 'CANCELADO']) assert.equal(editableStates.has(state), false);
 
@@ -114,7 +123,7 @@ async function main() {
     'src/lib/prisma': { prisma: { token: { findFirst: async () => ({ usuarioId: 5 }) }, usuario: { findMany: async ({ where }) => { userLookups.push(where.id.in); return names.filter(person => where.id.in.includes(person.id)); } } } },
     'src/services/torreonMs/prepareNaturalEdit': { prepareNaturalCreate: async body => body, prepareNaturalEdit: async (_id, body) => body, enrichNaturalEdit: async body => body },
     'src/services/torreonFcmRouting': { resolverAudienciaFcmTorreon() {} },
-    'src/lib/servicePrisma': { prismaTorreon: { unidadAtencionTorreon: { findUnique: async () => auditUnit } } },
+    'src/lib/servicePrisma': { prismaTorreon: { movimientoTorreonFerro: { findUnique: async () => resource }, unidadAtencionTorreon: { findUnique: async () => auditUnit } } },
   });
   routeLoad('src/Rutas/TorreonMs/TorreonMsRoutes.ts');
   const create = await invoke(handler, { user: user('CLIENTE'), method: 'POST', baseUrl: '/torreon', originalUrl: '/torreon/movimientos', body: { empresaId: 3, localidadId: 2, clienteId: 999 } });
@@ -224,6 +233,24 @@ async function main() {
   const beforeMissingScope = calls.length;
   const missingScope = await invoke(handler, { user: { ...user('CLIENTE'), empresa: undefined }, method: 'GET', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/buscar?localidadId=2' });
   assert.equal(missingScope.statusCode, 403); assert.equal(calls.length, beforeMissingScope);
+  responseData = { id: 701, empresaId: 3, localidadId: 2 };
+  resource = { empresaId: 3, localidadId: 2 };
+  for (const role of [...roles, 'ADMINISTRADOR']) {
+    const result = await invoke(handler, { user: user(role), method: 'PATCH', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/701/cancelar', body: { razon: 'Duplicado', _clientScope: { empresaId: 444, localidadId: 88 } } });
+    assert.equal(result.statusCode, 201);
+    const scope = calls.at(-1).body._clientScope;
+    if (role === 'ADMINISTRADOR') assert.equal(scope, undefined);
+    else assert.deepEqual(JSON.parse(JSON.stringify(scope)), { empresaId: 3, localidadId: 2 }, 'Signed scope always comes from JWT, never body');
+  }
+  for (const role of roles) {
+    const req = { user: { ...user(role), localidad: { id: 8 } }, method: 'PATCH', baseUrl: '/torreon', originalUrl: '/torreon/movimientos/701/cancelar', body: { razon: 'Duplicado', _clientScope: { empresaId: 444, localidadId: 88 } } };
+    resource = { empresaId: 3, localidadId: 2 };
+    const result = await invoke(handler, req);
+    assert.equal(result.statusCode, role === 'CLIENTE' ? 403 : 201);
+    if (role !== 'CLIENTE') assert.deepEqual(JSON.parse(JSON.stringify(calls.at(-1).body._clientScope)), { empresaId: 3, localidadId: 2 }, 'Company roles sign the verified resource locality, not their session default');
+    resource = { empresaId: 444, localidadId: 2 };
+    assert.equal((await invoke(handler, req)).statusCode, 403, 'Foreign company cannot be forged through signed scope');
+  }
   console.log('PASS Torreón clients: active yard shared; closed company history and audits private; coordination sees all; mutations remain restricted');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
