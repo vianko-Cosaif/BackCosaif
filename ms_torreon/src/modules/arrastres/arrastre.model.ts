@@ -1307,10 +1307,9 @@ export class ArrastreModel {
       return { arrastreId: id, incidenteId: incidente.id };
     });
 
-    return {
-      arrastre: await getArrastreDetalle(result.arrastreId),
-      incidenteId: result.incidenteId,
-    };
+    const arrastre = await getArrastreDetalle(result.arrastreId);
+    const incidente = arrastre.incidentes.find(item => item.id === result.incidenteId);
+    return { arrastre, incidenteId: result.incidenteId, fotosGuardadas: incidente?._count.fotos ?? 0 };
   }
 
   static async resolverIncidente(

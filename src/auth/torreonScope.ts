@@ -25,9 +25,19 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
     const resources: { empresaId: number; localidadId: number }[] = [];
     const evidence = path.match(/^\/incidentes\/(\d+)\/fotos\/\d+$/);
     if (evidence) {
-      const incident = await prismaTorreon.incidenteTorreonFerro.findUnique({ where: { id: Number(evidence[1]) }, select: { movimiento: { select: { empresaId: true, localidadId: true } } } });
-      if (!incident) return res.status(404).json({ error: 'Incidente no encontrado' });
-      resources.push(incident.movimiento);
+      const tipo = String(req.query.tipo ?? 'NATURAL').toUpperCase();
+      if (!['NATURAL', 'ARRASTRE'].includes(tipo)) return res.status(400).json({ error: 'Tipo de incidente inválido' });
+      const naturalClient = ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(user.rol);
+      if ((naturalClient && tipo !== 'NATURAL') || (user.rol === 'ARRASTRE_TORREON' && tipo !== 'ARRASTRE')) return deny();
+      if (tipo === 'ARRASTRE') {
+        const incident = await prismaTorreon.incidenteArrastreTorreon.findUnique({ where: { id: Number(evidence[1]) }, select: { arrastre: { select: { empresaId: true, localidadId: true } } } });
+        if (!incident) return res.status(404).json({ error: 'Incidente no encontrado' });
+        resources.push(incident.arrastre);
+      } else {
+        const incident = await prismaTorreon.incidenteTorreonFerro.findUnique({ where: { id: Number(evidence[1]) }, select: { movimiento: { select: { empresaId: true, localidadId: true } } } });
+        if (!incident) return res.status(404).json({ error: 'Incidente no encontrado' });
+        resources.push(incident.movimiento);
+      }
     }
     const isDispatch = ['COORDINADOR', 'SUPERVISOR', 'ADMINISTRADOR'].includes(user.rol);
     if (path.startsWith('/rondas/') && req.method !== 'GET') return res.status(409).json({ error: 'Torreón opera mediante cola, sin rondas' });
@@ -75,8 +85,7 @@ export const requireTorreonScope: RequestHandler = (req, res, next) => {
       if (!row) return res.status(404).json({ error: 'Movimiento no encontrado' });
       resources.push(row);
       if (path.endsWith('/cancelar') && ['CLIENTE', 'CLIENTE_ADMIN', 'CLIENTE_COOR'].includes(user.rol)) {
-        const owner = await prismaTorreon.movimientoTorreonFerro.findUnique({ where: { id: Number(movimiento[1]) }, select: { clienteId: true, creadoPorId: true } });
-        if (!owner || (owner.clienteId !== user.id && owner.creadoPorId !== user.id)) return deny();
+        if (!user.empresa?.id || row.empresaId !== user.empresa.id || !resourceFitsAuthorizationScope(auth, row)) return deny();
       }
     }
     const arrastre = path.match(/^\/arrastres\/(\d+)(?:\/|$)/);

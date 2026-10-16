@@ -6,7 +6,7 @@ import { proyectarHistorialNatural } from './cola.history';
 import { enriquecerTiemposNaturales } from './cola.time';
 
 type Tx = Prisma.TransactionClient;
-export type NaturalActor = { id: number; rol?: string };
+export type NaturalActor = { id: number; rol?: string; empresaId?: number; localidadId?: number };
 export const unidadInclude = {
   movimientos: { include: { incidentes: { include: { fotos: true } }, fotos: true }, orderBy: { id: 'asc' as const } },
   incidentes: { include: { fotos: true }, orderBy: { fechaInicio: 'asc' as const } },

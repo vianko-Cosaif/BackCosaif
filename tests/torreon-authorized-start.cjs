@@ -26,7 +26,7 @@ async function main() {
       update: async ({ where, data }) => Object.assign(units.find(u => u.id === where.id), data),
     },
     movimientoTorreonFerro: {
-      findUnique: async ({ where }) => movements.find(m => m.id === where.id),
+      findUnique: async ({ where, include }) => { const row = movements.find(m => m.id === where.id); return row && include ? { ...row, incidentes: incidents.filter(i => i.movimientoId === row.id) } : row; },
       update: async ({ where, data }) => Object.assign(movements.find(m => m.id === where.id), data),
       updateMany: async ({ where, data }) => { const rows = movements.filter(m => m.unidadId === where.unidadId && stateMatches(m.estado, where.estado)); rows.forEach(m => Object.assign(m, data)); return { count: rows.length }; },
     },
@@ -50,7 +50,7 @@ async function main() {
     'ms_torreon/src/db/prisma': { prismaTorreon: db },
     'ms_torreon/src/utils/imagenesTorreon': { guardarFotoTorreon: async foto => ({ url: foto.url }) },
     'ms_torreon/src/modules/incidentes/incidente.model': { IncidenteModel: { crearParaMovimiento: async (_tx, row, input) => {
-      const incident = { id: incidents.length + 50, localidadId: row.localidadId, movimientoId: row.id, estado: 'ABIERTO', motivo: input.motivo };
+      const incident = { id: incidents.length + 50, localidadId: row.localidadId, movimientoId: row.id, estado: 'ABIERTO', motivo: input.motivo, fotos: input.fotos.map((_photo, i) => ({ id: 100 + i, url: 'synthetic-stored-' + i })) };
       incidents.push(incident); return incident;
     } } },
   };
@@ -60,7 +60,9 @@ async function main() {
   const moves = load('ms_torreon/src/modules/movimientos/movimiento.model.ts').MovimientoModel;
   const start = (id = driver.id, extra = {}) => ({ iniciadoPorId: id, fotos: [], ...extra });
   const first = await moves.detenerConIncidente(1, { creadoPorId: driver.id, motivo: 'Falla de equipo', fotos: [] }, driver);
-  const second = await moves.detenerConIncidente(2, { creadoPorId: driver.id, motivo: 'Otra falla', fotos: [] }, driver);
+  const second = await moves.detenerConIncidente(2, { creadoPorId: driver.id, motivo: 'Otra falla', fotos: Array(4).fill({ dataUrl: 'data:image/jpeg;base64,synthetic' }) }, driver);
+  assert.equal(first.fotosGuardadas, 0);
+  assert.equal(second.fotosGuardadas, 4, 'Acknowledgement uses the persisted incident detail');
   assert.equal(units[0].estado, 'DETENIDA');
   assert.ok(movements.slice(0, 2).every(m => m.estado === 'DETENIDO' && m.fechaPausa));
   assert.equal(movements[2].estado, 'CANCELADO', 'Stopping a group preserves closed members');

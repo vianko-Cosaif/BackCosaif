@@ -25,6 +25,11 @@ export const fotoInputSchema = z.object({
   }
 });
 
+// New incident evidence must contain uploaded bytes, never a device-local URI.
+export const fotoIncidenteSchema = fotoInputSchema.refine(foto => Boolean(foto.base64 || foto.contenidoBase64 || foto.dataUrl), {
+  message: 'Adjunta el contenido de la foto; una ruta local no guarda la imagen',
+});
+
 const withCapturas = z.object({
   fotos: z.array(fotoInputSchema).optional(),
   fotosPorMovimiento: z.array(z.object({ movimientoId: idSchema, fotos: z.array(fotoInputSchema).min(1).max(4) })).optional(),

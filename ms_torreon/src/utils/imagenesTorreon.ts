@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
@@ -83,7 +84,7 @@ const buildNombreArchivo = (params: GuardarFotoParams) => {
     params.referenciaId,
     params.tipo,
     params.orden,
-    Date.now(),
+    randomUUID(),
   ].filter((part): part is string | number => part !== undefined);
 
   return `${parts.map(sanitizePart).join("_")}.jpeg`;
