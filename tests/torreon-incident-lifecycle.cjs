@@ -2,13 +2,13 @@ const assert = require('node:assert/strict');
 const { loader } = require('./support/load-ts.cjs');
 async function main() {
   const writes = [], audit = [], unit = { id: 9, localidadId: 2 };
-  let state = 'ABIERTO', claim = 1;
+  let state = 'ABIERTO', claim = 1, onLock, currentMovement;
   const record = { id: 50, movimientoId: 1, localidadId: 2, movimiento: { id: 1, unidadId: 9, estado: 'DETENIDO', operadorId: 42, fechaInicio: new Date(0) } };
-  const tx = { incidenteTorreonFerro: { findUnique: async () => ({ ...record, estado: state }), updateMany: async args => { writes.push(args); return { count: claim }; } } };
+  const tx = { incidenteTorreonFerro: { findUnique: async () => ({ ...record, movimiento: structuredClone(currentMovement ?? record.movimiento), estado: state }), updateMany: async args => { writes.push(args); return { count: claim }; } } };
   let recalculated = 0;
   const model = loader({
     'ms_torreon/src/db/prisma': { prismaTorreon: {} }, 'ms_torreon/src/utils/imagenesTorreon': {},
-    'ms_torreon/src/modules/cola/cola.model': { ColaNaturalModel: { asegurarUnidad: async () => unit, recalcularTx: async (_tx, yard, actor) => { assert.equal(yard, 2); assert.equal(actor.rol, 'CLIENTE'); recalculated++; } }, lockNaturalLocality: async () => {}, auditNatural: async (...args) => audit.push(args) },
+    'ms_torreon/src/modules/cola/cola.model': { ColaNaturalModel: { asegurarUnidad: async (_tx, movement) => { if (currentMovement) { assert.equal(movement.unidadId, 9, 'Uses unit established by concurrent cancellation'); assert.equal(movement.estado, 'CANCELADO', 'Rereads current movement after locality lock'); } return unit; }, recalcularTx: async (_tx, yard, actor) => { assert.equal(yard, 2); assert.equal(actor.rol, 'CLIENTE'); recalculated++; } }, lockNaturalLocality: async () => { onLock?.(); }, auditNatural: async (...args) => audit.push(args) },
     'ms_torreon/src/modules/arrastres/arrastre.model': { ArrastreModel: { recalcularBloqueosLocalidad: async () => {} } },
   })('ms_torreon/src/modules/incidentes/incidente.model.ts').IncidenteModel;
   const input = { resueltoPorId: 7, confirmadoPorRol: 'CLIENTE', solucion: 'Equipo reparado' };
@@ -22,6 +22,23 @@ async function main() {
   assert.equal(recalculated, 1, 'Lost concurrent solution never enables a second resumption');
   state = 'RESUELTO'; const count = writes.length; await model.resolverTx(tx, 50, input); assert.equal(writes.length, count);
   await assert.rejects(() => model.cerrarTx(tx, 50, input), e => e.status === 409);
+  // A resolver waiting behind cancellation must discard its legacy unbound snapshot.
+  state = 'ABIERTO'; claim = 1; currentMovement = { ...record.movimiento, unidadId: null };
+  onLock = () => { currentMovement = { ...currentMovement, unidadId: 9, estado: 'CANCELADO' }; unit.estado = 'CANCELADA'; };
+  await model.resolverTx(tx, 50, input);
+  assert.equal(unit.estado, 'CANCELADA');
+  const beforeResolvedRace = writes.length;
+  state = 'ABIERTO'; onLock = () => { state = 'RESUELTO'; };
+  await model.resolverTx(tx, 50, input);
+  assert.equal(writes.length, beforeResolvedRace, 'An incident resolved while waiting is idempotent after reread');
+  // The actual recalculator only loads DETENIDA units, so cancelled history cannot revive.
+  let recalculationWrites = 0;
+  const realQueue = loader({ 'ms_torreon/src/db/prisma': { prismaTorreon: {} } })('ms_torreon/src/modules/cola/cola.model.ts').ColaNaturalModel;
+  await realQueue.recalcularTx({ unidadAtencionTorreon: {
+    findMany: async ({ where }) => { assert.equal(where.estado, 'DETENIDA'); return unit.estado === where.estado ? [unit] : []; },
+    update: async () => { recalculationWrites++; },
+  } }, 2, { id: 7, rol: 'CLIENTE' });
+  assert.equal(recalculationWrites, 0, 'Resolving the retained incident never revives a fully cancelled unit');
   const policy = loader()('ms_torreon/src/modules/cola/cola.policy.ts');
   const ordinary = id => ({ id, fechaRecepcion: new Date(id), fechaHabilitacion: null, ordenManual: null });
   const units = [ordinary(1), { ...ordinary(2), ordenManual: -5 }, { ...ordinary(3), fechaHabilitacion: new Date(20) }, { ...ordinary(4), fechaHabilitacion: new Date(10) }, { ...ordinary(5), ordenManual: -6 }, ordinary(6)];

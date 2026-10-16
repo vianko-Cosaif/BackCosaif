@@ -51,7 +51,9 @@ export function calcularTiempoNatural(movement: ClockMovement, events: ClockEven
       estimated = true;
     } else addPause(from, end);
   }
-  if (movement.estado === 'DETENIDO') addPause(millis(movement.fechaPausa), end);
+  // A canceled paused request retains its last pause as historical evidence.
+  // The terminal fechaFin bounds it even when legacy incident/audit records are absent.
+  if (['DETENIDO', 'CANCELADO'].includes(movement.estado)) addPause(millis(movement.fechaPausa), end);
   pauses.sort((a, b) => a[0] - b[0]);
   let paused = 0;
   let coveredUntil = start;
