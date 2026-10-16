@@ -133,7 +133,7 @@ function isPendingClientMovement(movement: ClientMovement, unit: ClientUnit | nu
     && (!unit || (unit.estado === 'PENDIENTE' && !unit.fechaInicio));
 }
 
-async function requirePendingClientMovement(tx: Tx, movement: ClientMovement, actor?: NaturalActor, action: 'editar' | 'cancelar' = 'editar') {
+async function requireClientMovementAction(tx: Tx, movement: ClientMovement, actor?: NaturalActor, action: 'editar' | 'cancelar' = 'editar') {
   if (!isNaturalClient(actor)) return;
   if (action === 'cancelar') {
     if (!actor?.empresaId || !actor.localidadId || movement.empresaId !== actor.empresaId || movement.localidadId !== actor.localidadId) {
@@ -141,10 +141,21 @@ async function requirePendingClientMovement(tx: Tx, movement: ClientMovement, ac
     }
   } else requireClientOwnership(movement, actor);
   const unit = movement.unidadId ? await tx.unidadAtencionTorreon.findUnique({
-    where: { id: movement.unidadId }, select: { estado: true, fechaInicio: true },
+    where: { id: movement.unidadId }, select: { estado: true, fechaInicio: true, movimientos: { select: { estado: true } } },
   }) : null;
+  if (action === 'cancelar') {
+    // A paused request may have started earlier; cancellation follows its current state.
+    // Keep every sibling and unresolved physical incident intact.
+    if (!['SOLICITADO', 'ASIGNADO', 'DETENIDO'].includes(movement.estado)
+      || (movement.unidadId && !unit)
+      || (unit && (!['PENDIENTE', 'DETENIDA', 'LISTA_REANUDAR'].includes(unit.estado)
+        || unit.movimientos.some(member => member.estado === 'EN_PROCESO')))) {
+      throw new DomainError(409, 'No puedes cancelar un movimiento o conjunto en proceso, concluido o cancelado');
+    }
+    return;
+  }
   if (!isPendingClientMovement(movement, unit)) {
-    throw new DomainError(409, 'Solo puedes editar o cancelar solicitudes pendientes que no hayan iniciado');
+    throw new DomainError(409, 'Solo puedes editar solicitudes pendientes que no hayan iniciado');
   }
 }
 
@@ -350,7 +361,7 @@ export class MovimientoModel {
       const initial = await getMovimientoOrThrow(tx, id);
       await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
-      await requirePendingClientMovement(tx, movimiento, actor);
+      await requireClientMovementAction(tx, movimiento, actor);
       if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
         throw new DomainError(409, `Movimiento no puede editarse en estado ${movimiento.estado}`);
       }
@@ -398,14 +409,16 @@ export class MovimientoModel {
       const initial = await getMovimientoOrThrow(tx, id);
       await lockNaturalLocality(tx, initial.localidadId);
       const movimiento = await getMovimientoOrThrow(tx, id);
-      await requirePendingClientMovement(tx, movimiento, actor, 'cancelar');
+      await requireClientMovementAction(tx, movimiento, actor, 'cancelar');
       if (movimiento.estado === EstadoMovimientoTorreon.CANCELADO) return;
-      if (!new Set<EstadoMovimientoTorreon>(['SOLICITADO', 'ASIGNADO']).has(movimiento.estado)) {
+      const cancelableStates: EstadoMovimientoTorreon[] = isNaturalClient(actor)
+        ? ['SOLICITADO', 'ASIGNADO', 'DETENIDO'] : ['SOLICITADO', 'ASIGNADO'];
+      if (!cancelableStates.includes(movimiento.estado)) {
         throw new DomainError(409, 'Solo se pueden cancelar movimientos pendientes de iniciar');
       }
       const fechaFin = new Date();
       const result = await tx.movimientoTorreonFerro.updateMany({
-        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt, ...(isNaturalClient(actor) ? { fechaInicio: null, empresaId: actor!.empresaId, localidadId: actor!.localidadId } : {}) },
+        where: { id, estado: movimiento.estado, updatedAt: movimiento.updatedAt, ...(isNaturalClient(actor) ? { empresaId: actor!.empresaId, localidadId: actor!.localidadId } : {}) },
         data: { estado: EstadoMovimientoTorreon.CANCELADO, finalizado: true, fechaFin,
           instrucciones: `${movimiento.instrucciones ?? ''}\nCANCELADO: ${razon}`.trim() },
       });

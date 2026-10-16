@@ -332,7 +332,7 @@ export class IncidenteModel {
     incidenteId: number,
     input: z.infer<typeof resolverIncidenteSchema>
   ) {
-    const incidente = await tx.incidenteTorreonFerro.findUnique({
+    let incidente = await tx.incidenteTorreonFerro.findUnique({
       where: { id: incidenteId },
       include: { movimiento: true },
     });
@@ -340,6 +340,11 @@ export class IncidenteModel {
 
     if (incidente.estado === EstadoIncidenteTorreon.RESUELTO) return incidente;
     await lockNaturalLocality(tx, incidente.localidadId);
+    // Cancellation may have closed or created the legacy movement's unit while we waited.
+    // Never recreate a ready unit from the snapshot read before the locality lock.
+    incidente = await tx.incidenteTorreonFerro.findUnique({ where: { id: incidenteId }, include: { movimiento: true } });
+    if (!incidente) throw new DomainError(404, 'Incidente no encontrado');
+    if (incidente.estado === EstadoIncidenteTorreon.RESUELTO) return incidente;
 
     const changed = await tx.incidenteTorreonFerro.updateMany({
       where: { id: incidenteId, estado: EstadoIncidenteTorreon.ABIERTO },
